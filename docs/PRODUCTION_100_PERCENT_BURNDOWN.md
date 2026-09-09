@@ -1,0 +1,168 @@
+# Production 100 Percent Burn-Down
+
+Last refreshed: 2026-07-03
+
+This is the short execution list. Work starts at the first local open gate and
+only moves when the named receipt passes or the blocker receipt names the exact
+reason it cannot pass.
+
+## Gate Order
+
+| order | gate | status | percent | exact next receipt |
+|---:|---|---|---:|---|
+| 1 | CI and repo hygiene | passing at last push; protect | 100 | Latest GitHub Actions run for `master` is green; local sensitive-content, manifest, artifact-hygiene, and diff checks pass before every push. |
+| 2 | RAW video reconstruction | closed; protect | 100 | Existing 4K cleanup and 8K SR lock-ledger, dashboards, ProRes media, editable raw receipts, and manifest guards remain green. |
+| 3 | RAW stills | open on darkframe provenance | 92 | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate with four same-camera/same-ISO no-scene-signal CFA frames each, then camera-noise sidecars pass strict provenance. |
+| 4 | RAW video MVP | externally blocked on camera-role run | 80 | Real Mission 1 camera-role receipts from sensor/DMA or camera ring-buffer source, SD writer, rear display, valid `.gvid`, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. |
+| 5 | Premium still/SR | open local model gate | 60 | Gate20 target coverage is now authorized: expanded rebuilt supervision has 1,593 rows, with 594 50 MP rows and 999 100 MP rows. The next receipt is no-REF Gate20 training plus broad 50 MP / 100 MP audit. |
+
+## Current First Local Gate
+
+Gate 5 is the first open local gate because Gate 4 requires real Mission 1
+camera-role access. The latest Gate 5 branch moved from selector smoke to full
+promotion validation:
+
+| branch | evidence | decision |
+|---|---|---|
+| frequency-pyramid source-evidence teacher | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median MAE is barely positive but worst-row MAE is `-4.850145322879209%`; Z8 median MAE is `-8.809287941837436%` and worst-row MAE is `-67.44360239254922%`. |
+| gated no-op residual source-evidence teacher | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Z8 damage is reduced to `-0.07770732977859413%` median MAE and `-0.9817010759922141%` worst-row MAE, but X2D worst-row MAE is `-17.16908196504484%`. |
+| stricter gated identity probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gated_residual_identity_z8_smoke_20260702/train_receipt.json` | Not a launchable production branch. It nearly collapses to interpolation parity: X2D median/worst are `+0.00008488424079708562%` / `-0.011432486540108134%`; Z8 median/worst are `-0.0014934440317522601%` / `-0.011380055480565317%`. |
+| masked-detail/no-op target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst-row MAE is `-0.000016166284221217207%` / `-0.004217229249483704%`; Z8 median/worst-row MAE is `-0.0011404326756156245%` / `-0.009009865416027604%`. Same-camera scene smokes also stay negative, so this is an objective/gating failure rather than only a cross-camera split problem. |
+| raw-CFA source-frequency target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. The absolute source-frequency target is the wrong objective scale: X2D median/worst-row raw MAE recovery is `-4968.130415027571%` / `-10524.379064644432%`; Z8 median/worst-row raw MAE recovery is `-502.5390630379172%` / `-966.3531327864554%`. |
+| raw-CFA residual signal objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Direct raw-CFA residual training is near parity on X2D but still regresses: X2D median/worst-row raw MAE recovery is `-0.15178115040635068%` / `-5.352462806764585%`; Z8 median/worst-row raw MAE recovery is `-5.108265406545033%` / `-178.9545417615565%`. This points to route-specific no-op/benefit gating or Z8 target conditioning, not another generic U-Net residual smoke. |
+| raw-CFA candidate-HF no-op gate | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Candidate-only HF gating clips the Z8 low-HF tail to exact parity, but does not create positive learning: X2D median/worst-row raw MAE recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 median/worst-row raw MAE recovery is `0.0%` / `0.0%`, below the `>0.001%` median floor. A frame-context diagnostic also failed X2D at `-0.01923371655785397%` median, so simple gate/context tuning is not enough. |
+| target/degradation blocker receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` | Current local blocker is now explicit and machine-readable: long-run allowed is `false`; X2D candidate-HF no-op median/worst recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 is safe but zero-benefit at `0.0%` / `0.0%`; frame-context X2D is worse at `-0.01923371655785397%`. This rules out simple no-op threshold tuning, simple frame-context conditioning, and another generic raw-CFA residual long run. |
+| replacement target/source contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` | Ready for paired smoke preflight only. X2D has candidate-only source evidence at `4.821260781753699%` MAE / `11.520193787949786%` RMSE but a `3.4500243590744026x` holdout target-distribution mismatch; Z8 has only `0.649807764458084%` MAE source evidence despite `21.89973637064664%` RMSE recovery; calibrated target SNR is mixed signal/noise. The next candidate must use noise-aware or row-filtered residual targets, route-conditioned X2D sampling, changed Z8 degradation/source policy, candidate-only runtime inputs, and exact no-op behavior. |
+| replacement-contract route-conditioned/noise-aware smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.16833363636675505%` / `-6.051057523320477%`; Z8 median/worst raw MAE recovery is `-1.5863477181003771%` / `-55.716890568612115%`. This rules out the first replacement-contract U-Net route split with continuous SNR weighting and high-energy emphasis. |
+| Gate 10 target/degradation decision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/gate10_target_degradation_decision.json` | Closed as `source_degradation_target_mismatch`. Gate 10 records X2D median/worst raw MAE recovery at `-0.16833363636675505%` / `-6.051057523320477%`, Z8 at `-1.5863477181003771%` / `-55.716890568612115%`, X2D target-distribution mismatch at `3.4500243590744026x`, and Z8 mostly noise-floor targets (`28/36`). It sets `paired_smoke_allowed=false` and allows only a degradation-source audit before the next candidate intake. |
+| Gate 11 degradation-source audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` | Closed as `degradation_source_policy_ready_for_gate11_preflight`. It selects `route_isolated_teacher_then_router`: X2D may train on `70` signal/mixed rows with stratified target sampling and no-op fallback; Z8 must default no-op for noise-floor rows and cannot train positive residuals without a new source-evidence receipt. |
+| Gate 11 route-isolated smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.09995100006746782%` / `-2.156844783012532%`; Z8 median/worst raw MAE recovery is `0.0%` / `-14.118886237720433%`. This rules out the first route-isolated residual teacher/router pass as production work. |
+| Gate 12 measured/synthetic teacher-source audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/measured_degradation_teacher_source_audit.json` | Closed as `gate12_synthetic_teacher_preflight_allowed_x2d_z8_noop`. It rejects the failed source-minus-candidate raw-HF residual target, selects synthetic known-degradation clean-source Bayer pairs for X2D, and keeps Z8 exact no-op/new-source because Z8 source evidence is `0.649807764458084%` MAE and `28/36` rows are noise-floor. |
+| Gate 12 candidate intake | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json` | Closed as `launchable_preflight_passed`. It launches only the X2D synthetic known-degradation clean-source teacher command plus a Z8 exact-noop receipt command. It remains candidate-only/no-REF and `production_ready=false`. |
+| Gate 12 paired smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst MAE recovery is `-0.015976613123677263%` / `-0.22449340376395477%`, `baseline_beaten_on_holdout=false`, and Z8 exact-noop passes at `0.0%` / `0.0%`. This rules out the current synthetic known-degradation teacher as a production launch path. |
+| Gate 13 degradation-source upgrade audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json` | Closed as `objective_gating_tail_regression`. The best X2D source beats nearest same-color on median MAE (`+0.2741207579275717%`) and RMSE (`+0.23526188856007296%`), but worst-row MAE is `-2.959145874624423%`. Z8 exact-noop remains safe. This rules out an ungated long run from the positive-median source. |
+| Gate 13 tail-safe source smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/tail_safe_source_smoke.json` | Blocked as `scene_generalization_gap`. Simple candidate-only tile-stat rules can make the Gate 13 source tail-safe in aggregate (`+0.215125015196241%` median MAE, `0.0%` worst-row MAE, `1394` global-only rules), but no strict per-image rule exists (`0` strict rules). `x2d_2025_austin_07` falls to `0.0%` median under the best global rule, so long training remains forbidden. |
+| Gate 13 feature-rich tail-safe source smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` | Blocked as `runtime_feature_separability_gap`. The wider candidate-only family includes scene-normalized tile stats, tile coordinates, and texture ratios (`78` features, `14393` predicates, `1398` safe predicates). Even the safe-feature OR upper bound covers only `25` positives in `x2d_2025_austin_07`, below the `32` required for a positive scene median. |
+| Gate 13 source/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` | Passed as a multi-source candidate-only selector upper bound. It uses `12` compatible X2D sources, `78` runtime features, and `10199` safe source/predicate selectors. X2D per-image median/worst MAE is `8.022846730221168%` / `0.0%` and `0.07380457072746566%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows Gate 14 executable selector intake, not production promotion. |
+| Gate 14 candidate intake | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` | Passed as executable selector intake. It persists a seven-rule first-match sidecar with six source mappings, 78 candidate-only runtime features, source/checkpoint hashes, feature schema, exact no-op fallback, and forbidden REF/source/JPEG/gate metric policy. Sidecar replay clears X2D with median/worst MAE `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows selector smoke, not promotion or long training. |
+| Gate 14 selector smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | Passed as runtime selector smoke. It reloads the persisted sidecar, recomputes candidate-only runtime features, validates source/checkpoint hashes, executes first-match routing, and matches the intake replay. X2D median/worst MAE is `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; assigned rows `88`, exact-noop fallback rows `40`, source model failures `0`, and `promotion_gate_allowed=true`. |
+| Premium still-SR promotion receipts rollup | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json` | Open as strict 4/8 production rollup. Done steps are Gate 14 selector smoke, route coverage, editor/openability, and clean-signal noise policy. The first open step is `model_promotion_floor`; blockers are `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`, `timing_memory_missing`, `noise_policy_not_wired`, and `production_submission_missing_or_failed`. |
+| Premium still-SR model-floor gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | Open as first-blocker receipt. Best runtime-safe MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving `10.96864457998019` / `11.24649579370038` points to the `15% / 15%` promotion floor. Gate 14 selector is tail-safe but only `0.2506229397841941%` median MAE. The next candidate contract is `premium_still_sr_gate14_floor_student_v1`. |
+| Gate16 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_target_row_audit_20260702/gate16_target_row_audit.json` | Closed as rejection evidence. Gate16 has 463 X2D/100 MP target-tile rows, no 50 MP rows, no full-frame scope, `-0.12226915231999792%` median MAE recovery, `-0.1296250122706981%` median RMSE recovery, and `-9.625700832601128%` worst-row MAE. |
+| Gate17 balanced target package | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json` | Closed as target-construction evidence. It provides 1152 balanced target rows, 576 50 MP and 576 100 MP, with candidate-only runtime policy and no production claim. |
+| Gate17 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json` | Closed as model rejection evidence. Overall median MAE/RMSE recovery is `-0.23468499188533842%` / `0.34200684333480724%`; 100 MP median MAE/RMSE is `-0.20590927436038237%` / `-0.20105907022904856%`; 50 MP median MAE/RMSE is `-0.23798252847127244%` / `0.8416423186511623%`; 100 MP/50 MP worst MAE is `-35.30304893327897%` / `-2.259351982942634%`. |
+| Gate18 candidate/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json` | Closed as next-candidate planning evidence. It names `premium_still_sr_gate18_tail_safe_context_objective_v1`, rejects unchanged Gate17 reruns, and emits exact training plus broad target-row audit commands. |
+| Gate18 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as safety/no-op rejection evidence. Overall median MAE/RMSE is `0.0%` / `0.0%`, 100 MP worst MAE is `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`. Tail safety improved, but positive signal was not recovered. |
+| Gate19 source-HF broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as source-objective rejection evidence. Overall median MAE/RMSE is `-14.17838003215098%` / `-13.181758464778333%`, 100 MP median MAE is `-13.116189248074146%`, 50 MP median MAE is `-15.64244661023621%`, and tails are severe. |
+| Gate17 scalar-direction calibration rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json` | Closed as calibration rejection evidence. The best scalar is `0.025`, with only `0.017883242885033075%` overall median MAE recovery and a negative worst row, so output scaling cannot close the 15% floor. |
+| Candidate-HF feature audit rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json` | Closed as feature-signal rejection evidence. The best scalar is `-0.025`, median MAE recovery is `-0.004920370968732175%`, and the decision is `candidate_hf_feature_not_predictive_change_supervision`, so stored candidate-HF scaling cannot be the Gate20 path. |
+| Gate20 supervision/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json` | Closed as the next-candidate contract. It names `premium_still_sr_gate20_rebuilt_supervision_v1`, forbids Gate17/Gate18/Gate19/scalar/candidate-HF reruns, and sets `first_open_step=gate20_rebuild_supervision_targets`. |
+| Gate20 rebuilt-supervision target coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/gate20_target_coverage_audit.json` | Closed as a target-coverage blocker. Actual rebuilt target coverage is 108 50 MP rows and 243 100 MP rows. The strict planner can reach 594 50 MP rows but still only 243 100 MP rows, so `gate20_training_authorized=false`. |
+| Gate20 expanded X2D rebuilt-supervision target coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703/gate20_target_coverage_audit.json` | Closed as target-coverage authorization. Expanded rebuilt target coverage is 594 50 MP rows and 999 100 MP rows, 1,593 total rows, both class floors pass, and `gate20_training_authorized=true`. |
+| current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
+
+## Next Unambiguous Step
+
+Continue `premium_still_sr_promotion_receipts` from the first open step
+`model_promotion_floor`, using the Gate17 target package plus the Gate17,
+Gate18, Gate19, scalar-calibration, candidate-HF, and Gate20 revision receipts.
+The next local receipt is Gate20 no-REF training and broad target-row audit
+using the authorized expanded target package. The coverage blocker is closed:
+actual rows are 594 50 MP / 999 100 MP, 1,593 total rows, and the target
+coverage audit records both row floors as passed.
+Do not rerun
+source-frequency targets, generic full-crop U-Net residual training, masked-
+detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
+conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11
+route-isolated residual smoke, the Gate 12 synthetic teacher smoke, the older
+clean-source residual families, the ungated Gate 13 positive-median source, the
+simple Gate 13 tile-stat gate, the Gate 13 feature-rich safe-feature OR gate,
+another Gate 13 source/objective upper-bound pass, Gate 14 intake, Gate 14
+selector smoke, Gate16 target-row audit, or unchanged Gate17 training as
+production work.
+
+The Gate 13 audit found enough X2D median signal to continue, but single-source
+tail-safe gating failed per scene. Gate 14 intake persisted an executable
+multi-source selector sidecar, and Gate 14 selector smoke proved the sidecar
+reproduces the intake pass through runtime feature recomputation,
+source/checkpoint hash checks, first-match routing, and exact no-op fallback.
+The next receipt must validate the full production surface: 50 MP and 100 MP
+holdouts, 15% / 15% MAE/RMSE floor, nonnegative worst rows, timing/memory,
+editor/openability, exact-sidecar-only noise policy, and production submission
+validation.
+
+The candidate may advance only if all of these are true:
+
+| requirement | pass rule |
+|---|---|
+| X2D routed promotion | full 50 MP / 100 MP route validation clears the 15% / 15% held-out MAE/RMSE floor, worst-row MAE improvement `>= 0%`, and no selected negative rows. |
+| Z8 policy | exact-noop with median MAE improvement `0.0%`, worst-row MAE improvement `0.0%`, and no positive residual training unless a new source audit replaces the route policy. |
+| Runtime inputs | `candidate_raw`, `camera_metadata`, and optional exact validated noise sidecar only. |
+| Forbidden inputs | No REF, source RAW, source RGB, source HF, JPEG target, source residual noise, or gate metric at render time. |
+| Promotion permission | Full promotion validation is allowed because Gate 14 selector smoke reproduces the intake pass and keeps Z8 exact-noop. Production is still forbidden until the promotion and production-submission receipts pass. |
+| Production permission | The 15% / 15% promotion floor, nonnegative worst-row recovery, editor/openability, timing/memory, exact-sidecar-only noise policy, and `check_production_capture_submission.py` all pass. |
+
+## Commands That Move The Gate
+
+```bash
+python3 tools/build_premium_still_sr_gate10_target_degradation_decision.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_<date>
+
+python3 tools/build_premium_still_sr_degradation_source_audit.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_<date>
+
+python3 tools/build_premium_still_sr_gate11_candidate_preflight.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date> \
+  --smoke-output-root /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_<date> \
+  --require-launchable
+
+python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date>/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_<date>/smoke_gate_acceptance.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_<date>/index.html
+
+python3 tools/build_premium_still_sr_measured_degradation_teacher_source_audit.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_measured_degradation_teacher_source_audit_<date>
+
+python3 tools/build_premium_still_sr_gate12_candidate_preflight.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_<date> \
+  --smoke-output-root /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_<date> \
+  --require-launchable
+
+# Latest closed commands:
+python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html \
+  --require-pass
+
+python3 tools/build_premium_still_sr_gate13_degradation_source_upgrade.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702
+
+# Latest closed command:
+python3 tools/build_premium_still_sr_gate13_tail_safe_source_smoke.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702
+
+python3 tools/build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702
+
+# Latest closed command:
+python3 tools/build_premium_still_sr_gate13_source_or_objective_revision.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702
+
+# Latest closed command:
+python3 tools/build_premium_still_sr_gate14_candidate_intake.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702
+
+python3 tools/build_premium_still_sr_gate14_selector_smoke.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702 \
+  --require-pass
+
+# Next receipt to build:
+# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_<date>/premium_still_sr_promotion_gate.json
+```
+
+If promotion validation fails, it must classify the failure as 50 MP / 100 MP
+holdout quality, worst-row tail regression, editor/openability,
+timing/memory infeasibility, checkpoint drift, exact-sidecar-only noise-policy
+mismatch, production-submission failure, or insufficient clean source.

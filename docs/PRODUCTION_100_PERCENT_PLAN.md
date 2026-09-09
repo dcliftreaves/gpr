@@ -1,0 +1,339 @@
+# Production 100 Percent Plan
+
+Last refreshed: 2026-07-02
+
+This is the operational checklist for getting the four-pillar GPR goal from the
+current 83 percent production-readiness estimate to 100 percent. The concise
+day-to-day burn-down is [`PRODUCTION_100_PERCENT_BURNDOWN.md`](PRODUCTION_100_PERCENT_BURNDOWN.md).
+The strict receipt-first work order is
+[`PRODUCTION_100_PERCENT_WORK_ORDER.md`](PRODUCTION_100_PERCENT_WORK_ORDER.md).
+The rule is simple: a row is done only when its evidence exists, validates with
+the listed commands, and is linked from the product scorecard or release
+evidence manifest.
+
+## Current State
+
+| pillar | current | 100 percent requires |
+|---|---:|---|
+| Best RAW stills | 92% | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero camera-noise removal/addback is claimed. |
+| GoPro RAW video MVP | 80% | Real Mission 1 camera-role receipts from sensor/DMA or camera ring-buffer input, SD writer, rear display, valid `.gvid`, 120+ sustained frames, zero drops, timing, memory, and storage. |
+| Premium still/SR | 60% | A no-REF 50 MP / 100 MP candidate that beats the current still baseline and clears worst-row, editor-latitude, timing, memory, checkpoint, and exact-sidecar-only noise-policy gates. |
+| RAW video reconstruction improvement | 100% | Keep the approved 4K cleanup and 8K SR receipt set green; do not reopen it for PSF/blur research unless a replacement already beats the locked baseline with the same artifact surface. |
+
+## Exact Next Steps To 100 Percent
+
+These steps are intentionally narrow. A work session starts at the first open
+step and stops only after producing that step's receipt, fixing failed CI, or
+recording a specific blocker in the receipt named by the step. Notes, attractive
+dashboards, unlinked experiments, and raw training logs are not progress unless
+they feed the receipt named here.
+
+The first open local gate is **Gate A: Premium still-SR promotion**. Gate 20
+supervision/objective revision and the first rebuilt-target pass are now closed.
+The expanded X2D target-source pass is also closed and authorizes training. The
+next command must run Gate20 no-REF preflight, training, broad 50 MP / 100 MP
+target-row audit, and then the strict promotion receipt if the audit passes. Do not
+start optional video SR, PSF research, or new dashboard cosmetics while Gate A
+has a local next command.
+
+| step | status | action that must happen next | receipt required before moving on |
+|---:|---|---|---|
+| 1 | in progress | Keep CI green for the latest `master` push. If CI fails, inspect the failing job, patch the smallest cause, rerun focused local checks, push, and watch CI again. | Passing GitHub Actions run for the latest pushed commit. |
+| 2 | closed, failed promotion | The source-evidence split Premium Still/SR smoke gates ran from `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/launch_packet.json`. X2D passed the short smoke gate, but Z8 failed. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/train_receipt.json` and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/train_receipt.json`. |
+| 3 | closed, route direction selected | The route-specialist readiness audit shows route coverage and positive full-frame metric floors for Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG; it also rejects extending the failed clean-source split into long training. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_20260702/route_readiness.json` and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_20260702/index.html`. |
+| 4 | closed, rendered proxy reviewed | The route-specialist readiness audit now links the routed rendered EV-stress proxy review: 36 rows, Mission1/Z8/X2D coverage, 33 model-better rows, and 3 model-worse rows. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_with_rendered_20260702/route_readiness.json` and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_with_rendered_20260702/index.html`. |
+| 5 | closed, editor/latitude ready | Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG now all have editable DNG/GPR openability plus non-oracle rawpy/LibRaw latitude receipts. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_editor_latitude_coverage_20260702/coverage.json` is 4/4 ready routes with `production_ready=true`. |
+| 6 | closed, target policy ready | The clean-signal target policy passes: every retained row has a calibrated sidecar, render-time source raw/REF/JPEG content is forbidden, and exact source-noise addback is forbidden. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/premium_still_sr_noise_policy_gate.json` has clean-signal policy pass. |
+| 7 | closed, blocker classified | The target/degradation evidence receipt now rules out candidate-HF no-op threshold tuning, simple frame-context conditioning, and another generic raw-CFA residual long run. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` has `long_run_allowed=false` and `blocker_classification=target_degradation_or_route_conditioning_mismatch`. |
+| 8 | closed, replacement source contract ready | The replacement target/source contract combines X2D/Z8 source evidence, target-distribution mismatch, target SNR, and the previous blocker. It allows only a paired smoke preflight: noise-aware or row-filtered residual targets, route-conditioned X2D sampling, changed Z8 degradation/source policy, candidate-only runtime inputs, and exact no-op behavior. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` has `paired_smoke_preflight_allowed=true` and `long_run_allowed=false`. |
+| 9 | closed, failed smoke | The replacement-contract route-conditioned/noise-aware raw-CFA smoke ran and is blocked before long training. X2D median/worst raw MAE recovery is `-0.16833363636675505%` / `-6.051057523320477%`; Z8 is `-1.5863477181003771%` / `-55.716890568612115%`. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` has `long_run_allowed=false`. |
+| 10 | closed, source/degradation mismatch classified | Gate 10 converts the failed route-conditioned/noise-aware smoke into a machine-readable decision. It classifies the blocker as `source_degradation_target_mismatch`, records X2D at `-0.16833363636675505%` median / `-6.051057523320477%` worst raw MAE recovery, Z8 at `-1.5863477181003771%` median / `-55.716890568612115%` worst, X2D target distribution at `3.4500243590744026x` train median, and Z8 as mostly noise-floor targets (`28/36`). | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/gate10_target_degradation_decision.json` has `paired_smoke_allowed=false` and `long_run_allowed=false`. |
+| 11 | closed, route source selected | The degradation-source audit selects `route_isolated_teacher_then_router`: X2D can train on 70 signal/mixed rows with stratified target sampling and exact no-op fallback; Z8 must default no-op for noise-floor rows and cannot train a positive residual route without a new source-evidence receipt. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` has `gate11_candidate_intake_allowed=true` and `long_run_allowed=false`. |
+| 12 | closed, failed smoke | Gate 11 route-isolated teacher/router intake and paired smoke ran. It is blocked before long training: X2D median/worst raw MAE recovery is `-0.09995100006746782%` / `-2.156844783012532%`, and Z8 is `0.0%` / `-14.118886237720433%`. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json` has `long_run_allowed=false`. |
+| 13 | closed, Gate 12 source selected | The measured/synthetic degradation-teacher source audit rejects the failed source-minus-candidate raw-HF residual target, selects synthetic known-degradation clean-source Bayer pairs for X2D, and keeps Z8 exact no-op/new-source until positive source evidence exists. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/measured_degradation_teacher_source_audit.json` has `gate12_candidate_intake_allowed=true` and `long_run_allowed=false`. |
+| 14 | closed, Gate 12 intake launchable | Gate 12 candidate intake encodes the synthetic known-degradation X2D route, Z8 exact no-op/new-source policy, candidate-only runtime inputs, and explicit rejection of raw-HF residual/Gate 11 rerun sources. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_20260702/preflight_audit.json` has `launchable_for_production_attempt=true` and `verdict=launchable_preflight_passed`. |
+| 15 | closed, failed smoke | Gate 12 paired smoke ran from the intake manifest and is blocked before long training. X2D median/worst MAE recovery is `-0.015976613123677263%` / `-0.22449340376395477%`, and `promotion.baseline_beaten_on_holdout=false`. Z8 exact-noop passes at `0.0%` / `0.0%`. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json` has `verdict=blocked_before_long_run` and `long_run_allowed=false`. |
+| 16 | closed, blocker narrowed | Gate 13 degradation-source upgrade audit scanned available clean-source and exact-noop receipts. It found positive X2D median signal but no tail-safe source: best median MAE is `+0.2741207579275717%`, worst-row MAE is `-2.959145874624423%`, and Z8 exact-noop remains safe. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json` has `blocker_classification=objective_gating_tail_regression`, `source_upgrade_passed=false`, and `long_run_allowed=false`. |
+| 17 | closed, scene gap found | Gate 13 tail-safe source smoke ran. Simple candidate-only tile-stat rules can make the source aggregate tail-safe, but no strict per-image rule exists: `strict_scene_tail_safe_rule_count=0`, `global_tail_safe_rule_count=1394`, best global median MAE is `+0.215125015196241%`, worst-row MAE is `0.0%`, and `x2d_2025_austin_07` drops to `0.0%` median. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/tail_safe_source_smoke.json` has `verdict=blocked_global_only_tail_safe_gate`, `blocker_classification=scene_generalization_gap`, and `long_run_allowed=false`. |
+| 18 | closed, separability gap found | Gate 13 feature-rich tail-safe smoke ran. Scene-normalized tile stats, tile coordinates, and texture ratios still do not make the current source per-scene tail-safe: `feature_count=78`, `predicate_count=14393`, `safe_predicate_count=1398`, safe-feature OR upper bound covers `53` positives in `x2d_2025_austin_06` but only `25` in `x2d_2025_austin_07`, below the `32` required for positive scene median. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` has `verdict=blocked_feature_rich_runtime_gate_upper_bound_insufficient`, `blocker_classification=runtime_feature_separability_gap`, and `long_run_allowed=false`. |
+| 19 | closed, source/objective revision passed | Gate 13 source/objective revision changed the source shape from one X2D source to a multi-source candidate-only selector upper bound. It uses 12 compatible X2D sources, 78 features, and 10,199 safe source/predicate selectors. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` has `source_or_objective_revision_passed=true`, X2D per-image median/worst MAE `8.022846730221168%` / `0.0%` and `0.07380457072746566%` / `0.0%`, and Z8 exact-noop `0.0%` / `0.0%`. |
+| 20 | closed, Gate 14 intake passed | Gate 14 candidate intake persisted the executable multi-source selector sidecar, source-model mapping, feature schema, hashes, no-op fallback, and candidate-only runtime policy. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` has `gate14_candidate_intake_passed=true`, X2D per-image median/worst MAE `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`, Z8 exact-noop `0.0%` / `0.0%`, `selector_smoke_allowed=true`, and `long_run_allowed=false`. |
+| 21 | closed, Gate 14 selector smoke passed | Gate 14 selector smoke executed the persisted sidecar through runtime feature recomputation, source/checkpoint hash checks, first-match routing, and intake replay comparison. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` has `gate14_selector_smoke_passed=true`, `promotion_gate_allowed=true`, source model failure count `0`, X2D per-image median/worst MAE `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`, and `long_run_allowed=false`. |
+| 22 | closed, Gate17/Gate18/Gate19/scalar rejected | Gate17/Gate18/Gate19 broad audits and Gate17 scalar calibration are closed as rejection evidence. | Gate17, Gate18, Gate19, and scalar-calibration receipts are linked from the release manifest and docs. |
+| 23 | closed, candidate-HF rejected | Candidate-HF feature scaling was audited across the balanced Gate17 target package and rejected. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json` has `next_decision=candidate_hf_feature_not_predictive_change_supervision`. |
+| 24 | closed, Gate20 contract written | Gate20 supervision/objective revision records the rebuilt-supervision strategy and exact target-builder commands. | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json` has `first_open_step=gate20_rebuild_supervision_targets`. |
+| 25 | closed, first coverage blocker | Gate20 target expansion, expanded target generation, strict planner rerun, and coverage audit ran. | Actual rebuild has 351 rows: 108 50 MP and 243 100 MP. Strict planner reaches 594 50 MP but only 243 100 MP; `gate20_training_authorized=false`. |
+| 26 | closed, target coverage authorized | Added 29 audited X2D scene DNGs to the fixture manifest, rebuilt strict Gate20 targets, and reran target coverage. | Expanded rebuild has 1,593 rows: 594 50 MP and 999 100 MP. Both class floors and total row floor pass; `gate20_training_authorized=true`. |
+| 27 | open | Run Gate20 no-REF preflight, training, broad target-row audit, and then the strict promotion receipt from route readiness, editor/openability, noise policy, formal promotion gate, and production-capture requirements. | `premium_still_sr_promotion_receipts` pass the 15% / 15% held-out MAE/RMSE floor and production submission checker, or classify the exact blocker. |
+| 28 | open | Package the Mission 1/iPhone noise-sidecar capture request around strict provenance only; do not promote candidate dark-looking frames. | Capture/provenance packet listing exact missing Mission/iPhone darkframes and validation commands. |
+| 29 | open | When true no-scene-signal Mission/iPhone darkframes exist, build sidecars with `build_camera_noise_calibration.py --require-source-provenance`. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` both validate. |
+| 30 | external | Keep the Mission 1 camera-role runbook ready for GoPro/Mission 1 firmware owners; no local Pi stand-in can close this gate. | Real camera-role source/storage/display receipts with 120+ sustained frames, zero drops, valid `.gvid`, and 20+ fps source/encode/preview. |
+| 31 | closed/protect | Keep approved 4K cleanup and 8K SR evidence locked. Run only lock-ledger/readme/manifest guards unless a locked artifact fails. | Product lock ledger, README pillar guard, and release manifest guard pass. |
+
+The priority order is therefore fixed: CI first, Premium Still/SR smoke evidence
+second, Premium Still/SR promotion or blocker third, Mission/iPhone noise
+sidecar provenance fourth, real Mission 1 camera-role closure fifth. Raw-video
+SR research stays parked because the current 4K cleanup and 8K SR release path
+is already approved and locked.
+
+## Work-Until-100 Step Contract
+
+This is the day-to-day execution contract. Start at the first open local row and
+do not switch lanes unless the receipt named in that row is produced, the row
+becomes externally blocked, or CI/committed gates fail.
+
+| order | row | exact action | pass/fail receipt | next move |
+|---:|---|---|---|---|
+| 1 | Premium still-SR source evidence | Run or inspect `tools/cnn/audit_premium_still_sr_source_evidence.py` on the t64 clean-source pair corpus for X2D and Z8 holdouts before launching a new model. | `source_evidence_audit.json` plus `index.html` for both holdouts, linked in `docs/release_evidence_manifest.json`. | X2D is actionable only if MAE and RMSE recovery exceed 1%; Z8 is actionable only after MAE also exceeds 1%. |
+| 2 | Premium still-SR candidate preflight | The source-evidence split launch packet exists at `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html`, and its X2D/Z8 smoke receipts now exist. | `candidate_preflight.json`, `preflight_audit.json`, `launch_packet.json`, and paired smoke `train_receipt.json` files. | This row is diagnostic, not promotable: X2D passes, Z8 fails. |
+| 3 | Premium still-SR route readiness | Use `tools/build_premium_still_sr_route_readiness.py` to keep the route-specialist direction explicit after the failed clean-source split. | `route_readiness.json` plus `index.html`, linked in `docs/release_evidence_manifest.json`. | Route coverage and positive full-frame metric floors exist, but production blockers remain. |
+| 4 | Premium still-SR promotion | Build true raw-editor latitude/openability receipts for every route, wire exact-sidecar-only noise policy, then build the production submission. | `premium_still_sr_promotion_receipts` and production submission audit. | Mark Premium still/SR 100% only if the production checker passes; otherwise record the exact blocker class. |
+| 5 | Raw-stills noise sidecars | Build Mission/iPhone darkframe sidecars only from strict-provenance true darkframes. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` sidecar/audit receipts. | Mark Best RAW stills 100% only after both sidecars validate with no-scene-signal provenance. |
+| 6 | Mission 1 camera-role video MVP | Hand off the camera validation runbook; only a real camera-role run can close the gate. | `mission1_camera_role_receipts`. | Mark Raw video MVP 100% only after real source/storage/display receipts replace Pi stand-ins. |
+| 7 | Locked raw-video reconstruction | Protect the approved 4K cleanup and 8K SR evidence. | Lock ledger, release manifest, and CI guards pass. | Do not run new video SR as production work unless a locked receipt fails. |
+
+Failure rule: a failed experiment is progress only if it leaves a checked receipt
+that narrows the blocker to source evidence, degradation synthesis, teacher
+objective, camera conditioning, model capacity, timing/memory, noise policy, or
+external Mission 1 camera-role access.
+
+## 100 Percent Gate Queue
+
+This is the unambiguous execution queue. Work should always start at the first
+gate whose `status` is not `closed`, unless a gate is explicitly marked
+`blocked_on_external_input`. A gate can move only by creating or validating the
+named receipt. A dashboard, model run, or note that does not feed one of these
+receipts is not progress toward 100 percent.
+
+| gate | status | exact next command | receipt that moves the gate | closed only when |
+|---|---|---|---|---|
+| A: Premium still-SR Gate 14 intake | closed, protect | Protect `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html` and the sidecar hashes. | `premium_still_sr_gate14_candidate_intake_20260702` | The selector sidecar, source-model mapping, feature schema, hashes, and exact no-op fallback reproduce the Gate 13 X2D pass from candidate-only runtime inputs, with Z8 exact-noop preserved. |
+| A1: Premium still-SR Gate 14 selector smoke | closed, protect | Protect `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html` and the selector-smoke hashes. | `premium_still_sr_gate14_selector_smoke_20260702` | The real selector path reproduces the Gate 14 intake pass, rejects schema/checkpoint drift, uses no REF/source/JPEG/gate metrics, and allows promotion validation. |
+| A2: Premium still-SR promotion | open, local | Produce a no-REF candidate-only model receipt that clears the 15% / 15% held-out floor, then run `check_premium_still_sr_promotion_gate.py` and `check_production_capture_submission.py`. | `premium_still_sr_promotion_receipts` | Full 50 MP / 100 MP routed gates pass, worst-row recovery is nonnegative, raw-editor latitude/openability opens for every route, timing/memory/checkpoint hashes exist, exact-sidecar-only noise policy passes, and `check_production_capture_submission.py` passes. |
+| B: Mission/iPhone noise sidecars | open, sample/provenance | `python3 tools/build_stills_capture_request.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_<date>` and then, only after true darkframe files/provenance exist, run the `build_darkframe_candidate_audit.py`, `check_darkframe_source_provenance.py`, and `build_camera_noise_calibration.py --require-source-provenance` commands listed below. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` | Mission 1 and iPhone each have four same-camera/same-ISO true no-scene-signal CFA frames, source/extraction hashes, `no_scene_signal=true` provenance, and production-ready `gpr.camera_noise_calibration.v1` sidecars. |
+| C: Mission 1 camera-role raw-video MVP | blocked_on_external_camera_role | `python3 tools/run_gopro_mission1_quick_validation.py --target-role camera --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>` on real Mission 1 firmware/hardware. | `mission1_camera_role_receipts` | Real sensor/DMA or camera ring-buffer source, actual SD/storage writer, actual rear display, valid `.gvid`, zero drops, 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, memory receipt, and 120+ sustained frames validate. |
+| D: Locked raw-video reconstruction | closed, protect | `python3 tools/test/check_product_lock_ledger.py && python3 tools/test/check_readme_product_pillars.py && python3 tools/test/check_release_evidence_manifest.py` | existing 4K cleanup and 8K SR release receipts | The approved 4K cleanup and 8K SR receipt set remains green. PSF/blur or replacement SR work is optional research and cannot reopen this gate by itself. |
+
+Default rule for a work session: if Gate C cannot run because there is no real
+Mission 1 camera-role access, spend local compute on Gate A. If Gate A cannot
+launch because the proposal fails preflight, update the rejection evidence and
+move to Gate B capture/provenance packaging. Do not run raw-video SR research
+while Gate A or Gate B has a local next command.
+
+## Execution Order
+
+| order | lane | owner | can move now? | completion evidence |
+|---:|---|---|---|---|
+| 1 | Premium still/SR promotion | CNN researcher | yes | `premium_still_sr_promotion_receipts` validates through the production submission checker, with no REF/source/JPEG image content at render time. |
+| 2 | Mission/iPhone camera-noise sidecars | sample curator | partly; capture/provenance may need new samples | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate with four same-camera/same-ISO no-scene-signal CFA frames and unique provenance-ready raw hashes. |
+| 3 | Mission 1 camera-role raw-video closure | GoPro firmware engineer | no, requires real Mission 1 camera-role access | `mission1_camera_role_receipts` validates with real camera source/storage/display receipts and 120+ sustained frames. |
+| 4 | Locked raw-video reconstruction | release owner | protect only | Existing 4K cleanup and 8K SR receipts, dashboards, ProRes media, editable raw outputs, hashes, registry, and CI remain valid. |
+
+## Active Burn-Down State
+
+These are the only rows allowed to move the current 83 percent production suite
+toward 100 percent. Anything else is maintenance unless it repairs a failing
+receipt, failing CI, or a broken public artifact.
+
+| row | current status | next unambiguous action | done when |
+|---|---|---|---|
+| Premium still/SR | Open. The current scoreboard has 124 runtime-safe receipts and 0 promotable receipts. Gate16 paired smoke passed on a narrow branch, but the all-target-row audit rejects it for production promotion: `463` X2D/100 MP target-tile rows, no 50 MP rows, no full-frame scope, `-0.12226915231999792%` median MAE recovery, `-0.1296250122706981%` median RMSE recovery, and `-9.625700832601128%` worst-row MAE recovery. Gate17 supplies a balanced target package with `576` 50 MP rows and `576` 100 MP rows, candidate-only runtime policy, and no production claim. Gate17, Gate18, and Gate19 are all rejected by broad audits; Gate17 scalar-direction calibration is rejected; candidate-HF feature scaling is rejected. Gate20 target coverage is now authorized after expanded X2D source discovery: actual rebuilt coverage is 594 50 MP rows and 999 100 MP rows, 1,593 total rows. | Run Gate20 no-REF preflight, training, broad target-row audit, and promotion receipts using the expanded target package. | The replacement candidate beats the still baseline on 50 MP and 100 MP holdouts, has nonnegative worst-row recovery, records timing/memory/checkpoint hashes, passes raw-editor latitude/openability for all four required routes, passes exact-sidecar-only noise policy, and passes production submission validation. |
+| Mission/iPhone noise sidecars | Open. The refreshed review packet has 29 candidate sources, extracted Bayer receipts for 2 Mission 1 frames and 4 iPhone candidates, and `production_sidecar_ready=false`. The blocker audit confirms the known Mission source root has 49 unique frame stems and no extra GPR-only frames. | For Mission 1, capture two more matching ISO232 RGGB true darkframes or recapture a fresh four-frame stack. For iPhone, confirm no-scene provenance for four ISO1250 RGGB CFA candidates or recapture true darkframes. | Both `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` pass `check_darkframe_source_provenance.py` with `minimum-count 4`, then `build_camera_noise_calibration.py --require-source-provenance`, then `check_production_capture_submission.py`. |
+| Mission 1 camera-role video MVP | Externally blocked. Pi 5 stand-ins are good enough for the current handoff, but they do not prove Mission 1 firmware production. | Give GoPro/Mission 1 firmware owners the first-hour runbook and require a camera-role run from real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Camera-role receipts validate with 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, zero drops, valid `.gvid`, actual storage medium, memory, and 120+ sustained frames. |
+| Raw-video reconstruction | Closed for this release. Approved 4K cleanup and 8K SR are locked. | Keep the release evidence manifest and lock ledger green. | No reopened SR/PSF work is needed unless a locked receipt fails or a replacement already beats the same full artifact surface. |
+
+## Step 1: Premium Still/SR Promotion
+
+Goal: make the slow, spend-compute-for-quality still path real, not just
+experimental.
+
+Required evidence:
+
+- Candidate runtime inputs include `candidate_raw` and `camera_metadata`.
+- Runtime inputs exclude `REF`, `source_raw`, `source_rgb`, `source_hf`, JPEG/JPG targets, and gate metrics.
+- Candidate is materially different from the failed scalar-loss, stored-HF,
+  same-color pair, simple capacity, frame-stat, and global-context probes.
+- Candidate id and smoke output paths are new; the preflight rejects
+  `teacher_first_fullframe_raw_sr_smoke_v1` and the committed 20260702
+  teacher-first X2D/Z8 smoke directories.
+- Candidate architecture is one of the trainer-supported production-preflight
+  values, but architecture support alone is not enough: the latest
+  `window_attention_pixelshuffle` smoke failed the joint X2D/Z8 gate.
+- Candidate uses a plausible restoration teacher or clean-source/CFA-aware
+  objective with camera conditioning and realistic RAW degradation.
+- Candidate cites a current source-evidence audit. If X2D remains positive and
+  Z8 remains below the 1 percent MAE floor, the manifest must use the X2D local
+  signal as material supervision/objective evidence and change the Z8
+  source/degradation target before long training.
+- 50 MP and 100 MP gates have positive median MAE/RMSE recovery.
+- Worst-row 50 MP and 100 MP recovery is nonnegative, with no severe tone or
+  texture failures.
+- Editor-latitude review opens and remains useful as editable raw.
+- Timing and memory receipts record seconds/frame and peak RSS.
+- Exact-sidecar-only noise policy passes; source residual noise is forbidden.
+
+Commands:
+
+```bash
+python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+
+python3 tools/check_premium_still_sr_candidate_preflight.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+
+python3 tools/build_premium_still_sr_launch_packet.py \
+  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
+  --require-launchable
+
+python3 tools/build_premium_still_sr_gate_receipt.py \
+  --help
+
+python3 tools/check_production_capture_submission.py /path/to/submission.json \
+  --require-existing-files \
+  --path-root /path/to/submission_root
+```
+
+Stop condition:
+
+- Promote only if the production submission checker passes and the scorecard
+  can move `premium_still_sr` to 100 percent.
+- If it fails, stop only after the failure is assigned to data/teacher mismatch,
+  objective, crop/full-image context, camera conditioning, model capacity,
+  timing/memory infeasibility, or noise/degradation mismatch.
+
+## Step 2: Mission/iPhone Camera-Noise Sidecars
+
+Goal: make camera-noise-aware still compression/addback safe beyond the existing
+X2D/Z8 sidecars.
+
+Current packet:
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html`.
+Extraction progress:
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json`.
+Current blocker audit:
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_blocker_audit_20260702/index.html`.
+
+Required evidence:
+
+- Four Mission 1 true darkframes under one camera/ISO/CFA/dimension key.
+- Four iPhone CFA true darkframes under one camera/ISO/CFA/dimension key.
+- Original source hashes, extracted Bayer hashes, extraction receipt hashes,
+  `no_scene_signal=true`, and capture proof for every frame.
+- `gpr.darkframe_source_provenance_audit.v1` passes with
+  `ready_frame_count>=4`, `production_ready=true`, and `linear_raw=false`.
+- `gpr.camera_noise_calibration.v1` sidecars pass with `production_ready=true`,
+  unique provenance-ready raw hashes, per-plane sigma, and
+  `separates_noise_from_signal=true`.
+
+Commands:
+
+```bash
+python3 tools/build_darkframe_candidate_audit.py \
+  --source-kind confirmed_darkframes \
+  --provenance-manifest <darkframe_source_provenance.json> \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_<camera>_<date> \
+  <darkframe roots>
+
+python3 tools/extract_raw_bayer_u16.py \
+  --input <darkframe.dng> \
+  --output <darkframe.raw> \
+  --write-receipt <extract_receipt.json>
+
+python3 tools/check_darkframe_source_provenance.py \
+  <darkframe_raw_source_provenance.json> \
+  --minimum-count 4 \
+  --require-existing-files \
+  --json-out <darkframe_source_provenance_audit.json>
+
+python3 tools/build_camera_noise_calibration.py \
+  --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> \
+  --out <sidecar.json> \
+  --make <make> --model <model> --iso <iso> \
+  --width <w> --height <h> --bit-depth <bits> \
+  --black-level <black> --white-level <white> --cfa-phase <phase> \
+  --source-provenance-manifest <darkframe_raw_source_provenance.json> \
+  --require-source-provenance
+```
+
+Stop condition:
+
+- Promote nonzero Mission/iPhone noise removal/addback only after the production
+  submission checker accepts both sidecars.
+
+## Step 3: Mission 1 Camera-Role Raw Video MVP
+
+Goal: convert the Pi 5 stand-in proof into actual Mission 1 firmware evidence.
+
+Required evidence:
+
+- `target_preflight_receipt.json` with `target.role=camera`.
+- `labs_target_bench.json` from a real Mission 1 sensor/DMA or camera
+  ring-buffer source.
+- `camera_handoff_receipt.json` proving sensor/DMA handoff, storage handoff,
+  zero drops, valid `.gvid`, 4096 x 3072 source, and 120+ sustained frames.
+- `preview_decode_1024x768/receipt.json` proving decode from the same `.gvid`.
+- `preview_ui_receipt.json` proving full-frame rear-display preview at 1024 x
+  768, 20+ fps, and 120+ sustained frames.
+- `mission1_camera_closure_run.json` tying all camera-role receipts together.
+- Storage medium names the actual camera SD/internal writer, not Pi/SSD/tmpfs.
+
+Commands:
+
+```bash
+python3 tools/run_gopro_mission1_quick_validation.py \
+  --target-role camera \
+  --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>
+
+python3 tools/check_mission1_camera_closure_run.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>/mission1_camera_closure_run.json
+
+python3 tools/check_production_capture_submission.py /path/to/submission.json \
+  --require-existing-files \
+  --path-root /path/to/submission_root
+```
+
+Stop condition:
+
+- Mark raw-video MVP 100 percent only when real camera-role source, storage, and
+  display receipts validate. Pi stand-ins, wrapped `.GPR` payloads, JPEG-derived
+  media, and tiny smoke runs do not close this step.
+
+## Step 4: Protect Locked Raw-Video Reconstruction
+
+Goal: avoid wasting another day reopening approved video SR.
+
+Required evidence:
+
+- Current approved 4K cleanup and 8K SR dashboards remain linked.
+- `.gvid`, editable DNG/GPR, ProRes review outputs, objective visual review,
+  manual signoff, registry, release manifest, timing, memory, and hashes remain
+  valid.
+- PSF/blur work remains optional replacement research unless it already beats
+  the locked baseline with the same receipt surface.
+
+Commands:
+
+```bash
+python3 tools/test/check_product_lock_ledger.py
+python3 tools/test/check_readme_product_pillars.py
+python3 tools/test/check_release_evidence_manifest.py
+```
+
+Stop condition:
+
+- Do not run another raw-video SR experiment as production work unless a locked
+  raw-video reconstruction receipt fails or the replacement already clears the
+  same production gate.
+
+## Done Means
+
+The high-level goal is 100 percent only when:
+
+1. `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` has no open release-blocking
+   requirements.
+2. `docs/PRODUCT_PILLAR_SCORECARD.md`, the generated scorecard, README, lock
+   ledger, release evidence manifest, and this plan agree on all four pillars.
+3. `tools/test/check_product_burndown_contract.py`,
+   `tools/test/check_high_level_goal_contract.py`,
+   `tools/test/check_readme_product_pillars.py`, and CI pass on `master`.

@@ -1,0 +1,281 @@
+# Premium Still-SR First-Hour Promotion Checklist
+
+This is the shortest path for deciding whether a new premium still-SR model is
+worth a full production promotion attempt. It is deliberately stricter than a
+sharp-looking crop. The current lane is active and diagnostic, but not
+production-promoted.
+
+## Decision In One Page
+
+| question | current answer |
+|---|---|
+| Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
+| What is the current scorecard state? | **124** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The window-attention smoke gate fails before long training. The source-evidence split smoke pass rejects that long-run direction. The frequency-pyramid source-evidence branch is also blocked: X2D median MAE is **+0.0054%** but worst-row MAE is **-4.8501%**; Z8 median MAE is **-8.8093%** and worst-row MAE is **-67.4436%**. The gated no-op residual branch reduces Z8 damage to **-0.0777%** median MAE / **-0.9817%** worst-row MAE, and the stricter identity probe nearly reaches interpolation parity, but neither creates positive held-out recovery. The masked-detail/no-op target-objective branch is also blocked: X2D median/worst-row MAE is **-0.00002%** / **-0.0042%**, Z8 median/worst-row MAE is **-0.0011%** / **-0.0090%**, and route-local scene smokes stay negative. The route-specialist lane has route coverage, positive full-frame metric floors, routed rendered EV-stress proxy coverage, and 4/4 non-oracle editor/latitude coverage for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The clean-target exact-sidecar policy passes; the remaining blocker is a no-REF model receipt that clears the 15% / 15% held-out floor and production submission validation. |
+| What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
+| What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
+| What should happen before another long CNN run? | Do not scale the current Restormer, teacher-first, window-attention, source-evidence split, frequency-pyramid, gated-residual, or masked-detail/no-op clean-source pair setup unless both smoke holdouts beat interpolation. The next run must change the target/source or teacher objective so the candidate has a stronger positive no-REF signal while preserving exact no-op behavior for low-error tiles; editor/latitude and clean-target noise policy are already covered. |
+| Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
+
+## First-Hour Steps
+
+1. Read the promotion boundary, not just the training notes:
+
+   ```sh
+   sed -n '1,180p' docs/PREMIUM_STILL_SR.md
+   sed -n '1,120p' docs/PRODUCTION_CAPTURE_REQUIREMENTS.md
+   ```
+
+2. Regenerate or inspect the current promotion gate:
+
+   ```sh
+   python3 tools/check_premium_still_sr_promotion_gate.py \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_<date> \
+     --require-promotion-safe
+   ```
+
+   The expected current state is `promotion_safe=true` and
+   `production_ready=false`. That means it is safe to keep experimenting, not
+   safe to claim a premium still-SR product.
+
+3. Build the fixture manifest and confirm the candidate has both 50 MP and
+   100 MP evidence:
+
+   ```sh
+   python3 tools/build_premium_still_sr_fixture_manifest.py \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_<date>
+   ```
+
+4. Before training long, run a short candidate through a held-out gate and
+   write a receipt with:
+
+   | field | requirement |
+   |---|---|
+   | checkpoint/config | SHA-256 hash and training config |
+   | target hash | immutable target dataset hash |
+   | runtime inputs | `candidate_raw`, camera metadata, and optional validated exact noise sidecars only |
+   | forbidden inputs | no REF/source/JPEG content at render time |
+   | holdouts | 50 MP and 100 MP full-frame row counts |
+   | metrics | median MAE/RMSE reduction and worst-row MAE reduction |
+   | review | worst-row dashboard and raw-editor latitude review |
+   | outputs | editable DNG/GPR receipts and review TIFF/ProRes hashes where applicable |
+   | performance | seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS |
+   | noise policy | exact-sidecar-only addback; source residual noise forbidden |
+
+   The production form of `tools/build_premium_still_sr_gate_receipt.py` now
+   refuses to write `production_ready=true` unless real editable DNG/GPR,
+   review media, dashboard paths, no-REF runtime flags, 50 MP / 100 MP rows,
+   positive median reductions, nonnegative worst-row reductions, timing/memory,
+   and exact-sidecar-only noise policy are supplied. Use the full command shape
+   in [`PREMIUM_STILL_SR.md`](PREMIUM_STILL_SR.md) only after a candidate has
+   real artifacts.
+
+   The routed `train_premium_still_sr_clean_source_pairs.py` X2D/Z8 commands in
+   the 20260702 contract are reproduction references for rejected receipts, not
+   launchable production attempts. The newer t64 Restormer pair smoke also fails
+   promotion: X2D is only barely positive, Z8 is negative, and a longer Z8 pass
+   overfits the train split while regressing held-out MAE. Adding Charbonnier,
+   Laplacian, RAW noise, gain jitter, and blur degradation also fails both
+   holdouts. The next valid long run must first satisfy the contract's
+   `next_candidate_preflight` with a materially different source target,
+   degradation model, or teacher objective.
+
+   Before launching that run, run or inspect the candidate-only source-evidence
+   audits and keep their paths in the candidate notes:
+
+   ```sh
+   python3 tools/cnn/audit_premium_still_sr_source_evidence.py \
+     --pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_x2dholdout_t64_<date> \
+     --holdout-camera x2d \
+     --radius 1 \
+     --max-train-samples 200000 \
+     --ridge-lambda 1.0 \
+     --min-recovery-pct 1.0
+
+   python3 tools/cnn/audit_premium_still_sr_source_evidence.py \
+     --pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_z8holdout_t64_<date> \
+     --holdout-camera z8 \
+     --radius 1 \
+     --max-train-samples 200000 \
+     --ridge-lambda 1.0 \
+     --min-recovery-pct 1.0
+   ```
+
+   The current receipts say X2D has candidate-only local source evidence, but
+   Z8 does not clear the 1 percent MAE floor. A long run that ignores that
+   split is rejected before launch.
+
+   Then build a candidate preflight scaffold and edit it with the concrete
+   material change from the rejected 20260702 receipts:
+
+   ```sh
+   python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+     --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+   ```
+
+   The generated scaffold is deliberately not launchable. Set
+   `launchable_for_production_attempt=true`,
+   `requires_material_edits_before_launch=false`, and replace
+   `material_change_summary` only after the proposal names a real new
+   architecture/degradation/validation change. Also replace the placeholder
+   `smoke_gate_commands` with separate exact X2D and Z8 smoke commands for
+   that candidate, and make every `--output-dir` land under
+   `/Volumes/OWC_8TB/gpr_work`. Keep or edit `smoke_gate_acceptance` so it
+   explicitly blocks long training unless both X2D and Z8 smoke receipts beat
+   same-color Bayer interpolation with positive median MAE recovery and
+   nonnegative worst-row MAE recovery. Launch packets now use those manifest
+   commands directly rather than a built-in Restormer command shape. Then build
+   the launch packet from that explicit manifest:
+
+   ```sh
+   python3 tools/build_premium_still_sr_launch_packet.py \
+     --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
+     --require-launchable
+   ```
+
+   The packet writes the candidate manifest, runs the launch preflight, records
+   the exact next command sequence, and lists rejected repeat paths that should
+   not burn another long run. Its train commands must come from the explicit
+   manifest and are deliberately short smoke gates; a longer run is allowed
+   only after both X2D and Z8 smoke holdouts beat same-color interpolation:
+
+   ```sh
+   python3 tools/check_premium_still_sr_candidate_preflight.py \
+     /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+     --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json \
+     --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html \
+     --require-launchable
+   ```
+
+   This does not promote the model. It only proves the proposed run is not a
+   rejected repeat and has architecture, degradation, validation, runtime,
+   baseline, timing/memory, editor-latitude, editable-raw, and noise-policy
+   receipts planned before it burns training time.
+   The checker now explicitly blocks relaunching
+   `teacher_first_fullframe_raw_sr_smoke_v1` and any candidate preflight that
+   reuses the rejected X2D/Z8 smoke output directories from the committed
+   20260702 teacher-first receipts.
+   It also requires each smoke command to declare a supported trainer
+   `--model-arch`; fake architecture names such as `row_psf_teacher` are
+   rejected before launch instead of being documented as plausible work.
+   The preflight now also rejects generic Restormer-style, NAF/detail, U-Net,
+   or local residual repeats unless the manifest names new source/evidence or a
+   teacher-first holdout gate. Examples that can pass this intake are
+   row-level measured PSF from real high/low pairs, burst or multi-frame raw
+   evidence, materially different target/source evidence, or an explicit rule
+   that both X2D and Z8 smoke holdouts must beat same-color interpolation before
+   any long run. Restormer plus blur/noise/decode wording alone is already
+   covered by rejected 20260702 receipts. The
+   `window_attention_pixelshuffle` architecture is now executable and
+   preflight-supported, but the 20260702 smoke receipts show that an
+   architecture-only swap on the same clean-source pair target still fails the
+   joint gate. A manifest without concrete X2D and
+   Z8 `smoke_gate_commands` is blocked before launch, even if the prose looks
+   material. A manifest whose smoke commands still contain placeholders or write
+   receipts to local `/tmp` is also blocked. A manifest without
+   `smoke_gate_acceptance`, or with an acceptance policy that allows zero median
+   improvement or negative worst-row recovery, is blocked before launch.
+
+5. Check paired smoke acceptance before any long run:
+
+   ```sh
+   python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+     /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+     --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_smoke_gate_acceptance_<date>/smoke_gate_acceptance.json \
+     --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_smoke_gate_acceptance_<date>/index.html \
+     --require-pass
+   ```
+
+   The frequency-pyramid candidate fails this checker at
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json`.
+   A long run from that branch is blocked.
+
+6. Rebuild the scoreboard and reject the candidate if it cannot beat the
+   promotion floor:
+
+   ```sh
+   python3 tools/build_premium_still_sr_experiment_scoreboard.py \
+     --external-root /Volumes/OWC_8TB/gpr_work \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_<date>
+   ```
+
+7. Submit only candidates that survive the scoreboard to the full production
+   capture checker:
+
+   ```sh
+   python3 tools/build_production_capture_submission_template.py \
+     --output /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission_template.json
+
+   python3 tools/check_production_capture_submission.py <submission.json> \
+     --json-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/audit.json \
+     --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html
+   ```
+
+## Promotion Requirements
+
+| requirement | closure signal |
+|---|---|
+| candidate-only runtime | `runtime_inputs` includes `candidate_raw` and camera metadata, and excludes REF/source/JPEG image content |
+| 50 MP gate | at least one full-frame 50 MP row, positive median MAE reduction, nonnegative worst-row MAE reduction |
+| 100 MP gate | at least one full-frame 100 MP row, positive median MAE reduction, nonnegative worst-row MAE reduction |
+| quality review | no severe worst-row visual failures and editor-latitude review passes |
+| raw output | editable DNG/GPR receipts exist and openability is proven |
+| performance | seconds/frame and peak RSS recorded for the offline render path |
+| noise policy | only exact validated sidecars may drive nonzero noise removal/addback; source residual noise is forbidden |
+| final registration | checkpoint hash, config hash, gate receipt, dashboard, and artifact hashes are recorded before any production claim |
+
+## What Does Not Count
+
+| shortcut | why it is insufficient |
+|---|---|
+| Looks sharper in one crop | The gate is full-frame, worst-row, and editor-latitude based. |
+| Positive train split only | Current evidence already shows train improvement can fail scene-held-out X2D. |
+| More time on the rejected 12k-step teacher | The 12k-step X2D scene-holdout run regressed; repeating the same objective is not a promotion path. |
+| Clean target alone | The clean-signal U-Net smoke still regressed X2D; the next pass needs materially different supervision or runtime signal. |
+| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The t64 Restormer smoke adds a stronger architecture but still fails the joint holdout gate, the longer Z8 pass overfits, the degradation/objective ablation with Charbonnier, Laplacian, RAW noise, gain jitter, and blur also fails, and the window-attention architecture-only smoke fails both X2D/Z8 acceptance. The next run must change the target/source evidence, degradation synthesis, teacher objective, or validation scope before it can be treated as a production candidate. |
+| Skipping the launch preflight | It allows expensive repeats of already rejected architectures, degradation policies, or validation scopes. |
+| Runtime REF/source/HF leakage | It violates the no-REF production contract even if metrics improve. |
+| Noise synthesized without exact sidecars | It violates the camera-noise policy and can hide source-noise leakage. |
+
+## Current Evidence To Inspect
+
+| evidence | path |
+|---|---|
+| Product promotion boundary | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html` |
+| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html` |
+| Rejected relaunch guard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html` |
+| Window-attention launchable preflight | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_window_attention_20260702/index.html` |
+| Window-attention launch packet | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_window_attention_20260702/index.html` |
+| Window-attention X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_x2d_20260702/index.html` |
+| Window-attention Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_z8_20260702/index.html` |
+| Source-evidence X2D audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html` |
+| Source-evidence Z8 audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html` |
+| Source-evidence split launch packet | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html` |
+| Source-evidence split X2D smoke pass | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/index.html` |
+| Source-evidence split Z8 smoke failure | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/index.html` |
+| Historical launchable preflight now blocked if reused | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
+| Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
+| Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |
+| Current next-experiment contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html` |
+| Clean-source pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html` |
+| X2D routed holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html` |
+| Z8 routed holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html` |
+| t64 Restormer pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/audit/index.html` |
+| t64 Restormer X2D smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_x2dholdout_restormer_w32_d4_s100_20260702/index.html` |
+| t64 Restormer degradation/objective X2D smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_x2dholdout_restormer_degrade_w32_d4_s100_20260702/index.html` |
+| t64 Restormer degradation/objective Z8 smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_degrade_w32_d4_s100_20260702/index.html` |
+| t64 Restormer Z8 smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s100_20260702/index.html` |
+| t64 Restormer Z8 overfit check | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s500_20260702/index.html` |
+| Clean-signal target dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_targets_20260702/index.html` |
+| Clean-signal U-Net rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/index.html` |
+
+## Source Of Truth
+
+| topic | document |
+|---|---|
+| Premium still-SR gate contract | [`PREMIUM_STILL_SR.md`](PREMIUM_STILL_SR.md) |
+| Open production requirement | [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json) |
+| Locked paths versus open gates | [`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md) |
+| Camera-noise policy | [`CAMERA_NOISE_CALIBRATION.md`](CAMERA_NOISE_CALIBRATION.md) |

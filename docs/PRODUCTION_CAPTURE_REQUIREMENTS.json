@@ -1,0 +1,281 @@
+{
+  "schema": "gpr.production_capture_requirements.v1",
+  "last_updated": "2026-07-02",
+  "external_artifact_root": "/Volumes/OWC_8TB/gpr_work",
+  "purpose": "Committed source of truth for real samples and hardware receipts still required before the four product pillars can be called production-complete.",
+  "requirements": [
+    {
+      "id": "real_grbg_fixture",
+      "pillar": "raw_stills",
+      "priority": "required",
+      "sample_type": "real_camera_raw_fixture",
+      "status": "closed",
+      "minimum_count": 1,
+      "required_cfa_phase": "GRBG",
+      "why_needed": "Closed on 2026-07-01 by the broad old-photo Bayer phase scan, which found real Nikon D200 GRBG fixtures.",
+      "closed_evidence": [
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json",
+          "sha256": "2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2"
+        },
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json",
+          "sha256": "9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a"
+        }
+      ],
+      "required_evidence": [
+        "original camera raw file, not demosaiced or linearized",
+        "SHA-256 source hash",
+        "make, model, dimensions, CFA phase, bit depth, black level, white level, and ISO",
+        "metadata extraction or inventory receipt"
+      ],
+      "acceptance": [
+        "Bayer phase fixture inventory reports at least one real parsed GRBG fixture",
+        "real fixture compatibility remains passing",
+        "stills matrix and capability checks continue to pass for all normal 2x2 Bayer phases"
+      ],
+      "validation_commands": [
+        "python3 tools/build_bayer_phase_fixture_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>",
+        "bash tools/test/test_real_fixture_compatibility.sh",
+        "bash tools/test/test_still_matrix.sh"
+      ]
+    },
+    {
+      "id": "real_bggr_fixture",
+      "pillar": "raw_stills",
+      "priority": "required",
+      "sample_type": "real_camera_raw_fixture",
+      "status": "closed",
+      "minimum_count": 1,
+      "required_cfa_phase": "BGGR",
+      "why_needed": "Closed on 2026-07-01 by the broad old-photo Bayer phase scan, which found real Nikon D70 BGGR fixtures.",
+      "closed_evidence": [
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json",
+          "sha256": "2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2"
+        },
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json",
+          "sha256": "9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a"
+        }
+      ],
+      "required_evidence": [
+        "original camera raw file, not demosaiced or linearized",
+        "SHA-256 source hash",
+        "make, model, dimensions, CFA phase, bit depth, black level, white level, and ISO",
+        "metadata extraction or inventory receipt"
+      ],
+      "acceptance": [
+        "Bayer phase fixture inventory reports at least one real parsed BGGR fixture",
+        "real fixture compatibility remains passing",
+        "stills matrix and capability checks continue to pass for all normal 2x2 Bayer phases"
+      ],
+      "validation_commands": [
+        "python3 tools/build_bayer_phase_fixture_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>",
+        "bash tools/test/test_real_fixture_compatibility.sh",
+        "bash tools/test/test_still_matrix.sh"
+      ]
+    },
+    {
+      "id": "mission1_darkframe_stack",
+      "pillar": "raw_stills",
+      "priority": "required",
+      "sample_type": "darkframe_stack",
+      "status": "open",
+      "minimum_count": 4,
+      "camera": "GoPro Mission 1",
+      "why_needed": "Mission 1 has real still/video fixtures but no production-ready same-ISO darkframe sidecar, so nonzero noise removal/addback must stay disabled for this camera.",
+      "required_evidence": [
+        "at least four true no-scene-signal darkframes under one camera/ISO/CFA/dimensions key",
+        "lens/body cap or equivalent no-light capture confirmation",
+        "original DNG/GPR paths and SHA-256 source hashes",
+        "little-endian uint16 Bayer extraction receipts for every frame",
+        "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
+        "gpr.darkframe_source_provenance_audit.v1 receipt path and SHA-256 with production_ready=true and ready_frame_count >= 4",
+        "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
+      ],
+      "lowest_lift_current_group": {
+        "group": "Mission 1 ISO232 RGGB darkframe-like group",
+        "current_candidate_count": 2,
+        "additional_matching_frames_needed": 2,
+        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html",
+        "current_dng_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission1_dng_full_20260701/index.html"
+      },
+      "acceptance": [
+        "darkframe candidate audit groups at least four Mission 1 frames under one camera/ISO/CFA key",
+        "camera-noise calibration builder runs with --require-source-provenance and emits gpr.camera_noise_calibration.v1 with production_ready=true",
+        "sidecar records source hashes, fixed camera metadata, per-plane sigma, source_provenance_ready=true, and separates_noise_from_signal=true",
+        "camera-noise runtime policy enables nonzero denoised targets/noise addback only for exact matching sidecar classes"
+      ],
+      "validation_commands": [
+        "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission1_<date> <new dng roots>",
+        "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
+        "python3 tools/check_darkframe_source_provenance.py <darkframe_raw_source_provenance.json> --minimum-count 4 --require-existing-files --json-out <darkframe_source_provenance_audit.json>",
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase> --source-provenance-manifest <darkframe_raw_source_provenance.json> --require-source-provenance",
+        "python3 tools/build_camera_noise_coverage_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_<date>"
+      ]
+    },
+    {
+      "id": "iphone_cfa_darkframe_stack",
+      "pillar": "raw_stills",
+      "priority": "required",
+      "sample_type": "darkframe_stack",
+      "status": "open",
+      "minimum_count": 4,
+      "camera": "iPhone CFA raw",
+      "why_needed": "iPhone CFA DNG compatibility exists, but the current iPhone Linear Raw fixture is a negative fixture and cannot calibrate CFA noise.",
+      "lowest_lift_current_group": {
+        "group": "Apple iPhone 7 Plus ISO1250 RGGB dark-like candidate group",
+        "current_candidate_count": 27,
+        "additional_matching_frames_needed": 0,
+        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html",
+        "promotion_blocker": "candidate-discovery frames need confirmed no-scene-signal provenance before sidecar construction"
+      },
+      "required_evidence": [
+        "at least four true no-scene-signal CFA DNG frames under one camera/ISO/CFA/dimensions key",
+        "original DNG paths and SHA-256 source hashes",
+        "proof that the files are CFA raw, not Linear Raw",
+        "little-endian uint16 Bayer extraction receipts for every frame",
+        "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
+        "gpr.darkframe_source_provenance_audit.v1 receipt path and SHA-256 with production_ready=true and ready_frame_count >= 4",
+        "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
+      ],
+      "acceptance": [
+        "darkframe candidate audit groups at least four iPhone CFA frames under one camera/ISO/CFA key",
+        "camera-noise calibration builder runs with --require-source-provenance and emits gpr.camera_noise_calibration.v1 with production_ready=true",
+        "sidecar records source_provenance_ready=true and separates_noise_from_signal=true",
+        "camera-noise coverage audit marks iPhone CFA ready",
+        "Linear Raw remains rejected as a raw Bayer fixture"
+      ],
+      "validation_commands": [
+        "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_iphone_<date> <iphone cfa dng roots>",
+        "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
+        "python3 tools/check_darkframe_source_provenance.py <darkframe_raw_source_provenance.json> --minimum-count 4 --require-existing-files --json-out <darkframe_source_provenance_audit.json>",
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase> --source-provenance-manifest <darkframe_raw_source_provenance.json> --require-source-provenance"
+      ]
+    },
+    {
+      "id": "mission1_camera_role_receipts",
+      "pillar": "raw_video_mvp",
+      "priority": "required",
+      "sample_type": "camera_hardware_receipt",
+      "status": "blocked_on_real_camera_access",
+      "minimum_count": 1,
+      "camera": "GoPro Mission 1",
+      "why_needed": "Pi 5 stand-in encode and preview paths pass the accepted 20 fps floor, but product readiness requires the same path from the actual Mission 1 sensor/DMA, storage writer, and rear display.",
+      "required_evidence": [
+        "target_preflight_receipt.json",
+        "labs_target_bench.json",
+        "camera_handoff_receipt.json with target.role=camera",
+        "preview_decode_1024x768/receipt.json",
+        "preview_ui_receipt.json",
+        "mission1_camera_closure_run.json",
+        "valid .gvid output with zero dropped frames",
+        "source_width=4096 and source_height=3072 from real sensor/DMA or camera ring-buffer",
+        "preview_width=1024 and preview_height=768 from the same .gvid stream",
+        "source_fps, encode_fps, and preview_fps all at or above the accepted 20 fps floor",
+        "gvid_path and gvid_sha256 for the camera-produced .gvid",
+        "storage_medium, storage_write_mb_s, and storage_budget_passed=true for the SD/storage writer",
+        "peak_rss_mb for the camera-role run",
+        "timing and memory receipt for sensor/DMA to encode/write and preview handoff"
+      ],
+      "acceptance": [
+        "closure validator marks camera_production_ready=true",
+        "raw 4096 x 3072 Bayer to .gvid clears the accepted 20 fps floor or documents the real camera bottleneck",
+        "the same .gvid decodes to full-frame camera-back preview at 20 fps or better",
+        "submission checker records source/write/preview/memory scalar fields rather than relying only on free-form receipt links",
+        "receipts prove the source was real sensor/DMA or camera ring-buffer data rather than a packed original .GPR wrapper"
+      ],
+      "validation_commands": [
+        "python3 tools/run_gopro_mission1_quick_validation.py --target-role camera --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>",
+        "python3 tools/check_mission1_camera_closure_run.py /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>/mission1_camera_closure_run.json",
+        "python3 tools/build_gopro_mission1_intake_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_<date>"
+      ]
+    },
+    {
+      "id": "controlled_mission1_psf_pairs",
+      "pillar": "raw_video_psf_research",
+      "priority": "research_optional",
+      "sample_type": "controlled_same_scene_high_low_raw_pair_stack",
+      "status": "research_optional",
+      "minimum_pair_count": 3,
+      "camera": "GoPro Mission 1",
+      "why_needed": "Current near-time high/low pairs are useful diagnostics but produce an unstable native PSF kernel. A PSF-conditioned 4K/8K replacement needs controlled same-scene data, but this is a next-generation research path and does not block shipping the approved current 4K cleanup and 8K SR workflow.",
+      "required_evidence": [
+        "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
+        "decoded little-endian uint16 Bayer paths, byte counts, dimensions, CFA phase, and SHA-256 hashes for both sides of every pair",
+        "extraction receipt paths and SHA-256 hashes for the high and low decoded Bayer files",
+        "settings receipt path and SHA-256 hash proving fixed ISO, exposure, white balance, lens mode, stabilization, sharpening, and lens-correction state",
+        "PSF measurement receipt path and SHA-256 hash proving accepted or rejected pair status",
+        "fixed ISO, exposure, white balance, lens mode, stabilization, sharpening, and lens-correction state",
+        "locked camera and static scene confirmation",
+        "negative controls labelled as moved-camera, changed-scene, or mismatched-settings pairs with rejected_by_measurement=true and rejection_reason"
+      ],
+      "acceptance": [
+        "pair inventory reports at least three decoded native high/low Mission 1 candidate pairs",
+        "each accepted pair records 8192 x 6144 high-resolution Bayer and 4096 x 3072 low-resolution Bayer dimensions",
+        "decoded Bayer byte counts equal 100663296 bytes for high-resolution inputs and 25165824 bytes for low-resolution inputs",
+        "measurement plan selects at least three controlled pairs",
+        "native PSF measurement accepts at least three pairs after scene/alignment vetting",
+        "accepted pairs provide at least 96 sharp-edge and 96 texture-field tiles",
+        "combined kernel has no invalid negative weights and max normalized-weight std <= 0.10",
+        "negative controls fail for alignment or scene mismatch rather than tool errors",
+        "native_psf_ready_for_model_conditioning=true"
+      ],
+      "validation_commands": [
+        "python3 tools/extract_raw_bayer_u16.py --input <high_8192x6144.dng> --output <high_8192x6144.raw> --write-receipt <high_extract_receipt.json>",
+        "python3 tools/extract_raw_bayer_u16.py --input <low_4096x3072.dng> --output <low_4096x3072.raw> --write-receipt <low_extract_receipt.json>",
+        "python3 tools/build_mission1_native_psf_pair_inventory.py --media-summary <media_summary.json> --raw50-dir <decoded_8192x6144_raw_dir> --raw12-dir <decoded_4096x3072_raw_dir> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_<date>",
+        "python3 tools/build_mission1_native_psf_measurement_plan.py --pair-inventory /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_<date>/inventory.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_<date>",
+        "python3 tools/build_mission1_native_psf_measurement.py --measurement-plan /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_<date>/measurement_plan.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_<date>",
+        "python3 tools/build_raw_video_psf_gap_plan.py --pair-inventory /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_<date>/inventory.json --measurement-plan /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_<date>/measurement_plan.json --measurement /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_<date>/native_psf_measurement.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_<date>"
+      ]
+    },
+    {
+      "id": "premium_still_sr_promotion_receipts",
+      "pillar": "premium_still_sr",
+      "priority": "required",
+      "sample_type": "model_promotion_receipt",
+      "status": "open",
+      "minimum_count": 1,
+      "why_needed": "The still-SR pipeline, target builders, specialists, and raw-CFA residual trainers exist, but current no-REF residual/local-CNN models remain diagnostic and do not clear the production still/editor-latitude gate. The next launchable attempt must pass the premium still-SR candidate preflight before spending long training time.",
+      "required_evidence": [
+        "checkpoint hash and training config",
+        "candidate preflight manifest with separate concrete X2D and Z8 smoke_gate_commands for the proposed candidate, with receipts under /Volumes/OWC_8TB/gpr_work",
+        "candidate preflight smoke_gate_acceptance requiring same-color Bayer interpolation baseline, X2D and Z8 holdouts, positive median MAE recovery, nonnegative worst-row MAE recovery, and hard stop before long training if smoke fails",
+        "training target hash with runtime_inputs limited to candidate raw, camera metadata, and validated optional noise sidecars",
+        "50 MP and 100 MP full-frame raw-domain gates with row counts",
+        "positive 50 MP and 100 MP median MAE reduction, with nonnegative worst-row MAE reduction",
+        "raw-editor latitude review at exposure offsets",
+        "worst-row visual dashboard",
+        "editable DNG/GPR output receipts",
+        "timing and memory receipt for the offline render path, including seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS",
+        "camera-noise policy receipt proving noise is conditioning or exact-sidecar calibrated addback, not source-content leakage"
+      ],
+      "acceptance": [
+        "candidate beats current still-SR baselines on 50 MP and 100 MP holdouts",
+        "candidate preflight and launch packet record separate candidate-specific X2D and Z8 smoke_gate_commands under /Volumes/OWC_8TB/gpr_work before any long training run",
+        "candidate preflight smoke_gate_acceptance blocks long training unless X2D and Z8 smoke receipts beat same-color Bayer interpolation with positive median MAE recovery and nonnegative worst-row MAE recovery",
+        "runtime_inputs includes candidate_raw and camera_metadata",
+        "no REF/source/JPEG image content is used at render time",
+        "full_frame_gate_50mp_row_count and full_frame_gate_100mp_row_count are at least 1",
+        "median_mae_reduction_pct_50mp and median_mae_reduction_pct_100mp are greater than 0",
+        "worst_row_mae_reduction_pct_50mp and worst_row_mae_reduction_pct_100mp are not negative",
+        "raw-editor latitude review has no severe worst-row failures",
+        "noise removal/addback is enabled only for exact camera/ISO classes with validated sidecars and source residual noise is forbidden",
+        "render_seconds_per_50mp_frame, render_seconds_per_100mp_frame, and peak_rss_gb are recorded",
+        "promotion receipt is registered only after the gate passes"
+      ],
+      "validation_commands": [
+        "python3 tools/build_premium_still_sr_fixture_manifest.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_<date>",
+        "python3 tools/build_premium_still_sr_candidate_preflight_template.py --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json",
+        "python3 tools/check_premium_still_sr_candidate_preflight.py <candidate_preflight.json> --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html --require-launchable",
+        "python3 tools/build_premium_still_sr_launch_packet.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> --require-launchable",
+        "python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate_<date>",
+        "python3 tools/build_premium_still_sr_readiness.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_<date>",
+        "python3 tools/build_production_capture_submission_template.py --output /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission_template.json",
+        "python3 tools/check_production_capture_submission.py /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission.json --json-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/audit.json --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html"
+      ]
+    }
+  ]
+}
