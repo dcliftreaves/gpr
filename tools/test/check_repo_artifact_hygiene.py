@@ -20,11 +20,6 @@ README = ROOT / "README.md"
 MAX_UNALLOWLISTED_BYTES = 1_000_000
 MAX_ALLOWLISTED_BYTES = 10_000_000
 REQUIRED_README_MEDIA = {
-    "docs/img/readme_showcase.webp": {
-        "max_bytes": 500_000,
-        "width": 1600,
-        "height": 1100,
-    },
     "docs/img/readme_z8_timelapse_1024.webp": {
         "max_bytes": 2_000_000,
         "width": 1024,

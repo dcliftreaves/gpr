@@ -260,44 +260,39 @@ ALLOWED_BLOCKERS = {
 }
 
 README_REQUIRED_SECTIONS = (
-    "## Open RAW Stills And Video For Action Cameras",
-    "## What It Enables",
-    "## Image Proof",
-    "## Performance Snapshot",
-    "## Capabilities",
-    "## Traceability",
-    "## Quick Start",
-    "## Repository Map",
+    "## Small Files. Room To Edit.",
+    "## RAW In Motion",
+    "## More Detail In Post",
+    "## One RAW Source",
+    "## Try It",
 )
 
 README_REQUIRED_TOKENS = (
-    "8-bit JPEG size. 16-bit RAW quality. Editable Bayer stills and video.",
-    "keeps the sensor data alive",
-    "record Bayer, keep it small, preview from the same raw stream",
-    "Actual Mission 1 sensor/DMA",
-    "docs/img/readme_showcase.webp",
-    "docs/img/readme_z8_timelapse_1024.webp",
-    "docs/img/readme_pipeline_flow.svg",
-    "docs/img/readme_status_matrix.svg",
+    "8-bit JPEG size. 16-bit RAW quality.",
+    "docs/img/readme_mission1_native12_100pct.png",
     "docs/img/still_three_tiers.png",
-    "GPR started as a practical still-photo problem",
-    "the editable Bayer stream is the source of truth",
-    "The readiness view separates what is already proven",
-    "Stills came first",
-    "Video made the same constraint harder",
-    "Offline reconstruction is where compute is allowed to be expensive",
-    ".gvid",
-    "ProRes review media",
-    "PREVIEW offline/review",
-    "PREVIEW live/camera-back",
-    "not a live/camera-back preview path",
-    "4096 x 3072 Bayer `.gvid` clears the accepted **20+ fps** Pi 5 stand-in floor",
-    "same 4K `.gvid` previews full-frame at 1024 x 768 above **20 fps**",
-    "Offline 4K cleanup and 8K SR are approved",
-    "docs/PRODUCT_PILLAR_SCORECARD.md",
-    "docs/PRODUCTION_100_PERCENT_PLAN.md",
-    "docs/VIDEO_STATUS.md",
-    "docs/PRODUCTION_ARTIFACTS.md",
+    "docs/img/readme_z8_timelapse_1024.webp",
+    "docs/img/readme_native12_fps_plot.svg",
+    "docs/img/readme_mission1_2x_sr_contact.png",
+    "docs/img/readme_cnn_sr_plot.svg",
+    "docs/img/readme_pipeline_flow.svg",
+    "14-bit and",
+    "16-bit Bayer support",
+    "**9.80 MB**, **15.05 MB**, and **27.17 MB**",
+    "X2D 100 MP DNG roundtrips",
+    "RGGB, GBRG, GRBG, and BGGR",
+    "4096 x 3072 Bayer at 20+ fps",
+    "1024 x 768 above 20 fps",
+    "These are Pi 5 measurements",
+    "Mission 1 firmware integration still needs testing",
+    "No CNN is needed on the camera side",
+    "4K cleanup and 8K video SR",
+    "**Premium still/SR**",
+    "has not yet passed its gate",
+    "ProRes",
+    "docs/GETTING_STARTED.md",
+    "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
+    "docs/PRODUCT_DETAILS.md",
 )
 
 RELEASE_READINESS_REQUIRED_SECTIONS = (
@@ -554,6 +549,21 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
         return
 
     readme = README.read_text(encoding="utf-8")
+    details_path = ROOT / "docs/PRODUCT_DETAILS.md"
+    if "docs/PRODUCT_DETAILS.md" not in tracked or not details_path.is_file():
+        failures.append("docs/PRODUCT_DETAILS.md must be tracked")
+    else:
+        details = details_path.read_text(encoding="utf-8")
+        for token in (
+            "VIDEO_STATUS.md", "SHIP_DECISION.md", "CAMERA_NOISE_CALIBRATION.md",
+            "PRODUCT_PILLAR_SCORECARD.md", "GOAL_CLOSURE_MATRIX.md",
+            "PRODUCTION_100_PERCENT_PLAN.md", "PREMIUM_STILL_SR.md",
+            "PRODUCTION_ARTIFACTS.md", "release_evidence_manifest.json",
+            "BIG_EFFORTS_STATUS.md", "EXPERIMENT_ARCHIVE_2026-06-04.md",
+            "PREVIEW offline/review", "not a live/camera-back preview path",
+        ):
+            if token not in details:
+                failures.append(f"docs/PRODUCT_DETAILS.md missing {token!r}")
     for section in README_REQUIRED_SECTIONS:
         if section not in readme:
             failures.append(f"README.md missing section {section!r}")
@@ -2079,7 +2089,7 @@ def require_preview_offline_review_contract(
     docs = entry.get("docs")
     if not isinstance(docs, list):
         docs = []
-    for required_doc in ("README.md", "docs/VIDEO_STATUS.md"):
+    for required_doc in ("docs/VIDEO_STATUS.md",):
         if required_doc not in docs:
             failures.append(f"{entry_id}: docs must include {required_doc}")
             continue

@@ -18,17 +18,14 @@ PRODUCTION_100 = ROOT / "docs/PRODUCTION_100_PERCENT_PLAN.md"
 
 DOC_TOKENS = {
     "README.md": (
-        "Open RAW Stills And Video For Action Cameras",
         "8-bit JPEG size. 16-bit RAW quality.",
-        "docs/GOAL_CLOSURE_MATRIX.md",
-        "docs/PRODUCTION_100_PERCENT_PLAN.md",
-        "**1. Best RAW stills**",
-        "**2. GoPro RAW video MVP**",
-        "**3. Premium still/SR**",
-        "**4. RAW video reconstruction**",
-        "PSF/blur work is optional replacement research, not a release blocker",
-        "Detailed engineering receipts live here",
-        "no-REF 50 MP / 100 MP gate",
+        "## Small Files. Room To Edit.",
+        "## RAW In Motion",
+        "## More Detail In Post",
+        "**Premium still/SR**",
+        "has not yet passed its gate",
+        "Mission 1 firmware integration still needs testing",
+        "docs/PRODUCT_DETAILS.md",
     ),
     "docs/BIG_EFFORTS_STATUS.md": (
         "GOAL_CLOSURE_MATRIX.md",
