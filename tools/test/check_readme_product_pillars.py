@@ -23,78 +23,42 @@ SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
 MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 
-MAX_README_LINES = 260
+MAX_README_LINES = 120
 
 REQUIRED_SECTIONS = (
-    "## Open RAW Stills And Video For Action Cameras",
-    "## What It Enables",
-    "## Image Proof",
-    "## Performance Snapshot",
-    "## Capabilities",
-    "## Traceability",
-    "## Quick Start",
-    "## Repository Map",
+    "## Small Files. Room To Edit.",
+    "## RAW In Motion",
+    "## More Detail In Post",
+    "## One RAW Source",
+    "## Try It",
 )
 
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
-    "![GPR raw capture suite: RAW stills, 4K Bayer .gvid, preview decode, and 8K SR review](docs/img/readme_showcase.webp)",
-    "![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)",
-    "![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)",
-    "![Raw Bayer timelapse decoded through the GPR preview path](docs/img/readme_z8_timelapse_1024.webp)",
-    "![Mission native12 100 percent crop sheet](docs/img/readme_mission1_native12_100pct.png)",
-    "![Mission native12 2x SR contact sheet](docs/img/readme_mission1_2x_sr_contact.png)",
-    "![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)",
-    "![CNN and SR improvement plot](docs/img/readme_cnn_sr_plot.svg)",
-    "| path | result |",
-    "| **RAW stills** | 50 MP and 100 MP-class editable Bayer photos at JPEG-like sizes. |",
-    "| **RAW video MVP** | 4K Bayer frames recompressed into `.gvid`, with camera-back preview from the same stream. |",
-    "| **Premium still/SR** | A slow offline still path for maximum quality, currently gated until a better no-REF model wins. |",
-    "| **Video reconstruction** | Approved 4K cleanup and 8K SR for desktop/post, with editable raw plus ProRes review media. |",
-    "Current four-pillar completion is **",
-    "production-readiness",
-    "not an image-quality score",
-    "not a regression signal for locked",
-    "record Bayer, keep it small, preview from the same raw stream",
-    "spend desktop compute later",
-    "GPR started as a practical still-photo problem",
-    "the editable Bayer stream is the source of truth",
-    "The readiness view separates what is already proven",
-    "Stills came first",
-    "Video made the same constraint harder",
-    "The Mission native12 crop sheet is the camera MVP at 100% scale",
-    "Offline reconstruction is where compute is allowed to be expensive",
-    "CNNs and SR are quality levers, not the camera capture mechanism",
-    "**1. Best RAW stills**",
-    "**2. GoPro RAW video MVP**",
-    "**3. Premium still/SR**",
-    "**4. RAW video reconstruction**",
-    "50 MP stills",
-    "100 MP stills",
-    "Three visual-gated tiers average **9.80 MB**, **15.05 MB**, and **27.17 MB**",
+    "docs/img/readme_mission1_native12_100pct.png",
+    "docs/img/still_three_tiers.png",
+    "docs/img/readme_z8_timelapse_1024.webp",
+    "docs/img/readme_native12_fps_plot.svg",
+    "docs/img/readme_mission1_2x_sr_contact.png",
+    "docs/img/readme_cnn_sr_plot.svg",
+    "docs/img/readme_pipeline_flow.svg",
+    "14-bit and",
+    "16-bit Bayer support",
+    "**9.80 MB**, **15.05 MB**, and **27.17 MB**",
     "X2D 100 MP DNG roundtrips",
-    "normal RGGB/GBRG/GRBG/BGGR Bayer support",
-    "Mission 1 and iPhone strict-provenance darkframe sidecars",
-    "4096 x 3072 Bayer `.gvid` clears the accepted **20+ fps** Pi 5 stand-in floor",
-    "same 4K `.gvid` previews full-frame at 1024 x 768 above **20 fps**",
-    "Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts",
-    "are not promoted; the next model must beat the no-REF 50 MP / 100 MP gate",
-    "no-REF 50 MP / 100 MP gate",
-    "Offline 4K cleanup and 8K SR are approved",
-    "PSF/blur work is optional replacement research, not a release blocker",
-    "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
-    "docs/PRODUCTION_100_PERCENT_PLAN.md",
-    "docs/PRODUCT_PILLAR_SCORECARD.md",
-    "docs/GOAL_CLOSURE_MATRIX.md",
-    "docs/WORKSPACE_AND_ARTIFACT_MAP.md",
-    "docs/PRODUCTION_ARTIFACTS.md",
-    "docs/release_evidence_manifest.json",
-    "docs/SHIP_DECISION.md",
-    "docs/CAMERA_NOISE_CALIBRATION.md",
-    "docs/VIDEO_STATUS.md",
+    "RGGB, GBRG, GRBG, and BGGR",
+    "4096 x 3072 Bayer at 20+ fps",
+    "1024 x 768 above 20 fps",
+    "These are Pi 5 measurements",
+    "Mission 1 firmware integration still needs testing",
+    "No CNN is needed on the camera side",
+    "4K cleanup and 8K video SR",
+    "**Premium still/SR**",
+    "has not yet passed its gate",
+    "ProRes",
+    "docs/GETTING_STARTED.md",
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
-    "docs/PREMIUM_STILL_SR.md",
-    "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+    "docs/PRODUCT_DETAILS.md",
 )
 
 REQUIRED_STATUS_MATRIX_TOKENS = (
@@ -113,6 +77,9 @@ REQUIRED_STATUS_MATRIX_TOKENS = (
 )
 
 FORBIDDEN_README_TOKENS = (
+    "Current four-pillar completion",
+    "## Traceability",
+    "## Engineering Rules",
     # The public page should stay product-led. These older headings repeated
     # the same status in several places and made the README read like a logbook.
     "## At A Glance",
@@ -341,9 +308,6 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
     except Exception as exc:
         failures.append(f"could not cross-check product scorecard against release manifest: {exc}")
 
-    overall_token = f"Current four-pillar completion is **{expected_overall}%**"
-    if expected_overall and overall_token not in readme:
-        failures.append(f"README.md missing generated overall completion token {overall_token!r}")
 
     missing_pillars = sorted(set(README_PILLAR_LABELS.values()) - set(expected_percentages))
     if missing_pillars:

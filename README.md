@@ -2,205 +2,96 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dcliftreaves/gpr/ci.yml?branch=master&label=CI&style=flat-square)](https://github.com/dcliftreaves/gpr/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
-[![RAW stills](https://img.shields.io/badge/50MP%20RAW-9.80%20MB%20tier-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
-[![Mission preview](https://img.shields.io/badge/Mission%20preview-25.85%20fps%20Pi%205-2e7d32?style=flat-square)](docs/VIDEO_STATUS.md)
-[![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
 
-## Open RAW Stills And Video For Action Cameras
+**8-bit JPEG size. 16-bit RAW quality.**
 
-**8-bit JPEG size. 16-bit RAW quality. Editable Bayer stills and video.**
-
-GPR keeps the sensor data alive. It turns compact action-camera captures into
-editable RAW stills, RAW video streams, camera-back preview, and offline 4K/8K
-reconstruction without making JPEG the master.
-
-![GPR raw capture suite: RAW stills, 4K Bayer .gvid, preview decode, and 8K SR review](docs/img/readme_showcase.webp)
-
-GPR started as a practical still-photo problem: RAW files should stay editable,
-but they should not have to move through the world as giant assets. The same
-idea became a video pipeline. The working rule is: record Bayer, keep it small, preview from the same raw stream,
-and spend desktop compute later when it visibly improves the image.
-
-## What It Enables
-
-| path | result |
-|---|---|
-| **RAW stills** | 50 MP and 100 MP-class editable Bayer photos at JPEG-like sizes. |
-| **RAW video MVP** | 4K Bayer frames recompressed into `.gvid`, with camera-back preview from the same stream. |
-| **Premium still/SR** | A slow offline still path for maximum quality, currently gated until a better no-REF model wins. |
-| **Video reconstruction** | Approved 4K cleanup and 8K SR for desktop/post, with editable raw plus ProRes review media. |
-
-The pipeline has one rule: the editable Bayer stream is the source of truth.
-Stills, preview, `.gvid`, and ProRes review media all branch from raw sensor
-data, so the fast camera path can stay simple while slower reconstruction stays
-optional.
-
-![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
-
-The readiness view separates what is already proven from what still needs a
-camera-side or model-promotion receipt. It is a product boundary, not a running
-experiment log.
-
-![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)
-
-## Image Proof
-
-The small assets below are committed so the repo can be understood without
-opening a dashboard server. Full receipts, hashes, dashboards, and videos live
-in the linked evidence docs.
-
-Stills came first. The target is simple to explain but hard to do well: make
-large 50 MP and 100 MP-class Bayer captures small enough to treat like everyday
-files while preserving 16-bit RAW editability and visual headroom.
-
-![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
-
-Video made the same constraint harder. The raw stream has to be compact enough
-to write continuously and direct enough to preview without a separate JPEG-first
-path. This timelapse shows the preview side of that same raw-stream idea.
+Compact RAW photos. RAW video you can edit. More detail when you get home.
+This fork extends GoPro's GPR SDK from still photography into a complete Bayer
+capture and desktop reconstruction workflow.
 
 ![Raw Bayer timelapse decoded through the GPR preview path](docs/img/readme_z8_timelapse_1024.webp)
 
-The Mission native12 crop sheet is the camera MVP at 100% scale: real Bayer
-dimensions, codec receipts, and visible crop evidence instead of a wrapper
-around existing JPEG/GPR payloads.
+## Small Files. Room To Edit.
+
+GPR began with a useful idea: keep the flexibility of RAW without carrying huge
+files everywhere. This fork builds on it with faster compression, 14-bit and
+16-bit Bayer support, and optional CNN restoration. Choose a smaller file for
+everyday shooting or a higher-quality tier for a demanding edit; the sensor
+data stays available in either case.
+
+![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
+
+The tested 50 MP still tiers average **9.80 MB**, **15.05 MB**, and **27.17 MB**.
+The two smaller tiers pair compression with desktop restoration; the largest
+uses no CNN. The workflow also supports X2D 100 MP DNG roundtrips and the four
+standard Bayer layouts: RGGB, GBRG, GRBG, and BGGR. File size and fidelity depend
+on the scene and selected settings.
+
+## RAW In Motion
+
+The next step was to make that same idea continuous. Fresh 4K Bayer frames are
+compressed into `.gvid`, an independently decodable RAW video stream. A native
+preview path reads that stream and displays the full frame, so capture and
+playback share the same recording. No CNN is needed on the camera side.
 
 ![Mission native12 100 percent crop sheet](docs/img/readme_mission1_native12_100pct.png)
 
-Offline reconstruction is where compute is allowed to be expensive. The 2x
-contact sheet shows the post path improving review output while keeping the
-editable raw/video source separate from the rendered media.
-
-![Mission native12 2x SR contact sheet](docs/img/readme_mission1_2x_sr_contact.png)
-
-## Performance Snapshot
-
-| product path | current result | boundary |
-|---|---|---|
-| **50 MP stills** | Three visual-gated tiers average **9.80 MB**, **15.05 MB**, and **27.17 MB**. | Mission 1 and iPhone strict-provenance darkframe sidecars still need closure before broad noise addback is claimed. |
-| **100 MP stills** | X2D 100 MP DNG roundtrips through editable GPR with normal Bayer handling. | Keep fixture coverage and editor-openability checks green. |
-| **4K RAW video** | 4096 x 3072 Bayer `.gvid` clears the accepted **20+ fps** Pi 5 stand-in floor with zero drops. | Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts are still required. |
-| **Camera preview** | The same 4K `.gvid` previews full-frame at 1024 x 768 above **20 fps** on the Pi 5 stand-in. | Real camera UI/display handoff is the remaining proof. |
-| **4K/8K reconstruction** | Offline 4K cleanup and 8K SR are approved for desktop/post review and editable raw outputs. | PSF/blur work is optional replacement research, not a release blocker. |
-
-The performance claim matters because raw video is only useful when capture does
-not miss frames. These numbers anchor the Pi 5 stand-in path, while the docs
-keep the real Mission 1 sensor/DMA and SD-writer handoff open until GoPro-side
-receipts exist.
+The Pi 5 evaluation path records **4096 x 3072 Bayer at 20+ fps** and previews
+the same stream at **1024 x 768 above 20 fps**. These are Pi 5 measurements;
+Mission 1 firmware integration still needs testing on the camera's sensor,
+storage, and display interfaces.
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
-CNNs and SR are quality levers, not the camera capture mechanism. The camera
-path stands on Bayer plus `.gvid`; models can improve stills or reconstruction
-when the workflow can afford the extra time.
+## More Detail In Post
+
+Capture has a deadline. Reconstruction can take its time. On the Mac, optional
+CNNs restore 4K detail or reconstruct an 8K output from the recorded Bayer data.
+The approved video models support editable RAW workflows and ProRes rendering,
+letting you choose the source format or a ready-to-edit movie for the next step.
+
+![Mission native12 2x SR contact sheet](docs/img/readme_mission1_2x_sr_contact.png)
+
+The 4K cleanup and 8K video SR paths have passed their recorded review gates.
+**Premium still/SR** is a separate, slower research effort for 50 MP and 100 MP
+photography; a broadly improved replacement model has not yet passed its gate.
+The existing still-restoration and video models remain available independently.
 
 ![CNN and SR improvement plot](docs/img/readme_cnn_sr_plot.svg)
 
-## Capabilities
+## One RAW Source
 
-GPR is organized around four product outcomes:
+Record once, then choose the output you need: a compact editable still, camera
+preview, restored 4K, or reconstructed 8K. White balance and rendering happen
+downstream of the Bayer recording, and ProRes is an output of that RAW workflow.
 
-1. **1. Best RAW stills**: compact, editable RAW photos for 50 MP and 100 MP
-   cameras, including normal RGGB/GBRG/GRBG/BGGR Bayer support.
-2. **2. GoPro RAW video MVP**: 4K Bayer to `.gvid` at camera-relevant speed, plus
-   preview from that same stream.
-3. **3. Premium still/SR**: an expensive still-improvement lane. The current CNNs
-   are not promoted; the next model must beat the no-REF 50 MP / 100 MP gate.
-4. **4. RAW video reconstruction**: approved offline 4K cleanup and 8K SR for
-   post-production workflows.
+![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
 
-Current four-pillar completion is **83%**. That number is a production-readiness
-burn-down, not an image-quality score and not a regression signal for locked
-artifacts.
-
-## Traceability
-
-Detailed engineering receipts live here:
-
-PREVIEW offline/review and PREVIEW live/camera-back are tracked separately;
-offline/review PREVIEW is not a live/camera-back preview path.
-
-| question | source |
+| Workflow | Output |
 |---|---|
-| What is ready, what is open, and why? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md), [`docs/GOAL_CLOSURE_MATRIX.md`](docs/GOAL_CLOSURE_MATRIX.md) |
-| What exactly must happen to reach 100%? | [`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md), [`docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md`](docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md) |
-| What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md) |
-| What proves the Mission 1 raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md) |
-| What proves or blocks CNN/SR work? | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md), [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md) |
-| Where are the large dashboards and videos? | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md), [`docs/WORKSPACE_AND_ARTIFACT_MAP.md`](docs/WORKSPACE_AND_ARTIFACT_MAP.md), [`docs/release_evidence_manifest.json`](docs/release_evidence_manifest.json) |
-| What productization contracts must stay green? | [`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md), [`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md), [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) |
+| RAW stills | Editable GPR/DNG, with optional desktop restoration |
+| RAW video capture | 4K Bayer `.gvid` |
+| Camera preview | Full-frame 1024 x 768 RGB from the same `.gvid` |
+| Desktop reconstruction | 4K cleanup or 8K SR, editable Bayer and ProRes |
 
-## Quick Start
+## Try It
 
-Build the codec and tools:
+Build the SDK and command-line tools:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
+cmake --build build -j 4
 ```
 
-Run CI-safe release checks:
+The [getting-started guide](docs/GETTING_STARTED.md) covers conversion and video
+workflows. GoPro engineers can start with the
+[camera evaluation guide](docs/GOPRO_MISSION1_QUICK_VALIDATION.md).
 
-```bash
-export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
-
-python3 tools/test/check_sensitive_content.py
-python3 tools/test/check_repo_artifact_hygiene.py
-python3 tools/test/check_readme_media.py
-python3 tools/test/check_readme_product_pillars.py
-python3 tools/test/check_product_burndown_contract.py
-python3 tools/test/check_release_evidence_manifest.py
-python3 tests/quality_gates/check_registry_consistency.py
-python3 tests/quality_gates/audit_ship_pipelines.py --strict
-```
-
-Walk the raw-video path:
-
-```bash
-python3 tools/gvid_pack.py /clip/gpr_dir clip.gvid \
-  --width 4096 \
-  --height 3072 \
-  --fps 24 \
-  --quality 8 \
-  --pixel-format 1 \
-  --payload-kind fused_gpr
-
-./tools/gpr2prores/gpr2prores \
-  --meta-dng /path/to/source_metadata.dng \
-  --ckpt /path/to/metal_weights_dir \
-  --cnn-backend metal \
-  --demosaic core-image \
-  clip.gvid review.mov
-```
-
-Full walkthrough: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
-
-## Repository Map
-
-| path | purpose |
-|---|---|
-| `source/` | C codec, decoder, CLI, and test applications |
-| `pipelines/registry.json` | Codec, CNN, demosaic, and production-role registry |
-| `tests/quality_gates/` | Quality gates, readiness audits, and run logs |
-| `tools/cnn/` | CNN training, evaluation, rendering, dashboards, and SR tools |
-| `tools/gpr2prores/` | Mac review path, Metal CNN path, demosaic, and ProRes muxing |
-| `tools/gpraw/` | MOV/GPR wrapper tooling |
-| `tools/` | `.gvid`, Mission 1, Labs, artifact, and release verification tools |
-| `docs/` | Runbooks, status docs, methodology, and evidence indexes |
-
-## Engineering Rules
-
-- Shipping claims require reproducible receipts and passing gates.
-- Runtime preview must not use REF content.
-- Large artifacts belong under `/Volumes/OWC_8TB/gpr_work`, not in git.
-- Camera-ready claims require target-hardware evidence; Pi/userland stand-ins
-  stay labeled as stand-ins.
+For measurements, model availability, limitations, and the development history,
+see [technical details and evidence](docs/PRODUCT_DETAILS.md).
 
 ## License
 
-Dual licensed under Apache-2.0 or MIT. See [`LICENSE.txt`](LICENSE.txt).
-
-## Trademarks
-
-Product names and file-format names belong to their respective owners. This
-project uses descriptive compatibility terms only.
+Dual licensed under Apache-2.0 or MIT. See [LICENSE.txt](LICENSE.txt).
+Product names belong to their respective owners; this fork is an independent
+extension of the GoPro SDK.

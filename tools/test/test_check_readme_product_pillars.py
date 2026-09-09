@@ -25,6 +25,25 @@ def import_tool():
 
 def main() -> int:
     module = import_tool()
+    evidence_spec = importlib.util.spec_from_file_location(
+        "release_evidence_under_readme_test",
+        ROOT / "tools/test/check_release_evidence_manifest.py",
+    )
+    assert evidence_spec is not None and evidence_spec.loader is not None
+    evidence = importlib.util.module_from_spec(evidence_spec)
+    evidence_spec.loader.exec_module(evidence)
+    details = (ROOT / "docs/PRODUCT_DETAILS.md").read_text(encoding="utf-8")
+    detail_failures: list[str] = []
+    evidence.require_product_details_contract(details, detail_failures)
+    assert not detail_failures, detail_failures
+    for original, replacement in (
+        ("requires improvement without REF\ncontent at render time", "may use REF content"),
+        ("PSF/blur modeling is optional research, not a blocker", "PSF is required"),
+        ("Mission 1 and iPhone noise calibration still\nneed suitable source evidence", "Noise calibration is complete"),
+    ):
+        detail_failures = []
+        evidence.require_product_details_contract(details.replace(original, replacement), detail_failures)
+        assert detail_failures, f"changed product boundary was accepted: {replacement}"
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         readme = tmp / "README.md"

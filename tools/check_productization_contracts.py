@@ -145,12 +145,13 @@ def main() -> int:
     ):
         require_file(rel, failures)
 
-    require_text("README.md", [
-        "docs/PRODUCTIZATION_CONTRACTS.md",
-        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
-        "docs/RELEASE_ARTIFACTS.md",
-        "docs/GVID_CONFORMANCE.md",
-        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
+    require_text("README.md", ["docs/PRODUCT_DETAILS.md"], failures)
+    require_text("docs/PRODUCT_DETAILS.md", [
+        "PRODUCTIZATION_CONTRACTS.md",
+        "PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "RELEASE_ARTIFACTS.md",
+        "GVID_CONFORMANCE.md",
+        "CNN_PRODUCT_SCORECARD_2026-06-29.md",
     ], failures)
     require_text("docs/README.md", [
         "PRODUCTIZATION_CONTRACTS.md",
