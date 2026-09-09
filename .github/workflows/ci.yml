@@ -1,0 +1,90 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: LinuxRelease, os: ubuntu-latest, build_type: Release}
+          - {name: LinuxDebug, os: ubuntu-latest, build_type: Debug}
+          - {name: MacRelease, os: macos-latest, build_type: Release}
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      FAST: "0"
+      GPR_CAPABILITIES_FAST: ${{ matrix.os == 'macos-latest' && '0' || '1' }}
+      GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || matrix.os == 'macos-latest' && '4.0' || '1.0' }}
+      GPR_TIMING_SAMPLE_MAX_PIXELS: ${{ matrix.os == 'macos-latest' && '120000000' || '12192768' }}
+    steps:
+      - name: Configure scratch paths
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_EXTERNAL_ROOT=$RUNNER_TEMP/gpr_work" >> "$GITHUB_ENV"
+          echo "GPR_TEST_ARTIFACT_DIR=$RUNNER_TEMP/regression-logs" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential clang
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install libraw ffmpeg pkg-config
+      - name: Torch dependencies (Linux CPU)
+        if: runner.os == 'Linux'
+        run: python3 -m pip install "torch>=2.5,<3" "torchvision>=0.20,<1" --index-url https://download.pytorch.org/whl/cpu
+      - name: Torch dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: python3 -m pip install "torch>=2.5,<3" "torchvision>=0.20,<1"
+      - name: Python and visual metric dependencies
+        run: |
+          python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "pillow>=10,<13" \
+            "opencv-python-headless>=4.10,<5" "tifffile>=2024,<2027" \
+            "scikit-image>=0.24,<1" "pytorch-msssim>=1,<2" "lpips>=0.1.4,<0.2"
+          python3 -m pip check
+      - name: Repository checks
+        run: |
+          python3 tests/check_repository.py
+          python3 tests/test_check_repository.py
+          python3 tests/test_preview_fixture_paths.py
+          python3 tests/test_reconstruction_models.py
+          python3 tests/quality_gates/check_registry_consistency.py
+          python3 tests/quality_gates/audit_ship_pipelines.py --strict
+          python3 tools/verify_production_artifacts.py
+      - name: Repository history guard
+        if: matrix.name == 'LinuxRelease'
+        run: python3 tools/test/check_sensitive_content.py --history
+      - name: Configure and build full suite
+        run: |
+          cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build "$BUILD_DIR" --parallel
+      - name: Build Metal renderer and MOV tool
+        if: runner.os == 'macOS'
+        run: make -C tools/gpr2prores GPR_BUILD="$BUILD_DIR"
+      - name: Shared regressions
+        run: bash tools/test/run_all_regressions.sh
+      - name: Upload regression logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regressions-${{ matrix.name }}
+          path: ${{ runner.temp }}/regression-logs/**/*.log
+          if-no-files-found: warn
