@@ -540,6 +540,22 @@ def require_manifest_freshness(manifest: dict[str, Any], failures: list[str]) ->
         )
 
 
+def require_product_details_contract(details: str, failures: list[str]) -> None:
+    for token in (
+        "VIDEO_STATUS.md", "SHIP_DECISION.md", "CAMERA_NOISE_CALIBRATION.md",
+        "PRODUCT_PILLAR_SCORECARD.md", "GOAL_CLOSURE_MATRIX.md",
+        "PRODUCTION_100_PERCENT_PLAN.md", "PREMIUM_STILL_SR.md",
+        "PRODUCTION_ARTIFACTS.md", "release_evidence_manifest.json",
+        "BIG_EFFORTS_STATUS.md", "EXPERIMENT_ARCHIVE_2026-06-04.md",
+        "PREVIEW offline/review", "not a live/camera-back preview path",
+        "requires improvement without REF\ncontent at render time",
+        "PSF/blur modeling is optional research, not a blocker",
+        "Mission 1 and iPhone noise calibration still\nneed suitable source evidence",
+    ):
+        if token not in details:
+            failures.append(f"docs/PRODUCT_DETAILS.md missing {token!r}")
+
+
 def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
     if "README.md" not in tracked:
         failures.append("README.md must be tracked")
@@ -554,16 +570,7 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
         failures.append("docs/PRODUCT_DETAILS.md must be tracked")
     else:
         details = details_path.read_text(encoding="utf-8")
-        for token in (
-            "VIDEO_STATUS.md", "SHIP_DECISION.md", "CAMERA_NOISE_CALIBRATION.md",
-            "PRODUCT_PILLAR_SCORECARD.md", "GOAL_CLOSURE_MATRIX.md",
-            "PRODUCTION_100_PERCENT_PLAN.md", "PREMIUM_STILL_SR.md",
-            "PRODUCTION_ARTIFACTS.md", "release_evidence_manifest.json",
-            "BIG_EFFORTS_STATUS.md", "EXPERIMENT_ARCHIVE_2026-06-04.md",
-            "PREVIEW offline/review", "not a live/camera-back preview path",
-        ):
-            if token not in details:
-                failures.append(f"docs/PRODUCT_DETAILS.md missing {token!r}")
+        require_product_details_contract(details, failures)
     for section in README_REQUIRED_SECTIONS:
         if section not in readme:
             failures.append(f"README.md missing section {section!r}")
