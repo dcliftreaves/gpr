@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""CI-safe guard for the Labs firmware-intake evidence contract.
+
+This intentionally does not verify large external media. It keeps the
+firmware-intake docs, release manifest, and CI workflow aligned on the current
+state: `.gvid` review is ready for Labs exploration, native 12MP/4K Bayer
+capture and 1024 preview have proxy-acceptable Pi receipts, and actual
+camera-role evidence at the accepted 20+ fps floor remains blocked.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MANIFEST = ROOT / "docs/release_evidence_manifest.json"
+CI = ROOT / ".github/workflows/ci.yml"
+TARGET_CI = ROOT / ".github/workflows/labs-target.yml"
+CMAKE = ROOT / "CMakeLists.txt"
+
+REQUIRED_DOCS = {
+    "docs/LABS_READINESS_GOAL.md": [
+        "Stop Criteria",
+        "Current Blocker",
+        "Immediate Next Step",
+        "Pass1/highpass",
+        "24 fps",
+        "current-head direct",
+        "16.00 fps",
+    ],
+    "docs/LABS_INTAKE.md": [
+        "What Ships In The Prototype",
+        "What Does Not Ship In The Prototype",
+        "Native 12MP / 4K Bayer capture target",
+        "accepted 20+ fps floor",
+        "20.50 fps wall / 21.52 fps median",
+        "1024 x 768 full-frame RGB preview",
+        "Strict 24 fps is optional performance research",
+    ],
+    "docs/LABS_FIRMWARE_API.md": [
+        "Input Frame Contract",
+        "Memory Ownership",
+        "Metadata Contract",
+        "Backpressure And Drops",
+        "Partial-File Recovery",
+        "Target Bench Requirements",
+        "Camera Handoff Receipt",
+        "gpr_labs_camera_handoff_receipt.v1",
+        "Preview UI Receipt",
+        "gpr_labs_preview_ui_receipt.v1",
+        "tools/check_labs_preview_ui_receipt.py",
+        "tools/build_labs_preview_ui_receipt.py",
+    ],
+    "docs/LABS_MISSION1_RUNBOOK.md": [
+        "Required Mission 1 Run",
+        "camera_handoff_receipt.json",
+        "mission1_camera_closure_run.json",
+        "preview_ui_receipt.json",
+        "sensor_dma_executed=true",
+        "verdict.firmware_ready=true",
+        "verdict.ui_ready=true",
+        "target_role=camera` is an assertion",
+        "tools/run_mission1_camera_closure.py",
+        "tools/check_mission1_camera_dispatch_inputs.py",
+        "tools/check_mission1_camera_closure_run.py",
+        "Blocked Criteria",
+    ],
+    "docs/LABS_TARGET_BENCH.md": [
+        "Current Evidence",
+        "Required Target Run",
+        "Timing-Diagnostic Build",
+        "FUSED_TIMING_DETAIL",
+        "fused_timing",
+        "Current Gap",
+        "20 fps proxy",
+        "19.98 fps",
+        "23.54 fps",
+        "luma-pair",
+        "current-head direct",
+        "16.00 fps",
+        "2k_raw_0p5x_l2hh",
+    ],
+    "docs/LABS_ARTIFACT_BUNDLE.md": [
+        "Bundle Layout",
+        "Required Manifest Fields",
+        "Verification Commands",
+        "Current Bundle",
+        "Current target-proxy bundle",
+        "zero-frame",
+        "out-of-order",
+    ],
+    "docs/LABS_CI_PLAN.md": [
+        "Hosted CI",
+        "Target Or Self-Hosted CI",
+        ".github/workflows/labs-target.yml",
+        "gpr-labs-pi5",
+        "Mission 1 numbered-list readiness regression",
+        "Mission 1 numbered-list closure plan regression",
+        "Skip Policy",
+        "not a pass for firmware readiness",
+    ],
+    "docs/LABS_READINESS_REVIEW.md": [
+        "Decision",
+        "Ready Now",
+        "Not Ready Yet",
+        "Current Risk",
+        "Next Work",
+        "gpr.mission1_4k_cleanup_production_signoff.v1",
+        "tools/build_mission1_4k_cleanup_signoff_receipt.py",
+        "tools/check_mission1_4k_cleanup_signoff_receipt.py",
+        "fused_timing",
+        "zero-frame",
+        "out-of-order",
+        "current-head direct",
+        "16.00 fps",
+    ],
+    "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md": [
+        "Machine-readable audit",
+        "Machine-readable closure plan",
+        "tools/mission1_numbered_list_closure_plan.py",
+        "camera_handoff_receipt.json",
+        "preview_ui_receipt.json",
+        "production_signoff.json",
+        "tools/check_labs_camera_handoff_receipt.py",
+        "tools/check_labs_preview_ui_receipt.py",
+        "tools/check_mission1_4k_cleanup_signoff_receipt.py",
+    ],
+    "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md": [
+        "Highpass Lower-Bound Probe",
+        "Quality Env And Quant Probe",
+        "U16 Log-Scratch Candidate",
+        "Prescale-2 Fixed-Shift Candidate",
+        "Timing Profile",
+        "Reproducible Timing Build",
+        "FUSED_TIMING_DETAIL",
+        "fused_timing",
+        "23.54 fps",
+        "luma-pair",
+        "Current-Head Direct Rehearsal",
+        "16.00 fps",
+    ],
+}
+
+REQUIRED_MANIFEST_DOC_REFS = {
+    "docs/LABS_INTAKE.md",
+    "docs/LABS_TARGET_BENCH.md",
+    "docs/LABS_READINESS_REVIEW.md",
+    "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md",
+}
+
+FORBIDDEN_DOC_TOKENS = {
+    "docs/LABS_INTAKE.md": [
+        "actual Mission 1 firmware readiness still needs a 24 fps hardware receipt",
+        "labeling actual Mission 1 24 fps hardware capture as unproven",
+        "24 fps camera target",
+    ],
+    "docs/LABS_READINESS_GOAL.md": [
+        "Actual Mission 1 firmware readiness still requires a 24 fps hardware receipt",
+        "actual Mission 1 capture handoff and\n24 fps hardware receipt",
+    ],
+    "docs/SHIP_DECISION.md": [
+        "actual Mission 1 24 fps hardware receipt",
+    ],
+    "docs/LABS_TARGET_BENCH.md": [
+        "camera 24 fps pending",
+    ],
+}
+
+
+def tracked_paths() -> set[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return {item.decode("utf-8") for item in result.stdout.split(b"\0") if item}
+
+
+def load_manifest() -> dict[str, Any]:
+    with MANIFEST.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise TypeError("release evidence manifest must be a JSON object")
+    return data
+
+
+def entries_by_id(entries: object) -> dict[str, dict[str, Any]]:
+    if not isinstance(entries, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        if isinstance(entry, dict) and isinstance(entry.get("id"), str):
+            out[entry["id"]] = entry
+    return out
+
+
+def require_docs(tracked: set[str], failures: list[str]) -> None:
+    for rel, tokens in REQUIRED_DOCS.items():
+        path = ROOT / rel
+        if rel not in tracked:
+            failures.append(f"{rel} must be tracked")
+            continue
+        if not path.exists():
+            failures.append(f"{rel} is missing")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                failures.append(f"{rel} missing Labs contract token {token!r}")
+        for token in FORBIDDEN_DOC_TOKENS.get(rel, []):
+            if token in text:
+                failures.append(f"{rel} contains stale Labs blocker token {token!r}")
+
+    for rel, tokens in FORBIDDEN_DOC_TOKENS.items():
+        if rel in REQUIRED_DOCS:
+            continue
+        path = ROOT / rel
+        if rel not in tracked or not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token in text:
+                failures.append(f"{rel} contains stale Labs blocker token {token!r}")
+
+
+def require_manifest_contract(manifest: dict[str, Any], failures: list[str]) -> None:
+    platform = entries_by_id(manifest.get("platform_performance"))
+    raw_targets = entries_by_id(manifest.get("raw_targets"))
+    production_paths = entries_by_id(manifest.get("production_paths"))
+
+    capture = platform.get("pi5_mission1_halfres_capture")
+    if not capture:
+        failures.append("manifest missing platform_performance pi5_mission1_halfres_capture")
+    else:
+        if capture.get("status") != "blocked":
+            failures.append("pi5_mission1_halfres_capture must remain blocked until a passing target receipt exists")
+        metrics = capture.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append("pi5_mission1_halfres_capture needs metrics")
+        else:
+            try:
+                fps = float(metrics.get("fps_median"))
+                target = float(metrics.get("target_fps"))
+            except (TypeError, ValueError):
+                failures.append("pi5_mission1_halfres_capture needs numeric fps_median and target_fps")
+            else:
+                if fps >= target:
+                    failures.append("blocked capture entry has fps_median >= target_fps; update status and receipts")
+        docs = set(capture.get("docs", [])) if isinstance(capture.get("docs"), list) else set()
+        missing_docs = REQUIRED_MANIFEST_DOC_REFS - docs
+        if missing_docs:
+            failures.append(
+                "pi5_mission1_halfres_capture docs missing Labs refs: "
+                + ", ".join(sorted(missing_docs))
+            )
+
+    decode = platform.get("pi5_2k_l2hh_decode")
+    if not decode:
+        failures.append("manifest missing platform_performance pi5_2k_l2hh_decode")
+    else:
+        if decode.get("status") != "meets-target":
+            failures.append("pi5_2k_l2hh_decode must stay meets-target or be explicitly downgraded with docs")
+        if decode.get("raw_target") != "2k_raw_0p5x_l2hh":
+            failures.append("pi5_2k_l2hh_decode must reference raw_target 2k_raw_0p5x_l2hh")
+        metrics = decode.get("metrics")
+        if isinstance(metrics, dict):
+            try:
+                fps = float(metrics.get("fps_median"))
+                p95 = float(metrics.get("p95_ms"))
+            except (TypeError, ValueError):
+                failures.append("pi5_2k_l2hh_decode needs numeric fps_median and p95_ms")
+            else:
+                if fps < 24.0 or p95 >= 41.7:
+                    failures.append("pi5_2k_l2hh_decode must clear 24 fps and 41.7 ms p95")
+        else:
+            failures.append("pi5_2k_l2hh_decode needs metrics")
+
+    raw_2k = raw_targets.get("2k_raw_0p5x_l2hh")
+    if not raw_2k:
+        failures.append("manifest missing raw target 2k_raw_0p5x_l2hh")
+    elif raw_2k.get("classification") != "live-capable":
+        failures.append("2k_raw_0p5x_l2hh must remain live-capable or be explicitly downgraded")
+
+    preview = production_paths.get("preview_live_mission1_1024")
+    if not preview:
+        failures.append("manifest missing production path preview_live_mission1_1024")
+    else:
+        if preview.get("status") != "production-pass-external-receipt":
+            failures.append("preview_live_mission1_1024 must remain tied to an external receipt")
+        constraints = " ".join(str(item) for item in preview.get("constraints", []))
+        if "1024 x 768" not in constraints or "UI/display handoff" not in constraints:
+            failures.append("preview_live_mission1_1024 must document display target and handoff limit")
+
+
+def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
+    rel = ".github/workflows/ci.yml"
+    if rel not in tracked:
+        failures.append(".github/workflows/ci.yml must be tracked")
+        return
+    text = CI.read_text(encoding="utf-8")
+    if "python3 tools/test/check_labs_readiness.py" not in text:
+        failures.append("CI must run python3 tools/test/check_labs_readiness.py")
+    if "python3 tools/test/test_mission1_numbered_list_readiness.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_numbered_list_readiness.py")
+    if "python3 tools/test/test_mission1_numbered_list_closure_plan.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_numbered_list_closure_plan.py")
+    if "python3 tools/test/test_mission1_camera_dispatch_inputs.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_camera_dispatch_inputs.py")
+    if "python3 tools/test/check_labs_target_receipts.py" not in text:
+        failures.append("CI must run python3 tools/test/check_labs_target_receipts.py")
+    if "tools/test/test_fused_context_env_capture.sh" not in text:
+        failures.append("CI must run tools/test/test_fused_context_env_capture.sh")
+    if "tools/test/test_bench_fused_stream_source.sh" not in text:
+        failures.append("CI must run tools/test/test_bench_fused_stream_source.sh")
+    if "python3 tools/check_mission1_cnn_closure.py" not in text:
+        failures.append("CI must run python3 tools/check_mission1_cnn_closure.py")
+    if "python3 tools/test/test_check_mission1_cnn_closure.py" not in text:
+        failures.append("CI must run python3 tools/test/test_check_mission1_cnn_closure.py")
+    if "tools/test/test_labs_camera_handoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_labs_camera_handoff_receipt.sh")
+    if "tools/test/test_labs_preview_ui_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_labs_preview_ui_receipt.sh")
+    if "tools/test/test_build_labs_preview_ui_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_build_labs_preview_ui_receipt.sh")
+    if "tools/test/test_mission1_4k_cleanup_signoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_mission1_4k_cleanup_signoff_receipt.sh")
+    if "tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh")
+
+
+def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> None:
+    rel = ".github/workflows/labs-target.yml"
+    if rel not in tracked:
+        failures.append(".github/workflows/labs-target.yml must be tracked")
+        return
+    text = TARGET_CI.read_text(encoding="utf-8")
+    for token in (
+        "workflow_dispatch",
+        "self-hosted",
+        "gpr-labs-pi5",
+        "Validate dispatch role flags",
+        "Write target preflight receipt",
+        "tools/mission1_camera_target_preflight.py",
+        "tools/check_mission1_camera_dispatch_inputs.py",
+        "bench_fused",
+        "labs_encoder_bench_cli",
+        "bench_binary",
+        "gvid_preview_rgb_cli",
+        "tools/run_labs_target_bench.py",
+        "tools/labs_target_to_camera_handoff_receipt.py",
+        "tools/check_labs_camera_handoff_receipt.py",
+        "tools/run_mission1_camera_closure.py",
+        "tools/check_mission1_camera_closure_run.py",
+        "fused_decode_cli",
+        "target_preflight_receipt.json",
+        "preview_ui_receipt.json",
+        "mission1_camera_closure_run.json",
+        "labs_target_bench.json",
+        "camera_handoff_receipt.json",
+        "actions/upload-artifact",
+        "Enforce target verdict",
+    ):
+        if token not in text:
+            failures.append(f".github/workflows/labs-target.yml missing target workflow token {token!r}")
+
+
+def require_timing_build_contract(tracked: set[str], failures: list[str]) -> None:
+    rel = "CMakeLists.txt"
+    if rel not in tracked:
+        failures.append("CMakeLists.txt must be tracked")
+        return
+    text = CMAKE.read_text(encoding="utf-8")
+    for token in (
+        'option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)',
+        'option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)',
+        "FUSED_TIMING_DETAIL",
+        "add_compile_definitions(FUSED_TIMING=1)",
+        "add_compile_definitions(FUSED_TIMING_DETAIL=1)",
+    ):
+        if token not in text:
+            failures.append(f"CMakeLists.txt missing Labs timing-build token {token!r}")
+
+
+def main() -> int:
+    failures: list[str] = []
+    tracked = tracked_paths()
+    require_docs(tracked, failures)
+    require_manifest_contract(load_manifest(), failures)
+    require_ci_contract(tracked, failures)
+    require_target_workflow_contract(tracked, failures)
+    require_timing_build_contract(tracked, failures)
+
+    if failures:
+        print("Labs readiness guard failed:")
+        for failure in failures:
+            print(f" - {failure}")
+        return 1
+    print("Labs readiness guard OK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
