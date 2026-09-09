@@ -3,10 +3,113 @@ cmake_minimum_required( VERSION 3.5 FATAL_ERROR )
 
 set(CMAKE_SUPPRESS_REGENERATION true)
 
+# Default to Release if no build type was specified — otherwise the libs
+# compile at -O0 and decode runs ~6× slower. Discovered when a stale
+# `build-local` (reconfigured without -DCMAKE_BUILD_TYPE=Release) made
+# decode 63 ms per frame on M3 Max instead of ~10 ms, capping playback at
+# ~15 fps instead of ~27 fps. The gpr2prores Makefile links against
+# build-local unconditionally, so a misconfigured build-local silently
+# degrades the whole playback pipeline. Setting Release here is the
+# safety net.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+        "Build type (Release, Debug, RelWithDebInfo, MinSizeRel)" FORCE)
+    message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to Release")
+endif()
+
 set(CMAKE_C_FLAGS "-std=c99")
 
 # project name
 project( gpr )
+
+# LTO intentionally disabled:
+# 1. GCC LTO fails on mixed C/C++ projects (lto-wrapper error on Ubuntu)
+# 2. LTO changes floating-point rounding in the inverse wavelet, breaking
+#    byte-exact backward compatibility with existing GPR files
+# Users who want LTO can enable it with: cmake -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+
+# NEON auto-enabled on ARM64
+set(NEON_DEFAULT OFF)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)")
+  set(NEON_DEFAULT ON)
+endif()
+option(NEON "Enable ARM NEON intrinsics" ${NEON_DEFAULT})
+
+if(NEON)
+  add_compile_definitions(NEON=1)
+else()
+  add_compile_definitions(NEON=0)
+endif()
+
+message(STATUS "NEON enabled: ${NEON}")
+
+# Cortex-A76 / Pi 5 tuning. Native ARM clang on Apple Silicon already targets
+# apple-m1 by default, but Linux ARM64 (Pi 5) needs an explicit -mcpu= for
+# the scheduler to pick A76-specific latencies and pipeline assignments.
+# Default to -mcpu=native on Linux aarch64; users can override via
+# CMAKE_C_FLAGS / CMAKE_CXX_FLAGS or set FUSED_TUNE_CPU=cortex-a76 to pin.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)" AND
+   CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(FUSED_TUNE_CPU "native" CACHE STRING
+      "ARM cpu tuning for the encoder (passed as -mcpu=)")
+  if(FUSED_TUNE_CPU)
+    add_compile_options(-mcpu=${FUSED_TUNE_CPU})
+    message(STATUS "ARM tuning: -mcpu=${FUSED_TUNE_CPU}")
+  endif()
+endif()
+
+# FUSED_LOG_POLYNOMIAL: replace the fused encoder's LUT-based 14-bit log
+# curve with a NEON polynomial approximation. Default OFF.
+#
+# History: enabled at 58577fe when it saved ~1.7 ms on Pi 5 (A76) on the
+# THEN-CURRENT mode-1 unpack path that had a chained 4-deep scalar gather
+# (load-use bound on A76 LSU). Subsequent T13b/T14/T15/T16 work
+# (8fd3218..bb37c76) refactored the hot path to 16-independent-load
+# scratch arrays that pipeline through both LSU ports — the LUT gather
+# is no longer the long pole. Re-bench on Pi 5 50 MP × LL-only-fast
+# (2026-05-21): polynomial median 128 ms vs LUT 44 ms. The polynomial
+# was ~3x SLOWER on this configuration.
+#
+# Kept as an opt-in because:
+#   1. Hardware variants exist where the LUT thrashes L1d (A53/A55
+#      small caches, custom SoCs).
+#   2. The mode-2 (no col-decimate) `unpack_channel_row` retains its
+#      original 4-deep scalar dep chain and may still benefit.
+option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder" OFF)
+if(FUSED_LOG_POLYNOMIAL)
+  if(NOT NEON)
+    message(FATAL_ERROR "FUSED_LOG_POLYNOMIAL requires NEON")
+  endif()
+  add_compile_definitions(FUSED_LOG_POLYNOMIAL=1)
+endif()
+message(STATUS "FUSED_LOG_POLYNOMIAL: ${FUSED_LOG_POLYNOMIAL}")
+
+# Diagnostic-only fused encoder timing. Default OFF so normal builds keep
+# clean stderr and unchanged optimization shape. Enable on Pi/self-hosted
+# target runners when producing Labs blocker receipts:
+#   -DFUSED_TIMING=ON -DFUSED_TIMING_DETAIL=ON
+#
+# FUSED_TIMING prints per-frame Pass1/Pass2 stage summaries. DETAIL also
+# prints per-channel unpack/horizontal/vertical/tokenize breakdowns, and
+# implies FUSED_TIMING so target receipts include both summary and detail.
+option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)
+option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)
+option(JANS_INLINE_PROFILE_RUNTIME "Enable opt-in jANS inline profile receipt lines" OFF)
+if(FUSED_TIMING_DETAIL)
+  set(FUSED_TIMING ON CACHE BOOL "Enable fused encoder stage timing prints" FORCE)
+endif()
+if(FUSED_TIMING)
+  add_compile_definitions(FUSED_TIMING=1)
+endif()
+if(FUSED_TIMING_DETAIL)
+  add_compile_definitions(FUSED_TIMING_DETAIL=1)
+endif()
+if(JANS_INLINE_PROFILE_RUNTIME)
+  add_compile_definitions(JANS_INLINE_PROFILE_RUNTIME=1)
+endif()
+message(STATUS "FUSED_TIMING: ${FUSED_TIMING}")
+message(STATUS "FUSED_TIMING_DETAIL: ${FUSED_TIMING_DETAIL}")
+message(STATUS "JANS_INLINE_PROFILE_RUNTIME: ${JANS_INLINE_PROFILE_RUNTIME}")
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
@@ -66,6 +169,117 @@ else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
   MESSAGE( STATUS "Could not find source/lib/tiny_jpeg - disabling jpeg writing and setting GPR_JPEG_AVAILABLE=0" )
 endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 
+# gpr_polish — optional CoreML-backed Bayer polish. Objective-C++; Apple only.
+if(APPLE AND EXISTS "${CMAKE_SOURCE_DIR}/source/lib/gpr_polish")
+  MESSAGE( STATUS "Found source/lib/gpr_polish - enabling CoreML polish" )
+  add_subdirectory( "source/lib/gpr_polish" )
+endif()
+
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
+add_subdirectory( "source/app/compare_quality" )
+add_subdirectory( "source/app/ans_test" )
+add_subdirectory( "source/app/bench_fused" )
+
+# Standalone codec/dev tools used by regression scripts and quality gates.
+# Keep these in CMake so build-local/bin does not depend on stale manual
+# clang invocations.
+set(GPR_TOOL_BIN_DIR "${CMAKE_BINARY_DIR}/bin")
+
+add_executable(test_fused_roundtrip source/app/test_fused_decode_roundtrip.c)
+target_include_directories(test_fused_roundtrip PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(test_fused_roundtrip vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(test_fused_roundtrip PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_fused_band_roundtrip source/app/test_fused_roundtrip.c)
+target_include_directories(test_fused_band_roundtrip PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(test_fused_band_roundtrip vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(test_fused_band_roundtrip PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(fused_decode_cli source/app/fused_decode_cli.c)
+target_include_directories(fused_decode_cli PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(fused_decode_cli vc5_decoder vc5_common common m)
+set_target_properties(fused_decode_cli PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(gvid_preview_rgb_cli source/app/gvid_preview_rgb_cli.c)
+target_include_directories(gvid_preview_rgb_cli PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(gvid_preview_rgb_cli vc5_decoder vc5_common common m)
+set_target_properties(gvid_preview_rgb_cli PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_video_pipeline_sim_portable
+  source/app/test_video_pipeline_sim_portable.c)
+target_include_directories(test_video_pipeline_sim_portable PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(test_video_pipeline_sim_portable
+  vc5_encoder vc5_common common m)
+set_target_properties(test_video_pipeline_sim_portable PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+# Debug-only coefficient I/O tool. The decoder library remains production
+# clean; this target compiles a private fused_decode.c object with the
+# coefficient hooks enabled and links that object before libvc5_decoder.
+add_library(fused_decode_coeff_io_obj OBJECT source/lib/vc5_decoder/fused_decode.c)
+target_compile_definitions(fused_decode_coeff_io_obj PRIVATE GPR_DEBUG_COEFF_IO=1)
+target_include_directories(fused_decode_coeff_io_obj PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_encoder source/lib/vc5_common
+  source/lib/common/private source/lib/common/public)
+
+add_executable(coeff_io_tool
+  source/app/coeff_io_tool.c
+  $<TARGET_OBJECTS:fused_decode_coeff_io_obj>)
+target_include_directories(coeff_io_tool PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(coeff_io_tool vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(coeff_io_tool PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(jans_coeff_bench source/app/jans_coeff_bench.c)
+target_include_directories(jans_coeff_bench PRIVATE source/lib/vc5_common)
+target_link_libraries(jans_coeff_bench vc5_common common m)
+set_target_properties(jans_coeff_bench PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_labs_encoder_api source/app/test_labs_encoder_api.c)
+target_include_directories(test_labs_encoder_api PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(test_labs_encoder_api vc5_encoder vc5_common common m)
+set_target_properties(test_labs_encoder_api PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(labs_encoder_bench_cli source/app/labs_encoder_bench_cli.c)
+target_include_directories(labs_encoder_bench_cli PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(labs_encoder_bench_cli vc5_encoder vc5_common common m)
+set_target_properties(labs_encoder_bench_cli PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  add_executable(bayer_detail_residual_sidecar source/app/bayer_detail_residual_sidecar.c)
+  target_link_libraries(bayer_detail_residual_sidecar m Threads::Threads)
+  set_target_properties(bayer_detail_residual_sidecar PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+endif()
+
+add_executable(test_jans_inline_tail_flush source/app/test_jans_inline_tail_flush.c)
+target_include_directories(test_jans_inline_tail_flush PRIVATE source/lib/vc5_common)
+target_link_libraries(test_jans_inline_tail_flush vc5_common common m)
+set_target_properties(test_jans_inline_tail_flush PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+# Fix byte order detection for Linux ARM64 (from gopro/gpr#53 by mckfarm)
+include(TestBigEndian)
+test_big_endian(IS_BIG_ENDIAN)
+if(NOT IS_BIG_ENDIAN)
+  target_compile_definitions( dng_sdk PUBLIC qDNGLittleEndian=1 )
+  target_compile_definitions( gpr_sdk PUBLIC qDNGLittleEndian=1 )
+endif()
