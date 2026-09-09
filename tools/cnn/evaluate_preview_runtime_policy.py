@@ -11,6 +11,7 @@ crop proxies rather than full-image display sources.
 """
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import html
@@ -28,6 +29,11 @@ import torch
 from PIL import Image
 
 
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
+
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
@@ -37,7 +43,7 @@ from train_display_rgb_direct_nonref import DirectRGBRefiner, parse_crop_png, pa
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-DEFAULT_ARTIFACT_ROOT = Path("/Volumes/OWC_8TB/gpr_work/artifacts")
+DEFAULT_ARTIFACT_ROOT = external_path('artifacts')
 DEFAULT_CHECKPOINT = (
     DEFAULT_ARTIFACT_ROOT
     / "display_rgb_direct_lpips_nonref_20260606"

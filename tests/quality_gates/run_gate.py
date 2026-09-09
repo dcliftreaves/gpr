@@ -91,13 +91,11 @@ def artifact_candidates(path_value: str) -> list[Path]:
         for item in os.environ.get(key, "").split(os.pathsep):
             if item:
                 roots.append((Path(item), True))
-    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", REPO))
     roots.extend([
         (external_root, False),
         (external_root / "models", True),
         (external_root / "checkpoints", True),
-        (Path("/Volumes/OWC_8TB/gpr_work/models"), True),
-        (Path("/Volumes/OWC_8TB/gpr_work/checkpoints"), True),
     ])
 
     candidates: list[Path] = []
@@ -146,7 +144,7 @@ def parse_source_path_map(raw: str | None) -> list[tuple[str, str]]:
     """Parse FROM=TO mappings for running the frozen gate on another host.
 
     Example:
-      GATE_SOURCE_PATH_MAP='/Volumes/OWC_8TB/gpr_work=/Users/me/gpr_data/gpr_work'
+      GATE_SOURCE_PATH_MAP='artifacts/visual_compare_20260525/source_dngs=fixtures'
 
     Multiple mappings are separated by semicolons. Longest source prefix wins.
     """
@@ -249,7 +247,7 @@ def enforce_large_gate_scratch_policy(images: list[dict], gate_tmpdir: str | Non
         die(
             3,
             f"large quality gate refuses system temp scratch: {scratch}. "
-            "Point GATE_TMPDIR at /Volumes/OWC_8TB/gpr_work/gate_tmp or set "
+            "Point GATE_TMPDIR at an artifact drive or set "
             "GATE_ALLOW_LOCAL_TMP=1 intentionally.",
         )
 
@@ -1262,6 +1260,10 @@ def evaluate_pipeline(
     target_w = test_set["metric_eval_dims"]["width"]
     source_path_map = parse_source_path_map(os.environ.get("GATE_SOURCE_PATH_MAP"))
     images = apply_source_path_map(test_set, source_path_map)
+    source_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", REPO)).expanduser()
+    for im in images:
+        source_path = Path(im["path"]).expanduser()
+        im["path"] = str(source_path if source_path.is_absolute() else source_root / source_path)
     crops = test_set["crops"]
 
     # Verify source DNGs exist before any work.

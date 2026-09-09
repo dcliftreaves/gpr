@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 
-from apply_bayer_detail_residual_oracle_raw import (
+from bayer_detail_residual import (
     PLANES,
     apply_detail_residual,
     deinterleave,

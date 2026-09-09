@@ -1,5 +1,11 @@
 # Conformance tests — fused-encoder bitstream stability
 
+**Known historical mismatch:** the committed goldens predate the prescale/filter
+change at `948f715`. Both levels currently report 12 mismatches (24 total).
+The parent revision `324bbad9` matches all 24 using the same libraries and
+fixtures. This diagnostic remains manual, returns failure, and is not evidence
+of a passing release. Do not regenerate goldens merely to clear a cleanup PR.
+
 This corpus pins the fused GPR 2.0 encoder's output **byte-for-byte**. Any
 unintentional change to wavelet, quantizer, tokenizer, or rANS state is caught
 the moment a check runs: each encoded bitstream is md5-hashed and compared
@@ -35,7 +41,7 @@ inputs — 24 golden files per run.
 ### Run the conformance check (regression detection)
 
 ```
-./tests/conformance/build.sh          # set BUILD_DIR=... to override build-local
+./tests/conformance/build.sh          # set BUILD_DIR=... to override build
 $TMPDIR/conformance/conformance_check_L1   # exits 0 on match, 1 on diff
 $TMPDIR/conformance/conformance_check_L2
 ```
@@ -69,4 +75,4 @@ that downstream decoders need to be aware of.
 - **Pixel format is RGGB14** (`pixel_format=1`) for all four inputs. The
   pattern generators emit 14-bit values directly.
 - **Build prereq:** the top-level CMake build must be populated at
-  `build-local/` before running `build.sh`, or pass `BUILD_DIR=...`.
+  `build/` before running `build.sh`, or pass `BUILD_DIR=...`.

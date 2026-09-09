@@ -12,12 +12,13 @@ set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
+GPR_BUILD="${GPR_BUILD:-$GPR_ROOT/build}"
 PREFIX="${PREFIX:-$(pwd)/install-gpr}"
 
 GPR_INC="$GPR_ROOT/source/lib/vc5_decoder"
-GPR_LIB_D="$GPR_ROOT/build-local/source/lib/vc5_decoder"
-GPR_LIB_C="$GPR_ROOT/build-local/source/lib/vc5_common"
-GPR_LIB_X="$GPR_ROOT/build-local/source/lib/common"
+GPR_LIB_D="$GPR_BUILD/source/lib/vc5_decoder"
+GPR_LIB_C="$GPR_BUILD/source/lib/vc5_common"
+GPR_LIB_X="$GPR_BUILD/source/lib/common"
 
 for lib in "$GPR_LIB_D/libvc5_decoder.a" \
            "$GPR_LIB_C/libvc5_common.a" \

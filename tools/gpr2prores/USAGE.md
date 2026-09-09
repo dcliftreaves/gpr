@@ -1,170 +1,91 @@
-# gpr2prores — Usage
+# gpr2prores
 
-Real-time playback tool: reads GPR / DNG / GPRaw raw video, runs a CNN, demosaics, encodes ProRes 422 HQ.
+macOS GPR/DNG renderer with optional CNN restoration, Metal or Core Image
+demosaic, and ProRes 422 HQ output.
 
-## Quick start
+## Build
 
-```bash
-# Decode a .gvid container at UHD with the production CNN
-gpr2prores \
-  --meta-dng /path/to/sample.dng \
-  --ckpt /path/to/weights_metal_dir \
-  --cnn-backend metal --cnn-scale 1x \
-  --demosaic core-image --out-resolution uhd \
-  /path/to/clip.gvid /path/to/out.mov
+Requires macOS 14+, Xcode with the Metal compiler, CMake, Clang, pkg-config,
+LibRaw, and FFmpeg development libraries (libavformat, libavcodec, libavutil,
+libswresample). From the repository root:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+make -C tools/gpr2prores
 ```
 
-## Input formats
+Override `GPR_BUILD=/path/to/build` for an external CMake build. Source headers
+always come from this repository. Set `PKG_CONFIG_PATH` for dependency prefixes,
+or override `LIBRAW_CFLAGS`, `LIBRAW_LIBS`, `FFMPEG_CFLAGS`, and `FFMPEG_LIBS`.
+Keep `default.metallib` and `Demosaic.metallib` beside the executable.
+`make install PREFIX=...` installs both tools and links their Metal libraries.
 
-| Format | Notes |
+## Render
+
+```sh
+tools/gpr2prores/gpr2prores --meta-dng sample.dng \
+  --ckpt models/weights_1x --cnn-backend metal --cnn-scale 1x \
+  --demosaic core-image --out-resolution uhd clip.gvid out.mov
+```
+
+Inputs: a single `.gpr` or `.dng`, a directory of either (sorted by filename),
+`.gvid`, or GPRaw `.mov`/`.gpraw`/`.gprv`. Containers unpack to temporary
+frame directories. GPR/container inputs require source DNG metadata through
+`--meta-dng` unless a companion DNG is discovered. DNG input provides its own
+metadata and performs an encode/decode round trip unless `--no-codec` is given.
+
+| Option | Values |
 |---|---|
-| `.gpr` | Single-frame GPR file |
-| Directory of `.gpr` | Frame sequence (sorted lexicographically) |
-| `.dng` / directory of `.dng` | Encode + decode roundtrip in one pass (for validation) |
-| `.gvid` | Neutral raw-video stream of per-frame `.gpr` payloads; auto-unpacked to temp dir. Payloads may be direct FUSED frames or full TIFF/GPR containers. |
-| `.mov` / `.gpraw` / `.gprv` | GPRaw container (auto-unpacked to temp dir) |
+| `--cnn-backend` | `coreml` (default), `mpsgraph`, `metal` |
+| `--ckpt` | CoreML model package, or fp16 weight directory for Metal/MPSGraph |
+| `--cnn-scale` | `2x` (default) or `1x`; must match the model |
+| `--no-cnn` | Decode, demosaic, and encode without a model |
+| `--demosaic` | `metal-bilinear` (default) or `core-image` |
+| `--out-resolution` | `2k`, `uhd`, `4k`, `6k`, `8k` (default, native dimensions) |
+| `--fps` | Output rate, default 24 |
+| `--max-frames`, `--timing`, `--skip-errors` | Frame limit, stage timings, or continue on frame errors |
+| `--gvid-dispatch` | Validate a `gvid_runtime_dispatch.v1` plan; per-tile model invocation is not implemented |
 
-`--meta-dng` is required for `.gpr`, `.gvid`, and GPRaw/MOV input
-(color/wb metadata source). For `.dng` input it's auto-discovered.
+See `--help` for all options. The retained experimental `--mission-look` mode
+requires `--demosaic core-image`; its CPU tone pass can be slow.
 
-## CNN modes (`--cnn-scale`)
+## Models and Configuration
 
-| Flag | Model | Output dims | Quality | Speed (UHD) |
-|---|---|---|---|---|
-| `--cnn-scale 2x` (default) | F super-res | 8K bayer → demosaic → UHD | +5.7 dB rendered | ~19 fps |
-| `--cnn-scale 1x` | BIBO_1x clean | 4K bayer → demosaic → UHD | +0.9 dB rendered | ~23.5 fps |
-| `--no-cnn` | (none) | codec bayer → demosaic → UHD | baseline | ~28 fps |
+Checkpoint precedence: `--ckpt`, then `GPR_SUPER_RES_MLPACKAGE`, then
+`super_res.mlpackage` under `GPR_MODEL_ROOT`. Without `GPR_MODEL_ROOT`, the model
+directory is `$GPR_EXTERNAL_ROOT/models` when configured, otherwise `models`
+under the current working directory.
 
-For 4K delivery prefer `--cnn-scale 1x`. For native 8K masters prefer `--cnn-scale 2x`.
+Exporters require Python 3, NumPy, and PyTorch:
 
-## CNN backends (`--cnn-backend`)
-
-| Backend | Notes |
-|---|---|
-| `metal` | Hand-rolled Metal hybrid (NAFBlock kernels + MPSGraph middle). Fastest. Requires a directory of fp16 .bin blobs (extracted via `extract_F_weights.py`). |
-| `coreml` | MLPackage path. Slower (~6×) — NAFBlock ops aren't ANE-native. |
-| `mpsgraph` | Pure MPSGraph path. Reference for hybrid correctness. |
-
-## Demosaic backends (`--demosaic`)
-
-| Backend | Notes |
-|---|---|
-| `metal-bilinear` (default) | Hand-rolled bilinear demosaic. Fastest but lowest quality. |
-| `core-image` | CIRAWFilter via `filterWithCVPixelBuffer:properties:`. Apple AHD-quality. ~28-48 ms at UHD. |
-
-## Mission look prototype
-
-`--mission-look` is an experimental Mission 1 JPEG-look path for
-`--demosaic core-image`. It applies the measured Mission center crop and a
-guarded histogram tone pass after CIRAWFilter render. It is intended for visual
-parity experiments, not production preview performance yet.
-
-```bash
-gpr2prores --meta-dng GP017346.dng \
-  --no-cnn --demosaic core-image --out-resolution 4k \
-  --mission-look \
-  mission1_8192x6144_fused_q8_42f_24p.gvid mission1_review.mov
+```sh
+python3 tools/gpr2prores/extract_F_weights.py --ckpt checkpoints/F.pt --out models/F_weights
+python3 tools/gpr2prores/extract_F_ane_weights.py --ckpt checkpoints/F_ane.pt --out models/F_ane_weights
 ```
 
-Environment overrides:
+`extract_F_weights_metal.py` wraps the first exporter. Use matching architecture
+and scale. ANE weights include folded batch normalization.
 
-- `GPR_MISSION_LOOK_CROP_SCALE` (default `1.035`)
-- `GPR_MISSION_LOOK_GUARDED_TONE=0|1` (default `1`)
-- `GPR_MISSION_LOOK_LOCAL_CPU=0|1` (default `0`; diagnostic only)
-- `GPR_MISSION_LOOK_LOCAL_DOWNSAMPLE` (default `4`)
-- `GPR_MISSION_LOOK_TONE_MAX_RATIO_SCALE` (default `1.5`)
-- `GPR_MISSION_LOOK_TONE_SHADOW_SCALE` (default `0.8`)
-- `GPR_MISSION_LOOK_EXPOSURE`
-- `GPR_MISSION_LOOK_BASELINE_EXPOSURE`
-- `GPR_MISSION_LOOK_BOOST`
-- `GPR_MISSION_LOOK_BOOST_SHADOW`
-- `GPR_MISSION_LOOK_SHADOW_BIAS`
-- `GPR_MISSION_LOOK_LOCAL_TONE`
+`TMPDIR` selects temporary storage. Diagnostic settings include
+`SUPERRES_PROFILE=1`, `SUPERRES_NOFUSE_POST=1`, and
+`CNN_COREML_UNITS=cpu|gpu|ane|all` (default `all`).
 
-Current evidence: the native Mission-look hook is functionally wired, but the
-CPU tone pass is slow and broad quality still trails the Python reference
-renderer. Treat it as a development hook until the Mission status doc says
-otherwise.
+## MOV Companion
 
-## Output resolution (`--out-resolution`)
-
-Width-fixed, height preserves source aspect:
-- `2k` (2048×—)
-- `uhd` (3840×—) — recommended UHD 4K delivery
-- `4k` (4096×—)
-- `6k` (6144×—)
-- `8k` — native source dims, no scale
-
-## Performance flags
-
-- `--timing` — per-frame, per-stage breakdown to stderr
-- `--max-frames N` — process at most N frames
-- `--skip-errors` — continue past per-frame decode/CNN failures
-- `--gvid-dispatch PATH` — validate a `gvid_runtime_dispatch.v1` plan for
-  `.gvid` playback and print raw-clean policy counts. This is a strict
-  handoff check; per-tile raw-clean model invocation is not wired into
-  `GPRPipeline` yet.
-
-## Environment variables
-
-- `SUPERRES_PROFILE=1` — per-NAFBlock GPU timing (commits between stages, breaks pipelining)
-- `CNN_COREML_UNITS={cpu,gpu,ane,all}` — override CoreML compute units (default `all`)
-- `SUPERRES_NOFUSE_POST=1` — use the legacy 2-kernel post-processing path (for A/B)
-- `TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp` — place auto-unpacked `.gvid` /
-  GPRaw frame directories on the external work drive.
-
-## Examples
-
-```bash
-# Native 8K master via F super-res
-gpr2prores --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/F_aa_on_weights_metal" \
-  --cnn-backend metal --cnn-scale 2x \
-  --demosaic core-image --out-resolution 8k \
-  clip.gvid master_8k.mov
-
-# Fast UHD daily via BIBO_1x
-gpr2prores --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/BIBO_1x_AAon_w16_weights_metal" \
-  --cnn-backend metal --cnn-scale 1x \
-  --gvid-dispatch clip.gvid.dispatch.json \
-  --demosaic core-image --out-resolution uhd \
-  clip.gvid daily.mov
-
-# Validation roundtrip on a DNG sequence (no codec, no CNN, just demosaic)
-gpr2prores --no-codec --no-cnn \
-  --demosaic core-image --out-resolution uhd \
-  /clip/dngs/ validation.mov
-
-# Per-stage GPU profile (debug only)
-SUPERRES_PROFILE=1 gpr2prores --max-frames 8 --timing \
-  --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/BIBO_1x_AAon_w16_weights_metal" \
-  --cnn-backend metal --cnn-scale 1x \
-  --demosaic core-image --out-resolution uhd \
-  clip.gvid "$TMPDIR/profile.mov" 2>&1 | grep profile
+```sh
+tools/gpr2prores/gpr_mov_tool pack frames clip.gpraw --fps 24 \
+  --tc-start 01:00:00:00 --meta-dir dngs --audio audio.wav
+tools/gpr2prores/gpr_mov_tool info clip.gpraw
+tools/gpr2prores/gpr_mov_tool unpack clip.gpraw unpacked --prefix frame
 ```
 
-## Companion tool: gpr_mov_tool
+Pack/unpack preserves GPR payloads. For patched FFmpeg decoding, see
+[gpraw_codec](../gpraw_codec/README.md).
 
-Packs/unpacks `.gpraw` containers:
+## Archived Research
 
-```bash
-# Pack a directory of .gpr frames into a container with EXIF + timecode + audio
-gpr_mov_tool pack /clip/gpr_dir clip.gpraw \
-  --fps 24 \
-  --tc-start 01:00:00:00 \
-  --meta-dir /clip/dng_dir \
-  --audio /clip/audio.wav
-
-# Inspect a container
-gpr_mov_tool info clip.gpraw
-
-# Unpack back to .gpr files (round-trip is byte-identical)
-gpr_mov_tool unpack clip.gpraw /out/dir --prefix frame
-```
-
-## Building
-
-```bash
-cd tools/gpr2prores && make
-```
-
-Requires the main gpr build at `../../build-local/`. Links against Metal, MetalPerformanceShadersGraph, CoreImage, IOSurface, VideoToolbox, AVFoundation, CoreML, ImageIO, libraw.
+One-off validation, corpus preparation, post-training scripts, and the
+superseded `Makefile.container` remain available at their original paths on
+`archive/research-and-integration-2026-09-09` at `3d675ef`.
+The native `test_F_ane_kernels.m` harness remains here.

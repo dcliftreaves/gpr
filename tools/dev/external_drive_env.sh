@@ -6,11 +6,11 @@
 #   tools/dev/external_drive_env.sh python3 tests/quality_gates/run_gate.py ...
 #
 # Keep the repo for source, registry metadata, and committed run.json receipts.
-# Put temp files, model checkpoints, Python/Torch caches, and gate scratch on
-# /Volumes/OWC_8TB by default.
+# Choose an artifact drive with GPR_EXTERNAL_ROOT before sourcing this file.
 set -euo pipefail
 
-ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+: "${GPR_EXTERNAL_ROOT:?Set GPR_EXTERNAL_ROOT to your artifact directory first}"
+ROOT="$GPR_EXTERNAL_ROOT"
 
 mkdir -p \
   "$ROOT/tmp" \

@@ -16,6 +16,7 @@ Expected: codec_only at ~0.5-1.0 sec/frame (vs 4.2 baseline). 120 frames
 in ~1-2 min.
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -30,12 +31,18 @@ from PIL import Image
 import cv2
 import tifffile
 
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
+
 REPO = Path(os.environ.get("GPR_REPO", Path(__file__).resolve().parents[2]))
 CODEC_BIN = Path(os.environ.get("GPR_CODEC_BIN", REPO / "build-local/bin/coeff_io_tool"))
 GPR_TOOLS = Path(os.environ.get("GPR_TOOLS_BIN", REPO / "build-local/source/app/gpr_tools/gpr_tools"))
 
-SRC_DIR = Path(os.environ.get("GPR_TIMELAPSE_SRC", "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"))
-OUT_DIR = Path(os.environ.get("GPR_TIMELAPSE_OUT", "/Volumes/OWC_8TB/gpr_work/artifacts/preview_timelapse"))
+SRC_DIR = Path(os.environ.get("GPR_TIMELAPSE_SRC", str(external_path('barnsky_full_dngs'))))
+OUT_DIR = Path(os.environ.get("GPR_TIMELAPSE_OUT", str(external_path('artifacts/preview_timelapse'))))
 
 TARGET_W = 3840
 TARGET_H = 2160

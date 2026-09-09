@@ -1,38 +1,35 @@
 name: Windows Build Test
 on:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v6
-    - name: Build
-      shell: cmd
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DNEON=OFF
-        cmake --build . --config Release 2>&1
-    - name: Find binaries
-      shell: cmd
-      run: dir /s /b build\*.exe
-    - name: Run ANS test
-      shell: bash
-      run: find build -name "ans_test.exe" -exec {} \;
-    - name: Smoke test
-      shell: bash
-      run: |
-        GPR=$(find build -name "gpr_tools.exe" | head -1)
-        if [ -n "$GPR" ]; then
-          $GPR -i data/samples/Hero6/GOPR0024.GPR -o /tmp/test.DNG
-          $GPR -i /tmp/test.DNG -o /tmp/test_vlc.GPR
-          echo "VLC size: $(wc -c < /tmp/test_vlc.GPR)"
-          $GPR -i /tmp/test.DNG -o /tmp/test_ans.GPR -A 1
-          echo "ANS size: $(wc -c < /tmp/test_ans.GPR)"
-          $GPR -i /tmp/test.DNG -o /tmp/test_ansdn.GPR -A 1 -D 1
-          echo "ANS+DN size: $(wc -c < /tmp/test_ansdn.GPR)"
-          $GPR -i /tmp/test_ansdn.GPR -o /tmp/test.RAW
-          echo "RAW size: $(wc -c < /tmp/test.RAW)"
-        else
-          echo "gpr_tools.exe not built"
-        fi
+      - uses: actions/checkout@v6
+      - name: Build
+        shell: cmd
+        run: |
+          cmake -S . -B build -DNEON=OFF
+          cmake --build build --config Release --parallel
+      - name: ANS and codec smoke
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          ans=$(find build -name ans_test.exe -print -quit)
+          gpr=$(find build -name gpr_tools.exe -print -quit)
+          test -n "$ans" && test -n "$gpr"
+          "$ans"
+          scratch=$(mktemp -d "$TMPDIR/gpr-windows.XXXXXX")
+          "$gpr" -i data/samples/Hero6/GOPR0024.GPR -o "$scratch/test.DNG"
+          "$gpr" -i "$scratch/test.DNG" -o "$scratch/test_vlc.GPR"
+          "$gpr" -i "$scratch/test.DNG" -o "$scratch/test_ans.GPR" -A 1
+          "$gpr" -i "$scratch/test.DNG" -o "$scratch/test_ansdn.GPR" -A 1 -D 1
+          "$gpr" -i "$scratch/test_ansdn.GPR" -o "$scratch/test.RAW"
+          test -s "$scratch/test_vlc.GPR"
+          test -s "$scratch/test_ans.GPR"
+          test -s "$scratch/test.RAW"

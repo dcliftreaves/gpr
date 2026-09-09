@@ -48,9 +48,11 @@
 # Pure Python + numpy + rawpy. No committed media. Linux & macOS.
 #
 # Env knobs:
-#   BUILD_DIR=build-local         (cmake build root)
+#   BUILD_DIR=build               (cmake build root)
 #   GTOOLS=/path/to/gpr_tools     (override binary path entirely)
-#   WORK_DIR=$GPR_EXTERNAL_ROOT/tmp/gpr-matrix      (where fixtures land)
+#   WORK_DIR=$GPR_TMPDIR          (parent for unique, owned scratch directories)
+#   PYTHON_BIN=python3            (interpreter with numpy and rawpy)
+#   GPR_KEEP_TEST_ARTIFACTS=1     (preserve scratch for inspection)
 #   FAST=1                        (skip ≥23 MP cells for quick CI)
 #   MATRIX_TOLERANCE_DB=2.0       (override per-cell tolerance)
 
@@ -59,14 +61,11 @@ set -euo pipefail
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-    else
-        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-/tmp}/gpr_work"
-    fi
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
-WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-matrix}"
+WORK_PARENT="${WORK_DIR:-$GPR_TMPDIR}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 TOL="${MATRIX_TOLERANCE_DB:-2.0}"
 FAST="${FAST:-0}"
 
@@ -75,14 +74,52 @@ if [ ! -x "$GTOOLS" ]; then
     exit 2
 fi
 
-mkdir -p "$WORK"
-rm -rf "$WORK"/*
+if ! "$PYTHON_BIN" - "$TOL" <<'PY'
+import importlib
+import math
+import sys
+
+missing = []
+for name in ("numpy", "rawpy"):
+    try:
+        importlib.import_module(name)
+    except ImportError as exc:
+        missing.append(f"{name}: {exc}")
+if missing:
+    sys.exit(f"ERROR: {sys.executable} requires numpy and rawpy: " + "; ".join(missing))
+try:
+    tolerance = float(sys.argv[1])
+except ValueError:
+    sys.exit("ERROR: MATRIX_TOLERANCE_DB must be a finite nonnegative number")
+if not math.isfinite(tolerance) or tolerance < 0:
+    sys.exit("ERROR: MATRIX_TOLERANCE_DB must be a finite nonnegative number")
+PY
+then
+    exit 2
+fi
+
+mkdir -p "$WORK_PARENT"
+WORK=$(mktemp -d "$WORK_PARENT/gpr-matrix.XXXXXX")
+cleanup_run() {
+    if [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" = 1 ]; then
+        printf 'Scratch retained: %s\n' "$WORK"
+    else
+        rm -rf -- "$WORK"
+    fi
+}
+trap cleanup_run EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # Synthesize a Bayer fixture and roundtrip it through gpr_tools.
 # Args: name W H pixel_format peak quality baseline_psnr seed [packed=0]
-test_case() {
+test_case() (
     local name=$1 W=$2 H=$3 PF=$4 PEAK=$5 Q=$6 BASE=$7 SEED=$8
     local PACKED=${9:-0}
+    local run_work="$WORK"
+    local WORK
+    WORK=$(mktemp -d "$run_work/$name.XXXXXX") || return 1
+    trap 'if [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" != 1 ]; then rm -rf -- "$WORK"; fi' EXIT
     local raw="$WORK/$name.raw"
     local dng="$WORK/$name.dng"
     local gpr="$WORK/$name.gpr"
@@ -91,12 +128,12 @@ test_case() {
     # Threshold = baseline_psnr - tolerance, rendered in Python to keep
     # one source of truth for the floating-point arithmetic.
     local THR
-    THR=$(python3 -c "print(${BASE} - ${TOL})")
+    THR=$("$PYTHON_BIN" -c 'import sys; print(float(sys.argv[1]) - float(sys.argv[2]))' "$BASE" "$TOL") || return 1
 
     # 1. Synthesize: radial gradient + per-channel DC offsets + noise.
     #    Identical pattern shape as test_still_quality_corpus.sh, scaled
     #    by bit depth so the DC offsets are proportionally placed.
-    python3 - "$W" "$H" "$PEAK" "$SEED" "$raw" "$PACKED" "$PF" <<'PY'
+    "$PYTHON_BIN" - "$W" "$H" "$PEAK" "$SEED" "$raw" "$PACKED" "$PF" <<'PY' || return 1
 import sys, numpy as np
 W, H, peak, seed, out_path, packed_flag, pf = sys.argv[1:8]
 W, H, peak, seed, packed = int(W), int(H), int(peak), int(seed), int(packed_flag) == 1
@@ -168,7 +205,7 @@ PY
         tail -n 10 "$WORK/_log" >&2; return 1; }
 
     # 5. PSNR check
-    python3 - "$dng" "$out" "$PEAK" "$THR" "$BASE" "$name" "$gpr" <<'PY'
+    "$PYTHON_BIN" - "$dng" "$out" "$PEAK" "$THR" "$BASE" "$name" "$gpr" <<'PY'
 import sys, os, numpy as np, rawpy
 dng, dec, peak, thr, base, name, gpr = sys.argv[1:8]
 peak, thr, base = float(peak), float(thr), float(base)
@@ -187,7 +224,7 @@ print(f"  {status}  {name:30s}  {int(src.shape[0]):>5}x{int(src.shape[1]):<5}  "
       f"(base {base:5.2f}, thr {thr:5.2f})")
 sys.exit(0 if ok else 1)
 PY
-}
+)
 
 echo "==== test_still_matrix: $(date) ===="
 echo "Build dir : $BUILD_DIR"

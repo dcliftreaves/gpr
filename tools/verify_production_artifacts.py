@@ -6,8 +6,7 @@ Checkpoint binaries and large training-pair datasets stay off main. Registry pat
 
   1. the repo path itself, for local developer copies;
   2. GPR_MODEL_ROOT and GPR_CHECKPOINT_ROOT, os.pathsep-separated;
-  3. GPR_EXTERNAL_ROOT/{models,checkpoints};
-  4. /Volumes/OWC_8TB/gpr_work/{models,checkpoints}.
+  3. GPR_EXTERNAL_ROOT/{models,checkpoints}, when explicitly configured.
 
 Default mode reports missing artifacts but exits 0 so CI can surface the
 inventory without requiring private model files. Use --strict for release
@@ -44,14 +43,13 @@ def candidates(path_value: str) -> list[Path]:
         for item in os.environ.get(key, "").split(os.pathsep):
             if item:
                 roots.append((Path(item), True))
-    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
-    roots.extend([
-        (external_root, False),
-        (external_root / "models", True),
-        (external_root / "checkpoints", True),
-        (Path("/Volumes/OWC_8TB/gpr_work/models"), True),
-        (Path("/Volumes/OWC_8TB/gpr_work/checkpoints"), True),
-    ])
+    if os.environ.get("GPR_EXTERNAL_ROOT"):
+        external_root = Path(os.environ["GPR_EXTERNAL_ROOT"])
+        roots.extend([
+            (external_root, False),
+            (external_root / "models", True),
+            (external_root / "checkpoints", True),
+        ])
 
     out: list[Path] = []
     seen = set()

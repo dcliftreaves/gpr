@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -74,7 +75,7 @@ def main() -> int:
     ap.add_argument("--source-dng", type=Path, required=True)
     ap.add_argument("--candidate-raw", type=Path, required=True)
     ap.add_argument("--output-dir", type=Path, required=True)
-    ap.add_argument("--external-root", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work"))
+    ap.add_argument("--external-root", type=Path, default=Path(os.environ.get("GPR_EXTERNAL_ROOT", Path(__file__).resolve().parents[1])))
     ap.add_argument("--gpr-tools", type=Path, default=Path("build-local/source/app/gpr_tools/gpr_tools"))
     ap.add_argument("--metadata-audit-tool", type=Path, default=Path("tools/mission1_camera_raw_metadata_audit.py"))
     ap.add_argument("--camera-jpeg", type=Path)

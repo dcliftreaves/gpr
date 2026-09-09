@@ -8,13 +8,13 @@
 #   - hardware changes (SD card slot UHS-II downgrade, USB SSD swap)
 #
 # Designed to run ON the Pi 5 itself. From the Mac you'd:
-#   scp tools/test/test_pi_encoder.sh dcliftreaves@pi5-capture.local:/tmp/
-#   ssh dcliftreaves@pi5-capture.local /tmp/test_pi_encoder.sh
+#   scp tools/test/test_pi_encoder.sh "$PI_TARGET":/tmp/
+#   ssh "$PI_TARGET" /tmp/test_pi_encoder.sh
 # (or use SSH directly:)
-#   ssh dcliftreaves@pi5-capture.local 'bash -s' < tools/test/test_pi_encoder.sh
+#   ssh "$PI_TARGET" 'bash -s' < tools/test/test_pi_encoder.sh
 #
 # Required setup (one-time, on the Pi):
-#   - ~/gpr cloned and built (`cmake -B build && cmake --build build -j`)
+#   - Repository cloned and built (`cmake -B build && cmake --build build -j`)
 #   - A fast write path mounted at /mnt/ssd (the SD slot is UHS-I only at
 #     ~71 MB/s; a USB 3.0 SSD on Pi 5 gives 300+ MB/s)
 #   - CPU governor `performance` set (handled at runtime by this script)

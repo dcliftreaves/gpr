@@ -9,6 +9,7 @@ are removed after each frame.
 """
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -20,6 +21,11 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gvid_metadata import read_gvid_frames, sha256_gvid_payload  # noqa: E402
@@ -33,11 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def default_external_root() -> Path:
-    env = os.environ.get("GPR_EXTERNAL_ROOT")
-    if env:
-        return Path(env)
-    owc = Path("/Volumes/OWC_8TB/gpr_work")
-    return owc if owc.exists() else REPO_ROOT
+    return external_path()
 
 
 def resolve_artifact_path(path_text: str | None, *, external_root: Path | None = None) -> Path | None:
@@ -47,7 +49,7 @@ def resolve_artifact_path(path_text: str | None, *, external_root: Path | None =
     if path.is_absolute():
         return path
     root = external_root or default_external_root()
-    if path.parts and path.parts[0] == "artifacts":
+    if path.parts and path.parts[0] in {"artifacts", "models", "checkpoints", "cnn"}:
         return root / path
     return REPO_ROOT / path
 
@@ -218,7 +220,7 @@ def main() -> int:
     ap.add_argument("--checkpoint", type=Path)
     ap.add_argument("--registry", type=Path, default=REPO_ROOT / "pipelines" / "registry.json")
     ap.add_argument("--pipeline", help="Pipeline id from pipelines/registry.json; resolves the SR checkpoint and defaults.")
-    ap.add_argument("--decoder", type=Path, default=Path("build-local/bin/fused_decode_cli"))
+    ap.add_argument("--decoder", type=Path, default=REPO_ROOT / "build-local/bin/fused_decode_cli")
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--frame-start", type=int, default=0)
     ap.add_argument("--frames", type=int, default=3)

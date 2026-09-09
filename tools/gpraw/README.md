@@ -1,82 +1,53 @@
-# gpraw — GPRaw video container (MOV-wrapped GPR frames)
+# GPRaw MOV Wrapper
 
-GPRaw packages a stream of fused-format GPR frames into a single MOV file
-with a custom codec tag and rich metadata. It is the compatibility/export
-wrapper for workflows that need ISO BMFF/MOV, while `.gvid` is the primary
-raw-video capture deliverable.
+This tool packs opaque FUSED frame payloads into MOV and unpacks them for
+downstream decoding. It is a compatibility/export wrapper; `.gvid` remains
+the primary raw-video capture container. See
+[GVID Conformance](../../docs/GVID_CONFORMANCE.md) and
+[Getting Started](../../docs/GETTING_STARTED.md).
 
-## Wire format
+## Build and use
 
-| Field           | Value                                                            |
-|-----------------|------------------------------------------------------------------|
-| Extension       | `.mov`                                                           |
-| Container       | ISO BMFF / MOV (libavformat MOV muxer)                           |
-| Video codec_tag | `GPRr` (0x47 0x50 0x52 0x72; little-endian 0x72525047 on the wire) |
-| `AVCodecID`     | `AV_CODEC_ID_NONE` (tag-only)                                    |
-| Frame payload   | Opaque fused-format GPR bytes (FUSED_HEADER + bands)             |
-| Keyframes       | Every frame (intra-only)                                         |
+The Makefile requires a C compiler, `pkg-config`, and the FFmpeg
+`libavformat` and `libavutil` development libraries.
+Run from the repository root:
 
-Track metadata (file-level mdta atom, surfaces via `ffprobe -show_format`):
-
-* `gpr.codec_version` — e.g. `vc5/2.0+gpr`
-* `gpr.quality` — 0..5
-* `gpr.cfa_pattern` — `RGGB`, `GBRG`, ...
-* `gpr.bit_depth` — 14 or 16
-* `gpr.black_level`, `gpr.white_level`
-* `gpr.encoder_settings` — JSON blob
-* `gpr.source_dng_path`
-* `gpr.color_matrix` — 9 comma-separated floats
-
-Per-frame metadata is attached as AVPacket side data of type
-`AV_PKT_DATA_STRINGS_METADATA`.
-
-## Build
-
-```
+```bash
 make -C tools/gpraw
+export GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-artifacts}"
+mkdir -p "$GPR_ARTIFACT_ROOT"
+tools/gpraw/gpraw_pack --fps 20 --quality 3 --cfa RGGB --bit-depth 14 \
+  --black-level "${GPR_BLACK_LEVEL:?Set the source black level}" \
+  --white-level "${GPR_WHITE_LEVEL:?Set the source white level}" \
+  "$GPR_ARTIFACT_ROOT/frames" "$GPR_ARTIFACT_ROOT/wrapped.mov"
+tools/gpraw/gpraw_unpack "$GPR_ARTIFACT_ROOT/wrapped.mov" "$GPR_ARTIFACT_ROOT/unpacked"
+ffprobe -show_streams -show_format "$GPR_ARTIFACT_ROOT/wrapped.mov"
 ```
 
-Depends on Homebrew FFmpeg (`brew install ffmpeg`; tested with 8.0.1).
+Supply compatible FUSED `.gpr` frames under `frames/` in filename order.
+Match fps, quality, CFA, bit depth, and black/white levels to the actual
+source; these options describe metadata and do not recompress or repair
+payloads. Dimensions default to the frame header and can be overridden for
+the decoded Bayer output size. Inspect the resulting stream and compare
+unpacked payloads before relying on a new FFmpeg build.
 
-## Usage
+## Format and API
 
-Pack a directory of `.gpr` files into one MOV:
+The MOV sample tag is `GPRr`, with one intra-frame packet per FUSED payload.
+It is not the `GPR1` tag used by the separate
+`tools/gpr2prores/gpr_mov_tool` compatibility tool. Raw MOV packets are not
+ordinary rendered video and require a compatible decoder.
 
-```
-gpraw_pack --fps 24 --quality 3 --cfa RGGB --bit-depth 14 \
-  --black-level 1008 --white-level 15892 \
-  --encoder-settings '{"GPR_INCLUDE_LL":1,"GPR_DECIMATE_AA":1}' \
-  INPUT_DIR/ output.mov
-```
+Metadata fields include codec version, quality, CFA, bit depth,
+black/white levels, encoder settings, color matrix, and optional source
+traceability. Use portable source identifiers when sharing artifacts.
+Container metadata does not broaden the FUSED Bayer-format support.
 
-Unpack:
+[include/gpraw.h](include/gpraw.h) defines writer/reader signatures and
+ownership. Check create, add-frame, close, and read return values. Reader
+payload memory is valid only until the next read or close; copy it if it
+must outlive that call. Requested fps determines MOV timing, independently
+of measured encode or reconstruction speed.
 
-```
-gpraw_unpack output.mov OUTPUT_DIR/
-```
-
-Frames in `OUTPUT_DIR/frame_NNNN.gpr` are byte-identical to the inputs.
-
-Inspect:
-
-```
-ffprobe -show_streams -show_format output.mov
-```
-
-## Library API
-
-See `include/gpraw.h`. Pure C, no dependencies beyond libavformat and
-libavutil.
-
-```c
-GPRaw_Writer *w = gpraw_writer_create(path, w, h, fps_num, fps_den, &meta);
-gpraw_writer_add_frame(w, gpr_bytes, n, ts_ns, NULL);
-gpraw_writer_close(w);
-
-GPRaw_Reader *r = gpraw_reader_open(path);
-gpraw_reader_get_metadata(r, &meta);
-while (gpraw_reader_next_frame(r, &bytes, &n, &ts_ns) == 0) {
-    /* decode bytes ... */
-}
-gpraw_reader_close(r);
-```
+See [SPEC](../../docs/SPEC.md) for payload details and
+[Release Artifacts](../../docs/RELEASE_ARTIFACTS.md) for review delivery.

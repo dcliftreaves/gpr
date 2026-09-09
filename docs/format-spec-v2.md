@@ -398,69 +398,14 @@ A conforming v2.0 encoder/decoder must:
 
 ---
 
-## Compression Results Reference
+## Related formats and evidence
 
-### GoPro (14-bit, `-A -D`)
+This document covers legacy DNG/GPR extensions. FUSED video payloads are
+specified in [SPEC](SPEC.md); the independent `.gvid` v1 container contract
+is in [GVID Conformance](GVID_CONFORMANCE.md).
 
-| Camera | Quality | VLC | ANS+DN | vs VLC |
-|--------|---------|-----|--------|--------|
-| Hero6 | Q3 | 5.3MB | 3.1MB | **+41%** |
-| HERO7 | Q3 | 7.7MB | 5.5MB | **+24%** |
-| Hero5 | Q3 | 8.5MB | 6.0MB | **+30%** |
-
-### 100MP 16-bit Medium Format (16-bit, `-A -D`)
-
-| Image | ISO | VLC | ANS+DN | vs VLC |
-|-------|-----|-----|--------|--------|
-| Scene | 64 | 48.2MB | 41.5MB | **+14%** |
-| Scene | 200 | 41.3MB | 40.9MB | **+1%** |
-| Scene | 1600 | 89.6MB | 63.4MB | **+29%** |
-| Scene | 3200 | 62.3MB | 49.9MB | **+20%** |
-| Flat field | 800 | 11.6MB | 5.1MB | **+56%** |
-| Flat field | 3200 | 31.3MB | 10.9MB | **+65%** |
-
-### 45MP 14-bit DSLR (14-bit via DNG, `-A -D`)
-
-| Image | ISO | VLC | ANS+DN | vs VLC |
-|-------|-----|-----|--------|--------|
-| Scene | 64 | 14.8MB | 18.7MB | -26% |
-| Scene | 320 | 15.5MB | 16.5MB | -6% |
-| Scene | 22800 | 39.5MB | 30.5MB | **+23%** |
-
-### Key Findings
-
-- ANS+DN advantage increases with ISO (more noise to remove adaptively)
-- At ISO 1600+, ANS+DN beats VLC by 20-29% on scene photos
-- At ISO 64, VLC's fixed codebook is near-optimal for detail-rich scenes
-- Flat fields benefit most: up to 65% smaller at ISO 3200
-
-### Mass Scan Results
-
-| Camera | Files | Avg PSNR | Outliers (<45 dB) | ANS wins |
-|--------|-------|----------|--------------------|----------|
-| 45MP 14-bit DSLR | 6,713 | 65.1 dB | 2 (43.5, 43.6 dB) | N/A |
-| 100MP 16-bit MF | 260 | 53.8 dB | 0 | 80% (209/260) |
-
-16-bit medium format by ISO:
-- ISO 64-200: 100 files, avg savings 12-19%, ANS wins 83/100
-- ISO 400-800: 71 files, avg savings -2%, ANS wins 37/71
-- ISO 1600+: 91 files, avg savings 7-29%, ANS wins 90/91
-
-### Quality Metrics (45MP 14-bit DSLR, ISO ~200)
-
-| Mode | GPR Size | PSNR | SSIM | Noise σ Ratio |
-|------|----------|------|------|---------------|
-| VLC | 15.5 MB | 55.61 dB | 0.99984 | 1.10 |
-| ANS | 21.5 MB | 55.61 dB | 0.99984 | 1.10 |
-| ANS+DN | 21.4 MB | 50.74 dB | 0.99933 | 1.80 |
-
-ANS and VLC produce identical quality at the same quant settings (only entropy coding differs). ANS+DN applies noise-aware quantization which trades 5 dB PSNR for noise-transparent compression.
-
-### Performance (Apple Silicon, single-threaded baseline)
-
-| Operation | 45MP 14-bit | 100MP 16-bit |
-|-----------|-----------|-------------|
-| Encode (ANS+DN) | 1.1s | 2.5s |
-| Decode (ANS+DN) | 0.8s | 1.5s |
-
-Optimizations: parallel ANS pre-encoding (4 threads), precomputed sigma LUT, Irwin-Hall PRNG noise restoration.
+Historical compression scans and platform benchmarks are preserved in the
+[archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
+pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/blob/3d675ef/docs/format-spec-v2.md).
+Use [Ship Decision](SHIP_DECISION.md) for approved quality evidence and
+[Stills Pi 5 Timing](STILLS_PI5_TIMING.md) for bounded encode measurements.

@@ -89,9 +89,6 @@ def extract_naf(sd_prefix: str, C: int, sd: dict, out_dir: str, name: str) -> in
 
 
 def default_external_root() -> Path:
-    mounted = Path("/Volumes/OWC_8TB/gpr_work")
-    if mounted.exists():
-        return mounted
     return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
 
 

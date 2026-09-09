@@ -364,7 +364,7 @@ int main(int argc, const char *argv[]) {
         if (modelRoot.length == 0) {
             NSString *externalRoot = [[[NSProcessInfo processInfo] environment]
                 objectForKey:@"GPR_EXTERNAL_ROOT"];
-            if (externalRoot.length == 0) externalRoot = @"/Volumes/OWC_8TB/gpr_work";
+            if (externalRoot.length == 0) externalRoot = [[NSFileManager defaultManager] currentDirectoryPath];
             modelRoot = [externalRoot stringByAppendingPathComponent:@"models"];
         }
         NSString *ckptPath = [[[NSProcessInfo processInfo] environment]

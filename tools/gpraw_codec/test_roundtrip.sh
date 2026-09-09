@@ -4,13 +4,8 @@ set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
-if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-    else
-        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-    fi
-fi
+GPR_BUILD="${GPR_BUILD:-$GPR_ROOT/build}"
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work}"
 FF_ROOT="${FF_ROOT:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}"
 
 OUT="$SELF_DIR/test_roundtrip"
@@ -19,10 +14,10 @@ clang -O2 -g -Wall -Wno-unused-parameter \
     -I"$GPR_ROOT/source/lib/vc5_decoder" \
     -I"$FF_ROOT" \
     "$SELF_DIR/test_roundtrip.c" \
-    "$GPR_ROOT/build-local/source/lib/vc5_encoder/libvc5_encoder.a" \
-    "$GPR_ROOT/build-local/source/lib/vc5_decoder/libvc5_decoder.a" \
-    "$GPR_ROOT/build-local/source/lib/vc5_common/libvc5_common.a" \
-    "$GPR_ROOT/build-local/source/lib/common/libcommon.a" \
+    "$GPR_BUILD/source/lib/vc5_encoder/libvc5_encoder.a" \
+    "$GPR_BUILD/source/lib/vc5_decoder/libvc5_decoder.a" \
+    "$GPR_BUILD/source/lib/vc5_common/libvc5_common.a" \
+    "$GPR_BUILD/source/lib/common/libcommon.a" \
     "$FF_ROOT/libavformat/libavformat.a" \
     "$FF_ROOT/libavcodec/libavcodec.a" \
     "$FF_ROOT/libswresample/libswresample.a" \

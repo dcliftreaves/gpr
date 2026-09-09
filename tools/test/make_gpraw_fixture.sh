@@ -60,11 +60,7 @@ for tool in "$GTOOLS" "$BENCH" "$MOV"; do
 done
 
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-    else
-        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-    fi
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"

@@ -20,8 +20,6 @@ TOOL = ROOT / "tools/extract_raw_bayer_u16.py"
 def temp_root() -> Path:
     if os.environ.get("GPR_TMPDIR"):
         root = Path(os.environ["GPR_TMPDIR"])
-    elif Path("/Volumes/OWC_8TB/gpr_work/tmp").exists():
-        root = Path("/Volumes/OWC_8TB/gpr_work/tmp")
     else:
         root = Path(tempfile.gettempdir())
     root.mkdir(parents=True, exist_ok=True)

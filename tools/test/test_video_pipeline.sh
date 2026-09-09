@@ -25,7 +25,7 @@
 # hasn't been run yet.
 #
 # Env knobs:
-#   BUILD_DIR=build-local         (cmake build root; only used to find gpr_tools)
+#   BUILD_DIR=build               (cmake build root; only used to find gpr_tools)
 #   GTOOLS=...                    (override gpr_tools path)
 #   GPR2PRORES=...                (override gpr2prores path)
 #   WORK_DIR=$GPR_EXTERNAL_ROOT/tmp/gpr-vidmtx      (where the synthesized DNG lands)
@@ -42,11 +42,7 @@ BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 GPR2PRORES="${GPR2PRORES:-tools/gpr2prores/gpr2prores}"
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-    else
-        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-    fi
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"

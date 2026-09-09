@@ -930,7 +930,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bench", type=Path, help="bench_fused binary on target")
     ap.add_argument("--raw", type=Path, help="source Bayer raw input on target")
-    ap.add_argument("--output-dir", type=Path, default=Path(os.environ.get("GPR_ARTIFACT_ROOT", "/Volumes/OWC_8TB/gpr_work/artifacts")) / "labs_target_bench")
+    ap.add_argument("--output-dir", type=Path, default=Path(os.environ.get("GPR_ARTIFACT_ROOT", Path(os.environ.get("GPR_EXTERNAL_ROOT", Path(__file__).resolve().parents[1])) / "artifacts")) / "labs_target_bench")
     ap.add_argument("--frames", type=int, default=14400, help="frames to run; 14400 = 10 minutes at 24 fps")
     ap.add_argument("--target-fps", type=float, default=24.0)
     ap.add_argument("--source-width", type=int, default=8280)

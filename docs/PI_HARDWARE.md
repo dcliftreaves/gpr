@@ -1,71 +1,42 @@
-# Pi 5 capture hardware requirements
+# Pi 5 Hardware
 
-Historical note: this page records the older full-res/LL-only storage planning
-bench. The current half-res `.gvid` capture path is tracked in
-`VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md`, and
-`RAW_RESOLUTION_TARGETS_2026-06-14.md`, where the active budget is
-1.30 MB/frame and about 31 MB/s at 24 fps. Keep this page as storage
-background, not as the current `.gvid` ship budget.
+Raspberry Pi 5 with 64-bit Raspberry Pi OS is the conservative capture
+stand-in. Provide cooling, adequate power, and storage measured under the
+actual workload. The recorded setup used an 8 GB Pi 5. Hardware capacity alone
+does not establish camera readiness.
 
-## TL;DR
+## Setup
 
-For this historical full-res planning case, the encoder kernel hit 25.9 fps
-in-memory on Pi 5 (Cortex-A76, LL-only-fast mode), while sustained writes to
-the tested stock SD setup reached only about 7 fps. To sustain 24 fps at
-50 MP × 3.5 MB/frame compressed, a measured storage path of **>=84 MB/s** is
-required. The current half-res `.gvid` Labs path has a lower storage budget;
-its active blocker/evidence is tracked in the Labs target docs.
+Build with the portable CMake commands in [Getting Started](GETTING_STARTED.md).
+Choose an artifact directory on the storage device being evaluated through
+`GPR_ARTIFACT_ROOT`; do not assume a particular mounted volume or device name.
 
-## Measured numbers (Pi 5, 8 GB)
+The current workload is native 4096 x 3072 Bayer FUSED capture and full-frame
+1024 x 768 preview from the same `.gvid`. Use the matching codec profile,
+pixel format, source provenance, and frame count when comparing runs.
+[Video Status](VIDEO_STATUS.md) summarizes the existing 20+ fps receipts.
 
-| Test | fps |
-|---|---|
-| Encoder kernel only (in-RAM bayer → GPR bytes in RAM) | **25.9 fps** |
-| End-to-end **100 frames** burst (page-cache absorbed) | 21.3 fps |
-| End-to-end **500 frames** sustained (page cache full) | **6.88 fps** |
-| SD card sustained write (dd, fdatasync) | 18-33 MB/s |
-| Required for 24 fps × 3.5 MB | **84 MB/s** |
+## Storage and timing
 
-## Storage path options
+Measure sustained writes beyond page-cache buffering, including the chosen
+flush policy, frame-size distribution, noisy-content behavior, and thermal
+state. Derive required bytes/second from actual encoded bytes and target fps.
+A card's advertised speed or class is not a sustained capture receipt.
+The selected Pi evidence includes a Lexar SILVER PLUS write-budget pass;
+that result is specific to the recorded setup.
 
-| Path | Sustained write | Cost | Setup | Notes |
-|---|---|---|---|---|
-| **Stock SD slot, generic V30 card** | 25-40 MB/s | $10-20 | drop-in | what's there today; **insufficient** |
-| **Fast measured microSD** | card-dependent | $20-80 | drop-in | acceptable only if the exact card sustains the required write rate |
-| **USB 3.0 external SSD** | 400-500 MB/s | $50-100 | USB-A | comfortable headroom |
-| **PCIe HAT + NVMe SSD** | 500-800 MB/s | $30 HAT + $50 SSD | HAT install | best, future-proof |
-| **Gigabit Ethernet → NFS** | 100-115 MB/s | $0 (existing LAN) | NFS mount | tethered only; meets the bar with margin |
-| **2.5 GbE via USB adapter** | ~280 MB/s | $30 | USB ↔ Ethernet | tethered, higher rates than gigabit |
+Record whole-run wall throughput separately from per-frame median timing.
+Include p95/p99 frame times, drops, memory, temperature, output hashes,
+decode validation, and interrupted-tail behavior. RAM-only output and short
+cached runs are diagnostics, not storage closure.
 
-## Recommendation by workflow
+For genuine camera tests, use
+[Mission 1 Quick Validation](GOPRO_MISSION1_QUICK_VALIDATION.md).
+A file replay or simulated DMA source on a Pi remains stand-in evidence even
+if it meets the timing target.
 
-- **Pocket camera (untethered)** → measured-fast microSD, USB 3.0 SSD, or NVMe
-- **Studio rig (tethered to workstation)** → Gigabit Ethernet + NFS, or USB SSD
-- **Maximum throughput rig** → PCIe HAT + NVMe
-
-## RAM-buffer fallback (current hardware)
-
-Pi 5 has 8 GB RAM; `/dev/shm` (tmpfs) defaults to 4 GB. At 3.5 MB/frame that buffers **~1100 frames = 47 seconds of 24 fps capture**. Useful for short bursts that can be flushed to SD afterward.
-
-Workflow:
-1. Capture to `/dev/shm/clip/`
-2. Stop recording
-3. Move files to SD card (~5 sec of recording flushes in ~12 sec at 33 MB/s)
-4. Resume
-
-Not suitable for long takes; pad SD writes between bursts.
-
-## Reproducing the bench
-
-```bash
-# Pi 5
-cc -O3 -mcpu=native tools/test/save_test.c -o /tmp/save_test
-
-# Sustained sensor-style test: 500 frames at 3.5 MB each
-mkdir /tmp/cap_test
-/tmp/save_test 500 0 /tmp/cap_test  # 500 individual writes
-rm -rf /tmp/cap_test
-/tmp/save_test 500 1 /tmp/cap_test  # 1 file with appends (container-like)
-```
-
-The `save_test.c` source is the synthetic bench used to characterize the SD card without needing a real encoder. Source-level wall clock vs encoder kernel time isolates the I/O from the compute.
+Full-resolution legacy still encode timings are a different workload; see
+[Stills Pi 5 Timing](STILLS_PI5_TIMING.md). Prior storage estimates and
+half-resolution runs are preserved in the
+[archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
+pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/tree/3d675ef).

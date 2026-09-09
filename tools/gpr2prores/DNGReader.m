@@ -1,6 +1,6 @@
 // DNGReader.m — LibRaw-based Bayer extractor.
 //
-// We dynamically link to /opt/homebrew/lib/libraw.dylib for decoding all
+// We dynamically link to LibRaw for decoding all
 // the camera-specific raw formats (Z8 DNGs use lossless JPEG = compression
 // type 7, which a hand-rolled TIFF reader can't handle).
 //

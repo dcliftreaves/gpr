@@ -106,6 +106,8 @@ def main():
             # REF crop is content-identical across runs of the same image,
             # so dedupe to one copy per image_id.
             ref_src = row.get("ref_crop")
+            if ref_src:
+                ref_src = REPO / ref_src
             if ref_src and Path(ref_src).exists() and img_id not in ref_crop_for_img:
                 dst_name = f"REF_{img_id}_crop_A.png"
                 dst = img_dir / dst_name
@@ -115,6 +117,8 @@ def main():
             crop_map[(run_hash, img_id, "REF_A")] = ref_crop_for_img.get(img_id)
             # PIPELINE crop per-run
             pipe_src = row.get("pipeline_crop")
+            if pipe_src:
+                pipe_src = REPO / pipe_src
             if pipe_src and Path(pipe_src).exists():
                 dst_name = f"{run_hash}_{img_id}_PIPE_A.png"
                 dst = img_dir / dst_name
@@ -124,7 +128,7 @@ def main():
         # visual diff
         vd = r["json"].get("worst_image", {}).get("visual_diff_png")
         if vd:
-            vd = Path(vd)
+            vd = REPO / vd
             if vd.exists():
                 dst_name = f"{run_hash}_VISUAL_DIFF.png"
                 dst = img_dir / dst_name

@@ -11,8 +11,8 @@ name: Release
 #     include/        (public headers, mirrored from source/lib)
 #     bin/gpr_tools   (CLI)
 #     README.md
-#     AUTHORS.md      (LICENSE file is not present in this repo; AUTHORS.md
-#                      carries attribution and the README has license info)
+#     AUTHORS.md
+#     LICENSE.txt, LICENSE-MIT, LICENSE-APACHE (when present at the tag)
 #     CONTRIBUTING.md
 #
 # Platforms:
@@ -32,8 +32,7 @@ on:
     inputs:
       tag:
         description: 'Tag to build (e.g. v2.0.0). Only used for manual runs.'
-        required: false
-        default: ''
+        required: true
 
 concurrency:
   group: release-${{ github.ref }}
@@ -59,28 +58,37 @@ jobs:
             experimental: true
 
     steps:
-      - name: Checkout
+      - name: Resolve version
+        id: version
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            VERSION="$REQUESTED_TAG"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          if [[ ! "$VERSION" =~ ^v[0-9][A-Za-z0-9._+-]*$ ]]; then
+            echo "Expected a version tag such as v2.0.0 or v2.0.0-rc1" >&2
+            exit 1
+          fi
+          VERSION_NOV="${VERSION#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_nov=${VERSION_NOV}" >> "$GITHUB_OUTPUT"
+          echo "ref=refs/tags/${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION (file suffix: $VERSION_NOV)"
+
+      - name: Checkout release tag
         uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.version.outputs.ref }}
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential
-
-      - name: Resolve version
-        id: version
-        run: |
-          if [ -n "${{ github.event.inputs.tag }}" ]; then
-            VERSION="${{ github.event.inputs.tag }}"
-          else
-            VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          # Strip leading 'v' for the filename portion.
-          VERSION_NOV="${VERSION#v}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "version_nov=${VERSION_NOV}" >> "$GITHUB_OUTPUT"
-          echo "Building version: $VERSION (file suffix: $VERSION_NOV)"
 
       - name: Configure & build
         run: |
@@ -95,9 +103,12 @@ jobs:
 
       - name: Stage release tree
         id: stage
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version_nov }}
+          RELEASE_PLATFORM: ${{ matrix.platform }}
         run: |
-          set -e
-          STAGE="/tmp/gpr-${{ steps.version.outputs.version_nov }}-${{ matrix.platform }}"
+          set -euo pipefail
+          STAGE="${RUNNER_TEMP}/gpr-${RELEASE_VERSION}-${RELEASE_PLATFORM}"
           rm -rf "$STAGE"
           mkdir -p "$STAGE/lib" "$STAGE/include" "$STAGE/bin"
 
@@ -112,30 +123,26 @@ jobs:
             fi
           done
 
-          # Public headers — mirror each library's top-level headers.
-          for libdir in source/lib/*/; do
-            name="$(basename "$libdir")"
-            dest="$STAGE/include/$name"
-            mkdir -p "$dest"
-            # Headers may live at top level or under nested dirs (dng_sdk etc.)
-            find "$libdir" -maxdepth 3 -name "*.h" -print0 \
-              | xargs -0 -I{} cp --parents {} "$dest/" 2>/dev/null \
-              || find "$libdir" -maxdepth 3 -name "*.h" -exec cp {} "$dest/" \;
-          done
+          # Preserve paths relative to source/lib on both Linux and macOS.
+          while IFS= read -r -d '' header; do
+            relative="${header#source/lib/}"
+            dest="$STAGE/include/$relative"
+            mkdir -p "$(dirname "$dest")"
+            cp "$header" "$dest"
+          done < <(find source/lib -type f -name "*.h" -print0)
 
           # CLI binary.
           if [ -x build/source/app/gpr_tools/gpr_tools ]; then
             cp build/source/app/gpr_tools/gpr_tools "$STAGE/bin/"
           fi
 
-          # Top-level docs / license. LICENSE is absent; ship the closest
-          # equivalents.
-          for f in README.md AUTHORS.md CONTRIBUTING.md LICENSE LICENSE.md LICENSE.txt; do
+          # Include documentation and license files present at the release tag.
+          for f in README.md AUTHORS.md CONTRIBUTING.md LICENSE LICENSE.md LICENSE.txt LICENSE-MIT LICENSE-APACHE; do
             [ -f "$f" ] && cp "$f" "$STAGE/" || true
           done
 
           # Pack.
-          TARBALL="/tmp/gpr-${{ steps.version.outputs.version_nov }}-${{ matrix.platform }}.tar.gz"
+          TARBALL="${RUNNER_TEMP}/gpr-${RELEASE_VERSION}-${RELEASE_PLATFORM}.tar.gz"
           tar -C "$(dirname "$STAGE")" -czf "$TARBALL" "$(basename "$STAGE")"
           ls -lh "$TARBALL"
           echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
@@ -152,7 +159,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # Only publish when triggered by a real tag push, not workflow_dispatch.
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
 
@@ -160,20 +167,20 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/release-artifacts
+          path: ${{ runner.temp }}/release-artifacts
 
       - name: Flatten artifact directory
         run: |
-          mkdir -p /tmp/release-flat
+          mkdir -p "$RUNNER_TEMP/release-flat"
           # Each upload-artifact action created a subdirectory; the tarball
           # lives inside it. Move tarballs to a single dir for release upload.
-          find /tmp/release-artifacts -type f -name "*.tar.gz" -exec mv {} /tmp/release-flat/ \;
-          ls -lh /tmp/release-flat/
+          find "$RUNNER_TEMP/release-artifacts" -type f -name "*.tar.gz" -exec mv {} "$RUNNER_TEMP/release-flat/" \;
+          ls -lh "$RUNNER_TEMP/release-flat/"
 
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: /tmp/release-flat/*.tar.gz
+          files: ${{ runner.temp }}/release-flat/*.tar.gz
           draft: false
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
           generate_release_notes: true

@@ -7,11 +7,7 @@ set -euo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 BUILD_DIR="${BUILD_DIR:-$REPO/build-local}"
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-  else
-    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-  fi
+  GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK="$GPR_TMPDIR/labs_encoder_bench_cli_smoke"

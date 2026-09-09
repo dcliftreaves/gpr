@@ -7,6 +7,7 @@ manifest crops from that stitched output. REF is used only for scoring.
 """
 from __future__ import annotations
 
+
 import argparse
 import json
 import resource
@@ -24,6 +25,11 @@ import torch
 import torch.nn.functional as F
 from PIL import Image, ImageFilter
 
+
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
@@ -1167,13 +1173,13 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path, default=REPO / "tests/quality_gates/preview_holdout_set.json")
     ap.add_argument("--image-id", action="append", default=[])
     ap.add_argument("--ref-root", type=Path, action="append", default=[
-        Path("/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs"),
-        Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+        external_path('cnn/diverse_dngs'),
+        external_path('barnsky_full_dngs'),
     ])
     ap.add_argument("--source-root", type=Path, action="append", default=[
-        Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable_holdout_clean_20260607/editable_dng"),
-        Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng"),
-        Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable_preview_probe_20260606/editable_dng"),
+        external_path('artifacts/upresable_holdout_clean_20260607/editable_dng'),
+        external_path('artifacts/upresable/editable_dng'),
+        external_path('artifacts/upresable_preview_probe_20260606/editable_dng'),
     ])
     ap.add_argument("--router-sidecar", type=Path, required=True)
     ap.add_argument("--override-router-sidecar", type=Path, action="append", default=[])
@@ -1210,7 +1216,7 @@ def main() -> int:
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
-    ap.add_argument("--tmp-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp"))
+    ap.add_argument("--tmp-dir", type=Path, default=external_path('tmp'))
     ap.add_argument("--skip-quality-scoring", action="store_true", help="Measure production no-REF render timing without REF render/load, crop metrics, or crop PNGs.")
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)

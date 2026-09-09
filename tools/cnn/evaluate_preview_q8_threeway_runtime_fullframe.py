@@ -9,6 +9,7 @@ REF is used only inside the child evaluators for scoring.
 """
 from __future__ import annotations
 
+
 import argparse
 import html
 import json
@@ -20,6 +21,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
@@ -38,8 +44,8 @@ from score_preview_q8_threeway_router_union import (  # noqa: E402
 )
 
 
-POLICY_0606 = Path("/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606")
-POLICY_0613 = Path("/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613")
+POLICY_0606 = external_path('artifacts/preview_runtime_policy_20260606')
+POLICY_0613 = external_path('artifacts/preview_runtime_policy_20260613')
 
 
 def max_rss_mb() -> float:
@@ -425,8 +431,8 @@ def main() -> int:
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--output-json", type=Path, required=True)
     ap.add_argument("--output-html", type=Path, required=True)
-    ap.add_argument("--tmp-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp"))
-    ap.add_argument("--external-root", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work"))
+    ap.add_argument("--tmp-dir", type=Path, default=external_path('tmp'))
+    ap.add_argument("--external-root", type=Path, default=external_path(''))
     args = ap.parse_args()
     args.tmp_dir.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)

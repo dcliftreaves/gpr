@@ -21,15 +21,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
-BUILD_DIR=${BUILD_DIR:-build-local}
-if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-  else
-    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-/tmp}/gpr_work"
-  fi
-fi
-GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+BUILD_DIR=${BUILD_DIR:-build}
+GPR_TMPDIR="${GPR_TMPDIR:-${TMPDIR:-${RUNNER_TEMP:-/tmp}}}"
 TMPDIR="$GPR_TMPDIR"
 OUT_DIR="${CONFORMANCE_BIN_DIR:-$TMPDIR/conformance}"
 mkdir -p "$OUT_DIR"

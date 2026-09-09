@@ -4,11 +4,7 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-  else
-    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-  fi
+  GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK=${WORK:-$GPR_TMPDIR/labs_bundle_builder_smoke}
@@ -32,6 +28,10 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+(root / "release_evidence.json").write_text(
+    json.dumps({"schema": "gpr.release_evidence.v1", "receipts": []}),
+    encoding="utf-8",
+)
 payloads = [b"builder-frame-0", b"builder-frame-1"]
 data = bytearray()
 data += struct.pack("<IBBHHHIIIII", 0x44495647, 1, 0, 4, 3, 0, 640, 360, 24000, 0, len(payloads))
@@ -59,22 +59,33 @@ PY
   --target-name "Pi 5 stand-in" \
   --target-role stand-in \
   --note "synthetic builder smoke" \
+  --product-pillars-from "$WORK/release_evidence.json" \
   --artifact samples/half_res_capture.gvid:gvid \
   --artifact samples/half_res_capture.gvid.meta.json:json \
   --artifact review/preview_review_dashboard.html:dashboard \
   --artifact receipts/pi5_proxy_receipt.json:json
 
 "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/manifest.json"
-"$PYTHON_BIN" - "$WORK/manifest.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/manifest.json" "$REPO/tools/build_labs_bundle.py" <<'PY'
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-ids = {row["id"] for row in manifest.get("product_pillars", [])}
-expected = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"}
-if ids != expected:
-    raise SystemExit(f"unexpected product_pillars ids: {sorted(ids)}")
+assert "product_pillars" not in manifest
+spec = importlib.util.spec_from_file_location("bundle_builder", sys.argv[2])
+builder = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(builder)
+builder.DEFAULT_RELEASE_EVIDENCE = Path(sys.argv[1]).parent / "absent_default.json"
+assert builder.load_product_pillars(builder.DEFAULT_RELEASE_EVIDENCE) is None
+assert builder.load_product_pillars(None) is None
+try:
+    builder.load_product_pillars(Path(sys.argv[1]).parent / "absent_explicit.json")
+except FileNotFoundError:
+    pass
+else:
+    raise AssertionError("explicit missing index must fail")
 PY
 (cd "$WORK" && shasum -a 256 -c hashes/sha256sums.txt)
 

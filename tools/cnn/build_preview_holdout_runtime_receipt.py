@@ -8,6 +8,7 @@ Rows with missing source images are recorded in the receipt and skipped.
 """
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -21,17 +22,23 @@ from typing import Any
 from PIL import Image
 
 
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
+
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = REPO / "tests/quality_gates/preview_holdout_set.json"
 DEFAULT_SOURCE_ROOTS = [
-    Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng"),
-    Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable_preview_probe_20260606/editable_dng"),
+    external_path('artifacts/upresable/editable_dng'),
+    external_path('artifacts/upresable_preview_probe_20260606/editable_dng'),
 ]
 DEFAULT_REF_ROOTS = [
-    Path("/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs"),
-    Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+    external_path('cnn/diverse_dngs'),
+    external_path('barnsky_full_dngs'),
 ]
-DEFAULT_OUT_DIR = Path("/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/holdout_runtime_crops")
+DEFAULT_OUT_DIR = external_path('artifacts/preview_runtime_policy_20260606/holdout_runtime_crops')
 
 
 def render_dng_to_tiff(dng_path: Path, tiff_path: Path) -> float:
@@ -60,7 +67,8 @@ def resolve_ref(image: dict[str, Any], roots: list[Path]) -> Path:
         path = root / f"{image_id}.dng"
         if path.exists():
             return path
-    return Path(image["path"])
+    path = Path(image["path"]).expanduser()
+    return path if path.is_absolute() else external_path(str(path))
 
 
 def sha256_file(path: Path) -> str:
@@ -191,7 +199,7 @@ def main() -> int:
     parser.add_argument("--source-root", type=Path, action="append")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--out-json", type=Path, required=True)
-    parser.add_argument("--tmp-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp"))
+    parser.add_argument("--tmp-dir", type=Path, default=external_path('tmp'))
     parser.add_argument("--keep-renders", action="store_true")
     args = parser.parse_args()
     if args.ref_root is None:

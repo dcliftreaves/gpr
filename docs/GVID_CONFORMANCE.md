@@ -1,54 +1,70 @@
 # GVID Conformance
 
-Last refreshed: 2026-06-26
+`.gvid` v1 wraps per-frame payloads with a 32-byte clip header and a
+16-byte frame header. It is separate from the FUSED payload version and the
+legacy DNG/GPR v2 extensions. The reference contract is
+`source/lib/vc5_encoder/gpr_video_format.h`.
 
-This document defines the `.gvid` conformance surface independently from the
-codec-quality gates. The container must be robust even when the payload codec,
-CNN, or review renderer changes.
+## Wire layout
 
-## V1 Wire Contract
+All integers are little-endian. No clip trailer is required.
 
-| record | size | contract |
-|---|---:|---|
-| clip header | 32 bytes | little-endian magic `GVID`, version `1`, known flags only, valid pixel format, valid quality, nonzero dimensions, nonzero fps, optional frame-count hint |
-| frame header | 16 bytes | little-endian magic `FRM`, nonzero payload size, monotonic `uint64_t` frame tag |
-| payload | variable | complete frame payload; v1 conformance does not inspect codec internals |
+| Clip offset | Field | Contract |
+|---:|---|---|
+| 0 | 4-byte magic | `GVID` |
+| 4 | uint8 version | 1 |
+| 5 | uint8 flags | Bit 0 rate control, bit 1 denoise; other bits zero |
+| 6 | uint16 pixel format | 0..5, unpacked RGGB/GBRG 12/14/16-bit |
+| 8 | uint16 quality | 0..11 |
+| 10 | uint16 reserved | Zero |
+| 12 | uint32 width | Nonzero Bayer width |
+| 16 | uint32 height | Nonzero Bayer height |
+| 20 | uint32 fps_x1000 | Nonzero; 20 fps is 20000 |
+| 24 | uint32 target_kbps | Zero iff rate control is disabled |
+| 28 | uint32 frame_count_hint | Zero means unknown; otherwise must match |
 
-Strict validation must reject:
+Each frame header has `FRM\0` at offset 0, a nonzero uint32 payload
+size at offset 4, and a uint64 frame tag at offset 8. Exactly that many
+payload bytes follow. Tags must increase strictly. The Labs shim has the
+stronger requirement of contiguous frame indices starting at zero.
 
-- bad clip magic or unsupported version,
-- unknown flag bits,
-- nonzero reserved fields,
-- zero dimensions or zero fps,
-- target-bitrate flag mismatch,
-- unsupported pixel format or quality,
-- truncated clip header,
-- truncated frame header,
-- truncated frame payload,
-- zero-frame streams,
-- zero-size frame payloads,
-- duplicate or out-of-order frame tags,
-- frame-count hint mismatches.
+Strict validation rejects unsupported versions, unknown flags, reserved
+fields, invalid header values, zero-frame streams, nonmonotonic tags,
+frame-count mismatches, and any truncated header or payload. Container
+validation does not inspect codec internals; independently decode samples.
 
-Interrupted-file recovery is valid only when EOF lands after a complete frame
-payload. EOF inside a frame header or payload is corruption, not a recoverable
-tail.
+## Recovery and metadata
 
-## Test Layers
+EOF after a complete payload is a valid boundary when the clip header and
+frame-count hint remain consistent. EOF inside a header or payload is
+corruption, not an accepted interrupted tail. Recovery tooling must identify
+complete frames and handle the count hint explicitly; it must not silently
+accept truncated bytes as a valid stream.
 
-| layer | command | purpose |
-|---|---|---|
-| Python v1 validator | `python3 tools/test/test_gvid_conformance.py` | builds tiny valid and malformed `.gvid` fixtures and verifies accept/reject behavior without project dependencies |
-| Labs bundle verifier | `python3 tools/verify_labs_bundle.py <bundle>/manifest.json` | verifies release/Labs bundles, checks hashes, and validates included `.gvid` samples |
-| C stream tests | `build/source/app/test_video_format` and related C tests | exercises the C reader/writer contract used by firmware-facing paths |
-| Metadata dispatch | `bash tools/test/test_gvid_metadata.sh` | validates `.gvid` metadata sidecars and runtime dispatch checks |
-| ProRes review path | `bash tools/test/test_gpr2prores_gvid_input.sh` | proves `.gvid` inputs are accepted by the review/export path and malformed streams fail clearly |
-| Codec bitstream conformance | `tests/conformance/` | pins FUSED payload bytes for synthetic raw inputs; this is payload stability, not container conformance |
+Source metadata travels in a `<clip>.gvid.meta.json` sidecar using
+`gvid_source_metadata.v1`. `tools/gvid_pack.py --metadata` validates and
+attaches it. Preserve source/capture dimensions, Bayer phase and bit depth,
+color/WB provenance, and matching frame identities. Clip timebase and frame
+tags do not carry all sensor metadata: v1 has no per-frame timestamp field.
+Firmware retains timestamps, exposure, gain, and drop records in its sidecar
+or target receipt. Renderers must not guess Bayer format from payload size.
 
-## Promotion Rule
+The desktop review path accepts `.gvid` with source metadata supplied
+through its supported options, including `--meta-dng`.
+See [Getting Started](GETTING_STARTED.md).
 
-A `.gvid` change is production-safe only when the container conformance tests,
-metadata tests, bundle verifier, C stream tests, and review-path tests still
-pass. Intentional wire-format changes require a version bump and a migration
-note in `docs/format-spec-v2.md`.
+## Verification
 
+| Layer | Entry point |
+|---|---|
+| Dependency-light malformed-stream cases | `python3 tools/test/test_gvid_conformance.py` |
+| C reader/writer contract | CMake target `test_video_format` |
+| Sidecar and dispatch tests | `bash tools/test/test_gvid_metadata.sh` |
+| Desktop review input tests | `bash tools/test/test_gpr2prores_gvid_input.sh` |
+| Bundle hashes and included streams | `python3 tools/verify_labs_bundle.py "$GPR_ARTIFACT_ROOT/review-bundle/manifest.json"` |
+| FUSED payload stability | `tests/conformance/` and [SPEC](SPEC.md) |
+
+Structural wire changes require a version bump and migration documentation.
+Reserved fields must remain zero in emitted v1 files. See the reference
+header for versioning policy and [Release Artifacts](RELEASE_ARTIFACTS.md)
+for sample delivery requirements.

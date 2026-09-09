@@ -1,6 +1,11 @@
 # Makefile for gpr2prores
 
-GPR_BUILD = ../../build-local
+GPR_BUILD ?= ../../build
+PKG_CONFIG ?= pkg-config
+LIBRAW_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags libraw)
+LIBRAW_LIBS ?= $(shell $(PKG_CONFIG) --libs libraw)
+FFMPEG_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags libavformat libavcodec libavutil libswresample)
+FFMPEG_LIBS ?= $(shell $(PKG_CONFIG) --libs libavformat libavcodec libavutil libswresample)
 PREFIX    ?= /usr/local
 BINDIR    = $(PREFIX)/bin
 LIBDIR    = $(PREFIX)/lib/gpr2prores
@@ -20,13 +25,13 @@ endif
 
 CC      = clang
 CFLAGS  = -O2 -g -Wall -Wno-deprecated-declarations -fobjc-arc \
-          -I$(GPR_BUILD)/../source/lib/vc5_encoder \
-          -I$(GPR_BUILD)/../source/lib/vc5_decoder \
-          -I/opt/homebrew/include \
+          -I../../source/lib/vc5_encoder \
+          -I../../source/lib/vc5_decoder \
+          $(LIBRAW_CFLAGS) $(FFMPEG_CFLAGS) \
           -DGPR_HAVE_SUPER_RES_METAL=1 \
           -mmacosx-version-min=14.0
 
-LDFLAGS = -L/opt/homebrew/lib -lraw -lc++ \
+LDFLAGS = $(LIBRAW_LIBS) -lc++ \
           -framework Accelerate \
           -framework Foundation \
           -framework CoreFoundation \
@@ -52,8 +57,6 @@ GPR_LIBS = $(GPR_BUILD)/source/lib/vc5_encoder/libvc5_encoder.a \
 
 OBJS = gpr2prores.o DNGReader.o GPRFileReader.o GPRPipeline.o Demosaic.o Downscale.o CIRawDemosaic.o CIDNGBuilder.o ProResWriter.o GPRCodec.o SuperResCNN.o SuperResMetal.o
 
-FFMPEG_LIBS = -lavformat -lavcodec -lavutil -lswresample
-
 .PHONY: all clean install uninstall
 
 all: gpr2prores gpr_mov_tool
@@ -63,7 +66,7 @@ gpr2prores: $(OBJS) Demosaic.metallib
 
 # gpr_mov_tool: pack/unpack a sequence of .gpr files into a custom-tagged MOV.
 gpr_mov_tool: gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o
-	$(CC) $^ $(LDFLAGS) $(FFMPEG_LIBS) -o $@
+	$(CC) $^ $(GPR_LIBS) $(LDFLAGS) $(FFMPEG_LIBS) -o $@
 
 %.o: %.m
 	$(CC) $(CFLAGS) -c $< -o $@

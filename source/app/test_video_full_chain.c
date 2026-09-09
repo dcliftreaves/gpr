@@ -183,8 +183,8 @@ static int read_file(const char *path, reader_stats *st) {
 
         /* Container-framing smoke: the payload exists, fits inside the
            declared file, and the frame tag is sequential. Decoder-side
-           band-correctness is the job of test_fused_decode_roundtrip
-           and test_video_full_roundtrip; here we only verify the writer
+           correctness is checked by test_fused_decode_roundtrip;
+           here we only verify the writer
            emits readable container framing. */
         int rc = (fh.payload_size > 0 &&
                   fh.frame_tag == (uint64_t)st->frames_decoded) ? 0 : -1;

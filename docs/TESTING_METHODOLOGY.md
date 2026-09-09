@@ -1,111 +1,45 @@
-# Testing methodology — what runs where
+# Testing Methodology
 
-After the codification of stills vs video (2026-05-28), there are
-**three distinct test layers** with different scopes. Each catches
-different bugs. Keep them straight.
+Use the test appropriate to the claim. Passing container validation, codec
+regression, a rendered quality gate, or a hardware timing test establishes
+different facts.
 
-## Layer 1 — codec-only regression (`test_capabilities.py`)
+| Evidence | What it establishes | What it does not establish |
+|---|---|---|
+| `tools/test/test_gvid_conformance.py` and C stream tests | Container accept/reject and recovery behavior | Payload quality or camera integration |
+| `tests/conformance/` | Manual historical bitstream comparison; currently mismatches | A passing release gate or universal perceptual quality |
+| `tools/test/test_capabilities.py` | Declared codec cells and regression limits | Every end-to-end workflow or sensor |
+| `tests/quality_gates/run_gate.py` | The selected pipeline/class on its specified corpus | Other codecs, models, cameras, or output objectives |
+| Target capture/preview receipts | Throughput, memory, drops, storage, and identity on that setup | Camera readiness when the target is a stand-in |
+| Release bundle verification | Hashes, inventory, and included stream validity | Fresh hardware execution or new quality measurements |
 
-**What it measures**: encoder/decoder roundtrip on synthetic content
-at specific (bit-depth × resolution × quality) cells. Metrics:
-encode/decode ms, compress_ratio, bayer-domain PSNR.
+## Quality signoffs
 
-**What it does NOT cover**: the CNN restoration step, the demosaic
-rendering, the actual user-facing visual quality.
+Read `tests/quality_gates/gates.json` for thresholds and
+`pipelines/registry.json` for exact pipeline identities.
+[claims_log.md](claims_log.md) contains audited machine-written signoffs;
+each must resolve to its matching `runs/<hash>/run.json`.
+Do not hand-edit measurements or infer a new pass from prose.
 
-**Runs in**: CI (every PR, both macOS and Linux runners).
+Compare the entire stated pipeline, including codec, model, preprocessing,
+demosaic, metadata, and render settings. Report worst-image behavior where
+the gate requires it. Bayer PSNR evaluates editable raw reconstruction;
+LPIPS and rendered metrics describe a particular render. Neither alone
+establishes editing latitude or physical sensor-noise fidelity.
 
-**Catches**: codec speed regressions, file-size regressions, bayer-level
-quality regressions.
+## Timing and reproduction
 
-**Note**: This benchmarks the LEGACY gpr_tools encoder (which ships for
-stills). It does NOT cover the FUSED encoder (which ships for video).
-That gap is currently open — see "Open methodology gaps" below.
+Record source commit, build configuration, input identity, dimensions, format,
+quality/profile, hardware, storage/flush policy, frame count, and output hashes.
+Separate end-to-end wall timing from kernel or loop timing. Best-of-three
+single-image results are not sustained capture rates.
 
-## Layer 2 — perceptual gate (`run_gate.py`)
+Full model-backed quality checks require external fixtures/weights and the
+appropriate backend hardware. Missing prerequisites are a skip or blocker,
+not a pass. Hosted CI cannot substitute for an actual camera-role
+sensor/DMA, storage, and display receipt.
 
-**What it measures**: full ship pipeline (codec → CNN → demosaic → render)
-on 4 fixed real photographs (Z8 50 MP). Metrics: LPIPS, MS-SSIM, Y-PSNR,
-ΔE2000, all computed worst-image-first. Per-image thresholds in
-`gates.json`; verdict is per-image, never aggregate.
-
-**Truth source**: this is the only thing allowed to issue a PASS or FAIL
-ship verdict. Run logs in `tests/quality_gates/runs/<hash>/` are the
-durable artifact.
-
-**Runs in**: manually on demand. Not in CI yet (the FUSED encoder needs
-MPS for the CNN inference and CI doesn't have it).
-
-**Catches**: visual-quality regressions in the full ship pipeline,
-distribution mismatches between codec and matched CNN, gate-threshold
-breaches.
-
-## Layer 3 — capture-side benchmarks (Pi 5 timing, etc.)
-
-**What it measures**: real-time encode rate on the Pi 5 capture device,
-sustained throughput including disk writes and page-cache exhaustion.
-
-**Current data**: `docs/STILLS_PI5_TIMING.md` (q=0..8 single-frame stills
-timings), `docs/LABS_TARGET_BENCH.md` (current Pi proxy receipts and target
-schema), and `docs/pi5_bench_2026-05-26.md` (historical 24.93 fps half-res
-receipt, no longer the current production claim).
-
-**Runs in**: manual, on the Pi 5. Should become a CI cell once we have
-a Pi 5 runner.
-
-## How layers compose
-
-```
-+----------------------------+
-| Layer 1: encoder-only      |  bayer in → bayer out → PSNR
-|         (test_capabilities)|  CI gates this
-+----------------------------+
-
-+----------------------------+
-| Layer 2: full ship gate    |  bayer in → codec → CNN → render → LPIPS
-|         (run_gate)         |  Manual; THE ship-claim authority
-+----------------------------+
-
-+----------------------------+
-| Layer 3: real-time bench   |  sustained fps on Pi 5 USB SSD
-|         (Pi 5 timing)      |  Manual; capture-rate ceiling
-+----------------------------+
-```
-
-## Open methodology gaps (intentionally listed)
-
-1. **`test_capabilities.py` doesn't cover the FUSED encoder ship path.**
-   It tests gpr_tools (legacy = the STILLS encoder). For VIDEO ship
-   coverage we need a sibling test that exercises `test_fused_roundtrip`
-   at the ml2_q3+L1×2 cranked operating point.
-
-2. **`test_capabilities.py` doesn't cover the CNN-corrected path.**
-   We bench the codec alone; users get codec + CNN + render. A
-   `test_stills_full_pipeline.py` that runs the gate-style pipeline
-   on synthetic content (small + deterministic + CI-friendly) would
-   close this gap.
-
-3. **Perceptual gate isn't in CI.** Because of the MPS dependency.
-   A workaround: pre-compute the gate REF images and CNN outputs
-   on a Mac, check them in, and have CI verify against the cached
-   outputs.
-
-4. **No Pi 5 CI runner.** Pi 5 timing measurements happen by hand,
-   so regressions can sneak in. Adding a self-hosted runner on the
-   Pi would close this.
-
-5. **`gates.json` thresholds drift.** The change_log captures
-   intentional moves, but a CI check that a PR doesn't touch gates.json
-   unless explicitly isolated (per CLAUDE.md rule) would prevent
-   accidental movement.
-
-## Recommended priority
-
-- (a) Add `test_stills_full_pipeline.py` so CI catches CNN-corrected
-  regressions (Layer 1 + 2 unified).
-- (b) Add a CI cell that runs a small subset of the perceptual gate
-  on Mac CI (where MPS is available) for the shipping pipelines.
-- (c) Per-PR check that gates.json changes are isolated (per CLAUDE.md).
-- (d) Pi 5 CI runner (longest-term; needs hardware allocation).
-
-Anything else is nice-to-have for now.
+[Stills Pi 5 Timing](STILLS_PI5_TIMING.md) and [Video Status](VIDEO_STATUS.md)
+summarize existing measurements. [GVID Conformance](GVID_CONFORMANCE.md)
+lists focused container checks; [Labs Firmware API](LABS_FIRMWARE_API.md)
+defines hardware evidence.

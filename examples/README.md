@@ -1,77 +1,47 @@
-# GPR 2.0 Examples
+# API Examples
 
-Small, self-contained programs that show downstream users how to use
-the GPR 2.0 public API. These are intentionally **not** part of the
-main CMake build — they link against the static libraries that the
-main build produces so the dependencies are visible at a glance.
+These examples use the public codec APIs and build separately from the main
+CMake targets.
 
-## Examples
+| Example | Purpose |
+|---|---|
+| [encode_video.c](encode_video.c) | Submit Bayer frames, write a `.gvid` stream through a callback, and report encoder statistics |
+| [decode_dng.cpp](decode_dng.cpp) | Convert a GPR still to DNG through the SDK |
 
-| File | Language | What it shows |
-|------|----------|---------------|
-| [`encode_video.c`](encode_video.c) | C | Pipelined raw-Bayer video encoder: `gpr_video_encoder_create` → submit loop → writer callback that emits the container format from `gpr_video_format.h`. Demonstrates the writer-abort path (returning `<0` from the callback shuts the pipeline down cleanly) and prints `gpr_video_stats` at the end. |
-| [`decode_dng.cpp`](decode_dng.cpp) | C++ | Stills path: load a `.GPR` file with the gpr_sdk and convert it to a `.DNG`. C++ because the gpr_sdk pulls in the Adobe DNG SDK and a couple of public headers leak C++-only includes; the SDK functions themselves are `extern "C"`. |
+## Build
 
-## Building
-
-The examples build against the pre-built static libraries in `../build/`,
-so make sure the main project is built first:
+Run from the repository root. The build script currently expects static
+libraries under `build/` and invokes Clang/Clang++. This matches the general
+quickstart; the example script's library directory is not configurable.
 
 ```bash
-cd ..              # repo root
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 4
+export GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-artifacts}"
+mkdir -p "$GPR_ARTIFACT_ROOT/examples"
+OUT_DIR="$GPR_ARTIFACT_ROOT/examples" bash examples/build_examples.sh
 ```
 
-Then from the repo root:
+[build_examples.sh](build_examples.sh) compiles with warnings treated as errors.
+The commands explicitly choose a repository-relative output directory.
+
+## Run
+
+Provide your own `data/sample.raw` and `data/sample.gpr` inputs:
 
 ```bash
-./examples/build_examples.sh
+"$GPR_ARTIFACT_ROOT/examples/encode_video" data/sample.raw "$GPR_ARTIFACT_ROOT/clip.gvid"
+"$GPR_ARTIFACT_ROOT/examples/decode_dng" data/sample.gpr "$GPR_ARTIFACT_ROOT/decoded.dng"
 ```
 
-That script compiles both examples with `-O2 -Wall -Wextra -Werror`
-and drops the binaries in `/tmp/`. Override the output dir by setting
-`OUT_DIR=...`.
+The video example hardcodes one 8280 x 5520 RGGB16 input frame and replays it
+for a short clip. It demonstrates API use, not the current Mission 1 capture
+profile or measured camera throughput. Change the source constants and input
+together when adapting it. A writer callback error exercises the abort path.
 
-## Running
-
-### encode_video
-
-Requires a raw Bayer frame on disk. The example assumes 8280x5520
-RGGB16 (pixel_format=4), the format produced by Nikon Z8 raw exports.
-
-```bash
-/tmp/encode_video /tmp/Z8_ISO64.raw /tmp/clip.gprv
-```
-
-Expected output (8-frame test clip):
-
-```
-submitted=8  encoded=8  written=8  writer_errors=0
-waits  submit=5  encoder=0  writer=8
-wrote /tmp/clip.gprv
-```
-
-To experiment with the abort path, modify the writer to return `-1`
-on, say, frame 3 — you'll see `frames_written < frames_submitted`
-and the program exits cleanly without hanging.
-
-### decode_dng
-
-```bash
-/tmp/decode_dng ../data/samples/HERO9/GOPR0002.GPR /tmp/decoded.dng
-```
-
-The output `.dng` can be inspected with `exiftool`, opened in
-Lightroom/RawTherapee/dcraw, etc.
-
-## What's not covered
-
-- **Decoding the video container** (`gpr_video_read_*`): the format
-  reader is straightforward to drive from `gpr_video_format.h`; pair
-  it with the vc5_decoder for frame-by-frame playback.
-- **Dual encoder mode** (`gpr_video_encoder_create_dual`): same API
-  shape as the single-encoder path, only the create call changes.
-- **Wavelet denoise** (`gpr_video_encoder_set_denoise`): call before
-  the first submit; see the docstring in `gpr_video.h`.
+For the current native-4K/1024-preview target and firmware ownership contract,
+see [Video Status](../docs/VIDEO_STATUS.md) and
+[Labs Firmware API](../docs/LABS_FIRMWARE_API.md).
+[Getting Started](../docs/GETTING_STARTED.md) covers ordinary still conversion
+and desktop review; [GVID Conformance](../docs/GVID_CONFORMANCE.md) covers
+container validation.

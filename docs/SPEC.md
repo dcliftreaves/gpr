@@ -1,7 +1,8 @@
 # GPR Bitstream Specification
 
-**Status:** v1 (FUSED), draft. Document target: an independent implementer
-producing a compatible encoder or decoder from this document alone.
+**Status:** FUSED payload reference, draft. Read the source headers alongside
+this document, especially for profile extensions. This is not the `.gvid`
+container specification; see [GVID Conformance](GVID_CONFORMANCE.md).
 
 **Sources of truth (read alongside this spec):**
 
@@ -14,8 +15,7 @@ producing a compatible encoder or decoder from this document alone.
 | Log / companding curves | `source/lib/vc5_common/logcurve.c`, `companding.c` |
 | rANS entropy coder | `source/lib/vc5_common/ans_joint.h`, `ans_joint.c` |
 | GPRaw container | `tools/gpraw/include/gpraw.h`, `tools/gpr2prores/GPRFileReader.h` |
-| Quant calibration data | `docs/quant_calibration_findings.md` |
-| Env-var disposition | `docs/ENV_VAR_CLEANUP.md` |
+| Current integration and scope | [Architecture](architecture.md), [Ship Decision](SHIP_DECISION.md) |
 
 If this document and the source disagree, the source wins. File a bug.
 
@@ -26,7 +26,7 @@ If this document and the source disagree, the source wins. File a bug.
 GPR (GoPro Raw) is a wavelet codec for Bayer-pattern raw imagery. The
 codec produces a compressed representation of a single Bayer plane,
 suitable for either still images (one frame per file) or video (a stream
-of frames packaged in a MOV container). GPR is **not** a CNN-aware
+of frames packaged in `.gvid`, with MOV as a compatibility/export wrapper). GPR is **not** a CNN-aware
 post-processor; the CNN deblock / super-res steps used during playback
 operate on the decoded Bayer output and are documented separately
 (`docs/architecture.md`, `tools/gpr2prores/SuperResCNN.h`).
@@ -65,8 +65,8 @@ This document specifies:
    `vc5_encoder_process` and embedded inside DNG containers by
    `gpr_tools`. The legacy bitstream is documented in
    `docs/format-spec-v2.md`; this section is a pointer + delta.
-4. The **GPRaw container** that wraps a stream of FUSED frames in a
-   MOV file for video.
+4. The **GPRaw compatibility container** that wraps FUSED frames in MOV.
+   The primary raw-video container is specified in [GVID Conformance](GVID_CONFORMANCE.md).
 
 ---
 
@@ -648,7 +648,7 @@ override-aware quant table from `quality` AND the env. **A mismatched
 override between encoder and decoder produces garbage output.**
 
 Disposition: this knob will be removed before the spec is considered
-shippable (see `docs/ENV_VAR_CLEANUP.md`). The same effect should be
+complete. The same effect should be
 achievable by adding new quality preset rows (e.g. q=11 was added for
 the CNN-aware preset; q=12+ slots are available).
 
@@ -673,8 +673,7 @@ works because the quant value only affects the **dequant** step
 already at the scaled units. But this means a file encoded with
 `scale != 1.0` cannot be reproduced from its bitstream without external
 knowledge of the scale. This needs to become an explicit per-band quant
-table in the file before the FUSED spec is considered shippable. See
-`docs/ENV_VAR_CLEANUP.md`.
+table in the file before this part of the FUSED specification is complete.
 
 ---
 
@@ -863,8 +862,8 @@ A future conformance suite should publish:
 ## 11. Open spec questions
 
 The following encoder/decoder behaviors are controlled by environment
-variables (`docs/ENV_VAR_CLEANUP.md`) and are NOT recorded in the
-bitstream. A file produced under one set of env-var settings is not
+variables or API settings. Some are NOT recorded in the
+bitstream, as distinguished below. A file produced under one set of env-var settings is not
 generally reproducible from its bitstream alone:
 
 | Env var | Effect | Promote-to-API plan |
@@ -899,3 +898,10 @@ the field names and semantics in §2 are stable.
 * No CRC / integrity check over the band manifest or the band data.
   Errors propagate as decode failures (return codes), not as detected
   corruption.
+
+## Historical references
+
+Calibration findings, environment-variable cleanup plans, and earlier format
+investigations are preserved in the
+[research and integration archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
+pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/tree/3d675ef).

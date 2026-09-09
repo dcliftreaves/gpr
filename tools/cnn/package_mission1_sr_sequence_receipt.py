@@ -2,6 +2,7 @@
 """Package retained Mission 1 8K SR Bayer raws into .gvid and ProRes receipts."""
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -12,6 +13,11 @@ from pathlib import Path
 from typing import Any
 
 import sys
+
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import REPO, external_path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gvid_metadata import read_gvid_frames  # noqa: E402
@@ -264,11 +270,11 @@ def main() -> int:
     ap.add_argument("--sr-raw-dir", type=Path, required=True)
     ap.add_argument("--source-sr-receipt", type=Path)
     ap.add_argument("--out-dir", type=Path, required=True)
-    ap.add_argument("--external-root", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work"))
-    ap.add_argument("--gpr-tools", type=Path, default=Path("build-local/source/app/gpr_tools/gpr_tools"))
-    ap.add_argument("--gvid-pack", type=Path, default=Path("tools/gvid_pack.py"))
-    ap.add_argument("--gpr2prores", type=Path, default=Path("tools/gpr2prores/gpr2prores"))
-    ap.add_argument("--meta-dng", type=Path, default=Path("/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/RawPics/DNG/GP017346.dng"))
+    ap.add_argument("--external-root", type=Path, default=external_path(''))
+    ap.add_argument("--gpr-tools", type=Path, default=REPO / "build-local/source/app/gpr_tools/gpr_tools")
+    ap.add_argument("--gvid-pack", type=Path, default=REPO / "tools/gvid_pack.py")
+    ap.add_argument("--gpr2prores", type=Path, default=REPO / "tools/gpr2prores/gpr2prores")
+    ap.add_argument("--meta-dng", type=Path, required=True)
     ap.add_argument("--width", type=int, default=8192)
     ap.add_argument("--height", type=int, default=6144)
     ap.add_argument("--pixel-format", default="rggb14")

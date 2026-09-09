@@ -217,7 +217,7 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path, required=True)
     ap.add_argument("--tool", type=Path, required=True)
     ap.add_argument("--out-dir", type=Path, required=True)
-    ap.add_argument("--repo", type=Path, default=Path.cwd())
+    ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
     ap.add_argument("--threads", action="append", default=[])
     ap.add_argument("--stem", action="append")
     ap.add_argument("--width", type=int)

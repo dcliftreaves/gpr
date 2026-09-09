@@ -150,7 +150,7 @@
       "ckpt_sha256": "7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9"
     },
     "bibo2x_ane_ml2_q3_dec2_diverse": {
-      "$doc": "BIBO_2x super-res CNN retrained on a 498-image diverse corpus (200 barnsky + 298 NEFs across 10 dates: Jan\u2013Oct 2025). Adobe DNG-converted from /Volumes/photos/DavidsPics/2025. 19920 tiles. Trained on M5, 80 epochs, best at ep 64 +1.776 dB. Test images filtered out.",
+      "$doc": "BIBO_2x super-res CNN retrained on a 498-image diverse corpus (200 barnsky + 298 NEFs across 10 dates: Jan\u2013Oct 2025). Adobe DNG-converted from the 2025 source corpus. 19920 tiles. Trained on M5, 80 epochs, best at ep 64 +1.776 dB. Test images filtered out.",
       "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt",
       "cnn_arch_variant": "F_ane",
       "trained_against_codec": "ml2_q3_dec2",
@@ -160,7 +160,7 @@
     },
     "bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001": {
       "$doc": "Temporary BIDO_4x target-detail candidate from the 2026-06-05 hardtail pass. Starts from the LPIPS task-only control and adds a small target-derived luma-gradient detail loss; retained for full gate comparison, not a ship checkpoint.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/checkpoints/bido_target_detail_20260605/bido_4x_lpips005_detail_lumagrad_w001.pt",
+      "ckpt_path": "checkpoints/bido_target_detail_20260605/bido_4x_lpips005_detail_lumagrad_w001.pt",
       "cnn_arch_variant": "bido_4x",
       "trained_against_codec": "ml2_q3_dec2",
       "residual_scale": 0.01,
@@ -169,7 +169,7 @@
     },
     "bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005": {
       "$doc": "Temporary wider/full-context BIDO candidate trained on the hardtail t192/s96 fullref set with Z8Z_6693 held out. M5 run stopped after epoch 19; best checkpoint selected by validation LPIPS at epoch 9.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/checkpoints/bido_full_context_20260605/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt",
+      "ckpt_path": "checkpoints/bido_full_context_20260605/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt",
       "cnn_arch_variant": "bido_4x_w32",
       "trained_against_codec": "ml2_q3_dec2",
       "raw_norm": 16383.0,
@@ -177,7 +177,7 @@
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded": {
       "$doc": "Temporary raw-signal SR candidate from the 2026-06-05 expanded 28-image / 84-crop pass. Uses source Bayer signal as the target, not denoised REF residuals. Dispatch bypasses low-ISO low-texture tiles to bilinear codec upsample.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
+      "ckpt_path": "artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "iso",
@@ -190,7 +190,7 @@
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe": {
       "$doc": "Runtime-sigma probe for the 2026-06-05 raw-signal SR candidate. Uses decoded/upscaled codec raw to build the DNG NoiseProfile sigma map, which is deployable; retained to document the conditioning-mismatch failure against the source-sigma-trained checkpoint.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
+      "ckpt_path": "artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "iso",
@@ -205,7 +205,7 @@
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops": {
       "$doc": "Runtime-sigma raw-signal SR retrain from the 2026-06-05 expanded 84-crop pass. Training pairs derive sigma from decoded/upscaled codec raw, matching what the decoder has at runtime.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_runtime_sigma_20260605/codec_raw_signal_sr_w64_iso_runtime_sigma_84crops.pt",
+      "ckpt_path": "artifacts/codec_raw_signal_train_runtime_sigma_20260605/codec_raw_signal_sr_w64_iso_runtime_sigma_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "iso",
@@ -220,7 +220,7 @@
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops": {
       "$doc": "No-sigma raw-signal SR retrain from the 2026-06-05 expanded 84-crop pass. Uses only decoded/upscaled codec raw plus ISO conditioning, removing dependence on source/raw-derived sigma maps.",
-      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt",
+      "ckpt_path": "artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "iso_only",
@@ -234,9 +234,9 @@
     },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10": {
       "$doc": "Display-space Lab chroma guardrail for PREVIEW. Uses raw-predicted luma plus a bounded Lab a/b residual on top of the sips demosaic baseline.",
-      "ckpt_y": "/Volumes/OWC_8TB/gpr_work/cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt",
+      "ckpt_y": "cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt",
       "ckpt_y_sha256": "e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e",
-      "ckpt_chroma": "/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_chroma": "cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
       "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
       "cnn_arch_variant": "lab_chroma_corrector",
       "trained_against_codec": "ml2_q3_dec2",

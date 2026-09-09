@@ -21,7 +21,7 @@ The test:
        EXCEEDED  — passes by a comfortable margin (≥ 10 % better)
        FAILED    — breaks the criterion
   3. asserts every metric is MET or EXCEEDED
-  4. writes docs/CAPABILITIES.md so the doc is always in sync with the
+  4. writes ARTIFACT_DIR/CAPABILITIES.md so the report is in sync with the
      test results
 
 Run from the repo root:
@@ -32,7 +32,7 @@ Run from the repo root:
 
 Env:
     BUILD_DIR=build-local
-    ARTIFACT_DIR=/Volumes/OWC_8TB/gpr_work/artifacts/capabilities
+    ARTIFACT_DIR=artifacts/capabilities
     FAST=1  → skip ≥23 MP cells for quick CI
 """
 
@@ -62,9 +62,6 @@ TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
     "GPR_TIMING_SAMPLE_MAX_PIXELS", str(4032 * 3024)))
 
 def default_external_root() -> Path:
-    mounted = Path("/Volumes/OWC_8TB/gpr_work")
-    if mounted.exists():
-        return mounted
     return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
 
 
@@ -471,20 +468,21 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
 # verdict instead of failing).
 # ---------------------------------------------------------------------------
 
-# CNN: look for repo-local copies first (tools/cnn/ + models/), fall back
-# to the older external dering_proto_v2 path for backward compat.
+# Model code is repository-owned; checkpoint data may be supplied externally.
 CNN_CODE_DIR_REPO = REPO / "tools" / "cnn"
 CNN_CKPT_REPO = REPO / "models" / "BayInBayOut_1x_AAon_w16_ANE.pt"
-CNN_DERING_DIR = str(Path(os.environ.get(
-    "GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2")))
-CNN_CKPT_EXTERNAL = (Path(CNN_DERING_DIR) / "checkpoints"
-                     / "BayInBayOut_1x_AAon_w16_ANE.pt")
 
 def _cnn_resolve_paths():
-    """Pick repo-local first, fall back to external dering_proto_v2."""
-    if (CNN_CODE_DIR_REPO / "model.py").exists() and CNN_CKPT_REPO.exists():
-        return str(CNN_CODE_DIR_REPO), CNN_CKPT_REPO, "model"
-    return CNN_DERING_DIR, CNN_CKPT_EXTERNAL, "model_F_ane"
+    """Use the retained model with a local or explicitly configured checkpoint."""
+    if os.environ.get("GPR_CNN_CHECKPOINT"):
+        checkpoint = Path(os.environ["GPR_CNN_CHECKPOINT"])
+    else:
+        checkpoints = [CNN_CKPT_REPO]
+        for key in ("GPR_MODEL_ROOT", "GPR_CHECKPOINT_ROOT"):
+            checkpoints.extend(Path(root) / CNN_CKPT_REPO.name
+                               for root in os.environ.get(key, "").split(os.pathsep) if root)
+        checkpoint = next((path for path in checkpoints if path.is_file()), CNN_CKPT_REPO)
+    return str(CNN_CODE_DIR_REPO), checkpoint, "model"
 
 CNN_ROUNDTRIP_BIN = BUILD_DIR / "bin/test_fused_roundtrip"
 
@@ -492,7 +490,7 @@ _CNN_STATE = {"model": None, "device": None, "src_cache": {}}
 
 
 def _cnn_probe_deps():
-    """Return (ok, reason). Mirrors test_cnn_regression.py prereq probe."""
+    """Return whether the CNN model and rendering dependencies are available."""
     missing = []
     try:
         import torch  # noqa
@@ -548,32 +546,6 @@ def _extract_bayer(dng_path, out_raw):
     r.close()
     b.tofile(out_raw)
     return w, h
-
-
-def _encode_decode_multilevel(raw_in, w, h, dec_out):
-    """LEGACY path: multi-level + decimate=2. Currently broken at the codec
-    level (10 dB visual regression vs single-level — see
-    docs/REGRESSION_2026-05-25.md, task #172). Kept for back-compat with
-    old CNN cells; new cells should use _encode_decode_singlelevel instead."""
-    env = os.environ.copy()
-    env["FUSED_MULTI_LEVEL"] = "1"
-    env["GPR_COL_DECIMATE"] = "2"
-    env["GPR_ROW_DECIMATE"] = "2"
-    env.pop("GPR_INCLUDE_LL", None)
-    res = subprocess.run(
-        [str(CNN_ROUNDTRIP_BIN), str(raw_in), str(w), str(h), str(dec_out)],
-        env=env, capture_output=True, text=True,
-    )
-    if res.returncode != 0:
-        raise RuntimeError(f"test_fused_roundtrip rc={res.returncode}: {res.stderr.strip()}")
-    dw, dh = w // 2, h // 2
-    for line in (res.stdout + "\n" + res.stderr).splitlines():
-        if line.startswith("DECODE:") and "x" in line:
-            try:
-                dw, dh = (int(x) for x in line.split()[1].split("x"))
-            except ValueError:
-                pass
-    return dw, dh
 
 
 def _encode_decode_singlelevel(raw_in, w, h, dec_out):
@@ -693,15 +665,7 @@ def measure_cnn_corrected(cap, work: Path) -> Dict[str, float]:
     cnn_raw = work / f"{cap['id']}_cnn.raw"
 
     w, h = _extract_bayer(dng, raw_in)
-    # Per the 2026-05-25 evening regression investigation, default to single-level
-    # FUSED (known-good codec path). Multi-level has a 10 dB visual regression
-    # pending task #172. Cells can opt back into the broken path with
-    # cap["codec_path"] = "multilevel" for back-compat testing.
-    codec_path = cap.get("codec_path", "singlelevel")
-    if codec_path == "multilevel":
-        dw, dh = _encode_decode_multilevel(raw_in, w, h, dec_raw)
-    else:
-        dw, dh = _encode_decode_singlelevel(raw_in, w, h, dec_raw)
+    dw, dh = _encode_decode_singlelevel(raw_in, w, h, dec_raw)
     _cnn_apply_bayer(dec_raw, dw, dh, cnn_raw)
 
     if dw == w and dh == h:
@@ -1051,15 +1015,15 @@ def main():
                   f"{m.get('psnr_db', 0.0):>8.2f}  {overall}{extras}")
         rows.append((cap, m, overall, mr))
 
-    docs = REPO / "docs/CAPABILITIES.md"
+    docs = ART_DIR / "CAPABILITIES.md"
     if args.filter:
         print()
-        print("=== docs/CAPABILITIES.md not rewritten for filtered run ===")
+        print(f"=== {docs} not rewritten for filtered run ===")
     else:
         docs.parent.mkdir(exist_ok=True)
         emit_markdown(rows, docs)
         print()
-        print(f"=== docs/CAPABILITIES.md written ({len(rows)} rows) ===")
+        print(f"=== {docs} written ({len(rows)} rows) ===")
 
     if args.refresh:
         print()

@@ -5,8 +5,8 @@ set -euo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 PYTHON_BIN=${PYTHON_BIN:-python3}
 GPR_TOOLS=${GPR_TOOLS:-"$REPO/build-local/source/app/gpr_tools/gpr_tools"}
-SOURCE_DNG=${SOURCE_DNG:-/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/RawPics/DNG/GP017602.dng}
-SOURCE_JPG=${SOURCE_JPG:-/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/GP017602.JPG}
+SOURCE_DNG=${SOURCE_DNG:-}
+SOURCE_JPG=${SOURCE_JPG:-}
 WORK=${WORK:-"${GPR_TMPDIR:-${TMPDIR:-/tmp}}/mission1_metadata_repack"}
 
 cleanup() {

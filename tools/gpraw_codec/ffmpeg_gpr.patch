@@ -11,10 +11,10 @@ container (tools/gpraw in the gpr repo). codec_tag is mapped to
 AV_CODEC_ID_GPR in libavformat/isom_tags.c.
 
 Linking: build with
-    --extra-cflags="-I/path/to/gpr/source/lib/vc5_decoder"
-    --extra-ldflags="-L/path/to/gpr/build-local/source/lib/vc5_decoder \
-                     -L/path/to/gpr/build-local/source/lib/vc5_common \
-                     -L/path/to/gpr/build-local/source/lib/common"
+    --extra-cflags="-I$GPR_ROOT/source/lib/vc5_decoder"
+    --extra-ldflags="-L$GPR_BUILD/source/lib/vc5_decoder \
+                     -L$GPR_BUILD/source/lib/vc5_common \
+                     -L$GPR_BUILD/source/lib/common"
     --extra-libs="-lvc5_decoder -lvc5_common -lcommon"
 
 (Or use the install_patch.sh script in tools/gpraw_codec/.)

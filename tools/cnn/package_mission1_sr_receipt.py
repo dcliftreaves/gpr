@@ -2,6 +2,7 @@
 """Package a retained Mission 1 8K SR Bayer raw into editable/review outputs."""
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -16,6 +17,12 @@ from typing import Any
 import numpy as np
 import rawpy
 
+
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import REPO, external_path
 
 RAW_SCALE = 16383.0
 
@@ -169,9 +176,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--sr-raw", type=Path, required=True)
     ap.add_argument("--out-dir", type=Path, required=True)
-    ap.add_argument("--external-root", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work"))
-    ap.add_argument("--gpr-tools", type=Path, default=Path("build-local/source/app/gpr_tools/gpr_tools"))
-    ap.add_argument("--gpr2prores", type=Path, default=Path("tools/gpr2prores/gpr2prores"))
+    ap.add_argument("--external-root", type=Path, default=external_path(''))
+    ap.add_argument("--gpr-tools", type=Path, default=REPO / "build-local/source/app/gpr_tools/gpr_tools")
+    ap.add_argument("--gpr2prores", type=Path, default=REPO / "tools/gpr2prores/gpr2prores")
     ap.add_argument("--width", type=int, default=8192)
     ap.add_argument("--height", type=int, default=6144)
     ap.add_argument("--pixel-format", default="rggb14")

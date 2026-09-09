@@ -9,8 +9,8 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GPR_TOOLS="${GPR_TOOLS:-$REPO/build-local/source/app/gpr_tools/gpr_tools}"
 
-CFA_DNG="${IPHONE_CFA_DNG:-/Volumes/Photos/DavidsPics/MultiYearOther/_2020-04-09_AllDeduped/_BestDeDupAll/iPhone_7_Plus/2017-03/IMG_0173.DNG}"
-LINEAR_DNG="${IPHONE_LINEAR_RAW_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/fixtures/iphone_linear_raw/IMG_9270_iPhone16ProMax_LinearRaw.DNG}"
+CFA_DNG="${IPHONE_CFA_DNG:-}"
+LINEAR_DNG="${IPHONE_LINEAR_RAW_DNG:-}"
 
 if [ ! -x "$GPR_TOOLS" ]; then
   echo "test_iphone_dng_input_guard: SKIP missing gpr_tools: $GPR_TOOLS"
@@ -23,11 +23,7 @@ if [ ! -f "$CFA_DNG" ] && [ ! -f "$LINEAR_DNG" ]; then
 fi
 
 if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-  else
-    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-  fi
+  GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
 fi
 
 WORK="${WORK:-$GPR_EXTERNAL_ROOT/tmp/iphone_dng_input_guard}"

@@ -1,210 +1,39 @@
-# GPR Docs Index
+# Documentation
 
-Where to look for current production status, evidence, and runbooks. Last
-refreshed 2026-07-02.
+GPR provides compact raw stills, a raw-video container and capture prototype,
+and desktop reconstruction tools. Start with [Getting Started](GETTING_STARTED.md)
+and [Product Details](PRODUCT_DETAILS.md).
 
-## Start here
-
-| if you want to know… | read |
+| Topic | Guide |
 |---|---|
-| product overview, media, four product tracks, four-pillar product map, and quick start | `../README.md` |
-| unambiguous steps, evidence, commands, and stop conditions to reach 100% | `PRODUCTION_100_PERCENT_PLAN.md` |
-| shortest closure audit for the active high-level goal | `GOAL_CLOSURE_MATRIX.md` |
-| four big product efforts, current percentages, and what remains | `BIG_EFFORTS_STATUS.md` |
-| execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
-| machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
-| locked product paths versus open production gates | `PRODUCT_LOCK_LEDGER.md` |
-| exact real samples and hardware receipts still needed | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
-| camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
-| RAW-stills Mission/iPhone noise-sidecar first-hour checklist | `RAW_STILLS_NOISE_FIRST_HOUR.md` |
-| premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
-| premium still-SR first-hour promotion checklist | `PREMIUM_STILL_SR_FIRST_HOUR.md` |
-| Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |
-| Release readiness and production proof | `RELEASE_READINESS.md` |
-| what ships today, by ship class | `SHIP_DECISION.md` |
-| current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
-| remaining productization contracts | `PRODUCTIZATION_CONTRACTS.md` |
-| GitHub release bundle contents and upload flow | `RELEASE_ARTIFACTS.md` |
-| video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
-| Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
-| Mission 1 stream-source timing | `MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md` |
-| Mission 1 CNN status and next steps | `MISSION1_CNN_NEXT_STEPS_2026-06-28.md` |
-| CNN/product scorecard | `CNN_PRODUCT_SCORECARD_2026-06-29.md` |
-| 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
-| UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
-| compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
-| where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
-| how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
-| Labs firmware-prototype intake | `LABS_INTAKE.md` |
-| GoPro/Labs first-hour camera-role checklist | `GOPRO_LABS_FIRST_HOUR.md` |
-| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
-| `.gvid` wire-contract conformance | `GVID_CONFORMANCE.md` |
-| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
-| GoPro-side Mission 1 quick validation | `GOPRO_MISSION1_QUICK_VALIDATION.md` |
-| full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
-| codec/container/API specification | `format-spec-v2.md`, `SPEC.md` |
+| Current scope and limitations | [Product Details](PRODUCT_DETAILS.md) |
+| Build, still conversion, and video review | [Getting Started](GETTING_STARTED.md) |
+| Capture, preview, and recorded Pi evidence | [Video Status](VIDEO_STATUS.md) |
+| Approved pipelines and release boundary | [Ship Decision](SHIP_DECISION.md) |
+| Audited quality signoffs | [Claims Log](claims_log.md) |
+| Architecture and API map | [Architecture](architecture.md) |
+| FUSED payload specification | [Bitstream Specification](SPEC.md) |
+| Legacy DNG/GPR extensions | [Format Specification v2](format-spec-v2.md) |
+| Raw-video wire contract and metadata | [GVID Conformance](GVID_CONFORMANCE.md) |
+| Firmware ownership and handoff | [Labs Firmware API](LABS_FIRMWARE_API.md) |
+| Camera validation procedure | [Mission 1 Quick Validation](GOPRO_MISSION1_QUICK_VALIDATION.md) |
+| Pi setup and storage measurement | [Pi Hardware](PI_HARDWARE.md) |
+| Recorded still encode timings | [Stills Pi 5 Timing](STILLS_PI5_TIMING.md) |
+| Model availability and offline reconstruction | [Reconstruction](RECONSTRUCTION.md) |
+| Separate still-SR research boundary | [Premium Still SR](PREMIUM_STILL_SR.md) |
+| Evidence and verification methodology | [Testing Methodology](TESTING_METHODOLOGY.md) |
+| Review bundles and release requirements | [Release Artifacts](RELEASE_ARTIFACTS.md) |
 
-## Production Evidence
+## Research archive
 
-| artifact family | primary index |
-|---|---|
-| External dashboards, media, and receipts | `release_evidence_manifest.json` |
-| Checkpoint and artifact hashes | `PRODUCTION_ARTIFACTS.md` |
-| Stills, VIDEO_FREEZE, UPRESABLE decisions | `SHIP_DECISION.md` |
-| 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
-| Mission 1 numbered-list readiness and closure blockers | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`, `release_evidence_manifest.json` |
-| Real-sample and hardware receipt blockers | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
-| 1x/2x CNN and SR status | `PRODUCT_LOCK_LEDGER.md`, `PRODUCT_PILLAR_SCORECARD.md`, `CNN_PRODUCT_SCORECARD_2026-06-29.md`, `VIDEO_STATUS.md`. `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` is historical iteration context only. |
-| Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
+Iteration reports, superseded targets, tuning experiments, and integration work
+queues are preserved in the
+[full research and integration archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
+pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/tree/3d675ef).
+The archive preserves provenance; its historical targets are not current
+product promises. Large external datasets, model weights, and review movies
+are not made available merely by linking the source archive.
 
-## Current implementation notes
-
-| topic | doc |
-|---|---|
-| Open work items and archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
-| CNN-aware fine-grained compression history | `methodology_cnn_aware_quant.md` |
-| Raw noise/signal separation guardrail | `RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md` |
-| Camera-noise calibration receipt contract | `CAMERA_NOISE_CALIBRATION.md` |
-| Premium still-SR receipt contract | `PREMIUM_STILL_SR.md` |
-| Bayer resize PSF receipt contract | `BAYER_RESIZE_PSF.md` |
-| Raw-signal CNN candidate | `RAW_SIGNAL_CNN_CANDIDATE_2026-06-05.md` |
-| Per-subband quant calibration (historical) | `methodology_cnn_aware_quant.md` |
-
-## Capability + benchmark output (auto-regenerated by tests)
-
-| file | regenerated by |
-|---|---|
-| `CAPABILITIES.md` | `tools/test/test_capabilities.py` (encoder regression, in CI) |
-| `pi5_bench_2026-05-26.md` | Historical Pi 5 sustained-bench (manual; not the current production claim) |
-
-## Ship-claim audit trail
-
-- `claims_log.md` — append-only ship-claim log (interactively typed sentences). Written ONLY by `run_gate.py --claim`.
-- `tests/quality_gates/runs/*/run.json` — every gate run's metrics, deterministic by (pipeline, gates_sha, ship_class).
-- `tests/quality_gates/runs/dashboard/index.html` — sweep dashboard
-- `tests/quality_gates/runs/dashboard/review.html` — decision-focused review dashboard (curated candidates)
-
-## Tools to run
-
-| command | purpose |
-|---|---|
-| `TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp GPR_TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp tools/test/run_all_regressions.sh` | run the local regression wrapper; it auto-detects `build-local`, runs release/readiness guards, and skips NumPy/rawpy-heavy suites when those dev dependencies are absent |
-| `python3 tests/quality_gates/run_gate.py <pipeline>` | run perceptual gate on a pipeline |
-| `python3 tests/quality_gates/run_gate.py <pipeline> --claim` | log a ship-claim (interactive) |
-| `python3 tests/quality_gates/run_gate_parallel.sh <pipelines>...` | xargs -P wrapper |
-| `python3 tests/quality_gates/check_registry_consistency.py` | catch mode mismatches |
-| `python3 tests/quality_gates/audit_ship_pipelines.py` | verify every ship-* pipeline has a passing run |
-| `python3 tests/quality_gates/dashboard.py` | refresh sweep dashboard |
-| `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
-| `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
-| `python3 tools/extract_raw_bayer_u16.py --input dark.dng --output dark.raw --write-receipt dark_extract.json` | extract visible raw Bayer samples from original camera files before camera-noise calibration |
-| `python3 tools/check_darkframe_source_provenance.py darkframe_raw_source_provenance.json --minimum-count 4 --require-existing-files` | validate filled Mission/iPhone darkframe provenance before sidecar promotion |
-| `python3 tools/build_camera_noise_calibration.py --raw ... --source-provenance-manifest darkframe_raw_source_provenance.json --require-source-provenance --out noise_calibration.json` | build a production-promotable camera/ISO darkframe noise sidecar for still/CNN work |
-| `python3 tools/convert_darkframe_calibration_to_noise_sidecars.py --legacy-json darkframe_calibration.json --out-dir /path/to/out` | convert legacy darkframe calibration artifacts to source-hashed v1 sidecars |
-| `python3 tools/test/test_extract_raw_bayer_u16.py` | regression-test raw Bayer extraction receipts without requiring local camera files |
-| `python3 tools/test/test_build_camera_noise_calibration.py` | regression-test the camera-noise calibration sidecar builder |
-| `python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py` | regression-test legacy darkframe calibration conversion |
-| `python3 tools/build_bayer_phase_fixture_inventory.py --metadata-mode batch-exiftool --root /path/to/real/photos --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>` | scan large real-photo DNG roots for CFA phase coverage without rawpy-decoding every file |
-| `python3 tools/build_darkframe_candidate_audit.py --batch-exif --root /path/to/real/photos --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_<date>` | scan large real-photo DNG roots for dark-looking candidates while keeping candidate discovery separate from confirmed darkframe production evidence |
-| `python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /path/to/out` | build a CI-safe non-production premium still-SR gate receipt; production receipts require explicit real artifact paths and gate metrics documented in `PREMIUM_STILL_SR.md` |
-| `python3 tools/test/test_build_premium_still_sr_gate_receipt.py` | regression-test the premium still-SR gate skeleton |
-| `python3 tools/build_premium_still_sr_visual_review.py --output-dir /path/to/out` | build a tile-level visual review dashboard for the current premium still-SR candidate |
-| `python3 tools/test/test_build_premium_still_sr_visual_review.py` | regression-test the premium still-SR visual review builder |
-| `python3 tools/build_premium_still_sr_router_plan.py --fixture-manifest /path/to/fixture_manifest.json --receipt /path/to/model.pt.json --output-dir /path/to/out` | build a metadata-only premium still-SR specialist router plan |
-| `python3 tools/test/test_build_premium_still_sr_router_plan.py` | regression-test the premium still-SR router plan builder |
-| `python3 tools/build_premium_still_sr_blocker_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630` | build the premium still-SR root-cause blocker audit |
-| `python3 tools/test/test_build_premium_still_sr_blocker_audit.py` | regression-test the premium still-SR blocker audit builder |
-| `python3 tools/build_premium_still_sr_target_expansion_plan.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630` | build the next premium still-SR expanded target plan |
-| `python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py` | regression-test the premium still-SR target expansion planner |
-| `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
-| `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
-| `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |
-| `python3 tools/test/test_build_bayer_resize_psf_from_pairs.py` | regression-test the pair-derived PSF receipt builder |
-| `python3 tools/build_mission1_native_psf_pair_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630` | inventory near-time native Mission 1 50MP/12MP captures for the measured PSF pass |
-| `python3 tools/test/test_build_mission1_native_psf_pair_inventory.py` | regression-test the Mission 1 native PSF pair inventory |
-| `python3 tools/build_raw_video_psf_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630` | build the raw-video PSF/SR readiness audit |
-| `python3 tools/test/test_build_raw_video_psf_audit.py` | regression-test the PSF/SR readiness audit builder |
-| `python3 tools/build_raw_video_psf_capture_request.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630` | build the controlled Mission 1 high/low capture request required for native PSF promotion |
-| `python3 tools/test/test_build_raw_video_psf_capture_request.py` | regression-test the raw-video PSF capture request builder |
-| `python3 tools/build_product_burndown.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_<date>` | build the four-pillar production burn-down from `PRODUCTION_CAPTURE_REQUIREMENTS.json`: what evidence moves each pillar, grouped as hardware integration, sample acquisition, or model promotion |
-| `python3 tools/test/test_build_product_burndown.py` | regression-test the product burn-down builder |
-| `python3 tools/test/check_product_burndown_contract.py` | validate that the product burn-down covers the current blocker/action contract for all four pillars |
-| `python3 tools/test/test_check_product_burndown_contract.py` | regression-test product burn-down contract failures |
-| `python3 tools/test/check_product_lock_ledger.py` | validate that the product lock ledger and generated scorecard agree on locked paths and open production gates |
-| `python3 tools/test/test_check_product_lock_ledger.py` | regression-test product lock-ledger drift detection |
-| `python3 tools/build_premium_still_sr_raw_cfa_residual_gap.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260701` | build the receipt-driven premium still-SR raw-CFA residual promotion gap dashboard |
-| `python3 tools/test/test_build_premium_still_sr_raw_cfa_residual_gap.py` | regression-test the premium still-SR raw-CFA residual gap builder |
-| `python3 tools/build_premium_still_sr_psf_metadata_gap.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701` | audit whether the deduplicated premium still-SR target has enough per-row PSF/camera metadata to justify another PSF-conditioned CNN run |
-| `python3 tools/test/test_build_premium_still_sr_psf_metadata_gap.py` | regression-test the premium still-SR PSF metadata gap audit |
-| `python3 tools/build_premium_still_sr_psf_sidecar_contract.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701` | build the row-keyed premium still-SR PSF sidecar consumed by `train_premium_still_sr_raw_cfa_residual.py --psf-sidecar` |
-| `python3 tools/test/test_build_premium_still_sr_psf_sidecar_contract.py` | regression-test the premium still-SR PSF sidecar contract |
-| `python3 tools/cnn/deduplicate_premium_still_sr_raw_targets.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/raw_cfa_residual_targets.npz --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_<date>` | collapse rendered EV duplicates into one raw-supervision row per scene/crop/source/candidate before the next premium still-SR teacher pass |
-| `python3 tools/test/test_deduplicate_premium_still_sr_raw_targets.py` | regression-test premium still-SR raw-target deduplication |
-| `python3 tools/build_gopro_mission1_intake_audit.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701` | verify the GoPro Mission 1 intake bundle and separate review readiness from camera-production readiness |
-| `python3 tools/test/test_build_gopro_mission1_intake_audit.py` | regression-test the GoPro Mission 1 intake audit |
-| `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
-| `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
-| `python3 tools/test/check_readme_product_pillars.py` | validate that the README still presents the four big product pillars, scorecard-derived current percentages, and evidence-map links |
-| `python3 tools/test/test_check_readme_product_pillars.py` | regression-test README product-pillar framing checks |
-| `python3 tools/test/check_production_capture_requirements.py` | validate the committed real-sample and hardware-receipt requirements contract |
-| `python3 tools/test/test_check_production_capture_requirements.py` | regression-test production capture requirements guard failures |
-| `python3 tools/build_production_capture_submission_template.py --output /path/to/submission_template.json` | generate a fill-in manifest for release-blocking darkframes, camera receipts, and still-SR promotion evidence |
-| `python3 tools/test/test_build_production_capture_submission_template.py` | regression-test production capture submission template generation |
-| `python3 tools/check_production_capture_submission.py <submission.json>` | audit whether a submitted capture/receipt package closes the release-blocking production requirements; optional PSF research is validated only when included |
-| `python3 tools/test/test_check_production_capture_submission.py` | regression-test production capture submission auditing |
-| `python3 tools/test/check_high_level_goal_contract.py` | validate that README, big-efforts status, and execution-plan docs still cover the four explicit production pillars |
-| `python3 tools/test/test_check_high_level_goal_contract.py` | regression-test high-level goal contract failures |
-| `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
-| `python3 tools/test/test_mission1_numbered_list_readiness.py` | regression-test the four-item Mission 1 readiness audit |
-| `python3 tools/test/test_mission1_numbered_list_closure_plan.py` | regression-test the Mission 1 blocker closure plan |
-| `python3 tools/test/test_mission1_8k_sr_production_promotion.py` | regression-test the Mission 1 8K SR production-promotion receipt schema |
-| `python3 tools/test/test_build_mission1_8k_sr_visual_review.py` | regression-test the Mission 1 8K SR compact visual review package |
-| `python3 tools/build_cnn_product_scorecard.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629` | regenerate the current CNN/product scorecard dashboard |
-| `python3 tools/test/test_build_cnn_product_scorecard.py` | regression-test the CNN/product scorecard schema against current external artifacts |
-| `python3 tools/test/test_mission1_camera_dispatch_inputs.py` | regression-test camera-role dispatch preflight labels and execution flags |
-| `python3 tools/test/test_mission1_camera_closure_package.py` | regression-test the Mission 1 camera-side closure package |
-| `python3 tools/check_mission1_camera_closure_package.py <closure_package.json>` | validate a real Mission 1 camera closure package, including target-preflight semantics and SHA-pinned final camera receipts |
-| `python3 tools/test/test_mission1_camera_hardware_audit.py` | regression-test the Mission 1 camera hardware enumeration audit |
-| `python3 tools/test/test_mission1_camera_source_probe.py` | regression-test the Mission 1 camera raw source endpoint contract |
-| `python3 tools/mission1_stream_source_encoder.py --bench build-local/bin/labs_encoder_bench_cli --output /path/to/receipt.json` | feed a deterministic FIFO source into the firmware-facing Labs encoder shim; stand-in evidence only |
-| `python3 tools/test/test_mission1_camera_target_preflight.py` | regression-test target-host readiness receipts for camera closure |
-| `python3 tools/test/test_collect_mission1_target_closure.py` | regression-test compact target closure receipt collection |
-| `python3 tools/test/test_run_mission1_target_closure_package.py` | regression-test the one-command target-side Mission 1 closure package runner |
-| `python3 tools/run_mission1_remote_closure_package.py --dry-run --camera-ready` | launch the target-side Mission 1 closure package over SSH and collect compact receipts after real runs |
-| `python3 tools/test/test_run_mission1_remote_closure_package.py` | regression-test host-to-target Mission 1 closure launch command construction |
-| `python3 tools/test/test_run_mission1_camera_closure.py` | regression-test the Mission 1 camera-side closure runner |
-| `python3 tools/test/test_mission1_camera_closure_run.py` | regression-test the Mission 1 closure-run validator |
-| `python3 tools/verify_production_artifacts.py` | inventory production checkpoint files and hashes |
-| `python3 tools/verify_release_manifest_artifacts.py --strict --summary` | verify external dashboards, media, receipt paths, and `PRODUCTION_ARTIFACTS.md` hashes with concise CI output |
-| `python3 tools/test/test_verify_release_manifest_artifacts.py` | regression-test release-manifest artifact semantic checks |
-| `bash tools/test/test_labs_camera_handoff_receipt.sh` | regression-test camera handoff receipt schema and camera/source-kind guardrails |
-| `python3 tools/live_preview_policy.py` | print the bounded live PREVIEW runtime policy |
-| `cmake --build build --target test_labs_encoder_api && build/bin/test_labs_encoder_api` | build and run the firmware-facing Labs encoder shim regression |
-| `BUILD_DIR=build bash tools/test/test_labs_encoder_bench_cli.sh` | regression-test the Labs shim through the target-bench receipt wrapper |
-| `python3 tools/check_productization_contracts.py` | validate release bundle, Labs handoff, `.gvid`, and CNN governance contracts |
-| `python3 tools/test/test_gvid_conformance.py` | regression-test `.gvid` v1 accept/reject behavior with tiny fixtures |
-
-## Archived history
-
-Long session logs, dated experiment notes, and rejected candidate writeups are
-kept out of the main docs surface. Start with
-`EXPERIMENT_ARCHIVE_2026-06-04.md` for the branch names and deleted-doc index.
-
-## Where is the actual code
-
-- `source/lib/vc5_encoder/` — legacy CineForm encoder, FUSED encoder, `.gvid` video APIs, and firmware-facing `gpr_labs_encoder` shim
-- `source/lib/vc5_decoder/` — legacy CineForm decoder + FUSED decoder
-- `source/lib/vc5_common/` — shared (wavelet, log curve, etc.)
-- `source/lib/vc5_encoder/fused_encode.c` — FUSED encoder (production video)
-- `source/app/gpr_tools/` — production stills CLI
-- `source/app/test_fused_roundtrip.c` — video roundtrip test binary
-- `source/app/fused_decode_cli.c` — standalone .gpr decoder
-- `tools/cnn/` — CNN training scripts + tile builders
-- `tools/cnn/model.py` — F architecture variants (BIBO_1x, BIBO_2x, BIDO_4x)
-- `tools/gpr2prores/` — Mac playback path (Metal CNN + ProRes muxer)
-- `tools/test/` — capability + regression tests
-- `tests/quality_gates/` — perceptual gate + registry + runs
-
-If you're new: read `../README.md`, then `RELEASE_READINESS.md`, then
-`VIDEO_STATUS.md`. Those three should orient you to the current state before
-you open experiment archives.
+The cleanup introduces no new performance or quality measurements. The
+[compact release evidence index](release_evidence.json) and retained
+signoffs identify existing evidence.

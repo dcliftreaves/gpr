@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -19,7 +20,7 @@ from typing import Any
 
 SCHEMA = "gpr.camera_noise_coverage_audit.v1"
 SIDECAR_SCHEMA = "gpr.camera_noise_calibration.v1"
-DEFAULT_SIDECAR_ROOT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629")
+DEFAULT_SIDECAR_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", Path(os.environ.get("GPR_EXTERNAL_ROOT", Path(__file__).resolve().parents[1])) / "artifacts")) / "camera_noise_sidecars"
 EXPECTED_CAMERAS = [
     {
         "key": "x2d",

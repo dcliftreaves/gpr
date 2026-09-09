@@ -8,6 +8,7 @@ REF is used only for scoring.
 """
 from __future__ import annotations
 
+
 import argparse
 import html
 import json
@@ -26,6 +27,11 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
+
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
@@ -366,7 +372,7 @@ def main() -> int:
     ap.add_argument(
         "--source-fullframe-receipt",
         type=Path,
-        default=Path("/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_fullframes_holdout28_v1/preview_codec_source_fullframes.json"),
+        default=external_path('artifacts/preview_runtime_policy_20260613/q8_source_fullframes_holdout28_v1/preview_codec_source_fullframes.json'),
     )
     ap.add_argument("--checkpoint", type=Path, required=True)
     ap.add_argument("--image-id", action="append", default=[])
@@ -381,14 +387,14 @@ def main() -> int:
         type=Path,
         action="append",
         default=[
-            Path("/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs"),
-            Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+            external_path('cnn/diverse_dngs'),
+            external_path('barnsky_full_dngs'),
         ],
     )
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--output-json", type=Path, required=True)
     ap.add_argument("--output-html", type=Path, required=True)
-    ap.add_argument("--tmp-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp"))
+    ap.add_argument("--tmp-dir", type=Path, default=external_path('tmp'))
     args = ap.parse_args()
     args.tmp_dir.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)

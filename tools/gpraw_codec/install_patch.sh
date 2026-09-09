@@ -8,14 +8,8 @@
 
 set -euo pipefail
 
-if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
-    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
-        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
-    else
-        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
-    fi
-fi
-FFROOT="${1:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}"
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work}"
+FFROOT="${1:-${FF_ROOT:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}}"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 [ -d "$FFROOT/libavcodec" ] || { echo "not an FFmpeg tree: $FFROOT" >&2; exit 1; }

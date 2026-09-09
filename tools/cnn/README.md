@@ -1,57 +1,74 @@
-# CNN tools for GPR
+# CNN runtime tools
 
-This directory keeps the CNN code that is still part of the current GPR
-feature surface:
+This directory supports registered still restoration, offline 4K cleanup,
+offline 8K SR, editable raw packaging, and PREVIEW review rendering. Live
+raw4K capture and full-frame 1024 preview on Pi are native paths outside this
+directory. Registry scope and ship status remain authoritative; retaining a
+candidate does not promote it.
 
-- 1x Bayer restoration for production stills and VIDEO_FREEZE.
-- 4K Mission 1 cleanup against high-resolution-derived RGB/CFA targets.
-- Offline Mission 1/Z8 4K-to-8K SR review paths.
-- Premium still-SR raw-CFA residual teachers, including the current
-  shifted-window attention teacher path for expensive still improvement.
-- UPRESABLE half-resolution-to-editable-raw reconstruction.
-- PREVIEW and release-audit utilities that are still referenced by gates.
+## Entry points and dependencies
 
-Old raw-clean, Restormer, display-HF, and one-off PREVIEW probe scripts were
-removed from `master`. Recover them from the archive branches listed in
-`docs/EXPERIMENT_ARCHIVE_2026-06-04.md` if that research resumes.
+- `render_gvid_sr_receipt.py`: .gvid to 8K Bayer; uses
+  `bench_mission1_sr_8k.py` and model definitions in `train_mission1_sr.py`.
+- `train_bayer_rgb_target_cleanup.py apply`: registered 4K Bayer cleanup.
+  The historical filename is retained for registry compatibility; training
+  commands have been removed.
+- `upresable_pipeline.py`, `preview_timelapse_fast.py`, and
+  `preview_timelapse_fast_sota.py`: editable raw/timelapse rendering.
+- `render_preview_q8_threeway_runtime.py`: registered offline PREVIEW;
+  depends on `evaluate_preview_q8_threeway_runtime_fullframe.py`,
+  `evaluate_preview_q8_crop_fullframe.py`,
+  `evaluate_preview_scene_routed_fullframe.py`,
+  `evaluate_preview_scene_routed.py`, `evaluate_preview_runtime_policy.py`,
+  and `build_preview_holdout_runtime_receipt.py`.
+- PREVIEW support libraries: `build_preview_scene_router_audit.py`,
+  `score_preview_q8_hard_router_union.py`,
+  `score_preview_q8_threeway_router_union.py`,
+  `train_display_rgb_direct_nonref.py`, and
+  `train_preview_fullimage_band_refiner.py`. These retain inference,
+  feature/routing, and model helpers; their experiment CLIs are archived.
+- Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py`,
+  `bayer_detail_residual.py`, and
+  `bench_bayer_detail_residual_sidecar_native.py`.
+- Offline receipts: `package_mission1_sr_receipt.py`,
+  `package_mission1_sr_sequence_receipt.py`,
+  `compare_mission1_sr_fullframe.py`, and `decide_mission1_sr_promotion.py`.
+- Gate/model support: `model.py`, `analyze_dng_noise_profile.py`,
+  `train_codec_raw_clean_sr.py`, `run_lab_chroma_corrector.py`, and
+  `bench_raw_resolution_targets.py`. Historical analysis/training filenames
+  retain only helpers required by registered gates and raw-resolution tests.
 
-## Model code
+Outside this directory, retain `tools/gvid_metadata.py`,
+`tools/gvid_pack.py`, `tools/test/metrics.py`, and the PREVIEW holdout
+manifest. Native decoder/encoder tools, `gpr_tools`, `gpr2prores`, and
+`gpr_mov_tool` provide capture, raw packaging, and ProRes integration.
+The ProRes Makefile has no Python training dependency; its weight exporters
+use `model.py`. Python dependencies are listed in `requirements.txt`;
+rendering also uses macOS `sips`, FFmpeg, and DNG metadata extraction uses
+ExifTool.
 
-`model.py` contains the compact Bayer-in/Bayer-out CNN families used by the
-registry:
+## Portable artifacts
 
-- `BIBO_1x`: 1x Bayer restoration for stills and VIDEO_FREEZE.
-- `BIBO_2x`: 2x Bayer reconstruction for UPRESABLE and related paths.
-- Mission 1 SR variants used by the offline 8K review experiments.
+`runtime_paths.py` resolves default data/output paths under
+`GPR_EXTERNAL_ROOT`, falling back to the repository root. Relative external
+roots are repository-relative. Existing CLI paths and model-specific
+environment overrides remain available. Registry artifact paths are relative
+to the repository or configured external root; checkpoint hashes, pipeline
+identities, and gate baselines are preserved.
 
-Checkpoint binaries are production artifacts, not source files. Canonical
-checkpoint names and sha256 hashes live in `pipelines/registry.json` and
-`docs/PRODUCTION_ARTIFACTS.md`. Install them under `$GPR_MODEL_ROOT`, defaulting
-to `/Volumes/OWC_8TB/gpr_work/models`, then verify with:
+Set `GPR_EXTERNAL_ROOT` before invoking renderers to relocate default source,
+checkpoint, and receipt trees. UPRESABLE also supports `GPR_MODEL_ROOT`,
+and `GPR_BIBO2X_CKPT`.
+Sequence packaging requires an explicit `--meta-dng`.
 
-```bash
-python3 tools/verify_production_artifacts.py --strict
+## Archive
+
+Research trainers, oracle/reference-transfer commands, dashboards, probes,
+target builders, and iteration runners are archived at
+`archive/research-and-integration-2026-09-09`
+(`3d675ef95d2e1470af0a60abb81994eb09bb5aa6`).
+Inspect any original file without restoring it:
+
+```sh
+git show archive/research-and-integration-2026-09-09:tools/cnn/train_mission1_sr.py
 ```
-
-## Current tool groups
-
-| role | representative tools |
-|---|---|
-| General 1x training | `train.py`, `model.py` |
-| 4K Mission 1 cleanup | `train_bayer_rgb_target_cleanup.py`, `build_4k_rgb_downsample_target_dashboard.py`, `build_mission1_4k_visual_signoff.py` |
-| 8K SR training/evaluation | `train_mission1_sr.py`, `build_mission1_sr_pairs.py`, `run_mission1_sr_fullframe_broad_eval.py`, `render_gvid_sr_receipt.py` |
-| Premium still-SR raw-CFA teachers | `train_premium_still_sr_raw_cfa_residual.py`, `build_premium_still_sr_raw_cfa_residual_targets.py`, `deduplicate_premium_still_sr_raw_targets.py` |
-| Raw target and preview audits | `evaluate_raw_resolution_targets.py`, `render_preview_q8_threeway_runtime.py`, `evaluate_preview_q8_threeway_runtime_fullframe.py` |
-| Release receipts | `decide_mission1_sr_promotion.py`, `run_mission1_sr_guarded_experiment.py`, `package_mission1_sr_receipt.py` |
-
-Do not swap checkpoints across codec families just because dimensions match.
-Every checkpoint is calibrated to a specific codec/CNN/demosaic registry entry
-and must clear the relevant gate before being described as production-ready.
-
-## Related docs
-
-- `docs/VIDEO_STATUS.md`
-- `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`
-- `docs/MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md`
-- `docs/PRODUCTION_ARTIFACTS.md`
-- `docs/EXPERIMENT_ARCHIVE_2026-06-04.md`

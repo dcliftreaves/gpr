@@ -5,9 +5,9 @@ set -euo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 GPR2PRORES=${GPR2PRORES:-"$REPO/tools/gpr2prores/gpr2prores"}
 PYTHON_BIN=${PYTHON_BIN:-python3}
-SRC_GPR=${SRC_GPR:-/Volumes/OWC_8TB/gpr_work/artifacts/upresable/halfres/Z8Z_0258.gpr}
-META_DNG=${META_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0258.dng}
-WORK=${WORK:-/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke}
+SRC_GPR=${SRC_GPR:-}
+META_DNG=${META_DNG:-}
+WORK=${WORK:-"${GPR_TMPDIR:-${TMPDIR:-/tmp}}/gpr2prores_gvid_smoke"}
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "test_gpr2prores_gvid_input: SKIP non-macOS"

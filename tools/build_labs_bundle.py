@@ -19,7 +19,7 @@ from typing import Any
 SCHEMA = "gpr_labs_bundle.v1"
 DEFAULT_MANIFEST = "manifest.json"
 DEFAULT_HASHES = "hashes/sha256sums.txt"
-DEFAULT_RELEASE_EVIDENCE = Path(__file__).resolve().parents[1] / "docs/release_evidence_manifest.json"
+DEFAULT_RELEASE_EVIDENCE = Path(__file__).resolve().parents[1] / "docs/release_evidence.json"
 ALLOWED_KINDS = {"dashboard", "gvid", "json", "media", "receipt", "text"}
 
 
@@ -79,9 +79,15 @@ def load_product_pillars(path: Path | None) -> list[dict[str, Any]] | None:
     if path is None:
         return None
     if not path.is_file():
+        if path == DEFAULT_RELEASE_EVIDENCE:
+            return None
         raise FileNotFoundError(f"product pillar source does not exist: {path}")
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: release evidence must be an object")
     pillars = data.get("product_pillars")
+    if pillars is None:
+        return None
     if not isinstance(pillars, list) or not pillars:
         raise ValueError(f"{path}: product_pillars must be a non-empty list")
     rows: list[dict[str, Any]] = []
@@ -152,7 +158,7 @@ def main() -> int:
         "--product-pillars-from",
         type=Path,
         default=DEFAULT_RELEASE_EVIDENCE,
-        help="release evidence manifest whose product_pillars section is copied into the bundle manifest",
+        help="optional release evidence index; copy product_pillars only when present (missing default index is allowed)",
     )
     ap.add_argument("--no-product-pillars", action="store_true", help="omit product_pillars from the bundle manifest")
     ap.add_argument(

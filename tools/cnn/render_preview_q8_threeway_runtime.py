@@ -10,6 +10,7 @@ normalized coordinates.
 """
 from __future__ import annotations
 
+
 import argparse
 import os
 import subprocess
@@ -17,18 +18,18 @@ import sys
 from pathlib import Path
 
 
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
+
 REPO = Path(__file__).resolve().parents[2]
-DEFAULT_EXTERNAL_ROOT = Path("/Volumes/OWC_8TB/gpr_work")
+DEFAULT_EXTERNAL_ROOT = external_path('')
 DEFAULT_ARTIFACT_ROOT = DEFAULT_EXTERNAL_ROOT / "artifacts"
 
 
 def default_external_root() -> Path:
-    env = os.environ.get("GPR_EXTERNAL_ROOT")
-    if env:
-        return Path(env)
-    if DEFAULT_EXTERNAL_ROOT.exists():
-        return DEFAULT_EXTERNAL_ROOT
-    return Path(os.environ.get("RUNNER_TEMP", os.environ.get("TMPDIR", "/tmp"))) / "gpr_work"
+    return external_path()
 
 
 def main() -> int:

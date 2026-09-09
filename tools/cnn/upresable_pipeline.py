@@ -1,27 +1,6 @@
-"""End-to-end UPRESABLE pipeline:
-  source DNG (sensor sim)
-      → ml2_q3_dec2 encode → half-res .gpr (24 fps capture stream on Pi)
-      → decode → half-res Bayer
-      → BIBO_2x CNN on MPS → full-res Bayer (editable raw)
-      → ml2_q3 encode → full-res .gpr (the editable raw output file)
-      → decode (validate) → full-res Bayer
-      → pack full-res .gpr sequence → .gvid primary video container
-      → optional demosaic via gpr_tools + sips → 4K UHD ProRes review
-
-Outputs per frame:
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/halfres/<name>.gpr   (capture file)
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/fullres/<name>.gpr   (editable raw, post-upres)
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/frames/<name>.tiff   (optional 4K UHD RGB for ProRes)
-
-Final:
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.gvid (primary)
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.gpr1.mov (MOV compatibility)
-  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.mov  (optional ProRes 422 HQ)
-
-Also: runs on the 4 gate images for regression-style verification of
-quality (bayer PSNR, Y-PSNR, etc.) of the full-res .gpr vs source DNG.
-"""
+'End-to-end UPRESABLE pipeline:\n  source DNG (sensor sim)\n      → ml2_q3_dec2 encode → half-res .gpr (24 fps capture stream on Pi)\n      → decode → half-res Bayer\n      → BIBO_2x CNN on MPS → full-res Bayer (editable raw)\n      → ml2_q3 encode → full-res .gpr (the editable raw output file)\n      → decode (validate) → full-res Bayer\n      → pack full-res .gpr sequence → .gvid primary video container\n      → optional demosaic via gpr_tools + sips → 4K UHD ProRes review\n\nOutputs per frame:\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/halfres/<name>.gpr   (capture file)\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/fullres/<name>.gpr   (editable raw, post-upres)\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/frames/<name>.tiff   (optional 4K UHD RGB for ProRes)\n\nFinal:\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/upresable_timelapse.gvid (primary)\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/upresable_timelapse.gpr1.mov (MOV compatibility)\n  $GPR_EXTERNAL_ROOT/artifacts/upresable/upresable_timelapse.mov  (optional ProRes 422 HQ)\n\nAlso: runs on the 4 gate images for regression-style verification of\nquality (bayer PSNR, Y-PSNR, etc.) of the full-res .gpr vs source DNG.\n'
 from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -37,12 +16,14 @@ import cv2
 import tifffile
 import torch
 
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime_paths import external_path
+
 REPO = Path(__file__).resolve().parents[2]
 def default_external_root() -> Path:
-    mounted = Path("/Volumes/OWC_8TB/gpr_work")
-    if mounted.exists():
-        return mounted
-    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+    return external_path()
 
 
 EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
@@ -329,7 +310,7 @@ def main():
                          "(legacy; ~70%% of per-frame time). Default off: .gvid "
                          "is the primary deliverable, DNG is an optional "
                          "correctness check / hand-off to Adobe / darktable.")
-    ap.add_argument("--src-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+    ap.add_argument("--src-dir", type=Path, default=external_path('barnsky_full_dngs'),
                     help="Directory of source DNG frames for timelapse mode.")
     ap.add_argument("--image-id", action="append",
                     help="Specific source DNG stem to include in timelapse mode. "
@@ -378,10 +359,10 @@ def main():
     if args.mode in ("regression", "both"):
         print("\n=== REGRESSION: full pipeline on 4 gate images ===")
         gate_dngs = [
-            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng",
-            "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs/Z8Z_0067.dng",
-            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng",
-            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng",
+            str(external_path('artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng')),
+            str(external_path('barnsky_full_dngs/Z8Z_0067.dng')),
+            str(external_path('artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng')),
+            str(external_path('artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng')),
         ]
         for i, dng_path in enumerate(gate_dngs):
             t0 = time.time()

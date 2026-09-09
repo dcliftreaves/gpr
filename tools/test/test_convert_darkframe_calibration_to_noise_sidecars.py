@@ -13,14 +13,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CONVERTER = ROOT / "tools/convert_darkframe_calibration_to_noise_sidecars.py"
-CHECKER = ROOT / "tools/check_product_pillar_receipts.py"
+CHECKER = ROOT / "tools/check_camera_noise_calibration.py"
 
 
 def temp_root() -> Path:
     if os.environ.get("GPR_TMPDIR"):
         root = Path(os.environ["GPR_TMPDIR"])
-    elif Path("/Volumes/OWC_8TB/gpr_work/tmp").exists():
-        root = Path("/Volumes/OWC_8TB/gpr_work/tmp")
     else:
         root = Path(tempfile.gettempdir())
     root.mkdir(parents=True, exist_ok=True)

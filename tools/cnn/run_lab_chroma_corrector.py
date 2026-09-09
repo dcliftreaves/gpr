@@ -1,22 +1,14 @@
-"""Run raw-luma plus Lab chroma-corrector inference.
-
-This is the gate/runtime counterpart for the Lab chroma sidecar checkpoints.
-It predicts full-size Lab L from the raw codec planes, predicts Lab a/b from a
-7-channel tensor, and reconstructs display RGB in Lab space. Residual chroma
-checkpoints apply a bounded learned correction on top of the demosaic baseline
-instead of replacing chroma outright.
-"""
+#!/usr/bin/env python3
+"""Runtime helpers retained for registered quality gates; research commands are archived."""
 from __future__ import annotations
-
 from pathlib import Path
-
 import numpy as np
 import torch
 import torch.nn.functional as F
 from skimage import color
 from skimage.filters import gaussian
-
 from model import build as build_variant
+
 
 AB_NORM = 128.0
 

@@ -44,13 +44,11 @@ def artifact_candidates(path_value):
         for item in os.environ.get(key, "").split(os.pathsep):
             if item:
                 roots.append((Path(item), True))
-    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", REPO))
     roots.extend([
         (external_root, False),
         (external_root / "models", True),
         (external_root / "checkpoints", True),
-        (Path("/Volumes/OWC_8TB/gpr_work/models"), True),
-        (Path("/Volumes/OWC_8TB/gpr_work/checkpoints"), True),
     ])
 
     candidates = []

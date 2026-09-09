@@ -14,14 +14,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILDER = ROOT / "tools/build_camera_noise_calibration.py"
-CHECKER = ROOT / "tools/check_product_pillar_receipts.py"
+CHECKER = ROOT / "tools/check_camera_noise_calibration.py"
 
 
 def temp_root() -> Path:
     if os.environ.get("GPR_TMPDIR"):
         root = Path(os.environ["GPR_TMPDIR"])
-    elif Path("/Volumes/OWC_8TB/gpr_work/tmp").exists():
-        root = Path("/Volumes/OWC_8TB/gpr_work/tmp")
     else:
         root = Path(tempfile.gettempdir())
     root.mkdir(parents=True, exist_ok=True)
@@ -88,6 +86,25 @@ def main() -> int:
         planes = payload["calibrations"][0]["per_plane"]
         assert 0.5 < planes["r"]["sigma_black"] < 3.0
         assert planes["r"]["noise_profile_offset"] > 0.0
+
+        for field in ("source_hash", "signal_audit", "sample_count", "schema"):
+            invalid = json.loads(json.dumps(payload))
+            calibration = invalid["calibrations"][0]
+            if field == "source_hash":
+                calibration["source"]["sha256"] = "invalid"
+            elif field == "signal_audit":
+                calibration["noise_signal_audit"]["separates_noise_from_signal"] = False
+            elif field == "sample_count":
+                calibration["sample_count"] = 1
+            else:
+                invalid["schema"] = "unsupported"
+            invalid_path = tmp_path / f"invalid_{field}.json"
+            invalid_path.write_text(json.dumps(invalid), encoding="utf-8")
+            checked = subprocess.run(
+                [sys.executable, str(CHECKER), str(invalid_path)],
+                capture_output=True, text=True,
+            )
+            assert checked.returncode == 1, (field, checked.stdout, checked.stderr)
 
         strict_manifest = tmp_path / "strict_source_provenance.json"
         strict_manifest.write_text(
