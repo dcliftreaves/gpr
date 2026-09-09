@@ -83,7 +83,7 @@ fi
 
 if [ ! -d "$CKPT_W1X" ]; then
     echo "SKIP — BIBO_1x metal weights dir not present at $CKPT_W1X"
-    echo "       (extract via dering_proto_v2/extract_F_ane_weights.py)"
+    echo "       (extract via tools/gpr2prores/extract_F_ane_weights.py)"
     exit 0
 fi
 

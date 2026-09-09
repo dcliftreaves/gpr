@@ -4443,13 +4443,15 @@ static int gpr_encode_fused_frame_single(FUSED_ENCODER *ctx,
     if (!run_serial && p2_use_pool) {
         int o = 0;
         for (int band = band_start; band < 4; band++) {
+            /* Omitted bands retain manifest slots but have no encoding work. */
+            if (ctx->drop_hp && band > 0) continue;
             for (int ch = 0; ch < 4; ch++) {
                 p2_order[o++] = ch * bands_per_channel + (band - band_start);
             }
         }
         p2_wq.tasks = p2_tasks;
         p2_wq.order = p2_order;
-        p2_wq.num_tasks = p2_count;
+        p2_wq.num_tasks = o;
         p2_wq.next = 0;
         pthread_mutex_init(&p2_wq.lock, NULL);
 #ifdef PASS2_POOL_FORCE

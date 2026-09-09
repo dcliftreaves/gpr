@@ -74,7 +74,7 @@ run() {
     if [ "$rc" -ne 0 ]; then
         echo "FAIL: $label (exit $rc)"; failed=$((failed + 1))
         if [ "$rc" -eq 139 ] && [ "$(uname -s)" = Darwin ] && command -v lldb >/dev/null; then
-            lldb --batch -o run -o 'thread backtrace all' -- "$@" \
+            lldb --batch -o run -k 'thread backtrace all' -- "$@" \
                 > "$LOG_DIR/$index-crash.log" 2>&1 || true
         fi
     elif grep -Eq '(^|[[:space:]:|])SKIP(PED)?([[:space:]:|(]|$)|skipped=[1-9]|[1-9][0-9]* SKIPPED' "$log"; then
@@ -115,6 +115,14 @@ for name in "${native[@]}"; do
         "$BUILD_DIR/source/lib/vc5_common/libvc5_common.a" \
         "${ldflags[@]}" -lpthread -lm -o "$SCRATCH/bin/$name" 2>&1 | tee "$LOG_DIR/build-$name.log"
 done
+"${CC:-clang}" "${cflags[@]}" -DPASS2_POOL_FORCE=1 \
+    -I source/lib/vc5_common -I source/lib/common/private -I source/lib/common/public \
+    source/app/test_fused_pool_drop_hp.c source/lib/vc5_encoder/fused_encode.c \
+    "$BUILD_DIR/source/lib/vc5_encoder/libvc5_encoder.a" \
+    "$BUILD_DIR/source/lib/vc5_common/libvc5_common.a" \
+    "${ldflags[@]}" -lpthread -lm -o "$SCRATCH/bin/test_fused_pool_drop_hp" \
+    2>&1 | tee "$LOG_DIR/build-test_fused_pool_drop_hp.log"
+run required "forced encoder pool with omitted bands" "$SCRATCH/bin/test_fused_pool_drop_hp"
 for name in test_video_format test_labs_encoder_api test_video_encoder_abort test_video_full_chain; do
     run required "$name" "$SCRATCH/bin/$name"
 done

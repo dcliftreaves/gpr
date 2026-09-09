@@ -61,12 +61,12 @@ OBJS = gpr2prores.o DNGReader.o GPRFileReader.o GPRPipeline.o Demosaic.o Downsca
 
 all: gpr2prores gpr_mov_tool
 
-gpr2prores: $(OBJS) Demosaic.metallib
+gpr2prores: $(OBJS) Demosaic.metallib $(GPR_LIBS)
 	$(CC) $(OBJS) $(GPR_LIBS) $(LDFLAGS) -o $@
 
 # gpr_mov_tool: pack/unpack a sequence of .gpr files into a custom-tagged MOV.
-gpr_mov_tool: gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o
-	$(CC) $^ $(GPR_LIBS) $(LDFLAGS) $(FFMPEG_LIBS) -o $@
+gpr_mov_tool: gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o $(GPR_LIBS)
+	$(CC) $^ $(LDFLAGS) $(FFMPEG_LIBS) -o $@
 
 %.o: %.m
 	$(CC) $(CFLAGS) -c $< -o $@
