@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    branches: [master, review/human-feature-series]
+    branches: [master]
   pull_request:
-    branches: [master, review/gopro-baseline]
+    branches: [master, review/gopro-baseline, review/product-runtime]
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,7 +14,7 @@ jobs:
   regression:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -24,9 +24,14 @@ jobs:
           - {name: MacRelease, os: macos-latest, build_type: Release}
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      FAST: ${{ matrix.os == 'macos-latest' && '0' || '1' }}
+      FAST: "0"
+      GPR_CAPABILITIES_FAST: ${{ matrix.os == 'macos-latest' && '0' || '1' }}
+      GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || matrix.os == 'macos-latest' && '4.0' || '1.0' }}
+      GPR_TIMING_SAMPLE_MAX_PIXELS: ${{ matrix.os == 'macos-latest' && '120000000' || '12192768' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -34,6 +39,8 @@ jobs:
         run: |
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "GPR_TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_EXTERNAL_ROOT=$RUNNER_TEMP/gpr_work" >> "$GITHUB_ENV"
+          echo "GPR_TEST_ARTIFACT_DIR=$RUNNER_TEMP/regression-logs" >> "$GITHUB_ENV"
           echo "GPR_TOOLS=$BUILD_DIR/source/app/gpr_tools/gpr_tools" >> "$GITHUB_ENV"
       - name: Test dependencies
         run: python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "tifffile>=2024,<2027"
@@ -50,7 +57,9 @@ jobs:
           python3 -m pip check
       - name: Linux desktop dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libavformat-dev libavutil-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev pkg-config clang
       - name: macOS desktop dependencies
         if: runner.os == 'macOS'
         run: brew install libraw ffmpeg pkg-config
@@ -58,6 +67,14 @@ jobs:
         run: |
           cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           cmake --build "$BUILD_DIR" --parallel 4
+      - name: Repository checks
+        run: |
+          python3 tests/check_repository.py
+          python3 tests/test_check_repository.py
+          python3 tools/verify_production_artifacts.py
+      - name: Repository history guard
+        if: matrix.name == 'LinuxRelease'
+        run: python3 tools/test/check_sensitive_content.py --history
       - name: Build desktop tools
         run: |
           make -C tools/gpraw
@@ -109,3 +126,15 @@ jobs:
           bash tools/test/test_bench_fused_stream_source.sh
           bash tools/test/test_bench_fused_quality_env.sh
           bash tools/test/test_mission1_native12_fll2_t2_profile.sh
+      - name: Full integration regressions
+        run: bash tools/test/run_all_regressions.sh
+      - name: Independent feature adoption
+        if: matrix.name == 'MacRelease'
+        run: bash tools/test/test_feature_adoption.sh
+      - name: Upload regression logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regressions-${{ matrix.name }}
+          path: ${{ runner.temp }}/regression-logs/**/*.log
+          if-no-files-found: warn

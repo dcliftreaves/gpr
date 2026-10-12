@@ -138,7 +138,6 @@ target_include_directories(fused_decode_coeff_io_obj PRIVATE
   source/lib/common/private source/lib/common/public)
 gpr_native_tool(coeff_io_tool source/app/coeff_io_tool.c $<TARGET_OBJECTS:fused_decode_coeff_io_obj>)
 
-
 include(TestBigEndian)
 test_big_endian(IS_BIG_ENDIAN)
 if(NOT IS_BIG_ENDIAN)
@@ -154,3 +153,4 @@ if(NOT WIN32)
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endif()
 
+include(tests/Validation.cmake)
