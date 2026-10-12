@@ -1,41 +1,51 @@
-name: Build
+name: CI
 on:
   push:
-    branches: [master]
+    branches: [master, review/human-feature-series]
   pull_request:
-    branches: [master, review/gopro-baseline, review/product-runtime]
+    branches: [master, review/gopro-baseline]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: build-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  regression:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {name: LinuxRelease, os: ubuntu-latest, type: Release}
-          - {name: LinuxDebug, os: ubuntu-latest, type: Debug}
-          - {name: MacRelease, os: macos-latest, type: Release}
+          - {name: LinuxRelease, os: ubuntu-latest, build_type: Release}
+          - {name: LinuxDebug, os: ubuntu-latest, build_type: Debug}
+          - {name: MacRelease, os: macos-latest, build_type: Release}
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      FAST: ${{ matrix.os == 'macos-latest' && '0' || '1' }}
     steps:
       - uses: actions/checkout@v6
-      - name: Linux desktop dependencies
-        if: runner.os == 'Linux'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Configure scratch paths
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev pkg-config
-      - name: macOS desktop dependencies
-        if: runner.os == 'macOS'
-        run: brew install libraw ffmpeg pkg-config
-      - name: Build SDK and tools
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_TOOLS=$BUILD_DIR/source/app/gpr_tools/gpr_tools" >> "$GITHUB_ENV"
+      - name: Test dependencies
+        run: python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "tifffile>=2024,<2027"
+      - name: Build
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.type }}
-          cmake --build build --parallel 4
-          if [ -f tools/gvid_mov/Makefile ]; then make -C tools/gvid_mov; fi
-          if [ "$(uname -s)" = Darwin ] && [ -f tools/gpr2prores/Makefile ]; then
-            make -C tools/gpr2prores GPR_BUILD="$PWD/build"
-          fi
+          cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build "$BUILD_DIR" --parallel 4
+      - name: Native regressions
+        run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Stills regressions
+        run: |
+          bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
+          bash tools/test/test_still_matrix.sh
+          python3 tools/test/test_still_metadata.py
+          python3 tools/test/test_still_matrix_harness.py
