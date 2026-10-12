@@ -3,7 +3,9 @@ cmake_minimum_required( VERSION 3.5 FATAL_ERROR )
 
 set(CMAKE_SUPPRESS_REGENERATION true)
 
-set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # project name
 project( gpr )
