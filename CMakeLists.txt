@@ -108,6 +108,7 @@ add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
 
+add_subdirectory( "source/app/bench_fused" )
 
 function(gpr_native_tool name source_file)
   add_executable(${name} ${source_file} ${ARGN})
