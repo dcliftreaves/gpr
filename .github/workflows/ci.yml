@@ -37,6 +37,17 @@ jobs:
           echo "GPR_TOOLS=$BUILD_DIR/source/app/gpr_tools/gpr_tools" >> "$GITHUB_ENV"
       - name: Test dependencies
         run: python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "tifffile>=2024,<2027"
+      - name: CPU model dependencies
+        if: runner.os == 'Linux'
+        run: python3 -m pip install "torch>=2.5,<3" "torchvision>=0.20,<1" --index-url https://download.pytorch.org/whl/cpu
+      - name: macOS model dependencies
+        if: runner.os == 'macOS'
+        run: python3 -m pip install "torch>=2.5,<3" "torchvision>=0.20,<1"
+      - name: Reconstruction dependencies
+        run: |
+          python3 -m pip install "pillow>=10,<13" "opencv-python-headless>=4.10,<5" \
+            "scikit-image>=0.24,<1" "pytorch-msssim>=1,<2" "lpips>=0.1.4,<0.2" "PyWavelets>=1.5,<2"
+          python3 -m pip check
       - name: Linux desktop dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libavformat-dev libavutil-dev pkg-config
@@ -62,6 +73,20 @@ jobs:
           fi
       - name: Native regressions
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Reconstruction contracts
+        run: |
+          python3 tests/test_reconstruction_models.py
+          python3 tests/test_preview_fixture_paths.py
+          python3 tests/quality_gates/check_registry_consistency.py
+          python3 tests/quality_gates/audit_ship_pipelines.py --strict
+          python3 tools/test/test_bayer_resample.py
+          python3 tools/test/test_raw_resolution_targets.py
+          python3 tools/test/test_build_camera_noise_calibration.py
+          python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py
+          python3 tools/test/test_build_camera_noise_runtime_policy.py
+          python3 tools/test/test_pack_bayer_detail_residual_sidecar.py
+          python3 tools/test/test_package_mission1_sr_sequence_receipt.py
+          bash tools/test/test_render_gvid_sr_registry.sh
       - name: Stills regressions
         run: |
           bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
