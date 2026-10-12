@@ -120,6 +120,9 @@ function(gpr_native_tool name source_file)
 endfunction()
 
 gpr_native_tool(fused_decode_cli source/app/fused_decode_cli.c)
+if(NOT WIN32)
+  gpr_native_tool(labs_encoder_bench_cli source/app/labs_encoder_bench_cli.c)
+endif()
 
 add_library(fused_decode_coeff_io_obj OBJECT source/lib/vc5_decoder/fused_decode.c)
 target_compile_definitions(fused_decode_coeff_io_obj PRIVATE GPR_DEBUG_COEFF_IO=1)
