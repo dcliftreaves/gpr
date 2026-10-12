@@ -104,6 +104,10 @@ else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
   MESSAGE( STATUS "Could not find source/lib/tiny_jpeg - disabling jpeg writing and setting GPR_JPEG_AVAILABLE=0" )
 endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 
+if(APPLE)
+  add_subdirectory("source/lib/gpr_polish")
+endif()
+
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
@@ -139,3 +143,12 @@ if(NOT IS_BIG_ENDIAN)
   target_compile_definitions(dng_sdk PUBLIC qDNGLittleEndian=1)
   target_compile_definitions(gpr_sdk PUBLIC qDNGLittleEndian=1)
 endif()
+
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  add_executable(bayer_detail_residual_sidecar source/app/bayer_detail_residual_sidecar.c)
+  target_link_libraries(bayer_detail_residual_sidecar m Threads::Threads)
+  set_target_properties(bayer_detail_residual_sidecar PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
+
