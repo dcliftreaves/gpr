@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+    branches: [master, review/human-feature-series]
+  pull_request:
+    branches: [master, review/gopro-baseline]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: LinuxRelease, os: ubuntu-latest, build_type: Release}
+          - {name: LinuxDebug, os: ubuntu-latest, build_type: Debug}
+          - {name: MacRelease, os: macos-latest, build_type: Release}
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      FAST: ${{ matrix.os == 'macos-latest' && '0' || '1' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Configure scratch paths
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GPR_TOOLS=$BUILD_DIR/source/app/gpr_tools/gpr_tools" >> "$GITHUB_ENV"
+      - name: Test dependencies
+        run: python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "tifffile>=2024,<2027"
+      - name: Build
+        run: |
+          cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build "$BUILD_DIR" --parallel 4
+      - name: Native regressions
+        run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Stills regressions
+        run: |
+          bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
+          bash tools/test/test_still_matrix.sh
+          python3 tools/test/test_still_metadata.py
+          python3 tools/test/test_still_matrix_harness.py
