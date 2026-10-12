@@ -26,16 +26,5 @@ integration API, not a downloadable Mission 1 firmware plugin; sensor access,
 threading, storage, and camera shutdown must be connected and tested by the
 firmware owner.
 
-## Tests
-
-Build with CMake and run `ctest --test-dir build --output-on-failure`.
-Native tests cover padded rows, ordered submission, writer failure,
-cancellation, and container framing. The full-chain test checks framing and
-band decoding, not whole-image perceptual quality.
-
-`tools/test/test_labs_encoder_bench_cli.sh` exercises the public shim and a
-separate-process simulated source. `tools/mission1_stream_source_encoder.py`
-accepts a deterministic delay schedule; simulation is not a sensor receipt.
-Use the same real Bayer fixture, quality profile, CPU settings, and storage
-device when comparing builds. Report encode time, write/drain time, final
-filesystem flush, output bytes, dropped frames, and memory separately.
+For validation procedures, see [Testing Methodology](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/TESTING_METHODOLOGY.md)
+on the companion `review/product-validation` branch.

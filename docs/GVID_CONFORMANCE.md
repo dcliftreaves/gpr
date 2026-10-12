@@ -55,22 +55,9 @@ require the asynchronous capture API, preview CLI, or desktop renderer.
 `GPR_BENCH_GVID` as the output path. Packing already-compressed payloads with
 `tools/gvid_pack.py` is a separate operation and is not an encoding-speed test.
 
-## Verification
-
-| Layer | Entry point |
-|---|---|
-| Dependency-light malformed-stream cases | `python3 tools/test/test_gvid_conformance.py` |
-| C reader/writer contract | CMake target `test_video_format` |
-| Sidecar and dispatch tests | `bash tools/test/test_gvid_metadata.sh` |
-| Bundle hashes and included streams | `python3 tools/verify_labs_bundle.py "$GPR_ARTIFACT_ROOT/review-bundle/manifest.json"` |
-| FUSED payload stability | [Codec checkpoint comparisons](FUSED_CODEC.md) |
-
 Structural wire changes require a version bump and migration documentation.
 Reserved fields must remain zero in emitted v1 files. See the reference
 header for versioning policy.
 
-On Linux, `tools/test/compare_capture_checkpoints.py` compares two
-`bench_fused` builds on an explicitly selected storage directory. It requires
-GNU `time`, includes the final file `fsync`, verifies frame counts and output
-hashes, and removes its temporary payloads. A repeated-input short run is a
-regression check, not a sustained camera-capture or SD-card certification.
+For validation procedures, see [Testing Methodology](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/TESTING_METHODOLOGY.md)
+on the companion `review/product-validation` branch.

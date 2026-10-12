@@ -24,5 +24,7 @@ buffer lifetime management, frame pacing, and camera-specific color metadata.
 
 Timing covers decode, preview ISP, and optional frame writes. It does not
 include physical display presentation; median processing FPS is not proof of
-sustained screen playback. Use identical streams and compare RGB hashes when
-changing the implementation, then measure full playback on the target.
+sustained screen playback.
+
+For validation procedures, see [Testing Methodology](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/TESTING_METHODOLOGY.md)
+on the companion `review/product-validation` branch.

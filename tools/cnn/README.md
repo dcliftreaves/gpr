@@ -27,20 +27,24 @@ candidate does not promote it.
   `train_display_rgb_direct_nonref.py`, and
   `train_preview_fullimage_band_refiner.py`. These retain inference,
   feature/routing, and model helpers; their experiment CLIs are archived.
-- Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py`,
-  `bayer_detail_residual.py`, and
-  `bench_bayer_detail_residual_sidecar_native.py`.
-- Offline receipts: `package_mission1_sr_receipt.py`,
-  `package_mission1_sr_sequence_receipt.py`,
-  `compare_mission1_sr_fullframe.py`, and `decide_mission1_sr_promotion.py`.
-- Gate/model support: `model.py`, `analyze_dng_noise_profile.py`,
-  `train_codec_raw_clean_sr.py`, `run_lab_chroma_corrector.py`, and
-  `bench_raw_resolution_targets.py`. Historical analysis/training filenames
-  retain only helpers required by registered gates and raw-resolution tests.
+- Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py` and
+  `bayer_detail_residual.py`.
+- Offline packaging: `package_mission1_sr_receipt.py` and
+  `package_mission1_sr_sequence_receipt.py`.
+- Model support: `model.py`, `analyze_dng_noise_profile.py`,
+  `train_codec_raw_clean_sr.py`, and `run_lab_chroma_corrector.py`.
+- Shared visual metrics: `tools/cnn/metrics.py`.
+
+Historical `train`, `evaluate`, `score`, and `bench` filenames remain where
+production renderers depend on their inference, routing, or model helpers.
+Benchmark/comparison-only modules `bench_bayer_detail_residual_sidecar_native.py`,
+`bench_raw_resolution_targets.py`, `compare_mission1_sr_fullframe.py`, and
+`decide_mission1_sr_promotion.py` moved to the companion
+`review/product-validation` branch; production rendering does not require them.
 
 Outside this directory, retain `tools/gvid_metadata.py`,
-`tools/gvid_pack.py`, `tools/cnn/metrics.py`, and the PREVIEW holdout
-manifest. Native decoder/encoder tools, `gpr_tools`, `gpr2prores`, and
+`tools/gvid_pack.py`, and the PREVIEW manifest
+`pipelines/preview_holdout_set.json`. Native decoder/encoder tools, `gpr_tools`, `gpr2prores`, and
 `gpr_mov_tool` provide capture, raw packaging, and ProRes integration.
 The ProRes Makefile has no Python training dependency; its weight exporters
 use `model.py`. Python dependencies are listed in `requirements.txt`;

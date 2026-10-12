@@ -48,5 +48,5 @@ payload memory is valid only until the next read or close; copy it if it
 must outlive that call. Requested fps determines MOV timing, independently
 of measured encode or reconstruction speed.
 
-Run `python3 tools/test/test_desktop_outputs.py --wrapper-only` after building
-the codec and wrapper tools to check a synthetic payload roundtrip.
+Payload roundtrip checks live in the companion
+[validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation/tools/test).

@@ -37,26 +37,22 @@ prefixes. ffplay is built when SDL2 is detected.
 to `gpr_work` under `RUNNER_TEMP`, `TMPDIR`, or the system temporary directory.
 Set paths explicitly for persistent builds.
 
-## Validate and Use
+## Use
 
 After the static FFmpeg build, run on macOS:
 
 ```sh
-"$GPR_ROOT/tools/gpraw_codec/test_roundtrip.sh"
 "$FF_ROOT/ffmpeg" -i input.gpraw -pix_fmt rgb24 -frames:v 100 frame_%04d.png
 "$FF_ROOT/ffmpeg" -i input.gpraw -c:v prores_ks -profile:v 3 out.mov
 # When SDL2 was available at build time:
 "$FF_ROOT/ffplay" -vf scale,format=rgb24 input.gpraw
 ```
 
-The validator encodes 50 synthetic 1920x1080 frames and compares FFmpeg decoding
-against direct `gpr_decode_fused` output byte for byte. It uses `GPR_ROOT`,
-`GPR_BUILD`, and `FF_ROOT`. Its optional first argument sets the output
-container; otherwise it writes under `GPR_TMPDIR` (default
-`$GPR_EXTERNAL_ROOT/tmp`).
+The byte-equivalence validator is in the companion
+[validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation/tools/gpraw_codec).
 
 Multi-level encoding is required: set `FUSED_MULTI_LEVEL=1` when encoding
-(the validator does this automatically). GRBG/BGGR pixel formats are not
+(the companion validator does this automatically). GRBG/BGGR pixel formats are not
 wired. This is a local integration, not an upstream codec or a plugin for
 applications with bundled FFmpeg.
 

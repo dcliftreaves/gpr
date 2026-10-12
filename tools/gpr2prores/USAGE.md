@@ -87,7 +87,7 @@ tools/gpr2prores/gpr_mov_tool unpack clip.gpraw unpacked --prefix frame
 Pack/unpack preserves GPR payloads. For patched FFmpeg decoding, see
 [gpraw_codec](../gpraw_codec/README.md).
 
-## Verification and Adoption
+## Adoption
 
 This desktop layer needs the shared and fused codecs plus GVID framing, but
 not the capture API or native preview. Model weights are optional: the
@@ -95,15 +95,12 @@ not the capture API or native preview. Model weights are optional: the
 Metal/CoreML interfaces; training and quality-gated model selection are
 separate from this executable.
 
-After building both `tools/gpr2prores` and `tools/gpraw`, run
-`python3 tools/test/test_desktop_outputs.py`. It freshly encodes two synthetic
-Bayer frames, checks both MOV wrappers byte-for-byte, and verifies the ProRes
-codec, frame count, and timebase. This smoke test is not a visual quality or
-real-time throughput measurement.
+Desktop output and kernel checks live in the companion
+[validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation).
 
 ## Archived Research
 
 One-off validation, corpus preparation, post-training scripts, and the
 superseded `Makefile.container` remain available at their original paths on
 `archive/research-and-integration-2026-09-09` at `3d675ef`.
-The native `test_F_ane_kernels.m` harness remains here.
+The native `test_F_ane_kernels.m` harness is in the validation branch.

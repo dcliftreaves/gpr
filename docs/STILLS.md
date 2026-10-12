@@ -23,23 +23,10 @@ already-demosaiced linear RGB DNGs are not interchangeable with Bayer RAW.
 Camera-specific support must be checked with representative inputs; a filename
 extension alone is not sufficient.
 
-## Test Independently
-
-```sh
-ctest --test-dir build --output-on-failure
-python3 -m pip install numpy rawpy tifffile
-BUILD_DIR=build bash tools/test/test_still_matrix.sh
-GPR_TOOLS=build/source/app/gpr_tools/gpr_tools bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
-python3 tools/test/test_still_metadata.py
-```
-
-The still matrix checks bit depth, Bayer phase, quality levels, and dimensions
-through approximately 100 MP. It uses synthetic Bayer data and fixed quality
-thresholds; it is not a substitute for camera-file compatibility or visual
-review. Set `TMPDIR` or `GPR_TMPDIR` to scratch storage with sufficient space.
-Scratch is removed unless preservation is explicitly requested.
-
 Native builds enable NEON by default on ARM64. `-DNEON=OFF` disables the
 option-controlled paths; some architecture-specific entropy kernels remain
 selected by compiler macros. It is not a fully scalar comparison switch.
 Neither configuration requires camera firmware integration.
+
+For validation procedures, see [Testing Methodology](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/TESTING_METHODOLOGY.md)
+on the companion `review/product-validation` branch.
