@@ -23,6 +23,29 @@ else()
   add_definitions(-DNEON=0)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(FUSED_TUNE_CPU "native" CACHE STRING "ARM CPU tuning; empty disables -mcpu")
+  if(FUSED_TUNE_CPU)
+    add_compile_options(-mcpu=${FUSED_TUNE_CPU})
+  endif()
+endif()
+
+option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder" OFF)
+option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)
+option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)
+option(JANS_INLINE_PROFILE_RUNTIME "Enable opt-in entropy profile receipt lines" OFF)
+if(FUSED_LOG_POLYNOMIAL AND NOT NEON)
+  message(FATAL_ERROR "FUSED_LOG_POLYNOMIAL requires NEON")
+endif()
+if(FUSED_TIMING_DETAIL)
+  set(FUSED_TIMING ON)
+endif()
+foreach(flag FUSED_LOG_POLYNOMIAL FUSED_TIMING FUSED_TIMING_DETAIL JANS_INLINE_PROFILE_RUNTIME)
+  if(${flag})
+    add_definitions(-D${flag}=1)
+  endif()
+endforeach()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
@@ -88,8 +111,38 @@ add_subdirectory( "source/app/gpr_tools" )
 add_subdirectory( "source/app/compare_quality" )
 add_subdirectory( "source/app/ans_test" )
 
+function(gpr_native_tool name source_file)
+  add_executable(${name} ${source_file} ${ARGN})
+  target_include_directories(${name} PRIVATE
+    source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common
+    source/lib/common/private source/lib/common/public)
+  target_link_libraries(${name} vc5_decoder vc5_encoder vc5_common common)
+  set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endfunction()
+
+gpr_native_tool(fused_decode_cli source/app/fused_decode_cli.c)
+gpr_native_tool(jans_coeff_bench source/app/jans_coeff_bench.c)
+
+add_library(fused_decode_coeff_io_obj OBJECT source/lib/vc5_decoder/fused_decode.c)
+target_compile_definitions(fused_decode_coeff_io_obj PRIVATE GPR_DEBUG_COEFF_IO=1)
+target_include_directories(fused_decode_coeff_io_obj PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_encoder source/lib/vc5_common
+  source/lib/common/private source/lib/common/public)
+gpr_native_tool(coeff_io_tool source/app/coeff_io_tool.c $<TARGET_OBJECTS:fused_decode_coeff_io_obj>)
+
 include(CTest)
 if(BUILD_TESTING)
+  gpr_native_tool(test_fused_roundtrip source/app/test_fused_decode_roundtrip.c)
+  gpr_native_tool(test_fused_band_roundtrip source/app/test_fused_roundtrip.c)
+  gpr_native_tool(test_edge_sizes source/app/test_edge_sizes.c)
+  gpr_native_tool(test_fused_pool_drop_hp source/app/test_fused_pool_drop_hp.c
+    source/lib/vc5_encoder/fused_encode.c)
+  target_compile_definitions(test_fused_pool_drop_hp PRIVATE PASS2_POOL_FORCE=1)
+  add_test(NAME fused_pool_drop_hp COMMAND test_fused_pool_drop_hp)
+  add_test(NAME fused_edges_split COMMAND test_edge_sizes)
+  set_tests_properties(fused_edges_split PROPERTIES ENVIRONMENT "FUSED_INLINE_TOKENIZE=0")
+  add_test(NAME fused_edges_inline COMMAND test_edge_sizes)
+  set_tests_properties(fused_edges_inline PROPERTIES ENVIRONMENT "FUSED_INLINE_TOKENIZE=1")
   add_executable(test_jans_inline_tail_flush source/app/test_jans_inline_tail_flush.c)
   target_include_directories(test_jans_inline_tail_flush PRIVATE source/lib/vc5_common)
   target_link_libraries(test_jans_inline_tail_flush vc5_common common)
