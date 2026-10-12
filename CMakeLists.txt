@@ -121,6 +121,7 @@ function(gpr_native_tool name source_file)
   set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endfunction()
 
+gpr_native_tool(gvid_preview_rgb_cli source/app/gvid_preview_rgb_cli.c)
 gpr_native_tool(fused_decode_cli source/app/fused_decode_cli.c)
 gpr_native_tool(jans_coeff_bench source/app/jans_coeff_bench.c)
 if(NOT WIN32)
