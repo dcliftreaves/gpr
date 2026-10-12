@@ -54,3 +54,12 @@ jobs:
           python3 tools/test/test_gvid_conformance.py
           bash tools/test/test_gvid_pack.sh
           bash tools/test/test_gvid_metadata.sh
+      - name: Capture regressions
+        run: |
+          python3 tools/test/test_mission1_dma_source_sim.py
+          bash tools/test/test_labs_encoder_bench_cli.sh
+          bash tools/test/test_fused_context_env_capture.sh
+          bash tools/test/test_labs_target_bench_smoke.sh
+          bash tools/test/test_bench_fused_stream_source.sh
+          bash tools/test/test_bench_fused_quality_env.sh
+          bash tools/test/test_mission1_native12_fll2_t2_profile.sh
