@@ -110,6 +110,7 @@ add_subdirectory( "source/app/gpr_tools" )
 
 add_subdirectory( "source/app/compare_quality" )
 add_subdirectory( "source/app/ans_test" )
+add_subdirectory( "source/app/bench_fused" )
 
 function(gpr_native_tool name source_file)
   add_executable(${name} ${source_file} ${ARGN})
@@ -132,6 +133,8 @@ gpr_native_tool(coeff_io_tool source/app/coeff_io_tool.c $<TARGET_OBJECTS:fused_
 
 include(CTest)
 if(BUILD_TESTING)
+  gpr_native_tool(test_video_format source/app/test_video_format.c)
+  add_test(NAME gvid_format COMMAND test_video_format)
   gpr_native_tool(test_fused_roundtrip source/app/test_fused_decode_roundtrip.c)
   gpr_native_tool(test_fused_band_roundtrip source/app/test_fused_roundtrip.c)
   gpr_native_tool(test_edge_sizes source/app/test_edge_sizes.c)
