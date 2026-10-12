@@ -49,3 +49,8 @@ jobs:
           bash tools/test/test_still_matrix.sh
           python3 tools/test/test_still_metadata.py
           python3 tools/test/test_still_matrix_harness.py
+      - name: Container regressions
+        run: |
+          python3 tools/test/test_gvid_conformance.py
+          bash tools/test/test_gvid_pack.sh
+          bash tools/test/test_gvid_metadata.sh
