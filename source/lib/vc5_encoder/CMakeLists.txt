@@ -7,6 +7,11 @@ file( GLOB SRC_FILES "*.c" )
 # get include files
 file( GLOB INC_FILES "*.h" )
 
+# The assembly file preprocesses to an empty unit on non-ARM targets.
+list(APPEND SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/fused_encode_arm64.S")
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/fused_encode_arm64.S"
+    PROPERTIES LANGUAGE C)
+
 # add include files from other folders
 include_directories( "../vc5_common" )
 include_directories( "../common/private" )

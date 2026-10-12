@@ -11,6 +11,7 @@ file( GLOB INC_FILES "*.h" )
 include_directories( "../vc5_common" )
 include_directories( "../common/private" )
 include_directories( "../common/public" )
+include_directories( "../vc5_encoder" )
 
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )

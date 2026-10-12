@@ -23,6 +23,29 @@ else()
   add_definitions(-DNEON=0)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(FUSED_TUNE_CPU "native" CACHE STRING "ARM CPU tuning; empty disables -mcpu")
+  if(FUSED_TUNE_CPU)
+    add_compile_options(-mcpu=${FUSED_TUNE_CPU})
+  endif()
+endif()
+
+option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder" OFF)
+option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)
+option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)
+option(JANS_INLINE_PROFILE_RUNTIME "Enable opt-in entropy profile receipt lines" OFF)
+if(FUSED_LOG_POLYNOMIAL AND NOT NEON)
+  message(FATAL_ERROR "FUSED_LOG_POLYNOMIAL requires NEON")
+endif()
+if(FUSED_TIMING_DETAIL)
+  set(FUSED_TIMING ON)
+endif()
+foreach(flag FUSED_LOG_POLYNOMIAL FUSED_TIMING FUSED_TIMING_DETAIL JANS_INLINE_PROFILE_RUNTIME)
+  if(${flag})
+    add_definitions(-D${flag}=1)
+  endif()
+endforeach()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
@@ -85,6 +108,24 @@ add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
 
+
+function(gpr_native_tool name source_file)
+  add_executable(${name} ${source_file} ${ARGN})
+  target_include_directories(${name} PRIVATE
+    source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common
+    source/lib/common/private source/lib/common/public)
+  target_link_libraries(${name} vc5_decoder vc5_encoder vc5_common common)
+  set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endfunction()
+
+gpr_native_tool(fused_decode_cli source/app/fused_decode_cli.c)
+
+add_library(fused_decode_coeff_io_obj OBJECT source/lib/vc5_decoder/fused_decode.c)
+target_compile_definitions(fused_decode_coeff_io_obj PRIVATE GPR_DEBUG_COEFF_IO=1)
+target_include_directories(fused_decode_coeff_io_obj PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_encoder source/lib/vc5_common
+  source/lib/common/private source/lib/common/public)
+gpr_native_tool(coeff_io_tool source/app/coeff_io_tool.c $<TARGET_OBJECTS:fused_decode_coeff_io_obj>)
 
 
 include(TestBigEndian)
