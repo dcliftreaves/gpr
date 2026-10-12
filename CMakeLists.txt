@@ -8,6 +8,21 @@ set(CMAKE_C_FLAGS "-std=c99")
 # project name
 project( gpr )
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+set(NEON_DEFAULT OFF)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)")
+  set(NEON_DEFAULT ON)
+endif()
+option(NEON "Enable ARM NEON intrinsics" ${NEON_DEFAULT})
+if(NEON)
+  add_definitions(-DNEON=1)
+else()
+  add_definitions(-DNEON=0)
+endif()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
@@ -69,3 +84,12 @@ endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
+
+
+
+include(TestBigEndian)
+test_big_endian(IS_BIG_ENDIAN)
+if(NOT IS_BIG_ENDIAN)
+  target_compile_definitions(dng_sdk PUBLIC qDNGLittleEndian=1)
+  target_compile_definitions(gpr_sdk PUBLIC qDNGLittleEndian=1)
+endif()
