@@ -37,10 +37,29 @@ jobs:
           echo "GPR_TOOLS=$BUILD_DIR/source/app/gpr_tools/gpr_tools" >> "$GITHUB_ENV"
       - name: Test dependencies
         run: python3 -m pip install "numpy>=1.26,<3" "rawpy>=0.21,<1" "tifffile>=2024,<2027"
+      - name: Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libavformat-dev libavutil-dev pkg-config
+      - name: macOS desktop dependencies
+        if: runner.os == 'macOS'
+        run: brew install libraw ffmpeg pkg-config
       - name: Build
         run: |
           cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           cmake --build "$BUILD_DIR" --parallel 4
+      - name: Build desktop tools
+        run: |
+          make -C tools/gpraw
+          if [ "$(uname -s)" = Darwin ]; then
+            make -C tools/gpr2prores GPR_BUILD="$BUILD_DIR"
+          fi
+      - name: Desktop output regressions
+        run: |
+          if [ "$(uname -s)" = Darwin ]; then
+            python3 tools/test/test_desktop_outputs.py
+          else
+            python3 tools/test/test_desktop_outputs.py --wrapper-only
+          fi
       - name: Native regressions
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
       - name: Stills regressions
