@@ -30,7 +30,7 @@ def main():
         parser.error("full desktop test requires macOS; use --wrapper-only elsewhere")
     build = Path(os.environ.get("BUILD_DIR", ROOT / "build")).resolve()
     env = {k: v for k, v in os.environ.items() if not k.startswith(("GPR_", "FUSED_"))}
-    with tempfile.TemporaryDirectory(prefix="gpr-desktop-") as directory:
+    with tempfile.TemporaryDirectory(prefix="gpr desktop ") as directory:
         work = Path(directory)
         raw, clip = work / "frame.raw", work / "clip.gvid"
         samples = array.array("H", (1024 + (x * 11 + y * 7) % 12000
@@ -54,10 +54,10 @@ def main():
         for index, payload in enumerate(payloads):
             (frames / f"frame_{index:04d}.gpr").write_bytes(payload)
         wrapped, unpacked = work / "wrapped.mov", work / "unpacked"
-        run(ROOT / "tools/gpraw/gpraw_pack", "--fps", 24, "--quality", 3,
+        run(ROOT / "tools/gvid_mov/gvid_mov_pack", "--fps", 24, "--quality", 3,
             "--bit-depth", 16, "--black-level", 0, "--white-level", 65535,
             frames, wrapped)
-        run(ROOT / "tools/gpraw/gpraw_unpack", wrapped, unpacked)
+        run(ROOT / "tools/gvid_mov/gvid_mov_unpack", wrapped, unpacked)
         assert [p.read_bytes() for p in sorted(unpacked.glob("*.gpr"))] == payloads
         print("PASS: MOV wrapper preserves both freshly encoded payloads")
         if args.wrapper_only:
@@ -76,7 +76,7 @@ def main():
         assert int(stream["nb_read_frames"]) == 2, stream
         assert stream["avg_frame_rate"] == "24/1", stream
         print("PASS: GVID renders two ProRes frames at the requested timebase")
-        compat, compat_frames = work / "compat.gpraw", work / "compat_frames"
+        compat, compat_frames = work / "compat.mov", work / "compat_frames"
         meta_dir = work / "metadata"
         meta_dir.mkdir()
         for index in range(2):
@@ -86,6 +86,35 @@ def main():
         run(mov_tool, "unpack", compat, compat_frames)
         assert [p.read_bytes() for p in sorted(compat_frames.glob("*.gpr"))] == payloads
         print("PASS: macOS MOV companion preserves both payloads")
+        for source, reader, destination in (
+                (compat, ROOT / "tools/gvid_mov/gvid_mov_unpack", work / "portable cross"),
+                (wrapped, mov_tool, work / "desktop cross")):
+            command = [reader, source, destination]
+            if reader == mov_tool:
+                command.insert(1, "unpack")
+            run(*command)
+            assert [p.read_bytes() for p in sorted(destination.glob("*.gpr"))] == payloads
+        print("PASS: both MOV sample tags roundtrip through the other frontend")
+        legacy = work / "header sniff.legacy"
+        shutil.copyfile(wrapped, legacy)
+        for source in (wrapped, compat, legacy):
+            rendered = work / f"rendered {source.name}.mov"
+            run(ROOT / "tools/gpr2prores/gpr2prores", "--meta-dng", metadata,
+                "--no-cnn", "--demosaic", "core-image", "--out-resolution", "2k",
+                "--fps", 24, source, rendered, env=env)
+            info = json.loads(run("ffprobe", "-v", "error", "-count_frames",
+                                  "-select_streams", "v:0", "-show_streams", "-of", "json", rendered))
+            video, = info["streams"]
+            assert video["codec_name"] == "prores" and int(video["nb_read_frames"]) == 2, video
+            assert video["avg_frame_rate"] == "24/1", video
+            assert (video["width"], video["height"]) == (stream["width"], stream["height"]), video
+        for reader in (ROOT / "tools/gvid_mov/gvid_mov_unpack", mov_tool):
+            command = [str(reader), str(output), str(work / "not raw")]
+            if reader == mov_tool:
+                command.insert(1, "unpack")
+            rejected = subprocess.run(command, capture_output=True, text=True, timeout=30)
+            assert rejected.returncode != 0, "non-RAW ProRes must not be accepted as RAW packets"
+        print("PASS: MOV rendering, paths with spaces, header sniffing and non-RAW rejection")
     return 0
 
 

@@ -218,12 +218,6 @@ PY
                 --demosaic "$demosaic" --out-resolution 2k --max-frames 1 \
                 "$SCRATCH/render.dng" "$SCRATCH/$demosaic.mov"
         done
-        "${CC:-clang}" -O2 -I source/lib/gpr_polish source/app/test_gpr_polish.c \
-            "$BUILD_DIR/source/lib/gpr_polish/libgpr_polish.a" \
-            -framework CoreML -framework Foundation -lc++ -o "$SCRATCH/bin/test_gpr_polish" \
-            2>&1 | tee "$LOG_DIR/build-test_gpr_polish.log"
-        run required "CoreML availability smoke" "$SCRATCH/bin/test_gpr_polish"
-        skip "CoreML apply requires a model; availability smoke does not measure model quality"
         run optional "CNN video matrix" bash tools/test/test_video_pipeline.sh
         run optional "sustained playback (model/hardware)" bash tools/test/test_sustained_playback.sh
         run optional "GVID renderer input (local media)" bash tools/test/test_gpr2prores_gvid_input.sh

@@ -22,12 +22,14 @@ for feature in stills preview desktop; do
     git -C "$WORK/source" -c user.name='Adoption Test' \
       -c user.email='adoption@example.invalid' cherry-pick "${commits[@]}"
   fi
-  # Supply only test drivers from this companion branch, never runtime code.
+  # Historical checkpoints use their matching drivers, never runtime shims.
   mkdir -p "$WORK/source/tools/test" "$WORK/source/tests"
-  for driver in test_still_metadata.py test_native_preview.py test_desktop_outputs.py test_bayer_resample.py; do
+  for driver in test_still_metadata.py test_native_preview.py test_bayer_resample.py; do
     cp "$REPO/tools/test/$driver" "$WORK/source/tools/test/"
   done
-  cp "$REPO/tests/test_reconstruction_models.py" "$WORK/source/tests/"
+  for driver in tools/test/test_desktop_outputs.py tests/test_reconstruction_models.py; do
+    git -C "$REPO" show "a956fcd52e21874177840a95f0ad52090cf4895c:$driver" > "$WORK/source/$driver"
+  done
   export BUILD_DIR="$WORK/build-$feature"
   export GPR_TOOLS="$BUILD_DIR/source/app/gpr_tools/gpr_tools"
   cmake -S "$WORK/source" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
@@ -39,7 +41,14 @@ for feature in stills preview desktop; do
     elif [ "$feature" = preview ]; then
       "$PYTHON_BIN" tools/test/test_native_preview.py
     else
-      make -C tools/gpraw
+      wrappers=0
+      for makefile in tools/*/Makefile; do
+        if grep -q 'BINS = .*_pack .*_unpack' "$makefile"; then
+          make -C "$(dirname "$makefile")"
+          wrappers=$((wrappers + 1))
+        fi
+      done
+      test "$wrappers" -eq 1
       if [ "$(uname -s)" = Darwin ]; then
         make -C tools/gpr2prores GPR_BUILD="$BUILD_DIR"
         "$PYTHON_BIN" tools/test/test_desktop_outputs.py

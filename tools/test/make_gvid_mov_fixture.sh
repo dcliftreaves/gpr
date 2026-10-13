@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# make_gpraw_fixture.sh — turn a directory of DNGs (or NEFs via DNG Converter)
+# make_gvid_mov_fixture.sh — turn a directory of DNGs (or NEFs via DNG Converter)
 # into a 24-frame .mov container playable by gpr2prores.
 #
 # This is the recipe used to build the BarnAndSky daytime fixture used by

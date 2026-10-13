@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 PERSONAL_PATH = re.compile(r"/(?:Volumes|Users)/|/home/(?:pi)(?:/|\b)|192\.168\.\d+\.\d+")
 LINK = re.compile(r"!?\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+[^)]*)?\)")
-MEDIA = {".ckpt", ".dng", ".gpr", ".gpraw", ".gvid", ".html", ".jpeg", ".jpg",
+MEDIA = {".ckpt", ".dng", ".gpr", ".gvid", ".html", ".jpeg", ".jpg",
          ".mlmodel", ".mov", ".mp4", ".npy", ".npz", ".png", ".pt", ".pth",
          ".raw", ".tif", ".tiff", ".onnx"}
 ASSETS = ("docs/img/*", "data/readmegfx/*.png", "data/samples/*/*.GPR",
