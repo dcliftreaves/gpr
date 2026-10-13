@@ -137,6 +137,7 @@
 }
 
 - (void)dealloc {
+    if (_exifFp) { fclose(_exifFp); _exifFp = NULL; }
     if (_fmtCtx) {
         if (_wroteHeader) av_write_trailer(_fmtCtx);
         if (!(_fmtCtx->oformat->flags & AVFMT_NOFILE)) avio_closep(&_fmtCtx->pb);

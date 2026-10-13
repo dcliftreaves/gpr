@@ -80,7 +80,8 @@ wrapper. Build that wrapper against system FFmpeg development libraries
 `--mov-pack` can select its location. No third MOV writer is used.
 
 ```sh
-bash /path/to/gpr-product-validation/tools/test/test_ffmpeg_integration.sh \
+# From the companion validation checkout:
+bash tools/test/test_ffmpeg_integration.sh \
   --runtime-root "$GPR_ROOT" --build "$GPR_BUILD" \
   --scratch-parent "${RUNNER_TEMP:-/tmp}" --jobs 3 --build-timeout 1800
 ```
@@ -94,4 +95,5 @@ dimensions, frame counts, CFA, bit depth and bytes with `fused_decode_cli`.
 It also checks bad packets, mismatched MOV dimensions, both tags, PNG and
 ProRes. Each command has a timeout; the FFmpeg build timeout is capped at
 3600 seconds. Failed runs retain scratch artifacts; `--keep` retains successful
-runs too. This test is opt-in and does not change CI workflows.
+runs too. It can run standalone and is included in the companion validation
+PR's LinuxDebug CI job.
