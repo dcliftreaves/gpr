@@ -3,7 +3,7 @@
 #
 # Sustained-fps regression test for UHD playback.
 #
-# Builds a 24-frame .gpraw fixture from synthesized 50 MP Z8-shaped DNGs,
+# Builds a 24-frame .mov fixture from synthesized 50 MP Z8-shaped DNGs,
 # plays it through gpr2prores twice (with BIBO_1x CNN and again with
 # --no-cnn), parses `effective fps=` out of the DONE line, and asserts
 # both runs clear the configured thresholds (24 fps by default).
@@ -152,16 +152,16 @@ DNG_COUNT=$(ls "$DNG_DIR"/*.dng 2>/dev/null | wc -l | tr -d ' ')
 echo "  ${DNG_COUNT} DNGs ready in $DNG_DIR"
 [ "$DNG_COUNT" -eq "$FRAMES" ] || { echo "ERROR: expected $FRAMES DNGs got $DNG_COUNT" >&2; exit 1; }
 
-# ---- 2. Build the .gpraw fixture via the production recipe ----------------
+# ---- 2. Build the .mov fixture via the production recipe ----------------
 # Re-use the production recipe with a unique child scratch directory.
 echo
-echo "==> building ${FRAMES}-frame .gpraw fixture via make_gpraw_fixture.sh"
+echo "==> building ${FRAMES}-frame .mov fixture via make_gvid_mov_fixture.sh"
 FIXTURE_MOV="$WORK/fixture.mov"
 FIX_WORK="$WORK/fixture_scratch"
 mkdir -p "$FIX_WORK"
 WORK="$FIX_WORK" FRAMES="$FRAMES" FPS=24 \
     BUILD_DIR="$BUILD_DIR" GTOOLS="$GTOOLS" BENCH="$BENCH" MOV="$MOV" PY="$PY" \
-    bash "$REPO/tools/test/make_gpraw_fixture.sh" "$DNG_DIR" "$FIXTURE_MOV" \
+    bash "$REPO/tools/test/make_gvid_mov_fixture.sh" "$DNG_DIR" "$FIXTURE_MOV" \
     > "$WORK/fixture_build.log" 2>&1 \
     || { echo "ERROR: fixture build failed; tail of log:" >&2
          tail -n 30 "$WORK/fixture_build.log" >&2; exit 2; }

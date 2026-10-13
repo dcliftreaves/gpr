@@ -27,7 +27,7 @@ DEFAULT_INCLUDE = (
     "pipelines",
     "tests/quality_gates",
     "tools/cnn",
-    "tools/gpraw",
+    "tools/gvid_mov",
     "tools/gpr2prores",
     "tools/gvid_metadata.py",
     "tools/gvid_pack.py",

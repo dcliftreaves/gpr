@@ -7,7 +7,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools/cnn"))
 import train_bayer_rgb_target_cleanup as cleanup
-import train_mission1_sr as sr
+import mission1_sr_models as sr
 
 
 class ReconstructionModels(unittest.TestCase):

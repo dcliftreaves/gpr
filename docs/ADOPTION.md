@@ -37,7 +37,10 @@ cmake --build build --parallel 4
 
 From the validation branch, `bash tools/test/test_feature_adoption.sh`
 builds stills alone, preview without capture, and desktop tools without either
-camera component, then adds reconstruction. Test drivers are copied into
+camera component, then adds reconstruction. Historical desktop and model
+drivers are pinned to the archive revision matching those checkpoints;
+current interoperability and inference tests run separately on the full tree.
+Test drivers are copied into
 disposable production worktrees; no runtime implementation is copied from
 the testing branch. Temporary data stays under `TMPDIR`.
 
@@ -49,3 +52,25 @@ between synthetic tests, trained-model gates, and actual hardware evidence.
 
 The unsplit review remains at `archive/review/human-feature-series` (`1553708`), and
 older experiments remain on `archive/research-and-integration-2026-09-09`.
+
+## Feature Cohesion
+
+The pre-cleanup tree is preserved at
+`archive/before-feature-cohesion-2026-10-13` (`a956fcd`).
+
+| Area | Current disposition | Verification boundary |
+|---|---|---|
+| Still SDK, metadata and high-bit-depth Bayer | Production | Synthetic roundtrips and metadata tests; camera corpus is separate |
+| Fused codec, GVID, capture and native preview | Production | Native, container and source-simulator tests; no Mission 1 firmware claim |
+| Selected restoration and SR | Production inference helpers separated from training/benchmark names | Synthetic model contracts do not replace approved checkpoint gates |
+| MOV and ProRes | Production; portable reader shared by both frontends | Cross-frontend payload tests and macOS rendering |
+| FFmpeg decoder | Retained optional integration pinned to FFmpeg n8.0 | Fresh Bayer encode, MOV wrap, native-vs-FFmpeg decode, image/ProRes export and malformed headers |
+| Standalone CoreML polish API | Archived; no selected model or production caller | Removed rather than implying its availability test exercised inference |
+| Detail-residual sidecar experiment | Validation only | Not part of selected GVID or reconstruction formats |
+
+`tools/test/audit_feature_coverage.py` inventories changed source against exact
+commits. LinuxRelease collects native and Python execution coverage in the
+existing CI job and uploads `coverage/feature-coverage.json`. Static caller
+references are hints, not execution evidence. Uninstrumented backends remain
+UNKNOWN; zero coverage is a reason to investigate, not automatic permission to
+delete a public API. Instrumented timings are not performance receipts.
