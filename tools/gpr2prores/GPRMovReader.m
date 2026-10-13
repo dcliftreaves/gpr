@@ -81,7 +81,8 @@
         _readFailed = rc != AVERROR_EOF;
         return nil;
     }
-    if (outExif) *outExif = [self nextExifFromSidecar];
+    DNGExifInfo *exif = [self nextExifFromSidecar];
+    if (outExif) *outExif = exif;
     if (_readFailed) return nil;
     return [NSData dataWithBytes:bytes length:length];
 }
