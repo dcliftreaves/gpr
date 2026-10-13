@@ -75,3 +75,17 @@ existing CI job and uploads `coverage/feature-coverage.json`. Static caller
 references are hints, not execution evidence. Uninstrumented backends remain
 UNKNOWN; zero coverage is a reason to investigate, not automatic permission to
 delete a public API. Instrumented timings are not performance receipts.
+
+Read coverage by scope: LinuxRelease measures CPU C/C++ and Python execution;
+macOS rendering and the patched FFmpeg integration run in the other jobs without
+line instrumentation. Metal/ARM assembly, supplied model exports, and camera
+hardware are not covered by that Linux report. Declaration-only headers and
+build scripts can also be UNKNOWN without being abandoned. The capability
+report marks instrumented timing/RSS as PARTIAL while still enforcing quality
+and size; uninstrumented jobs retain their normal performance criteria.
+
+The shared Python GVID indexer scans headers without loading payloads; preview
+uses the same parser and v1 checks. Cross-frontend MOV tests cover sparse EXIF,
+truncated packets and sidecars, and stale metadata on overwrite. None of these
+synthetic regressions substitutes for the external trained-model gates or a
+new Pi/Mission 1 performance run.
