@@ -123,7 +123,7 @@ static int do_pack(NSString *inDir, NSString *outPath, int fps,
         total += d.length;
         idx++;
     }
-    [w finish];
+    if ([w finish] != 0) errs++;
     fprintf(stderr, "pack: %d frames, %zu bytes payload → %s%s\n",
             idx, total, [outPath UTF8String], errs ? " (with errors)" : "");
     return errs ? 2 : 0;
@@ -131,7 +131,12 @@ static int do_pack(NSString *inDir, NSString *outPath, int fps,
 
 static int do_unpack(NSString *inPath, NSString *outDir, NSString *prefix) {
     NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:outDir]) [fm createDirectoryAtPath:outDir withIntermediateDirectories:YES attributes:nil error:nil];
+    BOOL isDirectory = NO;
+    if ([fm fileExistsAtPath:outDir isDirectory:&isDirectory]) {
+        if (!isDirectory) return 1;
+    } else if (![fm createDirectoryAtPath:outDir withIntermediateDirectories:YES attributes:nil error:nil]) {
+        return 1;
+    }
     GPRMovInfo info = {0};
     GPRMovReader *r = [[GPRMovReader alloc] initWithPath:inPath info:&info];
     if (!r) return 1;
@@ -141,11 +146,14 @@ static int do_unpack(NSString *inPath, NSString *outDir, NSString *prefix) {
         if (!d) break;
         NSString *out = [outDir stringByAppendingPathComponent:
                             [NSString stringWithFormat:@"%@_%03d.gpr", prefix, idx]];
-        [d writeToFile:out atomically:NO];
+        if (![d writeToFile:out atomically:NO]) {
+            fprintf(stderr, "unpack: cannot write %s\n", out.UTF8String);
+            return 1;
+        }
         idx++;
     }
     fprintf(stderr, "unpack: %d frames → %s\n", idx, [outDir UTF8String]);
-    return 0;
+    return r.readFailed || idx == 0 || (info.numFrames > 0 && idx != info.numFrames) ? 1 : 0;
 }
 
 static int do_info(NSString *inPath) {
@@ -178,7 +186,7 @@ static int do_info(NSString *inPath) {
                     firstExif.asShotNeutral[2].doubleValue);
         }
     }
-    return 0;
+    return r.readFailed || nFrames == 0 || (info.numFrames > 0 && nFrames != info.numFrames) ? 1 : 0;
 }
 
 int main(int argc, const char *argv[]) {

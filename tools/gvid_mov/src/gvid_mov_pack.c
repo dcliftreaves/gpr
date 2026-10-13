@@ -1,10 +1,10 @@
-/* gpraw_pack — directory-of-.gpr → single .mov GPRaw container.
+/* gvid_mov_pack — directory-of-.gpr → single .mov GVIDMov container.
  *
  * Usage:
- *   gpraw_pack [options] INPUT_DIR OUTPUT.mov
+ *   gvid_mov_pack [options] INPUT_DIR OUTPUT.mov
  *
  *   INPUT_DIR     directory containing .gpr files; sorted lexically.
- *   OUTPUT.mov    GPRaw-format MOV.
+ *   OUTPUT.mov    GVIDMov-format MOV.
  *
  * Options (all have defaults):
  *   --fps N            output frame rate            (default 24)
@@ -26,7 +26,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 
-#include "gpraw.h"
+#include "gvid_mov.h"
 
 #include <dirent.h>
 #include <stdio.h>
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "no .gpr files in %s\n", in_dir);
         return 1;
     }
-    fprintf(stderr, "gpraw_pack: %d frames from %s\n", n_files, in_dir);
+    fprintf(stderr, "gvid_mov_pack: %d frames from %s\n", n_files, in_dir);
 
     /* Determine output dims from first file unless overridden. */
     size_t first_n = 0;
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
     if (h_override) dim_h = h_override;
     fprintf(stderr, "  output dims: %dx%d  fps=%d\n", dim_w, dim_h, fps);
 
-    GPRaw_Metadata meta = {
+    GVIDMov_Metadata meta = {
         .codec_version    = codec_version,
         .quality          = quality,
         .cfa_pattern      = cfa,
@@ -197,26 +197,26 @@ int main(int argc, char **argv) {
         .color_matrix     = NULL,
     };
 
-    GPRaw_Writer *w = gpraw_writer_create(out_path, dim_w, dim_h, fps, 1, &meta);
+    GVIDMov_Writer *w = gvid_mov_writer_create(out_path, dim_w, dim_h, fps, 1, &meta);
     if (!w) { fprintf(stderr, "writer_create failed\n"); free(first); return 1; }
 
     /* First frame uses the already-loaded buffer. */
-    int rc = gpraw_writer_add_frame(w, first, first_n, 0, NULL);
+    int rc = gvid_mov_writer_add_frame(w, first, first_n, 0, NULL);
     free(first);
-    if (rc < 0) { gpraw_writer_close(w); return 1; }
+    if (rc < 0) { gvid_mov_writer_close(w); return 1; }
 
     for (int i = 1; i < n_files; i++) {
         size_t sz = 0;
         uint8_t *buf = slurp(paths[i], &sz);
-        if (!buf) { fprintf(stderr, "read fail: %s\n", paths[i]); gpraw_writer_close(w); return 1; }
+        if (!buf) { fprintf(stderr, "read fail: %s\n", paths[i]); gvid_mov_writer_close(w); return 1; }
         int64_t ts_ns = (int64_t)i * 1000000000LL / fps;
-        rc = gpraw_writer_add_frame(w, buf, sz, ts_ns, NULL);
+        rc = gvid_mov_writer_add_frame(w, buf, sz, ts_ns, NULL);
         free(buf);
-        if (rc < 0) { fprintf(stderr, "add_frame %d failed\n", i); gpraw_writer_close(w); return 1; }
+        if (rc < 0) { fprintf(stderr, "add_frame %d failed\n", i); gvid_mov_writer_close(w); return 1; }
         if ((i % 25) == 0) fprintf(stderr, "  ... %d/%d\n", i + 1, n_files);
     }
-    gpraw_writer_close(w);
-    fprintf(stderr, "gpraw_pack: wrote %s  (%d frames)\n", out_path, n_files);
+    if (gvid_mov_writer_close(w) < 0) return 1;
+    fprintf(stderr, "gvid_mov_pack: wrote %s  (%d frames)\n", out_path, n_files);
 
     for (int i = 0; i < n_files; i++) free(paths[i]);
     free(paths);

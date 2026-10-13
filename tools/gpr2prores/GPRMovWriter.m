@@ -30,7 +30,7 @@
     int _fps;
     BOOL _wroteHeader;
 
-    // EXIF sidecar file (e.g. "clip.gpraw.exif") — appended per-frame as
+    // EXIF sidecar file (e.g. "clip.mov.exif") — appended per-frame as
     // length-prefixed GEXF blobs. The MOV muxer doesn't reliably preserve
     // codec_tag on data streams, so a sidecar is the simplest robust path.
     // Layout: "GEX0" magic (4) + repeat { uint32_le len; bytes }.
@@ -421,11 +421,11 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
     int rc = [self writeVideoPacket:bytes length:length];
     if (rc != 0) return rc;
 
-    if (_tstream) (void)[self writeTimecodePacket];
-    if (_astream) (void)[self writeAudioForFrame];
+    if (_tstream && [self writeTimecodePacket] != 0) return -1;
+    if (_astream && [self writeAudioForFrame] != 0) return -1;
     if (exif) {
         NSData *blob = [DNGExif serialize:exif];
-        if (blob) (void)[self writeExifBlob:blob];
+        if (!blob || [self writeExifBlob:blob] != 0) return -1;
     }
 
     _pts++;
@@ -434,22 +434,23 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
 
 - (int)finish {
     if (!_fmtCtx) return 0;
+    int status = 0;
     // Flush any remaining audio bytes.
     if (_astream && _pcmData) {
         int64_t totalSamples = (int64_t)_pcmData.length / (_audioChannels * 2);
         while (_audioSamplesWritten < totalSamples) {
-            if ([self writeAudioForFrame] != 0) break;
+            if ([self writeAudioForFrame] != 0) { status = -1; break; }
         }
     }
     if (_wroteHeader) {
-        av_write_trailer(_fmtCtx);
+        if (av_write_trailer(_fmtCtx) < 0) status = -1;
         _wroteHeader = NO;
     }
-    if (!(_fmtCtx->oformat->flags & AVFMT_NOFILE)) avio_closep(&_fmtCtx->pb);
+    if (!(_fmtCtx->oformat->flags & AVFMT_NOFILE) && avio_closep(&_fmtCtx->pb) < 0) status = -1;
     avformat_free_context(_fmtCtx);
     _fmtCtx = NULL;
-    if (_exifFp) { fclose(_exifFp); _exifFp = NULL; }
-    return 0;
+    if (_exifFp) { if (fclose(_exifFp) != 0) status = -1; _exifFp = NULL; }
+    return status;
 }
 
 @end

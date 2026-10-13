@@ -65,8 +65,11 @@ gpr2prores: $(OBJS) Demosaic.metallib $(GPR_LIBS)
 	$(CC) $(OBJS) $(GPR_LIBS) $(LDFLAGS) -o $@
 
 # gpr_mov_tool: pack/unpack a sequence of .gpr files into a custom-tagged MOV.
-gpr_mov_tool: gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o $(GPR_LIBS)
+gpr_mov_tool: gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o gvid_mov.o $(GPR_LIBS)
 	$(CC) $^ $(LDFLAGS) $(FFMPEG_LIBS) -o $@
+
+gvid_mov.o: ../gvid_mov/src/gvid_mov.c ../gvid_mov/include/gvid_mov.h
+	$(CC) -O2 -g -Wall -std=c11 $(FFMPEG_CFLAGS) -I../gvid_mov/include -c $< -o $@
 
 %.o: %.m
 	$(CC) $(CFLAGS) -c $< -o $@

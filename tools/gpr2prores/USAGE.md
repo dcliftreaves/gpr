@@ -34,7 +34,7 @@ tools/gpr2prores/gpr2prores --meta-dng sample.dng \
 ```
 
 Inputs: a single `.gpr` or `.dng`, a directory of either (sorted by filename),
-`.gvid`, or GPRaw `.mov`/`.gpraw`/`.gprv`. Containers unpack to temporary
+`.gvid`, or a GPRr/GPR1-tagged `.mov`. Containers unpack to temporary
 frame directories. GPR/container inputs require source DNG metadata through
 `--meta-dng` unless a companion DNG is discovered. DNG input provides its own
 metadata and performs an encode/decode round trip unless `--no-codec` is given.
@@ -78,14 +78,23 @@ Metal and MPSGraph loaders; ANE weights include folded batch normalization.
 ## MOV Companion
 
 ```sh
-tools/gpr2prores/gpr_mov_tool pack frames clip.gpraw --fps 24 \
+tools/gpr2prores/gpr_mov_tool pack frames clip.mov --fps 24 \
   --tc-start 01:00:00:00 --meta-dir dngs --audio audio.wav
-tools/gpr2prores/gpr_mov_tool info clip.gpraw
-tools/gpr2prores/gpr_mov_tool unpack clip.gpraw unpacked --prefix frame
+tools/gpr2prores/gpr_mov_tool info clip.mov
+tools/gpr2prores/gpr_mov_tool unpack clip.mov unpacked --prefix frame
 ```
 
-Pack/unpack preserves GPR payloads. For patched FFmpeg decoding, see
-[gpraw_codec](../gpraw_codec/README.md).
+Pack/unpack preserves GPR payloads. Both MOV frontends share the portable
+reader and accept `GPRr` and `GPR1` sample tags. The macOS writer adds optional
+audio/timecode and a sibling `.exif` file; the portable
+[GVID MOV wrapper](../gvid_mov/README.md) offers rational frame rates and
+track metadata. Keep MOV wrappers named `.mov`, not `.gvid`: the capture
+stream and MOV have different framing.
+
+Unpacking exports encoded frames, not audio or a reconstructed DNG metadata
+set. Rendering still requires `--meta-dng`; it does not silently recover
+white balance from the MOV's EXIF sidecar. For patched FFmpeg decoding, see
+[gvid_codec](../gvid_codec/README.md).
 
 ## Adoption
 

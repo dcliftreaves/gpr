@@ -5,7 +5,7 @@
 //   ftyp + moov (track header for a "data" stream with codec_tag='GPR1')
 //   + optional timecode (tmcd) track
 //   + optional audio track (PCM s16le or copied AAC)
-//   + optional sidecar "metadata" track carrying per-frame EXIF (GEXF blobs).
+//   + optional external .exif sidecar carrying per-frame EXIF (GEXF blobs).
 //   mdat (concatenated AVPackets, one per frame, payload = raw .gpr bytes)
 //
 // The video codec_id is AV_CODEC_ID_NONE; only the 4cc codec_tag distinguishes
@@ -45,8 +45,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (int)appendEncodedBytes:(const uint8_t *)bytes length:(size_t)length;
 
 // Append one encoded frame with attached per-frame EXIF metadata. The EXIF
-// is serialized via [DNGExif serialize:] and written as a GEXF packet on a
-// sidecar metadata stream that this writer auto-adds on first call.
+// is serialized via [DNGExif serialize:] into a sibling .exif file.
+// Keep that file beside the MOV when copying a recording.
 - (int)appendEncodedBytes:(const uint8_t *)bytes
                    length:(size_t)length
                      exif:(nullable DNGExifInfo *)exif;

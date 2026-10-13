@@ -35,7 +35,7 @@ jobs:
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.type }}
           cmake --build build --parallel 4
-          if [ -f tools/gpraw/Makefile ]; then make -C tools/gpraw; fi
+          if [ -f tools/gvid_mov/Makefile ]; then make -C tools/gvid_mov; fi
           if [ "$(uname -s)" = Darwin ] && [ -f tools/gpr2prores/Makefile ]; then
             make -C tools/gpr2prores GPR_BUILD="$PWD/build"
           fi

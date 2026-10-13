@@ -14,10 +14,21 @@
 #import <Metal/Metal.h>
 #import <limits.h>
 #import <sys/statvfs.h>
+#include <string.h>
 #import "DNGReader.h"
 #import "GPRPipeline.h"
 
 #define GPR2PRORES_VERSION "1.0.0"
+
+static BOOL hasMOVSignature(NSString *path) {
+    FILE *file = fopen(path.fileSystemRepresentation, "rb");
+    if (!file) return NO;
+    unsigned char header[8];
+    size_t count = fread(header, 1, sizeof(header), file);
+    fclose(file);
+    // Recognize archived MOV wrappers without depending on their old suffixes.
+    return count == sizeof(header) && memcmp(header + 4, "ftyp", 4) == 0;
+}
 
 static void print_version(void) {
     fprintf(stdout, "gpr2prores %s\n", GPR2PRORES_VERSION);
@@ -35,7 +46,7 @@ static void print_usage(FILE *out) {
         "  .gpr file or directory of .gpr files (playback mode)\n"
         "  .dng file or directory of .dng files (encode+playback)\n"
         "  .gvid container (neutral raw-video stream; auto-unpacked)\n"
-        "  .mov / .gpraw / .gprv container (GPR1-tagged MOV; auto-unpacked)\n"
+        "  .mov container (GPRr/GPR1-tagged MOV; auto-unpacked)\n"
         "\n"
         "REQUIRED OPTIONS:\n"
         "  --meta-dng PATH     DNG to source color/wb/black/white metadata from\n"
@@ -83,8 +94,8 @@ static void print_usage(FILE *out) {
         "  # Run on neutral GVID container (auto-unpacks)\n"
         "  gpr2prores --meta-dng src.dng clip.gvid $TMPDIR/out.mov\n"
         "\n"
-        "  # Run on packed GPRaw container (auto-unpacks)\n"
-        "  gpr2prores --meta-dng src.dng clip.gpraw $TMPDIR/out.mov\n",
+        "  # Run on a GVID MOV wrapper (auto-unpacks)\n"
+        "  gpr2prores --meta-dng src.dng clip.mov $TMPDIR/out.mov\n",
         GPR2PRORES_VERSION);
 }
 
@@ -519,13 +530,10 @@ int main(int argc, const char *argv[]) {
             inputPath = gvidUnpackDir;
         }
 
-        // MOV container input: .mov / .gpraw / .gprv are all aliases for a MOV
-        // file with a GPR1-tagged track. Unpack to a temp dir up front (fast —
+        // MOV container input with a GPRr/GPR1 track. Unpack to a temp dir (fast —
         // mostly memcpy from the mmap'd MOV) and treat as a .gpr dir from there.
         NSString *movExt = [inputPath.lowercaseString pathExtension];
-        BOOL isMovContainer = [movExt isEqualToString:@"mov"]
-                           || [movExt isEqualToString:@"gpraw"]
-                           || [movExt isEqualToString:@"gprv"];
+        BOOL isMovContainer = [movExt isEqualToString:@"mov"] || hasMOVSignature(inputPath);
         NSString *movUnpackDir = nil;
         if (isMovContainer) {
             if (![[NSFileManager defaultManager] fileExistsAtPath:inputPath]) {
@@ -547,10 +555,15 @@ int main(int argc, const char *argv[]) {
                 else movTool = @"gpr_mov_tool";
             }
             NSTask *task = [NSTask new];
-            task.launchPath = @"/bin/sh";
-            task.arguments = @[@"-c",
-                [NSString stringWithFormat:@"%@ unpack %@ %@", movTool, inputPath, movUnpackDir]];
-            [task launch]; [task waitUntilExit];
+            task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/env"];
+            task.arguments = @[movTool, @"unpack", inputPath, movUnpackDir];
+            NSError *launchError = nil;
+            if (![task launchAndReturnError:&launchError]) {
+                fprintf(stderr, "error: cannot launch MOV unpacker: %s\n",
+                        launchError.localizedDescription.UTF8String);
+                return 1;
+            }
+            [task waitUntilExit];
             if (task.terminationStatus != 0) {
                 fprintf(stderr, "error: gpr_mov_tool unpack failed (status %d) for %s\n",
                         task.terminationStatus, [inputPath UTF8String]);

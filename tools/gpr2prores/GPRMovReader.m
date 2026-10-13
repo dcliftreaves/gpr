@@ -1,145 +1,95 @@
-// GPRMovReader.m — libavformat-backed MOV reader for GPR-frame streams.
-
+// MOV reader adapter: shared portable payload parsing plus optional EXIF sidecar.
 #import "GPRMovReader.h"
 #import "DNGExif.h"
-
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-
-#define GPR_FOURCC  MKTAG('G','P','R','1')
-#define TMCD_FOURCC MKTAG('t','m','c','d')
+#include "../gvid_mov/include/gvid_mov.h"
+#include <libavutil/error.h>
+#include <string.h>
 
 @implementation GPRMovReader {
-    AVFormatContext *_fmtCtx;
-    int _vstreamIdx;
-    int _astreamIdx;
-    int _tstreamIdx;
-    // EXIF sidecar (sibling .exif file): one length-prefixed GEXF blob per frame.
+    GVIDMov_Reader *_reader;
     NSData *_exifSidecar;
     size_t _exifSidecarOff;
-    int _exifFrameIdx;
+    BOOL _readFailed;
 }
 
 - (nullable instancetype)initWithPath:(NSString *)path info:(GPRMovInfo *)info {
     self = [super init];
     if (!self) return nil;
-    const char *cpath = [path UTF8String];
-    _vstreamIdx = _astreamIdx = _tstreamIdx = -1;
-
-    if (avformat_open_input(&_fmtCtx, cpath, NULL, NULL) < 0) {
-        fprintf(stderr, "GPRMovReader: open %s failed\n", cpath);
-        return nil;
-    }
-    if (avformat_find_stream_info(_fmtCtx, NULL) < 0) {
-        avformat_close_input(&_fmtCtx);
-        return nil;
-    }
-    for (unsigned i = 0; i < _fmtCtx->nb_streams; i++) {
-        AVStream *s = _fmtCtx->streams[i];
-        uint32_t tag = s->codecpar->codec_tag;
-        if (tag == GPR_FOURCC) _vstreamIdx = (int)i;
-        else if (tag == TMCD_FOURCC) _tstreamIdx = (int)i;
-        else if (s->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) _astreamIdx = (int)i;
-    }
-    if (_vstreamIdx < 0) {
-        fprintf(stderr, "GPRMovReader: no GPR1-tagged stream in %s\n", cpath);
-        avformat_close_input(&_fmtCtx);
-        return nil;
-    }
-
-    // Try to load the EXIF sidecar (<path>.exif).
+    _reader = gvid_mov_reader_open(path.fileSystemRepresentation);
+    if (!_reader) return nil;
     NSString *exifPath = [path stringByAppendingPathExtension:@"exif"];
-    BOOL hasExif = NO;
     if ([[NSFileManager defaultManager] fileExistsAtPath:exifPath]) {
-        _exifSidecar = [NSData dataWithContentsOfFile:exifPath options:NSDataReadingMappedAlways error:nil];
-        if (_exifSidecar.length >= 4 && memcmp(_exifSidecar.bytes, "GEX0", 4) == 0) {
-            _exifSidecarOff = 4;
-            _exifFrameIdx = 0;
-            hasExif = YES;
-        } else {
-            _exifSidecar = nil;
+        _exifSidecar = [NSData dataWithContentsOfFile:exifPath
+                                            options:NSDataReadingMappedAlways error:nil];
+        if (!_exifSidecar || _exifSidecar.length < 4 ||
+            memcmp(_exifSidecar.bytes, "GEX0", 4) != 0) {
+            fprintf(stderr, "GPRMovReader: invalid EXIF sidecar\n");
+            return nil;
         }
+        _exifSidecarOff = 4;
     }
-
-    AVStream *vs = _fmtCtx->streams[_vstreamIdx];
     if (info) {
         memset(info, 0, sizeof(*info));
-        info->width     = (uint32_t)vs->codecpar->width;
-        info->height    = (uint32_t)vs->codecpar->height;
-        // r_frame_rate is the real rate from sample table; fall back to avg.
-        AVRational fr = vs->r_frame_rate.num ? vs->r_frame_rate : vs->avg_frame_rate;
-        if (fr.den > 0 && fr.num > 0 && fr.num / fr.den > 0 && fr.num / fr.den <= 240) {
-            info->fps = fr.num / fr.den;
-        } else {
-            info->fps = 24;
-        }
-        info->numFrames = vs->nb_frames;
-        info->hasAudio    = (_astreamIdx >= 0);
-        info->hasTimecode = (_tstreamIdx >= 0);
-        info->hasExif     = hasExif;
-        if (_tstreamIdx >= 0) {
-            AVDictionaryEntry *tcent =
-                av_dict_get(_fmtCtx->streams[_tstreamIdx]->metadata, "timecode", NULL, 0);
-            if (tcent && tcent->value) {
-                strncpy(info->timecodeStart, tcent->value, sizeof(info->timecodeStart) - 1);
-            }
-        }
+        int width = 0, height = 0, num = 0, den = 1, audio = 0, timecode = 0;
+        gvid_mov_reader_get_video_info(_reader, &width, &height, &num, &den,
+                                      &info->numFrames);
+        info->width = width;
+        info->height = height;
+        info->fps = den > 0 && num >= den ? num / den : 24;
+        gvid_mov_reader_get_aux_info(_reader, &audio, &timecode,
+                                    info->timecodeStart, sizeof(info->timecodeStart));
+        info->hasAudio = audio != 0;
+        info->hasTimecode = timecode != 0;
+        info->hasExif = _exifSidecar != nil;
     }
-    fprintf(stderr, "GPRMovReader: %s opened, video=%d audio=%d tmcd=%d exif=%s (%dx%d)\n",
-            cpath, _vstreamIdx, _astreamIdx, _tstreamIdx, hasExif ? "sidecar" : "no",
-            vs->codecpar->width, vs->codecpar->height);
     return self;
 }
 
-- (void)dealloc {
-    if (_fmtCtx) avformat_close_input(&_fmtCtx);
-}
+- (BOOL)readFailed { return _readFailed; }
+
+- (void)dealloc { [self close]; }
 
 - (nullable DNGExifInfo *)nextExifFromSidecar {
     if (!_exifSidecar) return nil;
-    if (_exifSidecarOff + 4 > _exifSidecar.length) return nil;
+    if (_exifSidecarOff > _exifSidecar.length ||
+        _exifSidecar.length - _exifSidecarOff < 4) {
+        _readFailed = YES;
+        return nil;
+    }
     const uint8_t *p = _exifSidecar.bytes;
-    uint32_t L = *(const uint32_t *)(p + _exifSidecarOff);
-    _exifSidecarOff += 4;
-    if (_exifSidecarOff + L > _exifSidecar.length) return nil;
-    NSData *blob = [NSData dataWithBytesNoCopy:(void *)(p + _exifSidecarOff)
-                                       length:L
-                                 freeWhenDone:NO];
-    _exifSidecarOff += L;
-    _exifFrameIdx++;
+    uint32_t length = 0;
+    memcpy(&length, p + _exifSidecarOff, sizeof(length));
+    _exifSidecarOff += sizeof(length);
+    if (length > _exifSidecar.length - _exifSidecarOff) {
+        _readFailed = YES;
+        return nil;
+    }
+    NSData *blob = [NSData dataWithBytes:p + _exifSidecarOff length:length];
+    _exifSidecarOff += length;
     return [DNGExif deserialize:blob];
 }
 
-- (nullable NSData *)nextFrame {
-    return [self nextFrameWithExif:NULL];
-}
+- (nullable NSData *)nextFrame { return [self nextFrameWithExif:NULL]; }
 
 - (nullable NSData *)nextFrameWithExif:(DNGExifInfo * _Nullable * _Nullable)outExif {
-    if (!_fmtCtx) return nil;
+    if (!_reader || _readFailed) return nil;
     if (outExif) *outExif = nil;
-    AVPacket *pkt = av_packet_alloc();
-    if (!pkt) return nil;
-    while (av_read_frame(_fmtCtx, pkt) >= 0) {
-        if (pkt->stream_index == _vstreamIdx) {
-            NSData *d = [NSData dataWithBytes:pkt->data length:(NSUInteger)pkt->size];
-            av_packet_unref(pkt);
-            av_packet_free(&pkt);
-            if (outExif) *outExif = [self nextExifFromSidecar];
-            return d;
-        } else {
-            // Audio / timecode / other — skip silently (preserved on disk).
-            av_packet_unref(pkt);
-        }
+    const uint8_t *bytes = NULL;
+    size_t length = 0;
+    int rc = gvid_mov_reader_next_frame(_reader, &bytes, &length, NULL);
+    if (rc < 0) {
+        _readFailed = rc != AVERROR_EOF;
+        return nil;
     }
-    av_packet_free(&pkt);
-    return nil;
+    if (outExif) *outExif = [self nextExifFromSidecar];
+    if (_readFailed) return nil;
+    return [NSData dataWithBytes:bytes length:length];
 }
 
 - (void)close {
-    if (_fmtCtx) {
-        avformat_close_input(&_fmtCtx);
-        _fmtCtx = NULL;
+    if (_reader) {
+        gvid_mov_reader_close(_reader);
+        _reader = NULL;
     }
 }
-
 @end

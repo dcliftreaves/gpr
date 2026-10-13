@@ -2,7 +2,7 @@
 //
 // Reads ISO, shutter, aperture, focal length, lens model, AsShotNeutral (WB)
 // via ImageIO (CGImageSourceCopyPropertiesAtIndex). These fields are embedded
-// alongside encoded GPR packets in the GPRaw container so that downstream
+// alongside encoded GPR packets in the GVIDMov container so that downstream
 // tools can recover per-frame exposure/WB metadata without holding the
 // originating DNG.
 //

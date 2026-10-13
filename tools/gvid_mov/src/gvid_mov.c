@@ -1,4 +1,4 @@
-/* gpraw.c — GPRaw MOV container reader/writer.
+/* gvid_mov.c — GVIDMov MOV container reader/writer.
  *
  * Implemented against FFmpeg 8.x (libavformat 62, libavutil 60). The MOV
  * muxer accepts a custom codec_tag without any patching: we set
@@ -8,13 +8,12 @@
  * Why AV_CODEC_ID_NONE works in FFmpeg 8: the MOV muxer treats unknown
  * codec_ids as opaque "raw" video samples — it writes a stsd entry with
  * the codec_tag we hand it and copies the AVPacket payload verbatim into
- * mdat. The demuxer mirrors this. If a future FFmpeg version rejects
- * NONE, we fall back to AV_CODEC_ID_FFV1 because FFmpeg allows callers to
- * override its sample-description tag.
+ * mdat. The demuxer mirrors this. Unsupported muxer versions fail rather
+ * than mislabeling the payload as an unrelated codec.
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include "gpraw.h"
+#include "gvid_mov.h"
 
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
@@ -26,13 +25,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 /* ---------- common helpers ---------- */
 
 static void av_log_err(const char *what, int err) {
     char buf[AV_ERROR_MAX_STRING_SIZE] = {0};
     av_strerror(err, buf, sizeof(buf));
-    fprintf(stderr, "gpraw: %s failed: %s (%d)\n", what, buf, err);
+    fprintf(stderr, "gvid_mov: %s failed: %s (%d)\n", what, buf, err);
 }
 
 /* Set k=v in dict if v != NULL. */
@@ -46,7 +46,7 @@ static void dict_set_int(AVDictionary **d, const char *k, int64_t v) {
 
 /* ---------- Writer ---------- */
 
-struct GPRaw_Writer {
+struct GVIDMov_Writer {
     AVFormatContext *oc;
     AVStream        *video;
     int              fps_num;
@@ -55,7 +55,7 @@ struct GPRaw_Writer {
     int              header_written;
 };
 
-static int writer_set_track_metadata(AVStream *st, const GPRaw_Metadata *m) {
+static int writer_set_track_metadata(AVStream *st, const GVIDMov_Metadata *m) {
     AVDictionary **d = &st->metadata;
     if (!m) return 0;
     dict_set_str(d, "gpr.codec_version",    m->codec_version);
@@ -70,15 +70,15 @@ static int writer_set_track_metadata(AVStream *st, const GPRaw_Metadata *m) {
     return 0;
 }
 
-GPRaw_Writer *gpraw_writer_create(const char *path,
+GVIDMov_Writer *gvid_mov_writer_create(const char *path,
                                   int width, int height,
                                   int fps_num, int fps_den,
-                                  const GPRaw_Metadata *meta) {
+                                  const GVIDMov_Metadata *meta) {
     if (!path || width <= 0 || height <= 0 || fps_num <= 0 || fps_den <= 0) {
-        fprintf(stderr, "gpraw: bad writer args\n");
+        fprintf(stderr, "gvid_mov: bad writer args\n");
         return NULL;
     }
-    GPRaw_Writer *w = calloc(1, sizeof(*w));
+    GVIDMov_Writer *w = calloc(1, sizeof(*w));
     if (!w) return NULL;
     w->fps_num = fps_num;
     w->fps_den = fps_den;
@@ -87,13 +87,13 @@ GPRaw_Writer *gpraw_writer_create(const char *path,
     if (rc < 0 || !w->oc) { av_log_err("alloc_output_context2", rc); free(w); return NULL; }
 
     w->video = avformat_new_stream(w->oc, NULL);
-    if (!w->video) { fprintf(stderr, "gpraw: new_stream failed\n");
+    if (!w->video) { fprintf(stderr, "gvid_mov: new_stream failed\n");
                      avformat_free_context(w->oc); free(w); return NULL; }
 
     AVCodecParameters *p = w->video->codecpar;
     p->codec_type = AVMEDIA_TYPE_VIDEO;
     p->codec_id   = AV_CODEC_ID_NONE;
-    p->codec_tag  = GPRAW_CODEC_TAG;     /* 'GPRr' */
+    p->codec_tag  = GVID_MOV_CODEC_TAG;     /* 'GPRr' */
     p->width      = width;
     p->height     = height;
     p->format     = AV_PIX_FMT_NONE;     /* opaque — codec_tag identifies it */
@@ -150,45 +150,42 @@ GPRaw_Writer *gpraw_writer_create(const char *path,
     return w;
 }
 
-static int writer_attach_frame_meta(AVPacket *pkt, const GPRaw_FrameMeta *fm,
+static int writer_attach_frame_meta(AVPacket *pkt, const GVIDMov_FrameMeta *fm,
                                     int64_t derived_ns) {
     if (!fm && derived_ns < 0) return 0;
 
-    /* Build a NUL-terminated key=value\0 blob, terminated by an extra \0. */
-    char buf[1024];
-    int  off = 0;
-
+    AVDictionary *metadata = NULL;
     int64_t ts = (fm && fm->frame_timestamp_ns >= 0) ? fm->frame_timestamp_ns
                                                      : derived_ns;
     if (ts >= 0) {
-        off += snprintf(buf + off, sizeof(buf) - off,
-                        "gpr.frame_timestamp%c%lld%c", 0, (long long)ts, 0);
+        av_dict_set_int(&metadata, "gpr.frame_timestamp", ts, 0);
     }
     if (fm) {
         if (fm->iso >= 0)
-            off += snprintf(buf + off, sizeof(buf) - off,
-                            "gpr.iso%c%d%c", 0, fm->iso, 0);
-        if (fm->shutter_deg >= 0)
-            off += snprintf(buf + off, sizeof(buf) - off,
-                            "gpr.shutter%c%.3f%c", 0, fm->shutter_deg, 0);
+            av_dict_set_int(&metadata, "gpr.iso", fm->iso, 0);
+        if (fm->shutter_deg >= 0) {
+            char shutter[64];
+            snprintf(shutter, sizeof(shutter), "%.3f", fm->shutter_deg);
+            av_dict_set(&metadata, "gpr.shutter", shutter, 0);
+        }
         if (fm->wb_neutral)
-            off += snprintf(buf + off, sizeof(buf) - off,
-                            "gpr.wb_neutral%c%s%c", 0, fm->wb_neutral, 0);
+            av_dict_set(&metadata, "gpr.wb_neutral", fm->wb_neutral, 0);
     }
-    /* Trailing terminator already present from last snprintf. */
-    if (off <= 0 || off >= (int)sizeof(buf)) return 0;
-
-    uint8_t *side = av_packet_new_side_data(pkt, AV_PKT_DATA_STRINGS_METADATA, off);
+    if (!metadata) return 0;
+    size_t size = 0;
+    uint8_t *side = av_packet_pack_dictionary(metadata, &size);
+    av_dict_free(&metadata);
     if (!side) return AVERROR(ENOMEM);
-    memcpy(side, buf, off);
-    return 0;
+    int rc = av_packet_add_side_data(pkt, AV_PKT_DATA_STRINGS_METADATA, side, size);
+    if (rc < 0) av_free(side);
+    return rc;
 }
 
-int gpraw_writer_add_frame(GPRaw_Writer *w,
+int gvid_mov_writer_add_frame(GVIDMov_Writer *w,
                            const uint8_t *gpr_bytes, size_t n,
                            int64_t timestamp_ns,
-                           const GPRaw_FrameMeta *fm) {
-    if (!w || !gpr_bytes || n == 0) return -1;
+                           const GVIDMov_FrameMeta *fm) {
+    if (!w || !gpr_bytes || n == 0 || n > INT_MAX) return -1;
 
     AVPacket *pkt = av_packet_alloc();
     if (!pkt) return AVERROR(ENOMEM);
@@ -217,7 +214,8 @@ int gpraw_writer_add_frame(GPRaw_Writer *w,
     else                   derived_ns = av_rescale(w->frame_index,
                                                    (int64_t)w->fps_den * 1000000000LL,
                                                    w->fps_num);
-    writer_attach_frame_meta(pkt, fm, derived_ns);
+    rc = writer_attach_frame_meta(pkt, fm, derived_ns);
+    if (rc < 0) { av_packet_free(&pkt); return rc; }
 
     rc = av_write_frame(w->oc, pkt);
     av_packet_free(&pkt);
@@ -226,7 +224,7 @@ int gpraw_writer_add_frame(GPRaw_Writer *w,
     return 0;
 }
 
-int gpraw_writer_close(GPRaw_Writer *w) {
+int gvid_mov_writer_close(GVIDMov_Writer *w) {
     if (!w) return -1;
     int rc = 0;
     if (w->header_written) {
@@ -234,7 +232,10 @@ int gpraw_writer_close(GPRaw_Writer *w) {
         if (rc < 0) av_log_err("av_write_trailer", rc);
     }
     if (w->oc) {
-        if (w->oc->pb) avio_closep(&w->oc->pb);
+        if (w->oc->pb) {
+            int close_rc = avio_closep(&w->oc->pb);
+            if (rc >= 0) rc = close_rc;
+        }
         avformat_free_context(w->oc);
     }
     free(w);
@@ -243,7 +244,7 @@ int gpraw_writer_close(GPRaw_Writer *w) {
 
 /* ---------- Reader ---------- */
 
-struct GPRaw_Reader {
+struct GVIDMov_Reader {
     AVFormatContext *ic;
     int              video_idx;
     AVPacket        *pkt;       /* reused; ref'd into demuxer-owned memory */
@@ -255,7 +256,7 @@ struct GPRaw_Reader {
     char *encoder_settings;
     char *source_dng_path;
     char *color_matrix;
-    GPRaw_Metadata meta_cache;
+    GVIDMov_Metadata meta_cache;
 };
 
 static char *dup_dict_str(const AVDictionary *d, const char *key) {
@@ -264,9 +265,9 @@ static char *dup_dict_str(const AVDictionary *d, const char *key) {
     return strdup(e->value);
 }
 
-GPRaw_Reader *gpraw_reader_open(const char *path) {
+GVIDMov_Reader *gvid_mov_reader_open(const char *path) {
     if (!path) return NULL;
-    GPRaw_Reader *r = calloc(1, sizeof(*r));
+    GVIDMov_Reader *r = calloc(1, sizeof(*r));
     if (!r) return NULL;
     r->video_idx = -1;
 
@@ -280,25 +281,19 @@ GPRaw_Reader *gpraw_reader_open(const char *path) {
     for (unsigned i = 0; i < r->ic->nb_streams; i++) {
         AVStream *s = r->ic->streams[i];
         if (s->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            if (s->codecpar->codec_tag == GPRAW_CODEC_TAG) {
+            if (s->codecpar->codec_tag == GVID_MOV_CODEC_TAG ||
+                s->codecpar->codec_tag == MKTAG('G', 'P', 'R', '1')) {
                 r->video_idx = (int)i;
                 break;
             }
-            if (r->video_idx < 0) r->video_idx = (int)i; /* fallback */
         }
     }
     if (r->video_idx < 0) {
-        fprintf(stderr, "gpraw: no video stream in %s\n", path);
+        fprintf(stderr, "gvid_mov: no GPRr/GPR1 video stream in %s\n", path);
         avformat_close_input(&r->ic); free(r); return NULL;
     }
 
-    /* Warn if codec_tag isn't ours — readable but not strictly GPRaw. */
     AVStream *vs = r->ic->streams[r->video_idx];
-    if (vs->codecpar->codec_tag != GPRAW_CODEC_TAG) {
-        char tag[5] = {0};
-        memcpy(tag, &vs->codecpar->codec_tag, 4);
-        fprintf(stderr, "gpraw: warning — video codec_tag is '%s', expected 'GPRr'\n", tag);
-    }
 
     r->pkt = av_packet_alloc();
     if (!r->pkt) { avformat_close_input(&r->ic); free(r); return NULL; }
@@ -334,13 +329,13 @@ GPRaw_Reader *gpraw_reader_open(const char *path) {
     return r;
 }
 
-int gpraw_reader_get_metadata(GPRaw_Reader *r, GPRaw_Metadata *meta) {
+int gvid_mov_reader_get_metadata(GVIDMov_Reader *r, GVIDMov_Metadata *meta) {
     if (!r || !meta) return -1;
     *meta = r->meta_cache;
     return 0;
 }
 
-int gpraw_reader_get_video_info(GPRaw_Reader *r,
+int gvid_mov_reader_get_video_info(GVIDMov_Reader *r,
                                 int *width, int *height,
                                 int *fps_num, int *fps_den,
                                 int64_t *frame_count) {
@@ -358,7 +353,27 @@ int gpraw_reader_get_video_info(GPRaw_Reader *r,
     return 0;
 }
 
-int gpraw_reader_next_frame(GPRaw_Reader *r,
+int gvid_mov_reader_get_aux_info(GVIDMov_Reader *r, int *has_audio,
+                               int *has_timecode, char *timecode, size_t capacity) {
+    if (!r) return -1;
+    if (has_audio) *has_audio = 0;
+    if (has_timecode) *has_timecode = 0;
+    if (timecode && capacity) timecode[0] = '\0';
+    for (unsigned i = 0; i < r->ic->nb_streams; ++i) {
+        AVStream *stream = r->ic->streams[i];
+        if (has_audio && stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
+            *has_audio = 1;
+        if (stream->codecpar->codec_tag == MKTAG('t', 'm', 'c', 'd')) {
+            if (has_timecode) *has_timecode = 1;
+            AVDictionaryEntry *entry = av_dict_get(stream->metadata, "timecode", NULL, 0);
+            if (entry && timecode && capacity)
+                snprintf(timecode, capacity, "%s", entry->value);
+        }
+    }
+    return 0;
+}
+
+int gvid_mov_reader_next_frame(GVIDMov_Reader *r,
                             const uint8_t **gpr_bytes, size_t *n,
                             int64_t *timestamp_ns) {
     if (!r) return -1;
@@ -383,7 +398,7 @@ int gpraw_reader_next_frame(GPRaw_Reader *r,
     }
 }
 
-int gpraw_reader_close(GPRaw_Reader *r) {
+int gvid_mov_reader_close(GVIDMov_Reader *r) {
     if (!r) return -1;
     if (r->pkt) av_packet_free(&r->pkt);
     if (r->ic)  avformat_close_input(&r->ic);

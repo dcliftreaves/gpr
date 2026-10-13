@@ -13,6 +13,9 @@ FFROOT="${1:-${FF_ROOT:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}}"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 [ -d "$FFROOT/libavcodec" ] || { echo "not an FFmpeg tree: $FFROOT" >&2; exit 1; }
+[ "$(git -C "$FFROOT" describe --tags --exact-match HEAD 2>/dev/null)" = n8.0 ] || {
+    echo "patch requires FFmpeg tag n8.0" >&2; exit 1;
+}
 
 cp "$SELF_DIR/gpr.c" "$FFROOT/libavcodec/gpr.c"
 echo "installed: libavcodec/gpr.c"
@@ -85,23 +88,21 @@ else
 fi
 
 # libavformat/isom_tags.c — add codec_tag mapping after CFHD line.
-if ! grep -q "AV_CODEC_ID_GPR" "$FFROOT/libavformat/isom_tags.c"; then
-    python3 - "$FFROOT/libavformat/isom_tags.c" <<'PY'
+python3 - "$FFROOT/libavformat/isom_tags.c" <<'PY'
 import sys, pathlib
 p = pathlib.Path(sys.argv[1])
 src = p.read_text()
 anchor = "    { AV_CODEC_ID_CFHD, MKTAG('C', 'F', 'H', 'D') },\n"
 if anchor not in src:
     sys.exit("isom_tags.c: CFHD line not found")
-ins = ("    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', 'r') },\n"
-       "    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', '1') },\n")
+ins = "".join(line for line in (
+    "    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', 'r') },\n",
+    "    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', '1') },\n",
+) if line.strip() not in src)
 src = src.replace(anchor, anchor + ins, 1)
 p.write_text(src)
 print("patched: libavformat/isom_tags.c")
 PY
-else
-    echo "skip (already present): libavformat/isom_tags.c"
-fi
 
 # configure registers a "GPR_DECODER" component automatically once it
 # sees the extern in allcodecs.c, so no changes there are required —

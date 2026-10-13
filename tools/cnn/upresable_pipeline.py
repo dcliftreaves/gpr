@@ -547,18 +547,18 @@ def main():
                   f"in {gvid_s:.1f}s ({gvid_s*1000/args.n_frames:.1f} ms/frame amortized)")
 
         # Compatibility artifact: MOV wrapper for gpr2prores / patched FFmpeg.
-        gpraw_mov = OUT / "upresable_timelapse.gpr1.mov"
+        gvid_mov = OUT / "upresable_timelapse.gpr1.mov"
         print(f"\nPacking MOV compatibility wrapper from {args.n_frames} full-res .gpr frames...")
         t_pack = time.time()
         gpr_mov_tool = REPO / "tools/gpr2prores/gpr_mov_tool"
         cmd = [str(gpr_mov_tool), "pack", str(OUT / "fullres"),
-               str(gpraw_mov), "--fps", str(FPS)]
+               str(gvid_mov), "--fps", str(FPS)]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
             print(f"gpr_mov_tool pack FAILED:\n{r.stderr[-400:]}")
         else:
             pack_s = time.time() - t_pack
-            print(f"MOV wrapper assembled: {gpraw_mov.stat().st_size / 1024 / 1024:.1f} MB "
+            print(f"MOV wrapper assembled: {gvid_mov.stat().st_size / 1024 / 1024:.1f} MB "
                   f"in {pack_s:.1f}s ({pack_s*1000/args.n_frames:.1f} ms/frame amortized)")
 
         # Optional ProRes review (off by default; opt-in via --render-prores).

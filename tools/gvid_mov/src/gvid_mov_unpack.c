@@ -1,16 +1,16 @@
-/* gpraw_unpack — single .mov GPRaw container → directory of .gpr files.
+/* gvid_mov_unpack — single .mov GVIDMov container → directory of .gpr files.
  *
  * Usage:
- *   gpraw_unpack INPUT.mov OUTPUT_DIR
+ *   gvid_mov_unpack INPUT.mov OUTPUT_DIR
  *
  * Produces frame_0000.gpr, frame_0001.gpr, ... — byte-identical to the
  * frames the writer was handed. Mostly for debugging and round-trip
- * verification; the playback pipeline reads via gpraw_reader_* directly.
+ * verification; the playback pipeline reads via gvid_mov_reader_* directly.
  */
 
 #define _POSIX_C_SOURCE 200809L
 
-#include "gpraw.h"
+#include "gvid_mov.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <libavutil/error.h>
 
 static int ensure_dir(const char *p) {
     struct stat st;
@@ -37,8 +38,8 @@ static int write_file(const char *path, const uint8_t *buf, size_t n) {
     FILE *f = fopen(path, "wb");
     if (!f) { fprintf(stderr, "open %s: %s\n", path, strerror(errno)); return -1; }
     size_t wr = fwrite(buf, 1, n, f);
-    fclose(f);
-    if (wr != n) { fprintf(stderr, "short write to %s\n", path); return -1; }
+    int close_rc = fclose(f);
+    if (wr != n || close_rc != 0) { fprintf(stderr, "write failed: %s\n", path); return -1; }
     return 0;
 }
 
@@ -53,17 +54,17 @@ int main(int argc, char **argv) {
 
     if (ensure_dir(out_dir) != 0) return 1;
 
-    GPRaw_Reader *r = gpraw_reader_open(in_path);
+    GVIDMov_Reader *r = gvid_mov_reader_open(in_path);
     if (!r) return 1;
 
     int w = 0, h = 0, fnum = 0, fden = 0;
     int64_t nf = 0;
-    gpraw_reader_get_video_info(r, &w, &h, &fnum, &fden, &nf);
-    fprintf(stderr, "gpraw_unpack: %dx%d  %d/%d fps  nb_frames=%lld\n",
+    gvid_mov_reader_get_video_info(r, &w, &h, &fnum, &fden, &nf);
+    fprintf(stderr, "gvid_mov_unpack: %dx%d  %d/%d fps  nb_frames=%lld\n",
             w, h, fnum, fden, (long long)nf);
 
-    GPRaw_Metadata meta;
-    if (gpraw_reader_get_metadata(r, &meta) == 0) {
+    GVIDMov_Metadata meta;
+    if (gvid_mov_reader_get_metadata(r, &meta) == 0) {
         fprintf(stderr, "  codec=%s quality=%d cfa=%s bits=%d black=%d white=%d\n",
                 meta.codec_version ? meta.codec_version : "?",
                 meta.quality, meta.cfa_pattern ? meta.cfa_pattern : "?",
@@ -75,15 +76,19 @@ int main(int argc, char **argv) {
         const uint8_t *bytes = NULL;
         size_t n = 0;
         int64_t ts_ns = 0;
-        int rc = gpraw_reader_next_frame(r, &bytes, &n, &ts_ns);
-        if (rc < 0) break;        /* EOF or error */
+        int rc = gvid_mov_reader_next_frame(r, &bytes, &n, &ts_ns);
+        if (rc == AVERROR_EOF) break;
+        if (rc < 0) { gvid_mov_reader_close(r); return 1; }
 
         char out_path[1024];
-        snprintf(out_path, sizeof(out_path), "%s/frame_%04d.gpr", out_dir, idx);
-        if (write_file(out_path, bytes, n) != 0) { gpraw_reader_close(r); return 1; }
+        int length = snprintf(out_path, sizeof(out_path), "%s/frame_%04d.gpr", out_dir, idx);
+        if (length < 0 || (size_t)length >= sizeof(out_path)) {
+            gvid_mov_reader_close(r); return 1;
+        }
+        if (write_file(out_path, bytes, n) != 0) { gvid_mov_reader_close(r); return 1; }
         idx++;
     }
-    fprintf(stderr, "gpraw_unpack: wrote %d frames to %s\n", idx, out_dir);
-    gpraw_reader_close(r);
-    return 0;
+    fprintf(stderr, "gvid_mov_unpack: wrote %d frames to %s\n", idx, out_dir);
+    gvid_mov_reader_close(r);
+    return idx > 0 && (nf <= 0 || idx == nf) ? 0 : 1;
 }

@@ -1,8 +1,7 @@
 // GPRMovReader.h — libavformat-backed MOV reader for GPR-frame streams.
 //
-// Opens a MOV with a GPR1-tagged stream (produced by GPRMovWriter) and
-// yields per-frame encoded bytes via -nextFrame:. Companion streams
-// (tmcd, GEXF, audio) are exposed via dedicated accessors.
+// Opens a GPRr/GPR1-tagged MOV using the shared portable payload reader.
+// Audio/timecode presence is reported; optional EXIF is read from .exif.
 
 #import <Foundation/Foundation.h>
 
@@ -22,6 +21,8 @@ typedef struct {
 } GPRMovInfo;
 
 @interface GPRMovReader : NSObject
+
+@property(nonatomic, readonly) BOOL readFailed;
 
 - (nullable instancetype)initWithPath:(NSString *)path info:(GPRMovInfo *)info;
 

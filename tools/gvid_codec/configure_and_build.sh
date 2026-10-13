@@ -15,6 +15,13 @@ GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
 GPR_BUILD="${GPR_BUILD:-$GPR_ROOT/build}"
 PREFIX="${PREFIX:-$(pwd)/install-gpr}"
 
+[ "$(git describe --tags --exact-match HEAD 2>/dev/null)" = n8.0 ] || {
+    echo "FFmpeg source must be checked out at tag n8.0" >&2; exit 1;
+}
+JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)}"
+case "$JOBS" in ''|*[!0-9]*|0) echo "JOBS must be a positive integer" >&2; exit 1;; esac
+if [ "$JOBS" -gt 8 ]; then JOBS=8; fi
+
 GPR_INC="$GPR_ROOT/source/lib/vc5_decoder"
 GPR_LIB_D="$GPR_BUILD/source/lib/vc5_decoder"
 GPR_LIB_C="$GPR_BUILD/source/lib/vc5_common"
@@ -27,9 +34,10 @@ for lib in "$GPR_LIB_D/libvc5_decoder.a" \
 done
 
 # SDL2 is required for ffplay; brew install sdl2 first if missing.
-SDL_CFLAGS=$(pkg-config --cflags sdl2 2>/dev/null || true)
-SDL_OK=""
-if [ -n "$SDL_CFLAGS" ]; then SDL_OK="--enable-sdl2 --enable-ffplay"; fi
+SDL_FLAGS=(--disable-sdl2 --disable-ffplay)
+if pkg-config --exists sdl2 2>/dev/null; then
+    SDL_FLAGS=(--enable-sdl2 --enable-ffplay)
+fi
 
 ./configure \
     --prefix="$PREFIX" \
@@ -42,12 +50,15 @@ if [ -n "$SDL_CFLAGS" ]; then SDL_OK="--enable-sdl2 --enable-ffplay"; fi
     --enable-static \
     --disable-network \
     --disable-everything \
+    --disable-autodetect \
+    --enable-zlib \
     --enable-demuxer=mov \
     --enable-muxer=mov \
     --enable-protocol=file \
     --enable-decoder=gpr \
     --enable-decoder=rawvideo \
     --enable-encoder=rawvideo \
+    --enable-encoder=wrapped_avframe \
     --enable-encoder=ffv1 \
     --enable-encoder=prores \
     --enable-encoder=prores_ks \
@@ -63,20 +74,32 @@ if [ -n "$SDL_CFLAGS" ]; then SDL_OK="--enable-sdl2 --enable-ffplay"; fi
     --enable-filter=scale \
     --enable-filter=format \
     --enable-filter=null \
+    --enable-filter=buffer \
+    --enable-filter=buffersink \
+    --enable-filter=transpose \
+    --enable-filter=hflip \
+    --enable-filter=vflip \
     --enable-ffmpeg \
-    $SDL_OK \
+    --enable-ffprobe \
+    "${SDL_FLAGS[@]}" \
     --extra-cflags="-I$GPR_INC" \
     --extra-ldflags="-L$GPR_LIB_D -L$GPR_LIB_C -L$GPR_LIB_X" \
-    --extra-libs="-lvc5_decoder -lvc5_common -lcommon"
+    --extra-libs="-lvc5_decoder -lvc5_common -lcommon -lm -lpthread"
+
+grep -q '^#define CONFIG_GPR_DECODER 1' config_components.h || {
+    echo "GPR decoder was not configured" >&2; exit 1;
+}
 
 echo
 echo "Configure OK. Building ffmpeg (+ffplay if SDL2 was found)..."
-make -j$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+make -j"$JOBS"
 
 echo
 echo "Build complete. Binaries:"
 ls -1 ./ffmpeg ./ffplay 2>/dev/null || true
 echo
 echo "Smoke test:"
-./ffmpeg -hide_banner -decoders 2>/dev/null | grep -E "gpr|GoPro RAW" || \
-    echo "  (gpr decoder not listed — patch may not have applied cleanly)"
+./ffmpeg -hide_banner -decoders > gpr-decoders.txt 2>&1
+grep -E '[[:space:]]gpr[[:space:]]' gpr-decoders.txt || {
+    echo "GPR decoder not registered" >&2; exit 1;
+}

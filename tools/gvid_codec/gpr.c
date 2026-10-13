@@ -4,7 +4,7 @@
  * Copyright (c) 2026 Happy.
  *
  * This file is part of FFmpeg (out-of-tree patch — installed into
- * libavcodec/gpr.c by tools/gpraw_codec/install_patch.sh).
+ * libavcodec/gpr.c by tools/gvid_codec/install_patch.sh).
  *
  * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@
  * All fields are little-endian uint32_t. We re-state them here so this
  * file has no source-tree include path dependency beyond libvc5_decoder.a. */
 #define GPR_FUSED_MAGIC      0x44535546u   /* 'FUSD' LE                 */
-#define GPR_FUSED_HDR_SIZE   52u           /* 13 × uint32_t             */
+#define GPR_FUSED_HDR_SIZE   48u           /* 12 uint32_t fields        */
 #define GPR_FUSED_OFF_MAGIC   0
 #define GPR_FUSED_OFF_VER     4
 #define GPR_FUSED_OFF_WIDTH   8
@@ -76,12 +76,7 @@ static av_cold int gpr_dec_init(AVCodecContext *avctx)
     s->latched_width  = 0;
     s->latched_height = 0;
 
-    /* The MOV demuxer will have set avctx->width/height from the stream
-       sample description. If they are zero (some old containers) we will
-       latch them from the first frame's GPR header.
-
-       The CFA pattern (RGGB vs GBRG) is also frame-level — we default to
-       RGGB and override on the first frame if the header says GBRG. */
+    /* Packet headers, not MOV sample descriptions, govern allocation. */
     avctx->pix_fmt = AV_PIX_FMT_BAYER_RGGB16LE;
     return 0;
 }
@@ -96,11 +91,13 @@ static int gpr_dec_decode(AVCodecContext *avctx, AVFrame *frame,
 {
     GPRContext *s = avctx->priv_data;
     int width = 0, height = 0;
+    uint32_t w, h, pf, levels, bands, bits, prescale, is_rggb, decim;
+    size_t off;
     int ret;
 
     *got_frame = 0;
 
-    if (!avpkt->data || (unsigned)avpkt->size < GPR_FUSED_HDR_SIZE) {
+    if (!avpkt || !avpkt->data || avpkt->size < (int)GPR_FUSED_HDR_SIZE) {
         av_log(avctx, AV_LOG_ERROR, "gpr: packet too small (%d bytes)\n",
                avpkt ? avpkt->size : 0);
         return AVERROR_INVALIDDATA;
@@ -114,35 +111,59 @@ static int gpr_dec_decode(AVCodecContext *avctx, AVFrame *frame,
         return AVERROR_INVALIDDATA;
     }
 
-    width  = (int)AV_RL32(avpkt->data + GPR_FUSED_OFF_WIDTH);
-    height = (int)AV_RL32(avpkt->data + GPR_FUSED_OFF_HEIGHT);
-    uint32_t is_rggb = AV_RL32(avpkt->data + GPR_FUSED_OFF_RGGB);
-    uint32_t decim   = AV_RL32(avpkt->data + GPR_FUSED_OFF_DECIM);
-    if (decim > 1) {
-        /* Channel-space decimation halves the visible dimensions. */
-        width  /= decim;
-        height /= decim;
+    w = AV_RL32(avpkt->data + GPR_FUSED_OFF_WIDTH);
+    h = AV_RL32(avpkt->data + GPR_FUSED_OFF_HEIGHT);
+    pf = AV_RL32(avpkt->data + GPR_FUSED_OFF_PIXFMT);
+    levels = AV_RL32(avpkt->data + GPR_FUSED_OFF_MULTI);
+    bands = AV_RL32(avpkt->data + GPR_FUSED_OFF_BANDS);
+    bits = AV_RL32(avpkt->data + GPR_FUSED_OFF_LOGB);
+    prescale = AV_RL32(avpkt->data + GPR_FUSED_OFF_PRES);
+    is_rggb = AV_RL32(avpkt->data + GPR_FUSED_OFF_RGGB);
+    decim = AV_RL32(avpkt->data + GPR_FUSED_OFF_DECIM);
+    if (AV_RL32(avpkt->data + GPR_FUSED_OFF_VER) != 1 ||
+        AV_RL32(avpkt->data + GPR_FUSED_OFF_QUAL) >= 12 ||
+        pf > 5 || is_rggb > 1 ||
+        is_rggb != (pf == 0 || pf == 1 || pf == 4) ||
+        (bits != 12 && bits != 14 && bits != 16) ||
+        (prescale != 0 && prescale != 2 && prescale != 3) ||
+        !((levels == 0 && bands == 16) ||
+          (levels == 2 && bands == 28) ||
+          ((levels == 1 || levels == 3) && bands == 40)) ||
+        w > 16384 || h > 16384)
+        goto invalid_header;
+
+    /* Match gpr_decode_fused: only exactly 2 denotes decimation. */
+    width = w / (decim == 2 ? 2 : 1);
+    height = h / (decim == 2 ? 2 : 1);
+    if (width < 16 || height < 16 || (width & 3) || (height & 3))
+        goto invalid_header;
+
+    /* The multi-level decoder copies this table without checking its size.
+       Check every span with subtraction to avoid addition overflow. Zero
+       and short bands are valid implicit-zero bands in the fused decoder. */
+    off = GPR_FUSED_HDR_SIZE + 4 * bands;
+    if (off > (size_t)avpkt->size)
+        goto invalid_header;
+    for (unsigned i = 0; i < bands; i++) {
+        uint32_t size = AV_RL32(avpkt->data + GPR_FUSED_HDR_SIZE + 4 * i);
+        if (size > (size_t)avpkt->size - off)
+            goto invalid_header;
+        off += size;
     }
+    if (off != (size_t)avpkt->size)
+        goto invalid_header;
     enum AVPixelFormat want_fmt = is_rggb ? AV_PIX_FMT_BAYER_RGGB16LE
                                           : AV_PIX_FMT_BAYER_GBRG16LE;
     if (avctx->pix_fmt != want_fmt) {
         avctx->pix_fmt = want_fmt;
     }
 
-    if (width <= 0 || height <= 0 || width > 16384 || height > 16384) {
-        av_log(avctx, AV_LOG_ERROR,
-               "gpr: implausible dimensions from header: %dx%d\n",
-               width, height);
-        return AVERROR_INVALIDDATA;
-    }
+    avctx->bits_per_raw_sample = bits;
 
-    /* On the very first frame, propagate dimensions to avctx so downstream
-       filters / muxers see them even if the container forgot to set them. */
+    /* A container can advertise smaller dimensions than the packet needs. */
     if (!s->latched_width) {
         s->latched_width  = width;
         s->latched_height = height;
-        if (avctx->width  <= 0) avctx->width  = width;
-        if (avctx->height <= 0) avctx->height = height;
     } else if (width != s->latched_width || height != s->latched_height) {
         av_log(avctx, AV_LOG_ERROR,
                "gpr: dimension change mid-stream not supported "
@@ -150,6 +171,8 @@ static int gpr_dec_decode(AVCodecContext *avctx, AVFrame *frame,
                s->latched_width, s->latched_height, width, height);
         return AVERROR_INVALIDDATA;
     }
+    if ((ret = ff_set_dimensions(avctx, width, height)) < 0)
+        return ret;
 
     /* Allocate the output frame. Bayer 16-bit is one component per sample,
        so linesize[0] = width * 2 bytes. */
@@ -180,6 +203,10 @@ static int gpr_dec_decode(AVCodecContext *avctx, AVFrame *frame,
     frame->pts       = avpkt->pts;
     *got_frame = 1;
     return avpkt->size;
+
+invalid_header:
+    av_log(avctx, AV_LOG_ERROR, "gpr: invalid FUSD header or band bounds\n");
+    return AVERROR_INVALIDDATA;
 }
 
 const FFCodec ff_gpr_decoder = {

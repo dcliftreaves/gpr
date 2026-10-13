@@ -45,10 +45,10 @@ build-*/
 *.dSYM/
 tools/gpr2prores/gpr2prores
 tools/gpr2prores/gpr_mov_tool
-tools/gpraw/gpraw_pack
-tools/gpraw/gpraw_unpack
-tools/gpraw/build/
-tools/gpraw_codec/test_roundtrip
+tools/gvid_mov/gvid_mov_pack
+tools/gvid_mov/gvid_mov_unpack
+tools/gvid_mov/build/
+tools/gvid_codec/test_roundtrip
 
 # Claude worktrees
 .claude/
