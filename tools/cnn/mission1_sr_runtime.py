@@ -83,10 +83,29 @@ def run_tiles(
     high_height: int,
     coordinate_channels: bool,
 ) -> tuple[np.ndarray | None, dict[str, Any]]:
+    if not isinstance(planes, np.ndarray) or planes.ndim != 3 or planes.shape[0] != 4:
+        raise ValueError("planes must have shape (4, height, width)")
+    for name, value in (
+        ("tile", tile),
+        ("overlap", overlap),
+        ("high_width", high_width),
+        ("high_height", high_height),
+    ):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)):
+            raise ValueError(f"{name} must be an integer")
     _, low_h, low_w = planes.shape
+    if low_h <= 0 or low_w <= 0:
+        raise ValueError("plane dimensions must be positive")
+    if tile <= 0:
+        raise ValueError("--tile must be positive")
+    if overlap < 0 or overlap >= tile:
+        raise ValueError("--overlap must be nonnegative and smaller than --tile")
+    # Smaller images need an explicit padding policy, not negative tile origins.
+    if tile > low_h or tile > low_w:
+        raise ValueError("--tile must not exceed either plane dimension")
     high_h = low_h * 2
     high_w = low_w * 2
-    if high_h != high_height // 2 or high_w != high_width // 2:
+    if high_height != high_h * 2 or high_width != high_w * 2:
         raise ValueError(f"unexpected plane dimensions {low_w}x{low_h} -> {high_w}x{high_h}")
 
     out = np.empty((4, high_h, high_w), dtype=np.uint16) if write_output else None
@@ -94,8 +113,6 @@ def run_tiles(
     n_tiles = 0
     t0 = time.perf_counter()
     step = tile - overlap
-    if step <= 0:
-        raise ValueError("--overlap must be smaller than --tile")
     y_starts = list(range(0, max(1, low_h - tile + 1), step))
     x_starts = list(range(0, max(1, low_w - tile + 1), step))
     if y_starts[-1] != low_h - tile:

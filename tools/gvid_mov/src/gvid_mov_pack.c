@@ -69,7 +69,8 @@ static int parse_fused_dims(const uint8_t *buf, size_t n,
     uint32_t w   = le32(buf + 8);
     uint32_t h   = le32(buf + 12);
     uint32_t dec = le32(buf + 44);
-    if (dec < 1) dec = 1;
+    /* Match the native decoder: only the value 2 requests decimation. */
+    dec = dec == 2 ? 2 : 1;
     *out_w = (int)(w / dec);
     *out_h = (int)(h / dec);
     return 0;

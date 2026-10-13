@@ -74,6 +74,9 @@ add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 add_definitions("-DGIT_BRANCH=\"${GIT_BRANCH}\"")
 
 # add needed subdirectories
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+endif()
 add_subdirectory( "source/lib/common" )
 add_subdirectory( "source/lib/vc5_common" )
 

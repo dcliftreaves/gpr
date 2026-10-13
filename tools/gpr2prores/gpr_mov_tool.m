@@ -13,7 +13,7 @@
 //   --tc-start STR      set start timecode "HH:MM:SS:FF" or "HH:MM:SS;FF" (drop).
 //   --tc-drop           force drop-frame TC (otherwise inferred from separator).
 //   --meta-dir DIR      directory of sibling DNGs (frame_NNNN.dng) used to
-//                       embed per-frame EXIF in the container.
+//                       write per-frame EXIF to the companion .exif file.
 
 #import <Foundation/Foundation.h>
 #import "GPRMovWriter.h"
