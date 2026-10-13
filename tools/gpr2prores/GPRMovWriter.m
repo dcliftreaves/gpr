@@ -17,6 +17,8 @@
 #include <libavcodec/avcodec.h>
 #include <libavutil/timestamp.h>
 #include <libavutil/intreadwrite.h>
+#include <math.h>
+#include <limits.h>
 
 #define GPR_FOURCC  MKTAG('G','P','R','1')
 #define TMCD_FOURCC MKTAG('t','m','c','d')
@@ -58,6 +60,8 @@
 {
     self = [super init];
     if (!self) return nil;
+    if (!path.length || !width || !height || width > INT_MAX || height > INT_MAX || fps <= 0)
+        return nil;
     _fps = fps;
     _pts = 0;
     _wroteHeader = NO;
@@ -103,6 +107,11 @@
             fprintf(stderr, "GPRMovWriter: avio_open(%s) failed\n", cpath);
             return NO;
         }
+    }
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if ([fm fileExistsAtPath:_exifPath] && ![fm removeItemAtPath:_exifPath error:nil]) {
+        fprintf(stderr, "GPRMovWriter: cannot remove stale EXIF sidecar\n");
+        return NO;
     }
     AVDictionary *opts = NULL;
     // Use frag_keyframe so we can write to a pipe / streaming target. Each
@@ -207,13 +216,16 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
         fprintf(stderr, "GPRMovWriter: not a WAV file: %s\n", [path UTF8String]);
         return nil;
     }
+    size_t riffSize = (size_t)AV_RL32(p + 4) + 8;
+    if (riffSize < 12 || riffSize > blob.length) return nil;
     size_t off = 12;
     int sr = 0, ch = 0, bps = 0; uint16_t fmtCode = 0;
     const uint8_t *dataPtr = NULL; size_t dataLen = 0;
-    while (off + 8 <= blob.length) {
+    while (off + 8 <= riffSize) {
         uint32_t id4 = AV_RL32(p + off);
         uint32_t sz  = AV_RL32(p + off + 4);
         const uint8_t *body = p + off + 8;
+        if ((size_t)sz > riffSize - off - 8) return nil;
         if (id4 == AV_RL32("fmt ") && sz >= 16) {
             fmtCode = AV_RL16(body + 0);
             ch  = AV_RL16(body + 2);
@@ -223,9 +235,11 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
             dataPtr = body; dataLen = sz;
             break;
         }
-        off += 8 + ((sz + 1) & ~1u); // pad to even
+        off += 8 + (((size_t)sz + 1) & ~(size_t)1); // pad to even
     }
-    if (!dataPtr || sr <= 0 || ch <= 0 || (bps != 16 && bps != 24 && bps != 32)) {
+    if (!dataPtr || sr <= 0 || sr > 768000 || ch <= 0 || ch > 2 ||
+        !((fmtCode == 1 && (bps == 16 || bps == 24)) || (fmtCode == 3 && bps == 32)) ||
+        dataLen % (ch * (bps / 8)) != 0) {
         fprintf(stderr, "GPRMovWriter: unsupported WAV (sr=%d ch=%d bps=%d fmt=%u)\n", sr, ch, bps, fmtCode);
         return nil;
     }
@@ -246,9 +260,11 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
         }
     } else if (bps == 32) {
         // f32 (assume IEEE float) → s16
-        const float *s = (const float *)dataPtr;
         for (size_t i = 0; i < nSamples * ch; i++) {
-            float v = s[i];
+            uint32_t bits = AV_RL32(dataPtr + i * 4);
+            float v;
+            memcpy(&v, &bits, sizeof(v));
+            if (!isfinite(v)) return nil;
             if (v >  1.0f) v =  1.0f;
             if (v < -1.0f) v = -1.0f;
             o[i] = (int16_t)(v * 32767.0f);
@@ -309,11 +325,17 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
         return NO;
     }
     const char magic[4] = {'G','E','X','0'};
-    fwrite(magic, 1, 4, _exifFp);
+    if (fwrite(magic, 1, 4, _exifFp) != 4) return NO;
+    // EXIF can first appear after frames without metadata.
+    const uint32_t missing = 0;
+    for (int64_t frame = 0; frame < _pts; frame++) {
+        if (fwrite(&missing, sizeof(missing), 1, _exifFp) != 1) return NO;
+    }
     return YES;
 }
 
 - (int)writeExifBlob:(NSData *)blob {
+    if (blob.length > UINT32_MAX) return -1;
     if (![self openExifSidecarIfNeeded]) return -1;
     uint32_t L = (uint32_t)blob.length;
     if (fwrite(&L, 4, 1, _exifFp) != 1) return -1;
@@ -324,6 +346,7 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
 // --- packet append ---------------------------------------------------------
 
 - (int)writeVideoPacket:(const uint8_t *)bytes length:(size_t)length {
+    if (!bytes || !length || length > INT_MAX) return -1;
     AVPacket *pkt = av_packet_alloc();
     if (!pkt) return -1;
     if (av_new_packet(pkt, (int)length) < 0) { av_packet_free(&pkt); return -1; }
@@ -423,8 +446,8 @@ static NSData *loadWAV(NSString *path, int *outSR, int *outCH) {
 
     if (_tstream && [self writeTimecodePacket] != 0) return -1;
     if (_astream && [self writeAudioForFrame] != 0) return -1;
-    if (exif) {
-        NSData *blob = [DNGExif serialize:exif];
+    if (exif || _exifFp) {
+        NSData *blob = exif ? [DNGExif serialize:exif] : [NSData data];
         if (!blob || [self writeExifBlob:blob] != 0) return -1;
     }
 

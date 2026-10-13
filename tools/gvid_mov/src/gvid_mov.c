@@ -386,6 +386,10 @@ int gvid_mov_reader_next_frame(GVIDMov_Reader *r,
             av_packet_unref(r->pkt);
             continue;
         }
+        if ((r->pkt->flags & AV_PKT_FLAG_CORRUPT) || r->pkt->size <= 0) {
+            av_packet_unref(r->pkt);
+            return AVERROR_INVALIDDATA;
+        }
         if (gpr_bytes) *gpr_bytes = r->pkt->data;
         if (n)         *n         = (size_t)r->pkt->size;
         if (timestamp_ns) {

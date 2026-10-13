@@ -76,8 +76,11 @@ static av_cold int gpr_dec_init(AVCodecContext *avctx)
     s->latched_width  = 0;
     s->latched_height = 0;
 
-    /* Packet headers, not MOV sample descriptions, govern allocation. */
-    avctx->pix_fmt = AV_PIX_FMT_BAYER_RGGB16LE;
+    /* CFA and sample depth are packet properties. Leave them unknown so
+       avformat_find_stream_info must decode a packet instead of accepting
+       a guessed format from decoder initialization or the container. */
+    avctx->pix_fmt = AV_PIX_FMT_NONE;
+    avctx->bits_per_raw_sample = 0;
     return 0;
 }
 
@@ -173,6 +176,12 @@ static int gpr_dec_decode(AVCodecContext *avctx, AVFrame *frame,
     }
     if ((ret = ff_set_dimensions(avctx, width, height)) < 0)
         return ret;
+
+    /* ff_get_buffer only fills an unset frame format/dimensions. Replace
+       any properties inherited from the container or previous packet. */
+    frame->format = avctx->pix_fmt;
+    frame->width  = width;
+    frame->height = height;
 
     /* Allocate the output frame. Bayer 16-bit is one component per sample,
        so linesize[0] = width * 2 bytes. */
