@@ -65,14 +65,9 @@ def main():
         run(build / "bin/coeff_io_tool", raw, 512, 512, coeff_output,
             env=dict(env, GPR_INCLUDE_LL="1", GPR_BENCH_PIXEL_FORMAT="4", FUSED_QUALITY="3"))
         assert coeff_output.read_bytes() == decoded.read_bytes()
-        preview_clip = work / "preview.gvid"
-        run(build / "source/app/bench_fused/bench_fused", raw, 512, 512, 2,
-            env=dict(env, GPR_BENCH_GVID=str(preview_clip), GPR_BENCH_PIXEL_FORMAT="4",
-                     GPR_INCLUDE_LL="1", FUSED_QUALITY="3", FUSED_MULTI_LEVEL="1",
-                     FUSED_WAVELET_LEVELS="3"))
         preview = subprocess.run([
             sys.executable, str(ROOT / "tools/render_gvid_preview_rgb_stream.py"),
-            "--gvid", str(preview_clip), "--decoder", str(build / "bin/fused_decode_cli"),
+            "--gvid", str(clip), "--decoder", str(build / "bin/fused_decode_cli"),
             "--sensor-width", "512", "--sensor-height", "512", "--width", "128",
             "--height", "128", "--tmp-dir", str(work)],
             capture_output=True, env=env, timeout=180)
