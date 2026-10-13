@@ -47,5 +47,5 @@ revisions before using it to evaluate a new series.
 See [Testing Methodology](TESTING_METHODOLOGY.md) for the distinction
 between synthetic tests, trained-model gates, and actual hardware evidence.
 
-The unsplit review remains at `review/human-feature-series` (`1553708`), and
+The unsplit review remains at `archive/review/human-feature-series` (`1553708`), and
 older experiments remain on `archive/research-and-integration-2026-09-09`.
