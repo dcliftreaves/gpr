@@ -10,9 +10,8 @@ candidate does not promote it.
 
 - `render_gvid_sr_receipt.py`: .gvid to 8K Bayer; uses
   `bench_mission1_sr_8k.py` and model definitions in `train_mission1_sr.py`.
-- `train_bayer_rgb_target_cleanup.py apply`: registered 4K Bayer cleanup.
-  The historical filename is retained for registry compatibility; training
-  commands have been removed.
+- `train_bayer_rgb_target_cleanup.py apply`: registered, visually signed-off
+  4K Bayer cleanup; registry scope remains offline review-only.
 - `upresable_pipeline.py`, `preview_timelapse_fast.py`, and
   `preview_timelapse_fast_sota.py`: editable raw/timelapse rendering.
 - `render_preview_q8_threeway_runtime.py`: registered offline PREVIEW;
@@ -25,22 +24,20 @@ candidate does not promote it.
   `score_preview_q8_hard_router_union.py`,
   `score_preview_q8_threeway_router_union.py`,
   `train_display_rgb_direct_nonref.py`, and
-  `train_preview_fullimage_band_refiner.py`. These retain inference,
-  feature/routing, and model helpers; their experiment CLIs are archived.
+  `train_preview_fullimage_band_refiner.py`: inference, feature/routing,
+  and model helpers.
 - Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py` and
   `bayer_detail_residual.py`.
 - Offline packaging: `package_mission1_sr_receipt.py` and
   `package_mission1_sr_sequence_receipt.py`.
-- Model support: `model.py`, `analyze_dng_noise_profile.py`,
-  `train_codec_raw_clean_sr.py`, and `run_lab_chroma_corrector.py`.
+- Model support: `model.py` and the model definitions used by the entry
+  points above.
 - Shared visual metrics: `tools/cnn/metrics.py`.
 
-Historical `train`, `evaluate`, `score`, and `bench` filenames remain where
-production renderers depend on their inference, routing, or model helpers.
-Benchmark/comparison-only modules `bench_bayer_detail_residual_sidecar_native.py`,
-`bench_raw_resolution_targets.py`, `compare_mission1_sr_fullframe.py`, and
-`decide_mission1_sr_promotion.py` moved to the companion
-`review/product-validation` branch; production rendering does not require them.
+The approved offline-production 8K model is
+`mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1`. Model names, codec
+pairings, and review-only scope are documented in
+[Reconstruction](../../docs/RECONSTRUCTION.md#approval-boundary).
 
 Outside this directory, retain `tools/gvid_metadata.py`,
 `tools/gvid_pack.py`, and the PREVIEW manifest
@@ -65,14 +62,8 @@ checkpoint, and receipt trees. UPRESABLE also supports `GPR_MODEL_ROOT`,
 and `GPR_BIBO2X_CKPT`.
 Sequence packaging requires an explicit `--meta-dng`.
 
-## Archive
+## Historical evidence
 
-Research trainers, oracle/reference-transfer commands, dashboards, probes,
-target builders, and iteration runners are archived at
-`archive/research-and-integration-2026-09-09`
-(`3d675ef95d2e1470af0a60abb81994eb09bb5aa6`).
-Inspect any original file without restoring it:
-
-```sh
-git show archive/research-and-integration-2026-09-09:tools/cnn/train_mission1_sr.py
-```
+[Pinned runtime and research history](https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96/tools/cnn)
+is separate from production dependencies. Historical gate identities remain
+lookup-compatible; retaining an identity does not promote its model.

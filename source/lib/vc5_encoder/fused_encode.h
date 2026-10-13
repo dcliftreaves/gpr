@@ -27,14 +27,6 @@
  *  For archival or "best compression" workflows, the production encoder
  *  is still preferred.
  *
- *  Measured at quality 3 (Filmscan-1):
- *
- *    Input              | Standard GPR | Fused split | Fused stripe
- *    -------------------+--------------+-------------+--------------
- *    HERO10 23 MP 14-bit| ~4-6 MB      |  5.4 MB     |  4.4 MB
- *    MISSION 1 50 MP    | n/a yet      | 11.7 MB     | 10.5 MB
- *    X2D 100 MP 16-bit  |  23.5 MB     | 55.8 MB     | 46.4 MB
- *
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
@@ -50,8 +42,7 @@ extern "C" {
 
 /* Fused-codec self-describing wrapper format. Output starts with this
    fixed header followed by a per-band length table and the band data.
-   This is NOT a VC5 bitstream — it's a private format used by the fused
-   encoder/decoder pair until the encoder learns to emit standard VC5.
+   This is NOT a legacy VC5 bitstream; use the matching FUSED decoder.
 
    Layout:
      FUSED_HEADER  header
@@ -72,10 +63,10 @@ typedef struct {
     uint32_t quality;        /* 0..11 */
     uint32_t is_rggb;        /* 1 = RGGB, 0 = GBRG */
     uint32_t log_bits;       /* 14 for 12/14-bit input, 16 for 16-bit */
-    uint32_t prescale;       /* level-1 prescale (typically 2) */
-    uint32_t multi_level;    /* 1 = 3-level wavelet, 0 = single-level */
+    uint32_t prescale;       /* level-1 shift: default 3 for 12/14-bit, 2 for 16-bit */
+    uint32_t multi_level;    /* 0 = single; 2/3 = depth; legacy 1 means 3 levels */
     uint32_t num_bands;      /* 12 (single-level no LL), 16 (single-level + LL),
-                                40 (multi-level) */
+                                28 (two levels), 40 (three levels) */
     uint32_t decimate;       /* Channel-space decimation factor.
                                 0 or 1 = none. 2 = 2x2 channel-space
                                 decimation (bands and output Bayer are
@@ -84,7 +75,7 @@ typedef struct {
 } FUSED_HEADER;
 
 /*!
-    @brief Fused encode: raw Bayer pixels → VC5 bitstream.
+    @brief Fused encode: raw Bayer pixels to a FUSED payload.
 
     Two-pass design:
     Pass 1: Fused unpack→wavelet→quantize→frequency count (no intermediate arrays)

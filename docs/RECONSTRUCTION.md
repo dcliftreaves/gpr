@@ -1,7 +1,8 @@
 # Reconstruction and Model Availability
 
-Approved raw-video reconstruction consists of offline 4K cleanup and 8K
-super-resolution on desktop hardware. It can produce editable Bayer DNG/GPR
+Raw-video reconstruction includes offline-production 8K alpha0p5 SR and
+visually approved, review-only 4K cleanup on desktop hardware.
+These paths can produce editable Bayer DNG/GPR
 outputs and ProRes review media. It does not run on the camera and does not
 establish real-time 8K processing.
 
@@ -54,8 +55,19 @@ and metadata validation.
 
 ## Approval boundary
 
-The existing approved 4K/8K video baseline identities remain frozen in the
-[pipeline registry](../pipelines/registry.json). The
+The [pipeline registry](../pipelines/registry.json) distinguishes:
+
+- `mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1`:
+  `production_scope=offline_production`, approved for offline reconstruction.
+- `mission1_native12_4k_cleanup_rgb_cfa_w40_v1`:
+  `production_scope=offline_review_only`, with status
+  `review_only_visual_signed_off_camera_handoff_separate`.
+
+Both use codec `mission1_native12_t233` and demosaic `sips_via_gpr_tools`.
+Visual approval does not automatically promote registry scope. Other
+registered candidates and historical gate identities remain lookup-compatible,
+not interchangeable approved replacements. Neither path is live-camera SR.
+The
 [compact release evidence index](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/release_evidence.json) identifies
 existing receipts and review artifacts. Architecture/load tests do not
 replace those trained-model quality measurements.
@@ -65,8 +77,6 @@ Artifact paths in that index are relative to the user-selected
 chooses where new local outputs are written. Set each
 explicitly for the workflow rather than assuming a shared filesystem layout.
 
-[Premium Still SR](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/PREMIUM_STILL_SR.md) is a separate research track.
-Historical model comparisons, private artifact inventories, and training
-iterations are in the
-[archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
-pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/tree/3d675ef).
+Premium still SR is not a promoted replacement for these video models.
+[Historical model evidence](https://github.com/dcliftreaves/gpr/blob/f13dbe95d3e97c400e8d493ba178dbb037ff3c96/docs/RECONSTRUCTION.md)
+is preserved separately from the runtime contract.

@@ -68,8 +68,8 @@ python3 tools/gpr2prores/extract_F_weights.py --ckpt checkpoints/F.pt --out mode
 python3 tools/gpr2prores/extract_F_ane_weights.py --ckpt checkpoints/F_ane.pt --out models/F_ane_weights
 ```
 
-`extract_F_weights_metal.py` wraps the first exporter. Use matching architecture
-and scale. ANE weights include folded batch normalization.
+Use matching architecture and scale. The first exporter supports both the
+Metal and MPSGraph loaders; ANE weights include folded batch normalization.
 
 `TMPDIR` selects temporary storage. Diagnostic settings include
 `SUPERRES_PROFILE=1`, `SUPERRES_NOFUSE_POST=1`, and

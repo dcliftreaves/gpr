@@ -47,12 +47,14 @@ flush. Mission 1 still needs validation on its own sensor, card, and display.
 
 Capture has a deadline. Reconstruction can take its time. On the Mac, optional
 CNNs restore 4K detail or reconstruct an 8K output from the recorded Bayer data.
-The approved video models support editable RAW workflows and ProRes rendering,
+These desktop paths support editable RAW workflows and ProRes rendering,
 letting you choose the source format or a ready-to-edit movie for the next step.
 
 ![Mission native12 2x SR contact sheet](docs/img/readme_mission1_2x_sr_contact.png)
 
-The 4K cleanup and 8K video SR paths have passed their recorded review gates.
+The 8K alpha0p5 model is approved for offline production. The 4K cleanup
+model has visual approval but remains registry review-only; visual signoff
+does not automatically promote it. See [model scope](docs/RECONSTRUCTION.md#approval-boundary).
 **Premium still/SR** is a separate, slower research effort for 50 MP and 100 MP
 photography; a broadly improved replacement model has not yet passed its gate.
 The existing still-restoration and video models remain available independently.

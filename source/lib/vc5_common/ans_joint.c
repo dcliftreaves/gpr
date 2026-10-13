@@ -22,7 +22,6 @@
 #include <stdio.h>
 
 #ifdef __aarch64__
-#include "rans_kernel_arm64.h"
 #endif
 
 #if defined(__ARM_NEON)

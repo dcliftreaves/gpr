@@ -56,6 +56,5 @@ Multi-level encoding is required: set `FUSED_MULTI_LEVEL=1` when encoding
 wired. This is a local integration, not an upstream codec or a plugin for
 applications with bundled FFmpeg.
 
-`gpr.c` is installed by `install_patch.sh`; `ffmpeg_gpr.patch` documents the
-registration changes. The original integration is preserved on
-`archive/research-and-integration-2026-09-09` at `3d675ef`.
+`install_patch.sh` installs `gpr.c` and updates FFmpeg's codec registration.
+Use that installer rather than applying historical registration patches.

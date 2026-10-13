@@ -11,9 +11,9 @@ lossless archival is required.
 
 ## Build and Convert
 
+Build using [Getting Started](GETTING_STARTED.md#build-and-convert-a-still), then run:
+
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 4
 build/source/app/gpr_tools/gpr_tools -i input.dng -o output.gpr
 build/source/app/gpr_tools/gpr_tools -i output.gpr -o decoded.dng
 ```
@@ -23,10 +23,8 @@ already-demosaiced linear RGB DNGs are not interchangeable with Bayer RAW.
 Camera-specific support must be checked with representative inputs; a filename
 extension alone is not sufficient.
 
-Native builds enable NEON by default on ARM64. `-DNEON=OFF` disables the
-option-controlled paths; some architecture-specific entropy kernels remain
-selected by compiler macros. It is not a fully scalar comparison switch.
-Neither configuration requires camera firmware integration.
+See [Native build options](GETTING_STARTED.md#native-build-options) for CPU
+tuning and NEON limits. Stills conversion does not require camera integration.
 
 For validation procedures, see [Testing Methodology](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/TESTING_METHODOLOGY.md)
 on the companion `review/product-validation` branch.

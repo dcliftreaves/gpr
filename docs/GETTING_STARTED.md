@@ -21,6 +21,19 @@ fixture. These commands exercise the codec without a CNN. Approved
 CNN-assisted still tiers require the matched weights described in
 [Reconstruction](RECONSTRUCTION.md).
 
+## Native build options
+
+Linux ARM64 defaults to `FUSED_TUNE_CPU=native`. Use
+`-DFUSED_TUNE_CPU=cortex-a76` for Pi 5 or `-DFUSED_TUNE_CPU=` for a
+generic build. NEON defaults on for ARM64; `-DNEON=OFF` disables the
+option-controlled paths, not every compiler-selected entropy kernel.
+
+`FUSED_LOG_POLYNOMIAL`, `FUSED_TIMING`, `FUSED_TIMING_DETAIL`, and
+`JANS_INLINE_PROFILE_RUNTIME` are opt-in and default off. Polynomial log
+requires NEON; detailed timing enables stage timing. These are CMake
+options, separate from runtime codec settings. See
+[CMakeLists.txt](../CMakeLists.txt) and [Architecture](architecture.md).
+
 ## Pack raw-video frames
 
 Place compatible per-frame FUSED `.gpr` payloads in
@@ -39,10 +52,8 @@ for validation, metadata requirements, and recovery semantics.
 
 Pi/camera capture is a separate integration workflow; see
 [Capture API](CAPTURE_API.md) and [Native Preview](NATIVE_PREVIEW.md).
-The accepted stand-in floor is 20+ fps for native 4096 x 3072 encoding with
-buffered writes, not durable SD-card recording, and full-frame 1024 x 768
-preview. Actual sensor/DMA, storage, and display handoff are not yet proven;
-no CNN runs on the camera.
+See [Product Details](PRODUCT_DETAILS.md) for the buffered-write performance
+boundary and outstanding camera validation.
 
 ## Desktop review without a model
 
@@ -63,7 +74,7 @@ an optional compatibility/export wrapper; `.gvid` is the primary raw-video
 container.
 
 For model-backed 4K cleanup or 8K SR, follow
-[Reconstruction](RECONSTRUCTION.md). Those approved paths run offline on
+[Reconstruction](RECONSTRUCTION.md) for exact model approval scope. Both run offline on
 desktop hardware. Weight files and large source fixtures are not included in
 this checkout, and the build alone does not reproduce their quality receipts.
 

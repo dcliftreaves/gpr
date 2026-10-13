@@ -1,19 +1,5 @@
 # Changelog
 
-## Unreleased
-
-- Consolidated current product, build/use, format, hardware, performance,
-  reconstruction, and release documentation into a compact guide set.
-- Archived superseded experiment reports, work queues, and device-specific
-  iteration histories. Preserved audited quality signoffs and format details.
-- Documentation examples use repository-relative inputs and user-selected
-  artifact/model directories.
-
-No new quality or performance measurements are claimed by this cleanup.
-The accepted Pi 5 floor remains 20+ fps for native 4096 x 3072 capture and
-full-frame 1024 x 768 preview. Actual camera sensor/DMA, storage, and display
-handoff remain unproven. CNN reconstruction runs offline on desktop hardware.
-
 ## 2.3.1 - 2026-06-26
 
 Added release-bundle, Labs/plugin handoff, and `.gvid` conformance contracts,
@@ -44,7 +30,7 @@ Original GoPro GPR SDK and VC5 raw still support.
 ## Full history
 
 Detailed release notes and the full research/integration history are preserved
-in the [archive](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09),
-pinned at [`3d675ef`](https://github.com/dcliftreaves/gpr/blob/3d675ef/CHANGELOG.md).
+in the [archive](https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96),
+pinned at [`f13dbe9`](https://github.com/dcliftreaves/gpr/blob/f13dbe95d3e97c400e8d493ba178dbb037ff3c96/CHANGELOG.md).
 See [Product Details](docs/PRODUCT_DETAILS.md) and
 [Ship Decision](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/SHIP_DECISION.md) for current scope.

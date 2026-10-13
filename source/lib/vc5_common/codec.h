@@ -113,8 +113,8 @@ typedef enum _codec_tag
 #endif
     
     // GPR v2.0 extensions
-    CODEC_TAG_BandCodingMethod = 200,       //!< 0 = VLC (default), 1 = ANS+companding, 2 = ANS raw magnitudes
-    CODEC_TAG_FormatVersion = 201,          //!< Format version (0x0200 = v2.0) for graceful failure
+    CODEC_TAG_BandCodingMethod = 200,       //!< 0 = VLC; 1/2 = legacy ANS; 3/4 = interleaved companded/raw ANS
+    CODEC_TAG_FormatVersion = 201,          //!< Informational legacy version tag; not emitted by current writer
 
 } CODEC_TAG;
 

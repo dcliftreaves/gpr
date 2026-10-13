@@ -40,8 +40,8 @@ profile or measured camera throughput. Change the source constants and input
 together when adapting it. A writer callback error exercises the abort path.
 
 For the current native-4K/1024-preview target and firmware ownership contract,
-see [Video Status](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/VIDEO_STATUS.md) and
-[Labs Firmware API](../docs/LABS_FIRMWARE_API.md).
+see [Ship Decision](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/SHIP_DECISION.md) and
+[Capture API](../docs/CAPTURE_API.md).
 [Getting Started](../docs/GETTING_STARTED.md) covers ordinary still conversion
 and desktop review; [GVID Conformance](../docs/GVID_CONFORMANCE.md) covers
 container validation.

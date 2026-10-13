@@ -9,8 +9,7 @@
 | FUSED payload specification | [Bitstream Specification](SPEC.md) |
 | Legacy DNG/GPR extensions | [Format Specification v2](format-spec-v2.md) |
 | Raw-video wire contract and metadata | [GVID Conformance](GVID_CONFORMANCE.md) |
-| Native codec and build configuration | [Fused Codec](FUSED_CODEC.md) |
-| Minimal capture integration | [Capture API](CAPTURE_API.md) |
+| Native codec and build configuration | [Build Options](GETTING_STARTED.md#native-build-options) |
+| Capture integration and firmware ownership | [Capture API](CAPTURE_API.md) |
 | Full-frame native preview | [Native Preview](NATIVE_PREVIEW.md) |
-| Firmware ownership and handoff | [Labs Firmware API](LABS_FIRMWARE_API.md) |
 | Model availability and offline reconstruction | [Reconstruction](RECONSTRUCTION.md) |

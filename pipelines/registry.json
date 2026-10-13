@@ -6,7 +6,7 @@
     "Renaming a pipeline: forbidden in same PR as an artifact run. Rename + re-run in separate PRs.",
     "If you can't fill `ckpt_sha256`, you can't register the pipeline. Run `sha256sum` on the .pt file."
   ],
-  "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28. Pipeline entries carry a 'ship_class' field with values STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE; UPRESABLE pipelines combine a dec2 codec (half-res Pi capture) with a bibo2x super-res CNN (desktop) and output an editable full-res raw DNG/.gpr \u2014 see docs/UPRESABLE_PIPELINE.md.",
+  "$use_for_doc": "Codec use_for retains runtime intent. Pipeline ship_class identifies the quality family, not production selection. release_selection distinguishes the eight ship roots, existing offline UPRESABLE, selected offline production, review-only candidates, and historical compatibility records.",
   "demosaicers": {
     "sips_via_gpr_tools": {
       "$doc": "Bayer plane \u2192 DNG via gpr_tools (Adobe DNG SDK preserves color matrix from source DNG params) \u2192 PNG via macOS sips (Apple's CIRawFilter). Gold standard for color science. Requires source DNG for color matrix.",
@@ -16,7 +16,7 @@
   },
   "codecs": {
     "gpr_tools_q0": {
-      "$doc": "Legacy CineForm VC5 at q=0. Smaller files than q=3 (3.2 MB vs 7.8 MB on Z8 50MP). Used to test whether the q=3-matched CNN generalizes downward.",
+      "$doc": "Legacy CineForm VC5 encoder via gpr_tools at q=0. Used by the registered STILL ship roots.",
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "quality": 0,
       "encoder_kind": "legacy_gpr_tools",
@@ -24,7 +24,7 @@
       "use_for": "still"
     },
     "gpr_tools_q3": {
-      "$doc": "Legacy CineForm VC5 encoder via gpr_tools CLI, explicit q=3. The codec that ALL CineForm GPR files use (CineForm Filmscan-1 default). Different bitstream from FUSED sl_q3 \u2014 uses CineForm's efficient LL coding rather than the FUSED GPR_INCLUDE_LL=1 byte-stuff. Empirically 7.8 MB on Z8 50MP vs FUSED's 17.8 MB at same q.",
+      "$doc": "Legacy CineForm VC5 encoder via gpr_tools at q=3. Used by the registered STILL ship roots.",
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "quality": 3,
       "encoder_kind": "legacy_gpr_tools",
@@ -32,7 +32,7 @@
       "use_for": "still"
     },
     "gpr_tools_q8": {
-      "$doc": "Legacy CineForm VC5 encoder at q=8 (Filmscan-5, archival quality). Larger files (~16 MB on Z8 50MP) than q=3 (7.8 MB) but higher fidelity. Designed for the 'highest quality STILL alternate' ship class. Pi 5 encode: ~1972 ms (best of 3).",
+      "$doc": "Legacy CineForm VC5 encoder via gpr_tools at q=8. Used by the registered STILL ship roots.",
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "quality": 8,
       "encoder_kind": "legacy_gpr_tools",
@@ -40,7 +40,7 @@
       "use_for": "still"
     },
     "ml2_q3": {
-      "$doc": "2-level FUSED q=3. Restored 2026-05-25. NOT yet shipping for any class.",
+      "$doc": "2-level FUSED q=3 codec used by the registered VIDEO_FREEZE alternate.",
       "binary": "build-local/bin/test_fused_roundtrip",
       "env": {
         "GPR_INCLUDE_LL": "1",
@@ -51,7 +51,7 @@
       "use_for": "video"
     },
     "ml2_q3_dec2": {
-      "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. Intended Pi 5 sustained-24-fps capture mode; latest strict Labs receipt is blocked at 19.98 fps median versus the 24 fps target. The older 24.93 fps May 26 result is historical and currently not reproduced. Pair with a 2x super-res CNN on the desktop.",
+      "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. Pair with a 2x super-res CNN on the desktop. Historical capture timing is separate from offline production selection.",
       "binary": "build-local/bin/test_fused_roundtrip",
       "env": {
         "GPR_INCLUDE_LL": "1",
@@ -64,7 +64,7 @@
       "use_for": "video"
     },
     "mission1_native12_t233": {
-      "$doc": "Mission 1 native 12MP Bayer recompression profile: q8, one wavelet level, no decimation, exact predictive LL, FLL2/T233 highpass dead-zones LH/HL/HH=2/3/3, direct .gvid scatter write. Latest Pi 5 evidence clears the 20+ fps floor but remains below strict 24 fps.",
+      "$doc": "Mission 1 native 12MP Bayer recompression profile: q8, one wavelet level, no decimation, exact predictive LL, FLL2/T233 highpass dead-zones LH/HL/HH=2/3/3, direct .gvid scatter write. Capture timing evidence is separate from offline reconstruction selection.",
       "binary": "build-local/bin/bench_fused",
       "env": {
         "FUSED_PIN": "1",
@@ -118,7 +118,7 @@
       "use_for": "video"
     },
     "ml2_q3_l2x2_l1x2_hh1x2": {
-      "$doc": "ml2_q3_l2x2_l1x2 with an additional 2\u00d7 crank on the L1 HH band (the highest-frequency slot). Hypothesis: HH is the most quantization-tolerant band when paired with the unmatched ml2_q3 CNN; cranking it on top of the proven smallest tier (l2x2_l1x2) should land near 6.5 MB. Slots: 4/5: 48, 6: 24, 7/8: 192, 9: 576.",
+      "$doc": "2-level FUSED q=3 with doubled L2/L1 highpass and additional L1 HH quantization. Used by the smallest VIDEO_FREEZE ship root; exact slots remain in env.",
       "binary": "build-local/bin/test_fused_roundtrip",
       "env": {
         "GPR_INCLUDE_LL": "1",
@@ -132,51 +132,56 @@
   },
   "cnns": {
     "bibo1x_ane_gpr_tools_q3": {
-      "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to legacy gpr_tools q=3 codec output. Target: restore legacy q=3 (7.8 MB / 64.1 dB) to legacy q=8 quality (72.7 dB) perceptually, giving us ~3\u00d7 file-size win over FUSED+CNN current ship.",
+      "$doc": "Release-required checkpoint for the registered production selection; architecture, configuration and hash are pinned below.",
       "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt",
       "cnn_arch_variant": "F_ane_no_sr",
       "trained_against_codec": "gpr_tools_q3",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
+      "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd",
+      "record_scope": "release_required"
     },
     "bibo1x_ane_ml2_q3": {
-      "$doc": "BIBO_1x retrained on ML-2 q=3 codec output pairs. Awaiting training; ckpt_path will land once train finishes. trained_against_codec: ml2_q3.",
+      "$doc": "Release-required checkpoint for the registered production selection; architecture, configuration and hash are pinned below.",
       "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3.pt",
       "cnn_arch_variant": "F_ane_no_sr",
       "trained_against_codec": "ml2_q3",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9"
+      "ckpt_sha256": "7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9",
+      "record_scope": "release_required"
     },
     "bibo2x_ane_ml2_q3_dec2_diverse": {
-      "$doc": "BIBO_2x super-res CNN retrained on a 498-image diverse corpus (200 barnsky + 298 NEFs across 10 dates: Jan\u2013Oct 2025). Adobe DNG-converted from the 2025 source corpus. 19920 tiles. Trained on M5, 80 epochs, best at ep 64 +1.776 dB. Test images filtered out.",
+      "$doc": "Release-required checkpoint for the registered production selection; architecture, configuration and hash are pinned below.",
       "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt",
       "cnn_arch_variant": "F_ane",
       "trained_against_codec": "ml2_q3_dec2",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
+      "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b",
+      "record_scope": "release_required"
     },
     "bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001": {
-      "$doc": "Temporary BIDO_4x target-detail candidate from the 2026-06-05 hardtail pass. Starts from the LPIPS task-only control and adds a small target-derived luma-gradient detail loss; retained for full gate comparison, not a ship checkpoint.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "checkpoints/bido_target_detail_20260605/bido_4x_lpips005_detail_lumagrad_w001.pt",
       "cnn_arch_variant": "bido_4x",
       "trained_against_codec": "ml2_q3_dec2",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132"
+      "ckpt_sha256": "e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132",
+      "record_scope": "historical"
     },
     "bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005": {
-      "$doc": "Temporary wider/full-context BIDO candidate trained on the hardtail t192/s96 fullref set with Z8Z_6693 held out. M5 run stopped after epoch 19; best checkpoint selected by validation LPIPS at epoch 9.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "checkpoints/bido_full_context_20260605/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt",
       "cnn_arch_variant": "bido_4x_w32",
       "trained_against_codec": "ml2_q3_dec2",
       "raw_norm": 16383.0,
-      "ckpt_sha256": "8fa6d260a0e2bb8b03e98fa8b09496811e1d297cbb3443d621f514ec8060cc6f"
+      "ckpt_sha256": "8fa6d260a0e2bb8b03e98fa8b09496811e1d297cbb3443d621f514ec8060cc6f",
+      "record_scope": "historical"
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded": {
-      "$doc": "Temporary raw-signal SR candidate from the 2026-06-05 expanded 28-image / 84-crop pass. Uses source Bayer signal as the target, not denoised REF residuals. Dispatch bypasses low-ISO low-texture tiles to bilinear codec upsample.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
@@ -186,10 +191,11 @@
       "tile": 256,
       "overlap": 24,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c"
+      "ckpt_sha256": "376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c",
+      "record_scope": "historical"
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe": {
-      "$doc": "Runtime-sigma probe for the 2026-06-05 raw-signal SR candidate. Uses decoded/upscaled codec raw to build the DNG NoiseProfile sigma map, which is deployable; retained to document the conditioning-mismatch failure against the source-sigma-trained checkpoint.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
@@ -201,10 +207,11 @@
       "tile": 256,
       "overlap": 24,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c"
+      "ckpt_sha256": "376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c",
+      "record_scope": "historical"
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops": {
-      "$doc": "Runtime-sigma raw-signal SR retrain from the 2026-06-05 expanded 84-crop pass. Training pairs derive sigma from decoded/upscaled codec raw, matching what the decoder has at runtime.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "artifacts/codec_raw_signal_train_runtime_sigma_20260605/codec_raw_signal_sr_w64_iso_runtime_sigma_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
@@ -216,10 +223,11 @@
       "tile": 256,
       "overlap": 24,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "fb6e37a1e15ed297d47878b6144bebcbf5ed0ee675bfe5a141da401e5c497aeb"
+      "ckpt_sha256": "fb6e37a1e15ed297d47878b6144bebcbf5ed0ee675bfe5a141da401e5c497aeb",
+      "record_scope": "historical"
     },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops": {
-      "$doc": "No-sigma raw-signal SR retrain from the 2026-06-05 expanded 84-crop pass. Uses only decoded/upscaled codec raw plus ISO conditioning, removing dependence on source/raw-derived sigma maps.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_path": "artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt",
       "cnn_arch_variant": "codec_raw_signal_sr",
       "trained_against_codec": "ml2_q3_dec2",
@@ -230,10 +238,11 @@
       "tile": 256,
       "overlap": 24,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf"
+      "ckpt_sha256": "7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf",
+      "record_scope": "historical"
     },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10": {
-      "$doc": "Display-space Lab chroma guardrail for PREVIEW. Uses raw-predicted luma plus a bounded Lab a/b residual on top of the sips demosaic baseline.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "ckpt_y": "cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt",
       "ckpt_y_sha256": "e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e",
       "ckpt_chroma": "cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
@@ -241,10 +250,11 @@
       "cnn_arch_variant": "lab_chroma_corrector",
       "trained_against_codec": "ml2_q3_dec2",
       "chroma_baseline": "demosaic_sips",
-      "raw_norm": 16383.0
+      "raw_norm": 16383.0,
+      "record_scope": "historical"
     },
     "preview_scene_routed_k5_l1color_v1": {
-      "$doc": "Temporary no-REF display PREVIEW routed RGB candidate. Frozen k=5 runtime source-feature router selects preloaded RGB refiner experts. Full-image 28-image holdout receipt clears the temporary >70% target at 61/84, but severe failures remain on Z8Z_0026, Z8Z_0705, and several newly covered hard images; not a ship claim.",
+      "$doc": "Historical checkpoint compatibility record; not selected for production.",
       "cnn_arch_variant": "preview_scene_routed_rgb_refiner",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "zero",
@@ -277,10 +287,11 @@
       },
       "holdout_receipt": "artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json",
       "video_receipt": "artifacts/upresable_missing_hard_20260606/summary.json",
-      "raw_norm": 255.0
+      "raw_norm": 255.0,
+      "record_scope": "historical"
     },
     "preview_q8_threeway_runtime_fullframe_v1": {
-      "$doc": "External-receipt no-REF display PREVIEW offline/review production path. A frozen source-only q8 three-way router selects q8 hard, q8 fallback3, or v32 fallback full-frame renderers per image. The integrated 28-image/84-row full-frame holdout clears all PREVIEW metrics with timing and memory receipts, but the measured 0.073 fps Mac/MPS path is not live/camera-back preview and this is not a normal run_gate Bayer pipeline.",
+      "$doc": "Selected offline/review PREVIEW model with frozen routing and external holdout evidence; not a live-camera model.",
       "cnn_arch_variant": "preview_q8_threeway_runtime_fullframe",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "q8_source_fullframe_rgb_features",
@@ -340,10 +351,16 @@
       },
       "holdout_receipt": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json",
       "dashboard": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html",
-      "raw_norm": 255.0
+      "raw_norm": 255.0,
+      "record_scope": "release_required",
+      "execution_scope": "offline",
+      "evidence_kind": "external_receipt",
+      "holdout_receipt_schema": "preview_q8_threeway_runtime_fullframe",
+      "holdout_expected_rows": 84,
+      "holdout_expected_images": 28
     },
     "mission1_native12_8k_sr_all24_holdout5_v1": {
-      "$doc": "Temporary offline 12MP-to-8K Bayer SR candidate for the Mission 1 native-12 current-T233 codec path. Trained on Mission 1 plus 24 Z8-derived current-codec pairs with GP017604 and Z8Z_1349-Z8Z_1353 held out. Full-frame holdout evidence improves the strict GP017604 Mission 1 frame by 48.58% RMSE and five Z8 holdout frames by 41.50-42.32% versus bilinear Bayer upscaling. A broader eight-frame Mission 1 corpus improves every frame, with worst RMSE/MAE/gradient lifts of 34.00%/21.64%/8.17%. Not a live-camera upscaler.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/mission1_z8_sr_all24_current_t233_20260618/mission1_z8_all24_sr_current_t233_lowps_w48_d6_rs03_holdout5_12k.pt",
       "cnn_arch_variant": "lowres_pixelshuffle_bayer2x",
       "trained_against_codec": "mission1_native12_t233",
@@ -429,10 +446,11 @@
         "prores_review": "pass_2048x1536_prores_from_sr_dng; two-frame receipt reports 24/1 fps and single-frame duration is 1/24s",
         "fast_gpr_wrapper": "opt_in_not_production_readback_crashes_tiny_fixture",
         "mission_metadata_transplant": "native12_repack_required_tags_pass_after_dynamic_gainmap_and_profile_sidecar_fix; RawDataUniqueID_recommended_nonblocking"
-      }
+      },
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_focus_hardrows_2500_v1": {
-      "$doc": "Registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Initialized from the registered T233 SR checkpoint and fine-tuned with GP017346/GP017349 hard-row oversampling. Improves the eight-frame Mission 1 broad dashboard worst-row minima without replacing the registered production CNN yet.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/mission1_sr_t233_focus_hardrows_20260618/mission1_sr_t233_focus_gp017346_gp017349_from_registered_w48_d6_rs03_2500.pt",
       "ckpt_sha256": "c2e08917bcd32049ce9971de2fe694d4d13fe46ae0392b85d6eac534c5d7bd13",
       "cnn_arch_variant": "lowres_pixelshuffle_bayer2x",
@@ -489,10 +507,11 @@
         "editable_gpr": "pass_sdk_wrapped_gpr_readback_psnr14_56_44db_and_gpr_to_dng_opens",
         "prores_review": "pass_2048x1536_prores_from_sr_dng; two-frame receipt reports 24/1 fps, time_base 1/24, duration_ts 2",
         "mission_metadata_transplant": "not refreshed for focused candidate; generic SDK wrapper path validated"
-      }
+      },
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_guardrail_focus_1500_v1": {
-      "$doc": "Registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Initialized from the focused hard-row checkpoint and fine-tuned with Mission hard rows plus nearby non-holdout Z8 guardrail rows. Keeps the Mission holdout gain while improving every regenerated Z8 holdout row. Runtime and packaging receipts are refreshed, but this remains review-only because the SDK q3 wrapper crashes on this payload; q5 packaging is openable and documented.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/mission1_sr_t233_guardrail_focus_20260618/mission1_sr_t233_guardrail_focus_from_focus_w48_d6_rs03_1500.pt",
       "ckpt_sha256": "9a8ce5c936da1ae26823b1ce613aabb510e7c124004fa2b5b786a69ba74d7508",
       "cnn_arch_variant": "lowres_pixelshuffle_bayer2x",
@@ -535,10 +554,11 @@
       "gvid_decode_sr_packaging_receipt_sha256": "756ad891366c40e8126ff11e783541a08972a0f6fd194e20c05cf6dacc56c500",
       "packaging_gpr_quality": 5,
       "packaging_note": "Guardrail SR retained raw is numerically valid 14-bit Bayer. SDK q3 wrapping crashes for this payload; q5 wrapping succeeds, reads back at 53.02 dB PSNR14, converts to openable 8192x6144 DNG, and emits 24/1 two-frame ProRes review output.",
-      "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py"
+      "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_guardrail_light_w15_800_v1": {
-      "$doc": "Registered offline candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Initialized from the focused hard-row checkpoint and lightly fine-tuned with Mission hard rows plus nearby non-holdout Z8 guardrail rows. It keeps Mission broad-holdout minima above the registered all24 checkpoint, improves the regenerated Z8 guardrail over the focused candidate, and packages through the q3 direct retained-artifact fallback.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/mission1_sr_t233_guardrail_light_w15_800_20260618/mission1_sr_t233_guardrail_light_w15_from_focus_w48_d6_rs03_800.pt",
       "ckpt_sha256": "5994b69f74f3df228730d523663a02ebd12251fe5f636a0b7894638a7d823e98",
       "cnn_arch_variant": "lowres_pixelshuffle_bayer2x",
@@ -585,10 +605,11 @@
       "wrapper_probe_receipt_sha256": "94abf0e0d7f23e2d4619fa8d2b74037f6984d1ccc334bb687e86263bc8f346d7",
       "packaging_gpr_quality": 3,
       "packaging_note": "q3 editable GPR packaging passes at 56.37 dB PSNR14 through the direct retained-artifact fallback. The scratch-copy wrapper path crash is recorded by the wrapper probe, but production packaging uses the deterministic retained-artifact input path.",
-      "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py"
+      "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_preclean_aux_broad_step0200_v1": {
-      "$doc": "Temporary registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Adds a low-res codec preclean branch with auxiliary clean-low supervision, selected by early stopping at step 200. It beats the adapter96 continuation on paired Mission all-42 and regenerated Z8 RMSE/PSNR floors, but it is not production-ready because GP017346, GP017349, and GP017600 still fail absolute Mission floors.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/current_goal_sr_preclean_aux_broad_recovery_20260618/eval_checkpoints/preclean_aux_broad_recovery_w96_d6_rs03_gw08_lap01_aux05_1600_step000200.pt",
       "ckpt_sha256": "2d59331bc7ae5561c74388006e0405deda4f392b386b90ad4d05066a86d91da2",
       "cnn_arch_variant": "preclean_adapter_pixelshuffle_bayer2x",
@@ -633,10 +654,11 @@
       "packaging_gpr_quality": 3,
       "packaging_note": "q3 editable GPR packaging passes at 53.74 dB PSNR14 through the scratch-copy path. Generic DNG roundtrip is byte-identical, GPR-to-DNG opens at 8192x6144, and two-frame ProRes review reports 24/1 fps.",
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "review_only_absolute_floor_failures_open"
+      "status": "review_only_absolute_floor_failures_open",
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_q4t2_sidecar_aware_s400_v1": {
-      "$doc": "Temporary registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Continues the preclean step-200 checkpoint on Mission42 plus Z8 all24 q4/t2 detail-residual sidecar-retargeted inputs. It improves the q4/t2 broad Mission and Z8 decision floors, and now has decode-to-SR, editable GPR/DNG, and ProRes review receipts. It remains review-only because it is an offline/upscale path, GP017346 regresses slightly versus the prior q4/t2 candidate, Mission metadata transplant has not been refreshed, and native12 strict-24 capture is still open.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/current_goal_sr_q4t2_sidecar_aware_train_20260619/sidecar_aware_preclean_step0200_continue_s400/q4t2_sidecar_aware_preclean_continue_s400.pt",
       "ckpt_sha256": "a16579f2aacd6edbadc3931ab112a3ff52566bd4f8a6245c95b246b16af98bb5",
       "cnn_arch_variant": "preclean_adapter_pixelshuffle_bayer2x",
@@ -695,10 +717,11 @@
         "mission_metadata_transplant": "not refreshed for sidecar-aware candidate; generic SDK wrapper path validated"
       },
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "review_only_gap_reported_not_production"
+      "status": "review_only_gap_reported_not_production",
+      "record_scope": "review_only"
     },
     "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1": {
-      "$doc": "Offline-production candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. Adds deterministic coordinate and low-band detail channels, then interpolates halfway from the baseline-preserving step-1 checkpoint to the balanced hard-tile specialist. It beats the q4/t2 preclean broad baseline on paired Mission42 and Z8 all24 RMSE/PSNR floors and has visual-review, editable packaging, metadata-transplant, .gvid, and ProRes receipts. It remains an offline/upscale path and not a live-camera path.",
+      "$doc": "Selected 8K alpha0p5 offline editable-raw production checkpoint.",
       "ckpt_path": "artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5.pt",
       "ckpt_sha256": "791628778f74b13542677edeb5de7934b88d274531a8ec1755d8cf3d6388fb07",
       "cnn_arch_variant": "coord_detail_preclean_adapter_pixelshuffle_bayer2x",
@@ -760,10 +783,11 @@
         "mission_metadata_transplant": "not refreshed for coord-detail alpha0p5 candidate; generic SDK wrapper path validated"
       },
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "offline_production_runtime_and_packaging_refreshed"
+      "status": "offline_production_runtime_and_packaging_refreshed",
+      "record_scope": "release_required"
     },
     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1": {
-      "$doc": "Temporary registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. It continues the focused PSF-gradient diagnostic checkpoint with deterministic coordinate and same-color detail channels. The paired full-frame review beats the previous psf-gradient-focus baseline on Mission42 and regenerated Z8 RMSE/PSNR floors. Registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes review, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, manual visual signoff, and blocked production-audit receipts are refreshed. It is not a live-camera path and is not production; controlled native PSF evidence remains open.",
+      "$doc": "Offline review-only checkpoint and evidence record; not selected for production.",
       "ckpt_path": "artifacts/current_goal_sr_coord_detail_context_20260701/eval_checkpoints/coord_detail_from_psf_focus_s150_step000075.pt",
       "ckpt_sha256": "9e3e57ec5555bc8387809eb3bd76003bd0422b37a99d8db3a8a4d12b18a7ae46",
       "cnn_arch_variant": "coord_detail_preclean_adapter_pixelshuffle_bayer2x",
@@ -869,10 +893,11 @@
       "mission_metadata_transplant_audit": "artifacts/mission1_native12_gvid_to_8k_sr_coord_detail_psf_focus_step0075_metadata_transplant_20260701/metadata_transplant_audit.json",
       "mission_metadata_transplant_audit_sha256": "33ba940fe5276f456be49f291fd3de104b7fc46f635a5141d15ae7802edf7d10",
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "review_only_full_sequence_packaged_objective_visual_signed_off_production_audit_blocked_psf_open"
+      "status": "review_only_full_sequence_packaged_objective_visual_signed_off_production_audit_blocked_psf_open",
+      "record_scope": "review_only"
     },
     "mission1_native12_4k_cleanup_rgb_cfa_w40_v1": {
-      "$doc": "Registry-review candidate for Mission 1 native-12 4096x3072 Bayer cleanup. It maps current 4K Bayer lows to a 4K Bayer output supervised by high-resolution RGB area-downsample and CFA-sampled targets. The broad Mission42 dashboard improves every image versus the baseline on RGB/CFA error and y-gradient, has a green/tone audit, objective visual signoff, a 42-frame 4K .gvid packaging receipt, and a 4K ProRes review receipt. It remains offline/review-only; camera/firmware handoff is tracked separately from this CNN.",
+      "$doc": "Visually approved 4K cleanup checkpoint, retained for offline review only; not selected for production.",
       "ckpt_path": "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/bayer_rgb_target_w40_d5_rs015_gamma2_grad1_raw2_bayer2_step1000.pt",
       "ckpt_sha256": "baabbd3650c8e09032849e83cfc1526d8a30a47508c55a9a00f5a4e182e16aa1",
       "cnn_arch_variant": "bayer_rgb_target_cleanup_1x",
@@ -920,7 +945,8 @@
         "mov_sha256": "936a3a8bb3dca8d9387f7b9477d22e806014b440717993731aeb98c4569440c4"
       },
       "runtime_entrypoint": "tools/cnn/train_bayer_rgb_target_cleanup.py",
-      "status": "review_only_visual_signed_off_camera_handoff_separate"
+      "status": "review_only_visual_signed_off_camera_handoff_separate",
+      "record_scope": "review_only"
     },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
@@ -933,7 +959,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "ship-video-freeze-smallest",
-      "$doc": "VIDEO_FREEZE smallest ship \u2014 ml2_q3 with both L1+L2 highpass doubled and an additional 2\u00d7 crank on the L1 HH band (the highest-frequency slot, most quantization-tolerant). 6.77 MB mean per 50 MP frame, 13% smaller than primary (ml2_q3_l1x2 at 7.81 MB). Decoded via the standard unmatched ml2_q3 CNN \u2014 the matched-CNN-against-cranked-codec hypothesis was falsified on 2026-05-28 (the cross-pair wins). Worst LPIPS 0.0809 on Z8Z_6693, PASS under the 2026-05-27 relaxed 0.085 ceiling (4.8% margin \u2014 slimmer than the conservative alternate at 7.11 MB but smaller). Audit run f392aeb7b123c111."
+      "$doc": "VIDEO_FREEZE ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l1x2",
@@ -941,7 +968,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "ship-video-freeze-primary",
-      "$doc": "VIDEO_FREEZE primary ship (promoted 2026-05-27). 23.9% smaller files than the prior ml2_q3 baseline at PASS quality (worst LPIPS 0.076 vs 0.08 ceiling). Same matched CNN as ml2_q3 \u2014 no retrain needed. Crank pattern: L1 highpass quants \u00d72 (GPR_QUANT_OVERRIDE=7:192,8:192,9:288)."
+      "$doc": "VIDEO_FREEZE ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q0",
@@ -949,7 +977,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "ship-still-smallest",
-      "$doc": "STILL smallest ship \u2014 legacy CineForm q=0 + matched-q3 CNN. 9.80 MB mean (35% smaller than the q=3 primary tier). Worst LPIPS 0.0314 (vs 0.05 ceiling). The matched-q3 CNN generalizes down to q=0 with no retrain required. Use when storage is the constraint and visible quality holds (verified 2026-05-28 via the q-level decision dashboard)."
+      "$doc": "STILL ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q8",
@@ -957,7 +986,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "ship-still-archival-no-cnn",
-      "$doc": "STILL archival ship \u2014 legacy CineForm q=8 ('Filmscan-5'). 27.17 MB mean (16-41 MB per-image, content-adaptive). Worst LPIPS 0.0035 \u2014 4\u00d7 tighter than q=3+CNN primary. No CNN needed: the legacy encoder at q=8 is already visual-lossless on the gate's 4-image test set. Use when storage isn't constrained AND you want maximum fidelity."
+      "$doc": "STILL ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q3",
@@ -965,7 +995,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "ship-still-primary",
-      "$doc": "STILL primary ship (promoted 2026-05-28). Legacy gpr_tools q=3 codec + matched BIBO_1x CNN. 15.05 MB mean (7.8-21.4 MB per-image, content-adaptive) \u2014 43.4% smaller than the FUSED sl_q3+CNN ship (26.6 MB). Worst LPIPS 0.0155 across the 4-image gate, well under STILL's 0.05 ceiling. Matches the user's original design goal: q=3 codec + CNN restoration \u2192 STILL quality at small file sizes."
+      "$doc": "STILL ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -973,8 +1004,9 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "use_for": "PREVIEW_LIVE_CODEC_ONLY",
-      "$role": "embedded-preview-ml2-no-cnn",
-      "$doc": "Live/camera-back PREVIEW fast path. Uses the same Pi 5 half-res .gvid capture stream as UPRESABLE, decodes without the q8 offline/refinement CNN, and is protected by tools/test/test_sustained_playback.sh default 24 fps UHD thresholds. The latest strict capture receipt is blocked at 19.98 fps until the 24 fps target is restored. This is the speed path, not the highest-quality offline/review PREVIEW route."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -983,8 +1015,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
       "production_scope": "offline_review_only",
-      "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Latest strict Pi capture receipt is blocked at 19.98 fps versus 24 fps target; older 24.93 fps result is historical. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md.",
-      "$doc": "UPRESABLE editable-raw production chain. Half-res Pi/Labs capture feeds desktop BIBO_2x reconstruction into editable full-res DNG/GPR artifacts; production_scope=offline_review_only means this is not a live-camera path and does not claim strict-24 firmware readiness."
+      "$role": "UPRESABLE production chain - existing offline editable-raw workflow",
+      "$doc": "Existing offline UPRESABLE editable-raw production chain; separate from live-camera capture readiness.",
+      "release_selection": "existing_offline",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_all24_holdout5_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -993,8 +1028,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_CANDIDATE",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-all24-holdout5-20260618",
-      "$doc": "Temporary registered candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer. ship_class=UPRESABLE places it in the editable-raw output family only; production_scope=offline_review_only means this is not a live-camera path and not a full firmware release claim because strict 24 fps native-12 capture is still open."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_focus_hardrows_2500_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1003,8 +1041,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-focus-hardrows-20260618",
-      "$doc": "Registry-review candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer. ship_class=UPRESABLE places it in the editable-raw output family only; production_scope=offline_review_only means this is not a live-camera path. It improves the broad Mission 1 SR dashboard, but is not the production default until packaging, metadata, and release receipts are refreshed against this checkpoint."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_guardrail_focus_1500_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1013,8 +1054,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-guardrail-focus-20260618",
-      "$doc": "Registry-review candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer. ship_class=UPRESABLE places it in the editable-raw output family only; production_scope=offline_review_only means this is not a live-camera path. Full-frame evidence improves all five regenerated Z8 holdout rows while keeping Mission broad-holdout gains above the registered all24 checkpoint; packaging/runtime receipts still need refresh before promotion."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_guardrail_light_w15_800_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1023,8 +1067,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_CANDIDATE",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-guardrail-light-20260618",
-      "$doc": "Registered offline candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer. ship_class=UPRESABLE places it in the editable-raw output family only; production_scope=offline_review_only means this is not a live-camera path. It improves the regenerated Z8 guardrail relative to the hard-row focused candidate while staying above the registered all24 Mission broad-holdout minima. q3 editable-GPR packaging uses the direct retained-artifact fallback path."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_preclean_aux_broad_step0200_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1033,8 +1080,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-preclean-aux-broad-step0200-20260618",
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer. production_scope=offline_review_only means this is not a live-camera path. It slightly improves paired Mission all-42 and regenerated Z8 RMSE/PSNR floors versus the adapter96 continuation, but remains review-only because the absolute Mission hard-row floors are still open and packaging/runtime receipts have not been refreshed for this checkpoint."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_q4t2_sidecar_aware_s400_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1043,8 +1093,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-q4t2-sidecar-aware-s400-20260619",
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer using q4/t2 detail-residual sidecar-aware lows. production_scope=offline_review_only means this is not a live-camera path. It improves the broad q4/t2 Mission42 and Z8 all24 decision floors and has refreshed decode-to-SR, editable GPR/DNG, and ProRes review receipts. It remains review-only because live timing, GP017346 paired regression, Mission metadata transplant, and native12 strict-24 capture are still open."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1054,7 +1107,10 @@
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_production",
       "$role": "offline-production-mission1-native12-8k-sr-q4t2-coord-detail-alpha0p5-20260625",
-      "$doc": "Offline-production candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer using q4/t2 detail-residual sidecar-aware lows plus deterministic coordinate/detail channels. production_scope=offline_production means this is approved only for offline editable-raw reconstruction and not a live-camera path. It improves the broad q4/t2 Mission42 and Z8 all24 decision floors and has refreshed runtime, editable packaging, metadata transplant, visual review, .gvid packaging, and ProRes receipts."
+      "$doc": "Selected 8K alpha0p5 offline editable-raw production path; not a live-camera path.",
+      "release_selection": "production",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1063,8 +1119,11 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE_NATIVE12_8K_OFFLINE_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-8k-sr-coord-detail-psf-focus-step0075-20260701",
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to 8K editable Bayer using q4/t2 detail-residual lows plus deterministic coordinate/detail channels. production_scope=offline_review_only means this is not a live-camera path and not production. Frame-level editable raw, ProRes, metadata-transplant receipts, 42-frame .gvid packaging, continuous 8K ProRes review, objective visual-review, manual visual signoff, and blocked production-audit receipts are refreshed; controlled native PSF evidence still needs refresh."
+      "$role": "offline-review-only",
+      "$doc": "Offline review-only editable-raw candidate; not selected for production and not a live-camera path.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw"
     },
     "codec=mission1_native12_t233+cnn=mission1_native12_4k_cleanup_rgb_cfa_w40_v1+demosaic=sips_via_gpr_tools": {
       "codec": "mission1_native12_t233",
@@ -1073,24 +1132,30 @@
       "ship_class": "UPRESABLE",
       "use_for": "MISSION1_NATIVE12_4K_CLEANUP_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
-      "$role": "temp-mission1-native12-4k-cleanup-rgb-cfa-w40-20260625",
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to cleaned 4K editable Bayer. It has broad Mission42 RGB/CFA, tone-audit, visual signoff, 4K .gvid packaging, and 4K ProRes review receipts. It is not a live-camera path and remains offline/review-only; camera/firmware handoff is tracked separately from this CNN."
+      "$role": "offline-review-only",
+      "$doc": "Visually approved 4K cleanup, retained for offline review only; not selected for production.",
+      "release_selection": "review_only",
+      "execution_scope": "offline",
+      "output_kind": "editable_raw",
+      "visual_review_status": "approved"
     },
     "codec=ml2_q3_dec2+cnn=bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "temp-bido-target-detail-20260605",
-      "$doc": "Temporary BIDO target-detail candidate for full rendered gate comparison. Not a ship pipeline until it beats the current PREVIEW/UPRESABLE blockers and has timing receipts."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "temp-bido-full-context-w32-20260605",
-      "$doc": "Temporary wider/full-context BIDO candidate. Registered for full gate comparison after the Z8Z_6693 holdout validation LPIPS improved from 0.5439 to 0.3790."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -1098,48 +1163,54 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
-      "$role": "temp-raw-signal-sr-expanded-20260605",
-      "$doc": "Temporary registered candidate for full gate/render comparison. Not a ship pipeline until rendered metrics, worst-image inspection, and decode+model+encode timing are recorded."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "UPRESABLE",
-      "$role": "temp-runtime-sigma-probe-20260605",
-      "$doc": "Production-valid sigma-source probe for the raw-signal SR checkpoint. Expected to pass raw Bayer PSNR but fail rendered quality; retained as evidence that this checkpoint must be retrained or distilled with runtime-available sigma conditioning before promotion."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "UPRESABLE",
-      "$role": "temp-runtime-sigma-retrain-20260605",
-      "$doc": "Runtime-sigma retrain candidate. Not a ship pipeline until full-image gate/render metrics beat the source-sigma analysis receipt and current UPRESABLE baseline."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "UPRESABLE",
-      "$role": "temp-iso-only-raw-signal-sr-20260605",
-      "$doc": "No-sigma retrain candidate. Registered to test whether removing sigma conditioning fixes the runtime mismatch before moving to larger/full-context targets."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "preview-color-guard-lab-sips",
-      "$doc": "PREVIEW color guardrail pipeline. This is registered to preserve the solved dE/color direction while the remaining full-image detail-placement blocker is handled separately."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "preview_scene_routed_k5_l1color_v1",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "temp-preview-scene-routed-k5-l1color-20260606",
-      "$doc": "Temporary no-REF routed PREVIEW candidate. Registered after full-image 28-image holdout coverage reached 61/84 pass with frozen sidecar routing, checkpoint hashes, timing/memory receipts, and .gvid/ProRes review output. Not a ship claim because worst failures remain severe and the old crop-proxy dashboard regresses."
+      "$role": "historical-compatibility",
+      "$doc": "Historical compatibility record retained for pipeline and checkpoint lookup; not selected for production.",
+      "release_selection": "historical"
     },
     "codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -1148,7 +1219,11 @@
       "ship_class": "PREVIEW",
       "use_for": "PREVIEW_OFFLINE_REVIEW_Q8_THREEWAY",
       "$role": "ship-preview-offline-q8-threeway-runtime-fullframe",
-      "$doc": "External-receipt no-REF PREVIEW offline/review production path. Integrated full-frame route/render receipt clears 84/84 on the 28-image holdout with worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64, weighted runtime 13.65 s/image, and peak RSS 5.37 GB. Not live/camera-back preview and not a run_gate Bayer pipeline; use tools/cnn/render_preview_q8_threeway_runtime.py."
+      "$doc": "Offline/review PREVIEW ship root with external holdout evidence. Not live/camera-back preview; declaration and receipt validation are distinct.",
+      "release_selection": "ship_root",
+      "execution_scope": "offline",
+      "output_kind": "rendered_preview",
+      "evidence_kind": "external_receipt"
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",
@@ -1156,7 +1231,8 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "ship-video-freeze-smallest-conservative",
-      "$doc": "VIDEO_FREEZE conservative-margin smallest alternate \u2014 ml2_q3 with L1+L2 highpass doubled. 7.11 MB mean (9% smaller than primary), worst LPIPS 0.0794 (6.6% margin under the 0.085 ceiling). Larger and looser than ship-video-freeze-smallest (l2x2_l1x2_hh1x2 @ 6.77 MB / LPIPS 0.0809, 4.8% margin) but with more headroom. Use when LPIPS margin matters more than size. Audit run 063d8276aa8e735e."
+      "$doc": "VIDEO_FREEZE ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     },
     "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3",
@@ -1164,8 +1240,16 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "ship-video-freeze-alternate-tighter-lpips",
-      "$doc": "VIDEO_FREEZE alternate. Larger files (10.26 MB mean) but tighter LPIPS (0.068 vs 0.076). Was the primary ship until ml2_q3_l1x2 was promoted 2026-05-27."
+      "$doc": "VIDEO_FREEZE ship root. Production selection is declared here; validation belongs to the exact pipeline receipt.",
+      "release_selection": "ship_root"
     }
   },
-  "$archive_note": "Experimental codecs, CNNs, and pipeline candidates omitted from this slim registry are preserved on archive/multilevel-cascade-experiments-20260604; see docs/EXPERIMENT_ARCHIVE_2026-06-04.md."
+  "$archive_note": "Historical experiments are preserved at pinned archive commit f13dbe9.",
+  "$evidence_scope": {
+    "version": 1,
+    "ship_root_count": 8,
+    "selection_field": "release_selection",
+    "historical_records": "Retained for checkpoint lookup and evidence history; not release requirements.",
+    "firmware_capture": "Separate evidence scope; historical strict-24 results are not current offline release blockers."
+  }
 }
