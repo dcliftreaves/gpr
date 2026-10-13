@@ -42,7 +42,7 @@ version-tag compatibility gate.
 | Method | Interpretation | Current writer |
 |---|---|---|
 | 0 / absent | VLC | Yes, including per-band fallback |
-| 1 | Separate-stream ANS with companding | No |
+| 1 | Joint ANS with companding | No |
 | 2 | Joint ANS, raw coefficients | No |
 | 3 | Four-way joint ANS with companding | No |
 | 4 | Four-way joint ANS, raw coefficients | Yes, at 12/14/16 bits |
@@ -54,7 +54,6 @@ quality guarantee for legacy output.
 ## Exact definitions and limits
 
 - [codec.h](../source/lib/vc5_common/codec.h): coding-method and version tag constants.
-- [ans.h](../source/lib/vc5_common/ans.h) and [ans.c](../source/lib/vc5_common/ans.c): separate-stream ANS.
 - [ans_joint.h](../source/lib/vc5_common/ans_joint.h) and [ans_joint.c](../source/lib/vc5_common/ans_joint.c): joint symbols, interleaved and stripe variants, exact blob serialization.
 - [gpr.h](../source/lib/gpr_sdk/public/gpr.h): still conversion API.
 
