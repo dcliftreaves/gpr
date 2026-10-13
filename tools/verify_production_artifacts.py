@@ -8,9 +8,10 @@ Checkpoint binaries and large training-pair datasets stay off main. Registry pat
   2. GPR_MODEL_ROOT and GPR_CHECKPOINT_ROOT, os.pathsep-separated;
   3. GPR_EXTERNAL_ROOT/{models,checkpoints}, when explicitly configured.
 
-Default mode reports missing artifacts but exits 0 so CI can surface the
-inventory without requiring private model files. Use --strict for release
-verification.
+Default mode inventories release-required runtime weights and routing sidecars,
+reporting failures without requiring private files in CI. Use --strict for
+release verification. --all includes historical/review CNNs; combine with
+--include-training-data for the full checkpoint and training-pair inventory.
 """
 from __future__ import annotations
 
@@ -68,11 +69,27 @@ def candidates(path_value: str) -> list[Path]:
     return out
 
 
-def artifact_specs(cnn: dict) -> list[tuple[str, str, str, str | None]]:
+def release_required(pipeline: dict) -> bool:
+    """Structured selection wins; legacy registries retain their release roots."""
+    if "release_selection" in pipeline:
+        return pipeline["release_selection"] in {"ship_root", "existing_offline", "production"}
+    return (str(pipeline.get("$role", "")).startswith(("ship-", "UPRESABLE production chain"))
+            or pipeline.get("production_scope") == "offline_production")
+
+
+def selected_cnns(registry: dict, all_records: bool = False) -> dict:
+    names = {p.get("cnn") for p in registry.get("pipelines", {}).values()
+             if isinstance(p, dict) and release_required(p)}
+    return {name: cnn for name, cnn in registry.get("cnns", {}).items()
+            if isinstance(cnn, dict) and not name.startswith("$") and name != "none"
+            and (all_records or name in names)}
+
+
+def artifact_specs(cnn: dict, include_training_data: bool = False) -> list[tuple[str, str, str, str | None]]:
     specs = []
     if "ckpt_path" in cnn:
         specs.append(("ckpt_path", cnn["ckpt_path"], "ckpt_sha256", cnn.get("ckpt_sha256")))
-    if "training_pairs_path" in cnn:
+    if include_training_data and "training_pairs_path" in cnn:
         specs.append((
             "training_pairs_path",
             cnn["training_pairs_path"],
@@ -90,6 +107,12 @@ def artifact_specs(cnn: dict) -> list[tuple[str, str, str, str | None]]:
             "luma_detail_refiner_sha256",
             cnn.get("luma_detail_refiner_sha256"),
         ))
+    if "router_sidecar_path" in cnn:
+        specs.append(("router_sidecar_path", cnn["router_sidecar_path"],
+                      "router_sidecar_sha256", cnn.get("router_sidecar_sha256")))
+    for role, expert in (cnn.get("expert_checkpoints") or {}).items():
+        specs.append((f"expert_checkpoints.{role}.path", expert["path"],
+                      f"expert_checkpoints.{role}.sha256", expert.get("sha256")))
     return specs
 
 
@@ -97,16 +120,17 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--strict", action="store_true", help="exit nonzero on missing/hash mismatch")
     ap.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    ap.add_argument("--registry", type=Path, default=REGISTRY)
+    ap.add_argument("--all", action="store_true", help="include historical and review-only CNNs")
+    ap.add_argument("--include-training-data", action="store_true", help="also verify training pairs for selected CNNs")
     args = ap.parse_args()
 
-    reg = json.loads(REGISTRY.read_text())
+    reg = json.loads(args.registry.read_text())
     rows = []
     failures = 0
-    for cnn_name, cnn in reg.get("cnns", {}).items():
-        if str(cnn_name).startswith("$") or cnn_name == "none" or not isinstance(cnn, dict):
-            continue
-        for path_field, path_value, sha_field, expected_sha in artifact_specs(cnn):
-            found = next((p for p in candidates(path_value) if p.exists()), None)
+    for cnn_name, cnn in selected_cnns(reg, args.all).items():
+        for path_field, path_value, sha_field, expected_sha in artifact_specs(cnn, args.include_training_data):
+            found = next((p for p in candidates(path_value) if p.is_file()), None)
             status = "missing"
             actual_sha = None
             if found is not None:
@@ -127,7 +151,9 @@ def main() -> int:
             })
 
     if args.json:
-        print(json.dumps({"failures": failures, "artifacts": rows}, indent=2))
+        print(json.dumps({"scope": "all" if args.all else "release_required",
+                          "include_training_data": args.include_training_data,
+                          "failures": failures, "artifacts": rows}, indent=2))
     else:
         print("=== production artifact verification ===")
         print(f"GPR_MODEL_ROOT={os.environ.get('GPR_MODEL_ROOT', '')}")

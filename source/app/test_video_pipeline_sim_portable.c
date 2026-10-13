@@ -1,4 +1,4 @@
-/*! @file test_video_pipeline_sim.c
+/*! @file test_video_pipeline_sim_portable.c
  *
  *  @brief Storage-bus simulator for the pipelined video encoder.
  *
@@ -9,7 +9,7 @@
  *  without needing real hardware.
  *
  *  Build:
- *    clang -O2 -o /tmp/test_video_pipeline_sim source/app/test_video_pipeline_sim.c \
+ *    cc -O2 -o "$TMPDIR/test_video_pipeline_sim" source/app/test_video_pipeline_sim_portable.c \
  *      build/source/lib/vc5_encoder/libvc5_encoder.a \
  *      build/source/lib/vc5_common/libvc5_common.a -lpthread
  *

@@ -2,7 +2,40 @@
   "schema": "gpr.release_evidence.v1",
   "source_revision": "3d675ef95d2e1470af0a60abb81994eb09bb5aa6",
   "archive": "https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09",
-  "scope": "Retained measurements, not a fresh hardware or model validation. Artifact paths are relative to GPR_EXTERNAL_ROOT. Checkpoint identities live in pipelines/registry.json.",
+  "scope": "source_revision identifies retained historical evidence, not the current verification below. Artifact paths are relative to GPR_EXTERNAL_ROOT. Recorded verdicts are unchanged; consult current_scope for approval boundaries.",
+  "preserved_parent_archive": "https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96",
+  "current_scope": {
+    "as_of": "2026-10-13",
+    "approved_offline_8k_model": "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1",
+    "approved_offline_8k_registry_scope": "offline_production",
+    "visually_approved_4k_model": "mission1_native12_4k_cleanup_rgb_cfa_w40_v1",
+    "visually_approved_4k_registry_scope": "offline_review_only",
+    "model_promotion_performed": false,
+    "psf_policy": "Optional research, not a baseline requirement. Historical candidate flags are not current release policy.",
+    "camera_production_verified": false,
+    "durable_sd_20fps_verified": false
+  },
+  "current_verification": {
+    "date": "2026-10-13",
+    "production_revision": "fdb9171",
+    "target": "Pi 5 file-backed replay",
+    "input": "GP017601",
+    "source_width": 4096,
+    "source_height": 3072,
+    "fresh_encodes": 120,
+    "outputs_identical_to_previous_build": true,
+    "buffered_fps": 23.8818,
+    "ssd_fsync_fps": 17.6722,
+    "baseline_buffered_fps": 23.8236,
+    "baseline_ssd_fsync_fps": 17.6332,
+    "peak_rss_kib": 55440,
+    "provenance": "User-supplied verification summary; no new run or artifact hash supplied. Not rerun during documentation cleanup.",
+    "limitations": [
+      "Buffered throughput is not durable SD 20 fps proof; SSD fsync is below 20 fps.",
+      "Not sensor/DMA, camera display, or new preview evidence.",
+      "Previous-build revision and artifact hashes are not supplied."
+    ]
+  },
   "production_paths": [
     {
       "id": "still_smallest",
@@ -204,9 +237,10 @@
       "stage_scope": "production encoder with deterministic DMA-like source handoff; profiling only, not camera evidence"
     }
   ],
-  "visual_signoff": [
+  "historical_visual_signoff": [
     {
       "id": "mission1_8k_sr_step0075_visual_signoff_20260701",
+      "scope": "Historical review-only candidate signoff. The recorded PSF flag preserves then-current policy, not a requirement for today's approved alpha0p5 baseline. No recorded metric or verdict is rewritten.",
       "receipts": [
         "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json"
       ],

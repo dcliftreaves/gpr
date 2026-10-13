@@ -52,14 +52,17 @@ static double now_ms(void) {
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
 }
 
-static void demosaic_to_ppm(const uint16_t *bayer, int W, int H,
+static int demosaic_to_ppm(const uint16_t *bayer, int W, int H,
                             int gain, const char *path)
 {
     int ow = W / 2, oh = H / 2;
     FILE *f = fopen(path, "wb");
-    if (!f) return;
-    fprintf(f, "P6\n%d %d\n65535\n", ow, oh);
+    if (!f) return 1;
+    if (fprintf(f, "P6\n%d %d\n65535\n", ow, oh) < 0) {
+        fclose(f); return 1;
+    }
     uint8_t *row = malloc((size_t)ow * 6);
+    if (!row) { fclose(f); return 1; }
     for (int yo = 0; yo < oh; yo++) {
         const uint16_t *r1 = bayer + (size_t)(yo * 2) * W;
         const uint16_t *r2 = bayer + (size_t)(yo * 2 + 1) * W;
@@ -77,10 +80,20 @@ static void demosaic_to_ppm(const uint16_t *bayer, int W, int H,
             row[xo * 6 + 2] = (gg >> 8) & 0xff; row[xo * 6 + 3] = gg & 0xff;
             row[xo * 6 + 4] = (bb >> 8) & 0xff; row[xo * 6 + 5] = bb & 0xff;
         }
-        fwrite(row, 1, (size_t)ow * 6, f);
+        if (fwrite(row, 1, (size_t)ow * 6, f) != (size_t)ow * 6) {
+            free(row); fclose(f); return 1;
+        }
     }
     free(row);
-    fclose(f);
+    return fclose(f) != 0;
+}
+
+static int write_buffer(const char *path, const void *data, size_t size) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return 1;
+    int failed = fwrite(data, 1, size, f) != size;
+    if (fclose(f) != 0) failed = 1;
+    return failed;
 }
 
 int main(int argc, char **argv) {
@@ -89,6 +102,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     int W = atoi(argv[1]), H = atoi(argv[2]);
+    if (W <= 0 || H <= 0 || (size_t)W > SIZE_MAX / 2 / (size_t)H) {
+        fprintf(stderr, "invalid dimensions\n"); return 1;
+    }
     const char *prefix = argv[3];
     int nframes = argc - 4;
     size_t in_sz = (size_t)W * H * 2;
@@ -98,6 +114,8 @@ int main(int argc, char **argv) {
 
     uint16_t *raw = malloc(in_sz);
     uint16_t *dec = calloc(1, in_sz);  /* worst case full res */
+    int failed = 0;
+    if (!raw || !dec) { failed = 1; goto cleanup; }
 
     /* B4/B5 (mlockall / MADV_HUGEPAGE) measured to regress on Pi 5;
        mlockall+MCL_CURRENT alone gave +5 ms median + higher variance,
@@ -106,10 +124,18 @@ int main(int argc, char **argv) {
     /* Warm-up using first frame */
     {
         FILE *f = fopen(argv[4], "rb");
-        fread(raw, 1, in_sz, f); fclose(f);
+        if (!f) { perror(argv[4]); failed = 1; goto cleanup; }
+        size_t read_size = fread(raw, 1, in_sz, f);
+        fclose(f);
+        if (read_size != in_sz) {
+            fprintf(stderr, "short warm-up read\n"); failed = 1; goto cleanup;
+        }
         unsigned char *out = NULL; size_t out_sz = 0;
-        gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz);
-        gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz);
+        for (int warmup = 0; warmup < 2; warmup++) {
+            if (gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz) != 0 || !out || !out_sz) {
+                fprintf(stderr, "warm-up encode failed\n"); failed = 1; goto cleanup;
+            }
+        }
     }
 
     int skip_decode = 0;
@@ -133,14 +159,17 @@ int main(int argc, char **argv) {
         if (!(reuse_raw && i > 0)) {
             FILE *f = fopen(src_path, "rb");
             if (!f || fread(raw, 1, in_sz, f) != in_sz) {
-                fprintf(stderr, "skip %s\n", src_path); continue;
+                if (f) fclose(f);
+                fprintf(stderr, "read failed: %s\n", src_path); failed = 1; continue;
             }
             fclose(f);
         }
 
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
-        gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz);
+        if (gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz) != 0 || !out || out_sz < 13 * 4) {
+            fprintf(stderr, "frame %d ENCODE failed\n", i); failed = 1; continue;
+        }
         double t1 = now_ms();
         /* Compute output dims from the encoded header so we can pick the right
            pitch up front and run decode exactly once. The header is the first
@@ -160,6 +189,9 @@ int main(int argc, char **argv) {
             dw = (int)(hdr_width  / dec_factor);
             dh = (int)(hdr_height / dec_factor);
         }
+        if (dw <= 0 || dh <= 0 || dw > W || dh > H) {
+            fprintf(stderr, "frame %d invalid output dimensions\n", i); failed = 1; continue;
+        }
         /* MULTI_FRAME_DUMP_ENCODED=1: dump the encoded buffer for byte-identity
            checks against assembly/scalar paths. Filename: <prefix>_<i>.gpr. */
         {
@@ -167,8 +199,9 @@ int main(int argc, char **argv) {
             if (dump_env && *dump_env == '1') {
                 char dump_path[512];
                 snprintf(dump_path, sizeof(dump_path), "%s_%03d.gpr", prefix, i);
-                FILE *df = fopen(dump_path, "wb");
-                if (df) { fwrite(out, 1, out_sz, df); fclose(df); }
+                if (write_buffer(dump_path, out, out_sz)) {
+                    fprintf(stderr, "write failed: %s\n", dump_path); failed = 1;
+                }
             }
         }
 
@@ -176,7 +209,10 @@ int main(int argc, char **argv) {
         if (!skip_decode) {
             int drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
             t2 = now_ms();
-            if (drc != 0) { fprintf(stderr, "frame %d DECODE rc=%d\n", i, drc); continue; }
+            if (drc != 0 || dw <= 0 || dh <= 0 || dw > W || dh > H) {
+                fprintf(stderr, "frame %d DECODE rc=%d dims=%dx%d\n", i, drc, dw, dh);
+                failed = 1; continue;
+            }
         }
 
         const char *name = strrchr(src_path, '/'); name = name ? name + 1 : src_path;
@@ -187,14 +223,18 @@ int main(int argc, char **argv) {
             /* Write decoded raw (LE u16) and demosaiced PPM */
             char path[512];
             snprintf(path, sizeof(path), "%s_%03d.raw", prefix, i);
-            FILE *g = fopen(path, "wb");
-            if (g) { fwrite(dec, 2, (size_t)dw * dh, g); fclose(g); }
+            if (write_buffer(path, dec, (size_t)dw * dh * 2)) {
+                fprintf(stderr, "write failed: %s\n", path); failed = 1;
+            }
             snprintf(path, sizeof(path), "%s_%03d.ppm", prefix, i);
-            demosaic_to_ppm(dec, dw, dh, 4, path);
+            if (demosaic_to_ppm(dec, dw, dh, 4, path)) {
+                fprintf(stderr, "write failed: %s\n", path); failed = 1;
+            }
         }
     }
 
+cleanup:
     gpr_encode_fused_destroy(enc);
     free(raw); free(dec);
-    return 0;
+    return failed ? 1 : 0;
 }

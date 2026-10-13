@@ -19,6 +19,9 @@ gpr_native_tool(test_video_format source/app/test_video_format.c)
 add_test(NAME gvid_format COMMAND test_video_format)
 gpr_native_tool(test_fused_roundtrip source/app/test_fused_decode_roundtrip.c)
 gpr_native_tool(test_fused_band_roundtrip source/app/test_fused_roundtrip.c)
+add_test(NAME fused_band_roundtrip COMMAND test_fused_band_roundtrip)
+set_tests_properties(fused_band_roundtrip PROPERTIES TIMEOUT 60
+  ENVIRONMENT "GPR_INCLUDE_LL=0;GPR_ROW_DECIMATE=1;GPR_COL_DECIMATE=1;GPR_DROP_HIGHPASS=0;FUSED_INLINE_TOKENIZE=0")
 gpr_native_tool(test_edge_sizes source/app/test_edge_sizes.c)
 gpr_native_tool(test_fused_pool_drop_hp source/app/test_fused_pool_drop_hp.c
   source/lib/vc5_encoder/fused_encode.c)

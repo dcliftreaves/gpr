@@ -72,6 +72,8 @@ jobs:
           python3 tests/check_repository.py
           python3 tests/test_check_repository.py
           python3 tools/verify_production_artifacts.py
+          python3 tools/test/test_verify_production_artifacts.py
+          python3 tools/test/test_registry_evidence_scope.py
       - name: Repository history guard
         if: matrix.name == 'LinuxRelease'
         run: python3 tools/test/check_sensitive_content.py --history
@@ -90,6 +92,10 @@ jobs:
           fi
       - name: Native regressions
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Installed SDK consumer
+        run: bash tools/test/test_installed_sdk.sh --build-tree "$BUILD_DIR"
+      - name: Current-format fuzz corpus
+        run: bash tools/test/test_fuzz_corpus.sh
       - name: Reconstruction contracts
         run: |
           python3 tests/test_reconstruction_models.py

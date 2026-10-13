@@ -6,7 +6,7 @@
 #
 # Or use build.sh in this directory for direct clang invocations.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(fuzz_decoder C)
 
 set(CMAKE_C_STANDARD 99)
@@ -15,7 +15,9 @@ set(CMAKE_C_STANDARD 99)
 # Assumes a prior in-tree build under <repo>/build/.
 set(REPO_ROOT      "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 set(LIB_ROOT       "${REPO_ROOT}/source/lib")
-set(BUILD_LIB_ROOT "${REPO_ROOT}/build/source/lib")
+set(GPR_BUILD "${REPO_ROOT}/build" CACHE PATH "Existing GPR native build")
+set(BUILD_LIB_ROOT "${GPR_BUILD}/source/lib")
+find_package(Threads REQUIRED)
 
 include_directories(
     "${LIB_ROOT}/vc5_common"
@@ -43,6 +45,10 @@ target_link_libraries(fuzz_decoder_standalone
     vc5_encoder
     vc5_common
     common
+    Threads::Threads
 )
+if(NOT WIN32)
+  target_link_libraries(fuzz_decoder_standalone m)
+endif()
 
 set_target_properties(fuzz_decoder_standalone PROPERTIES FOLDER app)

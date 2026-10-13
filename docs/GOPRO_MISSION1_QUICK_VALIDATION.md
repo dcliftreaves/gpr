@@ -1,9 +1,11 @@
 # GoPro Mission 1 Quick Validation
 
 The active target is native 4096 x 3072 Bayer capture and full-frame
-1024 x 768 preview at the accepted 20+ fps floor. Pi 5 stand-in evidence
-passes that floor; actual camera sensor/DMA, storage, and display handoff
-remain unproven. No CNN runs on the camera.
+1024 x 768 preview at the accepted 20+ fps floor. October 13 verification of
+production `fdb9171` measured 23.8818 fps buffered but 17.6722 fps SSD fsync;
+this is not durable SD 20 fps proof. Actual camera sensor/DMA, storage, and
+display handoff remain unproven. No CNN runs on the camera. See
+[Pi Hardware](PI_HARDWARE.md) for setup and measurement scope.
 
 ## Probe the source
 
@@ -33,7 +35,7 @@ Integrate through `source/lib/vc5_encoder/gpr_labs_encoder.h`.
 Use `tools/mission1_camera_target_preflight.py --help` and
 `tools/run_labs_target_bench.py --help` for the target configuration
 options. The firmware team must supply actual camera source, write-buffer,
-storage, and display ownership. See [Labs Firmware API](LABS_FIRMWARE_API.md).
+storage, and display ownership. See [Capture API](CAPTURE_API.md).
 
 Place the resulting target preflight, target bench, capture handoff,
 preview decode, and preview UI receipts under

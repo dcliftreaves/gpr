@@ -11,9 +11,19 @@ Format:
 
 Failed gate runs are NOT logged here — they live in their `runs/<hash>/run.json`.
 
-## History
+## Receipt scope
 
-(no entries yet — scaffolding initialized 2026-05-26)
+The eight committed baseline receipts remain the current required signoffs:
+`b44fa841c05c9bff`, `5c3cce4c472d4197`, `8864c12ec0b6ce14`,
+`40c393acc2ad89bc`, `8941d5ac9b33f826`, `f2f3e652f2d26dbf`,
+`9837b797660627aa`, and `54f001717c547574`.
+
+Entries `5e0b4c751d7a26eb` and `5e7b79b5678fdf62` below are historical:
+their receipts are not committed here, so they are not current signoffs or
+current missing-receipt blockers. All recorded entries remain unchanged.
+See [Ship Decision](SHIP_DECISION.md) for the bounded approval scope.
+Removed experimental receipts remain in the
+[pinned snapshot](https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96/tests/quality_gates/runs).
 
 ## 2026-05-26
 

@@ -1,108 +1,58 @@
-# fuzz_decoder
+# Decoder Fuzzing
 
-Fuzz harness for the GPR raw-video decode path. Production decoders read
-attacker-controlled bytes; this scaffolding finds the bugs that
-hand-written tests miss.
+The opt-in harness exercises GVID clip/frame parsing, the ANS band decoder,
+and full `gpr_decode_fused` decoding for dimensions up to 512 x 512. Larger
+frames still exercise bounded parser/ANS paths. Input and allocation limits
+make fuzzing practical; they are not product dimension limits.
 
-## What's fuzzed
+## Build
 
-The harness in `main.c` (`LLVMFuzzerTestOneInput`) exercises:
+Build the codec libraries first from the repository root:
 
-1. **`gpr_video_read_clip_header`** and **`gpr_video_read_frame_header`**
-   — the container parser, the first thing a decoder sees on the wire.
-2. **`jans_decode_band_x4`** — the 4-way interleaved rANS band decoder
-   used by the fused encoder/decoder pipeline. Fired against each
-   parsed frame's payload, plus once on the raw input (so band bugs are
-   reachable without a parseable container).
-
-Constraints the harness enforces on adversarial input:
-
-- Output band buffers are bounded by `MAX_BAND_WIDTH x MAX_BAND_HEIGHT`
-  (currently 2048 x 2048).
-- The frame loop is capped at 64 iterations and bails when a declared
-  `payload_size` overruns the remaining buffer.
-- Inputs over 16 MB are skipped to keep the fuzzer fast.
-
-## Building
-
-This subdir is **opt-in** — it isn't wired into the root
-`add_subdirectory` chain. Two ways to build:
-
-### `build.sh` (recommended, direct clang)
-
-Prerequisite: an in-tree build of the libs so that
-`build/source/lib/*/lib*.a` exist:
-
-```
-cmake -S . -B build && cmake --build build -j
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 4
+BUILD_DIR=build bash source/app/fuzz_decoder/build.sh
 ```
 
-Then:
+No argument selects standalone. `BUILD_DIR` selects the codec build;
+`GPR_FUZZ_BUILD_DIR` selects harness outputs, defaulting to `gpr-fuzz` under
+`TMPDIR` (or the script's temporary-directory fallback). `CC` selects the
+standalone compiler. Select libFuzzer explicitly:
 
-```
-./source/app/fuzz_decoder/build.sh             # build both variants
-./source/app/fuzz_decoder/build.sh fuzzer      # libFuzzer only
-./source/app/fuzz_decoder/build.sh standalone  # standalone only
-```
-
-Outputs:
-- `/tmp/fuzz_decoder` — libFuzzer + ASan build (needs Clang with
-  `-fsanitize=fuzzer`; on macOS this means a recent
-  Homebrew or Xcode Clang).
-- `/tmp/fuzz_decoder_standalone` — plain build, runs anywhere.
-
-### CMake
-
-```
-cmake -S source/app/fuzz_decoder -B build-fuzz_decoder
-cmake --build build-fuzz_decoder
+```bash
+BUILD_DIR=build FUZZ_CC=clang bash source/app/fuzz_decoder/build.sh fuzzer
 ```
 
-Builds the standalone variant only. Same prerequisite (the libs must
-already be compiled under `build/`).
+This builds both decoder and ANS fuzz targets. `FUZZ_CC` must provide the
+Clang libFuzzer and AddressSanitizer runtimes. Apple/Xcode Clang alone does
+not supply the required libFuzzer runtime; use an LLVM distribution that
+does, such as Homebrew LLVM, and select its compiler through `FUZZ_CC`.
+Sanitizer coverage also depends on instrumenting the linked codec build.
 
-## Running
+## Corpus and Execution
 
-### libFuzzer
+Use the retained test driver for the current generated corpus and executable
+names:
 
-```
-/tmp/fuzz_decoder source/app/fuzz_decoder/corpus/ -max_total_time=300
-```
-
-Crashes are written to `crashes/` (created by libFuzzer in the cwd).
-Reproduce a crash by passing the crash file as the only argv:
-
-```
-/tmp/fuzz_decoder crashes/crash-abc123
+```bash
+BUILD_DIR=build bash tools/test/test_fuzz_corpus.sh
 ```
 
-### Standalone (no libFuzzer dependency)
+The driver generates a valid current GVID via `bench_fused` and exercises
+standalone corpus coverage. `corpus/legacy_mismatched.gvid` is the historical
+malformed input formerly named `happy.gvid`; it is not a valid happy-path
+fixture. Truncated and magic-corrupted inputs test rejection paths.
+Sanitizer CI runs the standalone corpus and 30 seconds of libFuzzer with
+ASan; that bounded run is not exhaustive decoder safety proof.
 
-Run against a list of files; installs a SIGSEGV/SIGABRT/SIGBUS/SIGFPE
-handler and reports which input crashed:
+When invoking libFuzzer directly, pass a writable corpus directory. Crash
+artifacts default to the working directory, not an automatically created
+`crashes/` directory. To use a dedicated location, create it first and pass
+`-artifact_prefix=artifacts/fuzz-crashes/`. Replay a crash by passing the
+artifact filename to the same fuzz executable.
 
-```
-/tmp/fuzz_decoder_standalone source/app/fuzz_decoder/corpus/*.gvid
-```
-
-Exit status: 0 if all inputs survive, non-zero if any crashed.
-
-## Corpus
-
-Seeds in `corpus/`:
-
-- `happy.gvid` — known-good output from `test_video_full_chain`.
-- `truncated_64.gvid` — first 64 bytes only (exercises short-input paths
-  in the container parser).
-- `flipped_magic.gvid` — first 2048 bytes with byte 0 XOR'd (exercises
-  the magic-mismatch path).
-
-Generate fresh seeds by running:
-
-```
-./build/source/app/test_video_full_chain && \
-  cp /tmp/test_video_full_chain_happy.gvid source/app/fuzz_decoder/corpus/
-```
-
-Add interesting crash-repro inputs from libFuzzer back into `corpus/`
-once their underlying bug is fixed, to prevent regressions.
+Standalone drivers report per-input results. Inspect skips and input counts:
+a zero exit without readable inputs is not corpus coverage. Keep fixed crash
+reproducers as regression seeds, distinguishing malformed seeds from valid
+current encoded streams.

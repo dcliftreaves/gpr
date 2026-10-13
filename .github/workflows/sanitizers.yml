@@ -50,6 +50,13 @@ jobs:
           cmake --build "$BUILD_DIR" --parallel
       - name: Native safety regressions
         run: bash tools/test/run_all_regressions.sh --native-only
+      - name: Current-format fuzz corpus
+        run: bash tools/test/test_fuzz_corpus.sh
+      - name: Bounded decoder and entropy fuzzing
+        if: matrix.sanitizer == 'address'
+        env:
+          GPR_FUZZ_SECONDS: '30'
+        run: bash tools/test/test_fuzz_corpus.sh
       - name: Upload native logs
         if: always()
         uses: actions/upload-artifact@v4

@@ -17,6 +17,9 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools"))
+from verify_production_artifacts import artifact_specs, selected_cnns
+
 REG = json.loads((REPO / "pipelines/registry.json").read_text())
 GATES = json.loads((REPO / "tests/quality_gates/gates.json").read_text())
 
@@ -102,7 +105,11 @@ ap.add_argument(
     action="store_true",
     help="treat missing checkpoints and TBD hashes as errors",
 )
+ap.add_argument("--registry", type=Path, help="registry to check (defaults to this worktree)")
 args = ap.parse_args()
+if args.registry:
+    REG = json.loads(args.registry.read_text())
+release_cnns = selected_cnns(REG)
 
 known_ship_classes = set(GATES.get("ship_classes", {})) - {"$doc"}
 known_codecs = set(REG.get("codecs", {}))
@@ -125,39 +132,6 @@ for name, codec in REG.get("codecs", {}).items():
         errors.append(f"codec {name!r} has invalid use_for={codec['use_for']!r}")
 
 
-def checkpoint_specs(cnn):
-    """Return (path_field, path_value, sha_field, sha_value) tuples."""
-    specs = []
-    if "ckpt_path" in cnn:
-        specs.append(("ckpt_path", cnn.get("ckpt_path"), "ckpt_sha256", cnn.get("ckpt_sha256")))
-    for suffix in ("y", "cb", "cr", "chroma", "detail"):
-        path_key = f"ckpt_{suffix}"
-        if path_key in cnn:
-            sha_key = f"{path_key}_sha256"
-            specs.append((path_key, cnn.get(path_key), sha_key, cnn.get(sha_key)))
-    if "luma_detail_refiner" in cnn:
-        specs.append((
-            "luma_detail_refiner",
-            cnn.get("luma_detail_refiner"),
-            "luma_detail_refiner_sha256",
-            cnn.get("luma_detail_refiner_sha256"),
-        ))
-    if "router_sidecar_path" in cnn:
-        specs.append((
-            "router_sidecar_path",
-            cnn.get("router_sidecar_path"),
-            "router_sidecar_sha256",
-            cnn.get("router_sidecar_sha256"),
-        ))
-    for role, expert in sorted((cnn.get("expert_checkpoints") or {}).items()):
-        if isinstance(expert, dict):
-            specs.append((
-                f"expert_checkpoints.{role}.path",
-                expert.get("path"),
-                f"expert_checkpoints.{role}.sha256",
-                expert.get("sha256"),
-            ))
-    return specs
 
 
 for name, cnn in REG.get("cnns", {}).items():
@@ -200,7 +174,9 @@ for name, cnn in REG.get("cnns", {}).items():
     elif "ckpt_path" not in cnn and "expert_checkpoints" not in cnn:
         errors.append(f"cnn {name!r}: missing ckpt_path")
 
-    for path_field, path_value, sha_field, expected_sha in checkpoint_specs(cnn):
+    for path_field, path_value, sha_field, expected_sha in artifact_specs(cnn):
+        if name not in release_cnns:
+            continue
         path = resolve_artifact_path(path_value)
         if path is None:
             errors.append(f"cnn {name!r}: {path_field} must be a string")
@@ -292,6 +268,16 @@ for pname, pipe in REG.get("pipelines", {}).items():
         errors.append(f"pipeline {pname!r}: key does not match canonical name {expected_name!r}")
 
     production_scope = pipe.get("production_scope")
+    selection = pipe.get("release_selection")
+    if selection is not None:
+        if selection not in {"ship_root", "existing_offline", "production", "review_only", "historical"}:
+            errors.append(f"pipeline {pname!r}: unknown release_selection {selection!r}")
+        if (selection == "ship_root") != str(pipe.get("$role", "")).startswith("ship-"):
+            errors.append(f"pipeline {pname!r}: ship root selection disagrees with legacy role")
+        if selection == "production" and production_scope != "offline_production":
+            errors.append(f"pipeline {pname!r}: production selection requires offline_production")
+        if selection == "review_only" and production_scope != "offline_review_only":
+            errors.append(f"pipeline {pname!r}: review selection requires offline_review_only")
     if production_scope is not None and production_scope not in {"offline_review_only", "offline_production"}:
         errors.append(f"pipeline {pname!r}: unknown production_scope {production_scope!r}")
 
@@ -307,15 +293,19 @@ for pname, pipe in REG.get("pipelines", {}).items():
                 f"pipeline {pname!r}: Mission 1 native12 8K SR must set "
                 "production_scope='offline_review_only' or 'offline_production'"
             )
-        if "OFFLINE" not in use_for:
+        if "execution_scope" in pipe and pipe["execution_scope"] != "offline":
+            errors.append(f"pipeline {pname!r}: native12 SR execution_scope must be offline")
+        if "execution_scope" not in pipe and "OFFLINE" not in use_for:
             errors.append(f"pipeline {pname!r}: Mission 1 native12 8K SR use_for must include OFFLINE")
-        if "not a live-camera path" not in doc:
+        if "execution_scope" not in pipe and "not a live-camera path" not in doc:
             errors.append(
                 f"pipeline {pname!r}: Mission 1 native12 8K SR doc must state "
                 "it is not a live-camera path"
             )
 
-    is_upresable_production = str(pipe.get("$role", "")).startswith("UPRESABLE production chain")
+    is_upresable_production = (pipe.get("release_selection") == "existing_offline"
+                              if "release_selection" in pipe else
+                              str(pipe.get("$role", "")).startswith("UPRESABLE production chain"))
     if is_upresable_production:
         doc = str(pipe.get("$doc", ""))
         if production_scope != "offline_review_only":
@@ -323,7 +313,10 @@ for pname, pipe in REG.get("pipelines", {}).items():
                 f"pipeline {pname!r}: UPRESABLE production chain must set "
                 "production_scope='offline_review_only'"
             )
-        if "editable" not in doc or "not a live-camera path" not in doc:
+        if "execution_scope" in pipe:
+            if pipe["execution_scope"] != "offline" or pipe.get("output_kind") != "editable_raw":
+                errors.append(f"pipeline {pname!r}: existing offline chain must produce editable_raw offline")
+        elif "editable" not in doc or "not a live-camera path" not in doc:
             errors.append(
                 f"pipeline {pname!r}: UPRESABLE production doc must describe "
                 "editable output and state it is not a live-camera path"
