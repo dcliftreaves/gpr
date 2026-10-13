@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke-test that gpr_tools RAW -> GPR produces an editable/readable GPR by
-# default. The experimental fast wrapper remains opt-in via GPR_FAST_RAW_TO_GPR.
+# default, including when the retired experimental switch is present.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -40,6 +40,13 @@ PY
   -o "$WORK/sdk_wrapped.gpr" -q 3 >"$WORK/raw_to_gpr.log" 2>&1
 "$GPR_TOOLS" -i "$WORK/sdk_wrapped.gpr" \
   -o "$WORK/sdk_wrapped.raw" >"$WORK/gpr_to_raw.log" 2>&1
+
+GPR_FAST_RAW_TO_GPR=1 "$GPR_TOOLS" -i "$WORK/in.raw" -w 512 -h 384 -x rggb14 \
+  -o "$WORK/retired_switch.gpr" -q 3 >"$WORK/retired_switch.log" 2>&1
+grep -q 'retired; using the metadata-preserving SDK writer' "$WORK/retired_switch.log"
+"$GPR_TOOLS" -i "$WORK/retired_switch.gpr" \
+  -o "$WORK/retired_switch.raw" >"$WORK/retired_decode.log" 2>&1
+cmp "$WORK/sdk_wrapped.raw" "$WORK/retired_switch.raw"
 
 test -s "$WORK/sdk_wrapped.gpr"
 test -s "$WORK/sdk_wrapped.raw"

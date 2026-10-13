@@ -13,6 +13,7 @@ printf '[run]\nparallel = True\nbranch = True\nsource =\n    %s/tools\n    %s/te
 {
     echo "CC=$scratch/cc"
     echo "CXX=$scratch/cxx"
+    echo "GPR_COVERAGE_DIR=$scratch"
     echo "COVERAGE_PROCESS_START=$scratch/coverage.ini"
     echo "PYTHONPATH=$scratch/hooks${PYTHONPATH:+:$PYTHONPATH}"
     echo "GPR_TIMING_TOLERANCE=4.0"

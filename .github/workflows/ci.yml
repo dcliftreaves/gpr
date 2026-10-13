@@ -153,7 +153,7 @@ jobs:
       - name: Collect feature execution coverage
         if: always() && matrix.name == 'LinuxRelease'
         env:
-          GPR_RUNTIME_REF: ${{ github.event.pull_request.base.sha }}
+          GPR_RUNTIME_REF: ${{ github.base_ref == 'review/product-runtime' && github.event.pull_request.base.sha || github.event.pull_request.head.sha || github.sha }}
         run: bash tools/test/collect_feature_coverage.sh
       - name: Upload regression logs
         if: always()

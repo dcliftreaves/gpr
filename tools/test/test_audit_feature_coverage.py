@@ -136,6 +136,89 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(row["execution"]["executed_lines"], [[1, 1]])
         self.assertEqual(row["changed_line_coverage"]["percent"], 50)
 
+    def test_gcovr_excluded_lines_do_not_count(self):
+        report = self.report("gcovr", {"gcovr/format_version": "0.14", "files": [
+            {"file": "source/lib/codec/core.c", "lines": [
+                {"line_number": 1, "count": 8, "gcovr/excluded": True},
+                {"line_number": 2, "count": 2, "gcovr/excluded": False},
+                {"line_number": 3, "count": 0}]},
+            {"file": "tools/new.py", "lines": [
+                {"line_number": 1, "count": 9, "gcovr/excluded": True},
+                {"line_number": 2, "count": 0, "gcovr/excluded": True}]}]})
+        self.write("tools/new.py", "excluded-only source need not match\n")
+        result = self.run_audit("--gcov-json", report, "--verify-checkout")
+        rows = self.rows(result)
+        core = rows["source/lib/codec/core.c"]
+        self.assertEqual(core["execution"]["executed_lines"], [[2, 2]])
+        self.assertEqual(core["changed_line_coverage"], {"status": "NOT_EXECUTED",
+                         "measured_lines": 1, "executed_lines": 0, "unmeasured_lines": 1, "percent": 0})
+        self.assertEqual(core["retention_review"], "REVIEW_TEST_GAP")
+        self.assertEqual(rows["tools/new.py"]["execution"]["status"], "UNKNOWN")
+        self.assertEqual(result["checkout_verification"]["verified_files"], ["source/lib/codec/core.c"])
+
+    def test_verify_checkout_matches_and_ignores_validation_only_files(self):
+        native = self.report("gcovr", {"gcovr/format_version": "0.14", "files": [
+            {"file": "source/lib/codec/core.c", "lines": [{"line_number": 1, "count": 0}]},
+            {"file": "source/lib/codec/core.h", "lines": [{"line_number": 1, "count": 1}]}]})
+        python = self.report("python", {"files": {
+            "tools/new.py": {"executed_lines": [1], "missing_lines": [2]},
+            "tools/test/test_core.py": {"executed_lines": [1], "missing_lines": []}}})
+        (self.root / "tools/test/test_core.py").unlink()
+        self.write("CMakeLists.txt", "unmeasured validation build changes\n")
+        args = ["--gcov-json", native, "--python-json", python]
+        default = self.run_audit(*args)
+        self.assertNotIn("checkout_verification", default)
+        verified = self.run_audit(*args, "--verify-checkout")
+        verification = verified.pop("checkout_verification")
+        self.assertEqual(default, verified)
+        self.assertEqual(verification["status"], "VERIFIED")
+        self.assertEqual(verification["verified_files"], [
+            "source/lib/codec/core.c", "source/lib/codec/core.h", "tools/new.py"])
+
+    def test_verify_checkout_rejects_dirty_committed_missing_and_symlink_sources(self):
+        source = self.root / "tools/new.py"
+        original = source.read_bytes()
+        report = self.report("python", {"files": {"tools/new.py": {
+            "executed_lines": [], "missing_lines": [1, 2]}}})
+        output = self.root / "output.json"
+        for case in ("dirty", "committed", "missing", "symlink", "line_endings"):
+            with self.subTest(case=case):
+                if source.is_symlink():
+                    source.unlink()
+                source.write_bytes(original)
+                if case in {"dirty", "committed"}:
+                    source.write_text("different source\n")
+                    if case == "committed":
+                        self.commit()
+                elif case == "missing":
+                    source.unlink()
+                elif case == "symlink":
+                    target = self.write("same_bytes.py", original.decode())
+                    source.unlink()
+                    source.symlink_to(target)
+                else:
+                    source.write_bytes(original.replace(b"\n", b"\r\n"))
+                error, stdout = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stderr(error), contextlib.redirect_stdout(stdout), \
+                        self.assertRaises(SystemExit) as raised:
+                    audit.main(["--root", str(self.root), "--base", self.base,
+                                "--python-json", report, "--verify-checkout", "--output", str(output)])
+                self.assertEqual(raised.exception.code, 2)
+                self.assertIn("checkout verification failed for tools/new.py", error.getvalue())
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertFalse(output.exists())
+                # Default attribution remains independent of the worktree.
+                self.assertNotIn("checkout_verification", self.run_audit("--python-json", report))
+
+    def test_verify_checkout_without_measured_inventory_does_not_claim_verification(self):
+        report = self.report("python", {"files": {"tests/validation_only.py": {
+            "executed_lines": [1], "missing_lines": []}}})
+        for args in ([], ["--python-json", report]):
+            with self.subTest(args=args):
+                verification = self.run_audit(*args, "--verify-checkout")["checkout_verification"]
+                self.assertEqual(verification["status"], "NO_MEASURED_FILES")
+                self.assertEqual(verification["verified_files"], [])
+
     def test_dirty_worktree_and_output_reproducibility(self):
         expected = self.run_audit()
         self.write("source/lib/codec/core.c", "uncommitted edits\n" * 20)

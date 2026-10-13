@@ -86,6 +86,8 @@ def main():
         run(mov_tool, "unpack", compat, compat_frames)
         assert [p.read_bytes() for p in sorted(compat_frames.glob("*.gpr"))] == payloads
         print("PASS: macOS MOV companion preserves both payloads")
+        summary = run(mov_tool, "info", compat)
+        assert "yes (per-frame)" in summary, summary
         for source, reader, destination in (
                 (compat, ROOT / "tools/gvid_mov/gvid_mov_unpack", work / "portable cross"),
                 (wrapped, mov_tool, work / "desktop cross")):
@@ -115,6 +117,13 @@ def main():
             rejected = subprocess.run(command, capture_output=True, text=True, timeout=30)
             assert rejected.returncode != 0, "non-RAW ProRes must not be accepted as RAW packets"
         print("PASS: MOV rendering, paths with spaces, header sniffing and non-RAW rejection")
+        broken = work / "truncated exif.mov"
+        shutil.copyfile(compat, broken)
+        Path(str(broken) + ".exif").write_bytes(b"GEX0" + struct.pack("<I", 100))
+        rejected = subprocess.run([str(mov_tool), "unpack", str(broken),
+                                   str(work / "broken sidecar")],
+                                  capture_output=True, text=True, timeout=30)
+        assert rejected.returncode != 0, "truncated EXIF record must fail even when not requested"
     return 0
 
 

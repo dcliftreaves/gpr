@@ -48,6 +48,11 @@ SCRATCH="$(mktemp -d "${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}/gpr-regressions.XXXXXX")
 cleanup() {
     local status=$?
     trap - EXIT
+    if [ "${GPR_COVERAGE_DIR:-}" != "" ]; then
+        mkdir -p "$GPR_COVERAGE_DIR/native-regressions"
+        find "$SCRATCH/bin" -type f \( -name '*.gcno' -o -name '*.gcda' \) \
+            -exec cp {} "$GPR_COVERAGE_DIR/native-regressions/" \; || status=1
+    fi
     rm -rf -- "$SCRATCH" || status=1
     printf 'Exit status: %s\nLogs: %s\n' "$status" "$LOG_DIR" >> "$LOG_DIR/summary.log"
     echo "Scratch removed; logs: $LOG_DIR"

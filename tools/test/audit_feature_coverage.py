@@ -5,6 +5,9 @@ Coverage inputs must come from the reported head and intended test-only run. JSO
 exports do not establish either fact themselves. --coverage-root remaps an absolute
 checkout path embedded by another machine. Percentages use only measured executable
 changed lines, not all added lines. Ranges in output are inclusive [start, end].
+--verify-checkout compares measured inventory files in --root byte-for-byte with
+--head; run against the instrumented checkout before further source edits. This
+checks current source identity, not profile freshness or build provenance.
 """
 import argparse
 import gzip
@@ -159,7 +162,7 @@ def read_coverage(inputs, root, coverage_root):
                 records.append((name, hits | set(info["missing_lines"]), hits, None))
         elif kind == "gcov":
             for info in data["files"]:
-                rows = info["lines"]
+                rows = [r for r in info["lines"] if not r.get("gcovr/excluded", False)]
                 records.append((info["file"], {r["line_number"] for r in rows},
                                 {r["line_number"] for r in rows if r["count"] > 0},
                                 data.get("current_working_directory")))
@@ -197,6 +200,14 @@ def read_coverage(inputs, root, coverage_root):
     return measured, executed, evidence
 
 
+def verify_source(root, head, path):
+    source = root / path
+    if source.is_symlink() or not source.is_file():
+        raise ValueError(f"checkout verification failed for {path}: missing or non-regular source")
+    if source.read_bytes() != git(root, "cat-file", "blob", head + ":" + path):
+        raise ValueError(f"checkout verification failed for {path}: source differs from --head {head}")
+
+
 def audit(args):
     root = Path(args.root).resolve()
     refs = {key: git(root, "rev-parse", "--verify", value + "^{commit}").decode().strip()
@@ -208,12 +219,15 @@ def audit(args):
     inputs = [(kind, p) for kind in ("llvm", "gcov", "python") for p in getattr(args, kind + "_json")]
     measured, executed, evidence = read_coverage(
         inputs, root, Path(args.coverage_root).resolve() if args.coverage_root else None)
-    rows = []
+    rows, verified = [], []
     for path, old, status, changed, removed in changes(root, refs["base"], refs["head"]):
         kind = file_kind(path, head.get(path, base.get(old, "")))
         if not kind:
             continue
         known = measured.get(path, set()) if status != "D" else set()
+        if args.verify_checkout and known:
+            verify_source(root, refs["head"], path)
+            verified.append(path)
         hits = executed.get(path, set()) & known
         changed_known, changed_hits = changed & known, changed & hits
         state = "EXECUTED" if changed_hits else "NOT_EXECUTED" if changed_known else "UNKNOWN"
@@ -234,7 +248,7 @@ def audit(args):
                      "retention_review": "REVIEW_DELETION" if status == "D" else
                      "RETAIN_CANDIDATE" if changed_hits else "REVIEW_TEST_GAP" if changed_known else
                      "REVIEW_UNMEASURED"})
-    return {"schema_version": 1, "refs": refs, "comparison": "base..head (not merge-base)",
+    result = {"schema_version": 1, "refs": refs, "comparison": "base..head (not merge-base)",
             "semantics": {
                 "feature": "path-based ownership heuristic, not a support declaration",
                 "static_hints": "literal path/basename/module references; may be comments; not execution evidence",
@@ -243,6 +257,14 @@ def audit(args):
                 "coverage": "percent of measured executable changed lines; unmeasured may be non-executable or uninstrumented",
                 "retention": "review suggestions only; execution does not prove assertions or product necessity"},
             "coverage_inputs": evidence, "files": sorted(rows, key=lambda row: row["path"])}
+    if args.verify_checkout:
+        result["checkout_verification"] = {
+            "status": "VERIFIED" if verified else "NO_MEASURED_FILES",
+            "method": "worktree bytes equal head Git blob",
+            "scope": "measured, non-deleted changed-runtime inventory files only",
+            "verified_files": sorted(verified),
+            "limitation": "current source identity only; profile freshness and build provenance are caller responsibilities"}
+    return result
 
 
 def main(argv=None):
@@ -252,6 +274,8 @@ def main(argv=None):
     parser.add_argument("--head", default="review/product-runtime")
     parser.add_argument("--test-ref", default="HEAD", help="committed test inventory ref, default validation HEAD")
     parser.add_argument("--coverage-root", help="original checkout root in coverage exports")
+    parser.add_argument("--verify-checkout", action="store_true",
+                        help="require measured inventory source bytes in --root to match --head")
     for kind in ("llvm", "gcov", "python"):
         parser.add_argument("--" + kind + "-json", action="append", default=[], help="repeatable coverage JSON (or gzip)")
     parser.add_argument("--output", type=Path)

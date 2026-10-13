@@ -66,6 +66,7 @@ The pre-cleanup tree is preserved at
 | MOV and ProRes | Production; portable reader shared by both frontends | Cross-frontend payload tests and macOS rendering |
 | FFmpeg decoder | Retained optional integration pinned to FFmpeg n8.0 | Fresh Bayer encode, MOV wrap, native-vs-FFmpeg decode, image/ProRes export and malformed headers |
 | Standalone CoreML polish API | Archived; no selected model or production caller | Removed rather than implying its availability test exercised inference |
+| Minimal fast TIFF still writer | Archived; the retired switch warns and uses the SDK writer | SDK readback regression; separate fast decoder retained |
 | Detail-residual sidecar experiment | Validation only | Not part of selected GVID or reconstruction formats |
 
 `tools/test/audit_feature_coverage.py` inventories changed source against exact
