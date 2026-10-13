@@ -419,61 +419,9 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         const char *fast_raw_to_gpr = getenv("GPR_FAST_RAW_TO_GPR");
         if( fast_raw_to_gpr != NULL && strcmp(fast_raw_to_gpr, "1") == 0 )
         {
-            /* Experimental fast encode path. Keep opt-in until its minimal
-               TIFF wrapper is proven readable by both fast and SDK decoders. */
-            extern int gpr_fast_encode(const uint8_t *raw_data, size_t raw_size,
-                                        int width, int height, int pixel_format,
-                                        int ans_enabled, int embedded_mode,
-                                        void **gpr_output, size_t *gpr_size);
-            void *fast_out = NULL;
-            size_t fast_sz = 0;
-            int pf = -1;
-            switch (params.tuning_info.pixel_format)
-            {
-                case PIXEL_FORMAT_RGGB_12:
-                case PIXEL_FORMAT_RGGB_12P:
-                    pf = 0;
-                    break;
-                case PIXEL_FORMAT_RGGB_14:
-                    pf = 1;
-                    break;
-                case PIXEL_FORMAT_GBRG_12:
-                case PIXEL_FORMAT_GBRG_12P:
-                    pf = 2;
-                    break;
-                case PIXEL_FORMAT_GBRG_14:
-                    pf = 3;
-                    break;
-                case PIXEL_FORMAT_RGGB_16:
-                    pf = 4;
-                    break;
-                case PIXEL_FORMAT_GBRG_16:
-                    pf = 5;
-                    break;
-                default:
-                    pf = -1;
-                    break;
-            }
-            int enc_rc = pf >= 0
-                ? gpr_fast_encode((const uint8_t *)input_buffer.buffer, input_buffer.size,
-                                  params.input_width, params.input_height, pf,
-                                  params.tuning_info.ans_enabled,
-                                  params.tuning_info.embedded_mode,
-                                  &fast_out, &fast_sz)
-                : -1;
-            if (pf >= 0 && enc_rc != 0) fprintf(stderr, "gpr_fast_encode failed: %d (w=%d h=%d)\n", enc_rc, params.input_width, params.input_height);
-            if (enc_rc == 0 && fast_out) {
-                output_buffer.buffer = fast_out;
-                output_buffer.size = fast_sz;
-                success = 1;
-            } else {
-                success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
-            }
+            fprintf(stderr, "GPR_FAST_RAW_TO_GPR is retired; using the metadata-preserving SDK writer.\n");
         }
-        else
-        {
-            success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
-        }
+        success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
     }
 #endif
 #if GPR_READING
