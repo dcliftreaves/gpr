@@ -12,48 +12,12 @@ import argparse
 import array
 import os
 import statistics
-import struct
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-
-GVID_MAGIC = 0x44495647
-FRAME_MAGIC = 0x004D5246
-
-
-def read_gvid_frames(path: Path) -> list[dict[str, int]]:
-    data = path.read_bytes()
-    if len(data) < 32:
-        raise ValueError(f"{path} is too small to be a .gvid stream")
-    header = struct.unpack("<IBBHHHIIIII", data[:32])
-    if header[0] != GVID_MAGIC:
-        raise ValueError(f"{path} does not have GVID magic")
-    frame_count_hint = int(header[10])
-    frames: list[dict[str, int]] = []
-    pos = 32
-    while pos < len(data):
-        if pos + 16 > len(data):
-            raise ValueError(f"{path} has truncated frame header at byte {pos}")
-        magic, payload_size, frame_tag = struct.unpack("<IIQ", data[pos : pos + 16])
-        if magic != FRAME_MAGIC:
-            raise ValueError(f"{path} has bad frame magic at byte {pos}")
-        pos += 16
-        if pos + payload_size > len(data):
-            raise ValueError(f"{path} has truncated payload at byte {pos}")
-        frames.append(
-            {
-                "frame_index": len(frames),
-                "frame_tag": int(frame_tag),
-                "payload_offset": pos,
-                "payload_size": int(payload_size),
-            }
-        )
-        pos += int(payload_size)
-    if frame_count_hint not in (0, len(frames)):
-        raise ValueError(f"{path} frame_count_hint={frame_count_hint} but found {len(frames)}")
-    return frames
+from gvid_metadata import read_gvid_frames
 
 
 def extract_payload(gvid_file, frame: dict[str, int], output: Path) -> None:

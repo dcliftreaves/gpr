@@ -19,33 +19,61 @@ PAYLOAD_KINDS = {"fused_gpr", "camera_gpr"}
 
 
 def read_gvid_frames(path: Path) -> list[dict[str, int]]:
-    data = path.read_bytes()
-    if len(data) < 32:
-        raise ValueError(f"{path} is too small to be a .gvid stream")
-    header = struct.unpack("<IBBHHHIIIII", data[:32])
-    if header[0] != GVID_MAGIC:
-        raise ValueError(f"{path} does not have GVID magic")
-    if header[1] != GVID_VERSION:
-        raise ValueError(f"{path} has unsupported GVID version {header[1]}")
-    frame_count_hint = int(header[10])
+    """Index a v1 stream with header-only reads and O(frame-count) memory."""
     frames: list[dict[str, int]] = []
-    pos = 32
-    while pos < len(data):
-        if pos + 16 > len(data):
-            raise ValueError(f"{path} has a truncated frame header at byte {pos}")
-        magic, payload_size, frame_tag = struct.unpack("<IIQ", data[pos:pos + 16])
-        if magic != FRAME_MAGIC:
-            raise ValueError(f"{path} has bad frame magic at byte {pos}")
-        pos += 16
-        if pos + payload_size > len(data):
-            raise ValueError(f"{path} has a truncated frame payload at byte {pos}")
-        frames.append({
-            "frame_index": len(frames),
-            "frame_tag": int(frame_tag),
-            "payload_offset": pos,
-            "payload_size": int(payload_size),
-        })
-        pos += int(payload_size)
+    # Unbuffered reads avoid prefetching payload bytes when reading headers.
+    with path.open("rb", buffering=0) as stream:
+        stream.seek(0, 2)
+        file_size = stream.tell()
+        stream.seek(0)
+        data = stream.read(32)
+        if len(data) != 32:
+            raise ValueError(f"{path} is too small to be a .gvid stream")
+        header = struct.unpack("<IBBHHHIIIII", data)
+        magic, version, flags, pixel_format, quality, reserved2 = header[:6]
+        width, height, fps_x1000, target_kbps, frame_count_hint = header[6:]
+        if magic != GVID_MAGIC:
+            raise ValueError(f"{path} does not have GVID magic")
+        if version != GVID_VERSION:
+            raise ValueError(f"{path} has unsupported GVID version {version}")
+        if flags & ~0x03:
+            raise ValueError(f"{path} has unknown .gvid flag bits")
+        if pixel_format > 5 or quality > 11:
+            raise ValueError(f"{path} has unsupported pixel_format or quality")
+        if reserved2 != 0:
+            raise ValueError(f"{path} has nonzero reserved2")
+        if width == 0 or height == 0 or fps_x1000 == 0:
+            raise ValueError(f"{path} has zero dimensions or fps")
+        if bool(flags & 0x01) != bool(target_kbps):
+            raise ValueError(f"{path} rate-control flag and target_kbps disagree")
+
+        pos = 32
+        last_tag: int | None = None
+        while pos < file_size:
+            stream.seek(pos)
+            data = stream.read(16)
+            if len(data) != 16:
+                raise ValueError(f"{path} has a truncated frame header at byte {pos}")
+            magic, payload_size, frame_tag = struct.unpack("<IIQ", data)
+            if magic != FRAME_MAGIC:
+                raise ValueError(f"{path} has bad frame magic at byte {pos}")
+            pos += 16
+            if payload_size == 0:
+                raise ValueError(f"{path} has a zero-size frame payload at byte {pos}")
+            if payload_size > file_size - pos:
+                raise ValueError(f"{path} has a truncated frame payload at byte {pos}")
+            if last_tag is not None and frame_tag <= last_tag:
+                raise ValueError(f"{path} has a non-monotonic frame tag {frame_tag}")
+            frames.append({
+                "frame_index": len(frames),
+                "frame_tag": int(frame_tag),
+                "payload_offset": pos,
+                "payload_size": int(payload_size),
+            })
+            last_tag = frame_tag
+            pos += payload_size
+    if not frames:
+        raise ValueError(f"{path} has a zero-frame .gvid stream")
     if frame_count_hint not in (0, len(frames)):
         raise ValueError(f"{path} frame_count_hint={frame_count_hint} but stream has {len(frames)} frames")
     return frames
