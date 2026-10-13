@@ -21,10 +21,11 @@ and datasets outside git, with retrievable artifact references and hashes in
 the distributed bundle. An old local receipt does not prove those artifacts
 are publicly available.
 
-Expose four product labels: RAW stills, RAW video MVP, premium still/SR
-research, and RAW video reconstruction. Premium still/SR and optional PSF
-replacement research must remain distinct from approved offline 4K/8K video
-reconstruction. Use [Product Details](PRODUCT_DETAILS.md) for scope.
+Label each included workflow with its actual scope. The approved offline 8K
+model is `mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1`; visually
+approved 4K `mission1_native12_4k_cleanup_rgb_cfa_w40_v1` remains registry
+review-only. Premium still SR and PSF are optional research, not release
+requirements. See [Ship Decision](SHIP_DECISION.md) for approval boundaries.
 
 ## Build and verify a manifest
 
@@ -49,7 +50,7 @@ python3 tools/verify_labs_bundle.py "$GPR_ARTIFACT_ROOT/review-bundle/manifest.j
 
 The tools use `gpr_labs_bundle.v1`. The compact release evidence file is
 included as an artifact; `--no-product-pillars` avoids treating it as the
-older product-pillar manifest schema. Keep the four scope labels in the
+older product-pillar manifest schema. Keep the applicable scope labels in the
 bundle README and notes. Verify checksums, decode the sample, and
 inspect scope labels before distributing the bundle. Source identity must
 match the commit that produced or verified its artifacts; do not substitute
@@ -57,7 +58,7 @@ a newer commit for an older receipt.
 
 ## Camera and model delivery
 
-Include the firmware-facing API, validation instructions, capability
+Include the [Capture API](CAPTURE_API.md), validation instructions, capability
 information, and capture requirements in a camera handoff package.
 Camera production still requires actual camera-role sensor/DMA, storage,
 and full-frame 1024 x 768 display receipts at the accepted 20+ fps floor.

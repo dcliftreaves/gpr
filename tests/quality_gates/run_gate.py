@@ -403,19 +403,13 @@ def apply_cnn(
     workdir: Path | None = None,
     full_size: tuple[int, int] | None = None,
 ):
-    """Apply a CNN to a bayer plane. Supports four architectures:
+    """Apply a CNN to a bayer plane. Supports Bayer and joint RGB architectures:
       - 1x denoise (variant F_ane_no_sr): output dims = input dims.
         Result = input + residual_scale * CNN(input). Returns bayer (np.uint16).
       - 2x super-res (variant F_ane): output dims = 2*input dims.
         Result = bicubic(input, 2x) + residual_scale * CNN(input). Returns bayer.
       - Joint demosaic+super-res (variant F_ane_dm_sr): output is 4×spatial RGB,
         not bayer. Returns ("rgb", H×W×3 uint8 image).
-      - Post-RGB filter (variant restormer_post_rgb): Restormer (or any RGB-
-        in/RGB-out CNN) applied AFTER demosaic, not on bayer. The bayer path
-        is a no-op here; a separate apply_post_rgb_cnn() runs on the rendered
-        PNG. We signal this by returning the bayer untouched and recording
-        the post-RGB CNN config out-of-band (the caller checks
-        cnn["cnn_arch_variant"] before calling demosaic_to_png).
     The variant is read from the checkpoint metadata; the registry's
     cnn_arch_variant is a fallback. The "rgb" return tag signals downstream
     code to skip demosaic_to_png and use the RGB result directly."""
@@ -434,9 +428,6 @@ def apply_cnn(
         )
     if (cnn.get("ckpt_path") is None
             and cnn.get("cnn_arch_variant") not in ("ycbcr_decomp", "lab_chroma_corrector")):
-        return bayer
-    if cnn.get("cnn_arch_variant") == "restormer_post_rgb":
-        # Bayer path is a no-op; the post-RGB stage runs after demosaic.
         return bayer
     if cnn.get("cnn_arch_variant") == "ycbcr_decomp":
         die(2, "ycbcr_decomp is archived, not a supported registry pipeline. "
@@ -730,114 +721,6 @@ def apply_codec_raw_signal_sr(
     return ("bayer_stats", _interleave_bayer_planes(out, (target_h * 2, target_w * 2), raw_norm), stats)
 
 
-_RESTORMER_MODEL_CACHE = {}
-
-
-def _load_restormer(ckpt_path: str, device):
-    """Load Restormer real_denoising-style weights. Cached per (ckpt, device)
-    so per-image workers pay the load cost once, not per image. The arch
-    module path is repo-local (tools/cnn/restormer_arch.py — rsynced from the
-    Restormer GitHub release). Checkpoint is the 'params' dict from
-    Denoising/pretrained_models/.../real_denoising.pth.
-
-    Why not just import basicsr: the upstream package pulls in lmdb / cv2 /
-    yapf and a bunch of training-only deps. The arch file is self-contained;
-    using it directly avoids that bloat."""
-    key = (ckpt_path, str(device))
-    if key in _RESTORMER_MODEL_CACHE:
-        return _RESTORMER_MODEL_CACHE[key]
-    import importlib.util
-    import torch
-    arch_path = REPO / "tools/cnn/restormer_arch.py"
-    if not arch_path.exists():
-        die(2, "Restormer is an archived experiment, not a supported registry pipeline. "
-               "See archive/research-and-integration-2026-09-09 for its dependencies.")
-    spec = importlib.util.spec_from_file_location("restormer_arch", str(arch_path))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    if not Path(ckpt_path).exists():
-        die(2, f"Restormer checkpoint missing: {ckpt_path}")
-    m = mod.Restormer(LayerNorm_type="BiasFree")
-    sd = torch.load(ckpt_path, map_location="cpu")
-    m.load_state_dict(sd.get("params", sd))
-    m.eval()
-    m.to(device)
-    _RESTORMER_MODEL_CACHE[key] = m
-    return m
-
-
-def apply_post_rgb_cnn(png_path: Path, cnn: dict, tile: int = 512,
-                        overlap: int = 64) -> None:
-    """Apply an RGB-in/RGB-out CNN (Restormer-class) to an existing PNG.
-    Overwrites png_path with the filtered output. Tiled with reflect-pad
-    overlap so we don't OOM on 4K+ inputs — 50 MP 8280x5520 RGB at fp32 on
-    MPS is 2.7 GB just for the input tensor; Restormer's intermediates
-    push that into swap.
-
-    Caller is responsible for only invoking this when
-    cnn['cnn_arch_variant'] == 'restormer_post_rgb'."""
-    import os
-    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
-    import torch
-    import torch.nn.functional as F
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    ckpt_raw = cnn["ckpt_path"]
-    ckpt_path = str(resolve_artifact_path(ckpt_raw, "Restormer checkpoint"))
-    model = _load_restormer(ckpt_path, device)
-
-    img = Image.open(png_path).convert("RGB")
-    arr = np.asarray(img, dtype=np.float32) / 255.0  # (H, W, 3)
-    H, W, _ = arr.shape
-    # Pad up to multiple of 16 for Restormer's downsampling stages.
-    ph = (16 - H % 16) % 16
-    pw = (16 - W % 16) % 16
-    arr_p = np.pad(arr, ((0, ph), (0, pw), (0, 0)), mode="reflect")
-    Hp, Wp, _ = arr_p.shape
-    out = np.zeros_like(arr_p)
-    weight = np.zeros((Hp, Wp), dtype=np.float32)
-    # Cosine taper makes tile blending smooth across overlap (1px from
-    # neighbor on edge, full weight in centre). Constant in the centre,
-    # cos taper across the overlap band.
-    def _taper(n: int, ov: int) -> np.ndarray:
-        w = np.ones(n, dtype=np.float32)
-        if ov > 0:
-            ramp = 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, ov, dtype=np.float32))
-            w[:ov] = ramp
-            w[-ov:] = ramp[::-1]
-        return w
-    stride = tile - overlap
-    with torch.no_grad():
-        for y0 in range(0, Hp, stride):
-            for x0 in range(0, Wp, stride):
-                y1 = min(y0 + tile, Hp)
-                x1 = min(x0 + tile, Wp)
-                ty0, tx0 = y1 - tile, x1 - tile
-                ty0, tx0 = max(0, ty0), max(0, tx0)
-                t = arr_p[ty0:ty0 + tile, tx0:tx0 + tile, :]
-                # Pad tile if at the edge of a sub-tile-sized image.
-                th, tw = t.shape[:2]
-                if th < tile or tw < tile:
-                    t = np.pad(t, ((0, tile - th), (0, tile - tw), (0, 0)),
-                               mode="reflect")
-                x = torch.from_numpy(t.transpose(2, 0, 1)[None]).to(device)
-                y = model(x).clamp(0, 1)
-                yt = y.squeeze(0).cpu().numpy().transpose(1, 2, 0)
-                yt = yt[:th, :tw]
-                wy = _taper(th, min(overlap, th // 2))
-                wx = _taper(tw, min(overlap, tw // 2))
-                wmask = np.outer(wy, wx)
-                out[ty0:ty0 + th, tx0:tx0 + tw, :] += yt * wmask[..., None]
-                weight[ty0:ty0 + th, tx0:tx0 + tw] += wmask
-                if y1 >= Hp:
-                    break
-            if x1 >= Wp:
-                continue
-    out = out / np.clip(weight[..., None], 1e-6, None)
-    out = out[:H, :W, :]
-    out_u8 = np.clip(out * 255.0, 0, 255).astype(np.uint8)
-    Image.fromarray(out_u8).save(png_path)
-
-
 def demosaic_to_png(bayer: np.ndarray, dms: dict, src_dng: Path,
                     workdir: Path, out_png: Path,
                     upscale_to: tuple[int, int] | None = None) -> None:
@@ -1021,16 +904,6 @@ def _process_one_image(
             demosaic_to_png(post_bayer, dms, src_dng, img_work, pipe_png,
                             upscale_to=(w, h))
         demosaic_ms = (time.perf_counter() - demosaic_t0) * 1000.0
-        post_rgb_cnn_ms = None
-        # Post-RGB CNN stage (Restormer-class): runs over the demosaiced PNG.
-        # Detected by the CNN's cnn_arch_variant field — the bayer pass
-        # (apply_cnn above) was a no-op for these CNNs.
-        if cnn.get("cnn_arch_variant") == "restormer_post_rgb":
-            t_rgb0 = time.time()
-            apply_post_rgb_cnn(pipe_png, cnn)
-            post_rgb_cnn_ms = (time.time() - t_rgb0) * 1000.0
-            cnn_ms += post_rgb_cnn_ms
-            print(f"     restormer post-RGB: {post_rgb_cnn_ms/1000.0:.1f}s")
         # 4. crop A_detail
         ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
         pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
@@ -1089,8 +962,6 @@ def _process_one_image(
             "verdict": verdict,
             "fails": [{"metric": k, "reason": r} for k, r in fails],
         }
-        if post_rgb_cnn_ms is not None:
-            row["post_rgb_cnn_ms"] = post_rgb_cnn_ms
         row.update(cnn_stats)
         print(f"     LPIPS={m.get('lpips'):.4f}  Y-PSNR={m.get('y_psnr'):.2f}  "
               f"MS-SSIM={m.get('ms_ssim'):.4f}  ΔE={m.get('dE2000_mean'):.2f}  "

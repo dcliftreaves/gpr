@@ -127,12 +127,13 @@ typedef struct {
    New format: FUSED_HEADER + uint32_t band_size[num_bands] + band[0]..band[n-1].
    In single-level (no LL) mode, num_bands=12 (4 channels × 3 HP bands).
    In single-level + LL mode, num_bands=16 (band 0,4,8,12 are LL — skipped here).
-   In multi-level mode, num_bands=40 — also skipped here (this test verifies
+   In multi-level mode, num_bands=40 — rejected here (this test verifies
    the single-level path only). */
 static int verify_frame_bitstream(const uint8_t *vc5, size_t size,
                                    int bw, int bh,
                                    band_stats out[BANDS_PER_FRAME])
 {
+    memset(out, 0, sizeof(band_stats) * BANDS_PER_FRAME);
     if (size < sizeof(FUSED_HEADER)) {
         fprintf(stderr, "    payload too small for FUSED_HEADER (%zu < %zu)\n",
                 size, sizeof(FUSED_HEADER));
@@ -146,17 +147,21 @@ static int verify_frame_bitstream(const uint8_t *vc5, size_t size,
         return -1;
     }
 
+    if (hdr.version != FUSED_VERSION || hdr.multi_level != 0 || hdr.decimate > 1 ||
+        hdr.width != (uint32_t)bw * 4 || hdr.height != (uint32_t)bh * 4) {
+        fprintf(stderr, "    FAIL: unsupported band layout or dimensions\n");
+        return -1;
+    }
     int has_ll = 0;
     if (hdr.num_bands == 12) {
         has_ll = 0;  /* 4 channels × 3 HP bands */
     } else if (hdr.num_bands == 16) {
         has_ll = 1;  /* 4 channels × (LL + 3 HP) — skip LL bands at 0,4,8,12 */
     } else {
-        fprintf(stderr, "    skipping band probe: unsupported num_bands=%u "
+        fprintf(stderr, "    FAIL: unsupported num_bands=%u "
                         "(this test only verifies single-level encoder output)\n",
                 hdr.num_bands);
-        memset(out, 0, sizeof(band_stats) * BANDS_PER_FRAME);
-        return BANDS_PER_FRAME;  /* declare PASS — out-of-scope mode */
+        return -1;
     }
 
     size_t manifest_bytes = (size_t)hdr.num_bands * sizeof(uint32_t);
@@ -246,6 +251,10 @@ static int verify_frame_bitstream(const uint8_t *vc5, size_t size,
 static int run_one_input(const char *raw_path, int w, int h, int pf, int q,
                          int num_frames, double fps, double target_MBps)
 {
+    if (w <= 0 || h <= 0 || w % 4 || h % 4 || num_frames <= 0) {
+        fprintf(stderr, "invalid dimensions or frame count\n");
+        return 1;
+    }
     fprintf(stderr, "\n========================================================\n");
     fprintf(stderr, " Verifying: %s\n", raw_path);
     fprintf(stderr, "   dims=%dx%d pf=%d q=%d frames=%d fps=%.1f target=%.1f MB/s\n",
@@ -265,7 +274,10 @@ static int run_one_input(const char *raw_path, int w, int h, int pf, int q,
     }
     uint8_t *raw = (uint8_t *)malloc(expected);
     if (!raw) { fclose(f); return 1; }
-    fread(raw, 1, expected, f);
+    if (fread(raw, 1, expected, f) != expected) {
+        fprintf(stderr, "short raw read\n");
+        fclose(f); free(raw); return 1;
+    }
     fclose(f);
 
     collector_state cs;
@@ -313,7 +325,7 @@ static int run_one_input(const char *raw_path, int w, int h, int pf, int q,
         band_stats stats[BANDS_PER_FRAME];
         int ok = verify_frame_bitstream(frame->data, frame->size, bw, bh, stats);
 
-        total_bands_ok += ok;
+        if (ok > 0) total_bands_ok += ok;
         if (ok == BANDS_PER_FRAME) frames_fully_ok++;
 
         /* Aggregate across the 12 bands for a per-frame summary line. */

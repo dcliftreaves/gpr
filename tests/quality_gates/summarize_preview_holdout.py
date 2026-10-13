@@ -18,7 +18,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 RUNS = REPO / "tests/quality_gates/runs"
-DEFAULT_MANIFEST = REPO / "tests/quality_gates/preview_holdout_set.json"
+DEFAULT_MANIFEST = REPO / "pipelines/preview_holdout_set.json"
 GATES = REPO / "tests/quality_gates/gates.json"
 DASH = RUNS / "dashboard"
 

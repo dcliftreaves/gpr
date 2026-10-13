@@ -4,15 +4,17 @@ Every pipeline tagged ship-* in the registry should have production evidence.
 Most ship pipelines must have a committed passing gate run for their exact
 pipeline id. External-receipt-only pipelines are allowed only when the registry
 declares the external receipt, dashboard, runtime entrypoint, and production
-scope explicitly. Strict mode additionally requires normal gate runs to use the
-current gates.json and to have a claims_log.md receipt.
+scope explicitly. Declaration-only results never claim validated evidence.
+Strict mode additionally requires normal gate runs to use the current gates.json
+and to have a claims_log.md receipt. --strict-artifacts also requires external
+receipt files, pinned hashes, coverage and passing per-row metrics.
 
 Usage:
   python3 tests/quality_gates/audit_ship_pipelines.py
   python3 tests/quality_gates/audit_ship_pipelines.py --strict
 
 Exit codes:
-  0  every ship pipeline has a passing gate run
+  0  gate/declaration checks pass (external evidence requires --strict-artifacts)
   1  one or more ship pipelines is missing a passing run or has a FAIL
 """
 from __future__ import annotations
@@ -20,12 +22,16 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools"))
+from verify_production_artifacts import candidates, sha256_file
+
 REG = json.loads((REPO / "pipelines/registry.json").read_text())
 RUNS_DIR = REPO / "tests/quality_gates/runs"
 GATES_PATH = REPO / "tests/quality_gates/gates.json"
@@ -125,7 +131,7 @@ def git_tracked_file(path: Path) -> bool:
         return False
 
 
-def external_receipt_checks(pipeline: dict) -> tuple[bool, list[str], dict]:
+def external_receipt_checks(pipeline: dict, strict_artifacts: bool = False) -> tuple[bool, list[str], dict]:
     cnn_name = str(pipeline.get("cnn", ""))
     cnn = ((REG.get("cnns") or {}).get(cnn_name, {}) or {})
     checks: list[str] = []
@@ -134,6 +140,7 @@ def external_receipt_checks(pipeline: dict) -> tuple[bool, list[str], dict]:
         "holdout_receipt": str(cnn.get("holdout_receipt", "")),
         "dashboard": str(cnn.get("dashboard", "")),
         "runtime_entrypoint": str(cnn.get("runtime_entrypoint", "")),
+        "evidence_status": "declaration_only",
     }
     pipeline_doc_l = str(pipeline.get("$doc", "")).lower()
     cnn_doc_l = str(cnn.get("$doc", "")).lower()
@@ -149,18 +156,71 @@ def external_receipt_checks(pipeline: dict) -> tuple[bool, list[str], dict]:
         checks.append("missing runtime_entrypoint")
     elif not git_tracked_file(REPO / entrypoint):
         checks.append(f"runtime_entrypoint is not tracked ({entrypoint})")
-    if "external-receipt" not in pipeline_doc_l:
+    structured = "evidence_kind" in pipeline
+    if structured and (pipeline.get("evidence_kind") != "external_receipt"
+                       or pipeline.get("execution_scope") != "offline"
+                       or pipeline.get("release_selection") != "ship_root"
+                       or cnn.get("evidence_kind") != "external_receipt"
+                       or cnn.get("execution_scope") != "offline"):
+        checks.append("invalid structured external receipt scope")
+    if not structured and "external-receipt" not in pipeline_doc_l:
         checks.append("pipeline doc does not say external-receipt")
-    if "production path" not in pipeline_doc_l:
+    if not structured and "production path" not in pipeline_doc_l:
         checks.append("pipeline doc does not say production path")
-    if "not live/camera-back preview" not in pipeline_doc_l:
+    if not structured and "not live/camera-back preview" not in pipeline_doc_l:
         checks.append("pipeline doc does not define live/camera-back boundary")
-    if "external-receipt" not in cnn_doc_l:
+    if not structured and "external-receipt" not in cnn_doc_l:
         checks.append("cnn doc does not say external-receipt")
-    if "production path" not in cnn_doc_l:
+    if not structured and "production path" not in cnn_doc_l:
         checks.append("cnn doc does not say production path")
 
+    if strict_artifacts:
+        checks.extend(validate_external_receipt(cnn))
+        details["evidence_status"] = "invalid" if checks else "validated"
     return not checks, checks, details
+
+
+def validate_external_receipt(cnn: dict) -> list[str]:
+    """Validate the supported full-frame receipt, not registry prose or aggregates alone."""
+    receipt = cnn.get("holdout_receipt")
+    path = next((p for p in candidates(receipt) if p.is_file()), None) if receipt else None
+    if path is None:
+        return ["external holdout receipt file missing"]
+    expected = cnn.get("holdout_receipt_sha256")
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        return ["external holdout receipt lacks a pinned sha256"]
+    if sha256_file(path) != expected:
+        return ["external holdout receipt sha256 mismatch"]
+    schema = cnn.get("holdout_receipt_schema", cnn.get("cnn_arch_variant"))
+    if schema != "preview_q8_threeway_runtime_fullframe":
+        return [f"unsupported external receipt schema: {schema}"]
+    try:
+        payload = json.loads(path.read_text())
+        rows = payload["rows"]
+        summary = payload["summary"][schema]
+        expected_rows = cnn.get("holdout_expected_rows", 84)
+        expected_images = cnn.get("holdout_expected_images", 28)
+        if (not isinstance(rows, list) or len(rows) != expected_rows
+                or summary["count"] != expected_rows or summary["pass_count"] != expected_rows
+                or len({row["image_id"] for row in rows}) != expected_images
+                or len({(row["image_id"], row["crop"]) for row in rows}) != expected_rows):
+            return ["external holdout receipt coverage/pass count mismatch"]
+        thresholds = json.loads(GATES_PATH.read_text())["ship_classes"]["PREVIEW"]["per_image"]
+        for row in rows:
+            if row.get("preview_pass") is not True:
+                return ["external holdout receipt contains a failed row"]
+            for metric, bounds in thresholds.items():
+                if bounds is None:
+                    continue
+                value = row[metric]
+                if (isinstance(value, bool) or not isinstance(value, (int, float))
+                        or not math.isfinite(value)
+                        or (bounds.get("min") is not None and value < bounds["min"])
+                        or (bounds.get("max") is not None and value > bounds["max"])):
+                    return [f"external holdout receipt fails metric {metric}"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return ["external holdout receipt is malformed or missing metrics"]
+    return []
 
 
 def main() -> int:
@@ -175,7 +235,14 @@ def main() -> int:
         action="store_true",
         help="also require current gates_sha and a claims_log.md receipt",
     )
+    ap.add_argument("--strict-artifacts", action="store_true",
+                    help="require external receipt files, pinned hashes and passing per-row metrics; implies --strict")
+    ap.add_argument("--registry", type=Path, help="registry to audit (defaults to this worktree)")
     args = ap.parse_args()
+    global REG
+    if args.registry:
+        REG = json.loads(args.registry.read_text())
+    args.strict = args.strict or args.strict_artifacts
 
     gates_sha = current_gates_sha()
     claims = load_claims()
@@ -184,7 +251,8 @@ def main() -> int:
         if not isinstance(p, dict):
             continue
         role = p.get("$role", "")
-        if role.startswith("ship-"):
+        if (p.get("release_selection") == "ship_root" if "release_selection" in p
+                else role.startswith("ship-")):
             ship_pipelines.append((pn, p))
 
     print(f"=== Ship pipeline audit ({len(ship_pipelines)} ship-tagged pipelines) ===")
@@ -193,14 +261,18 @@ def main() -> int:
     print(f"current_gates_sha: {gates_sha}")
     print()
     any_problem = False
+    declaration_only = 0
     for pn, p in ship_pipelines:
         r = latest_run(pn, args.include_untracked)
         role = p.get("$role", "?")
         sc = p.get("ship_class", "?")
-        if r is None:
-            external_ok, external_problems, details = external_receipt_checks(p)
+        if r is None or REG.get("cnns", {}).get(p.get("cnn"), {}).get("external_receipt_only"):
+            external_ok, external_problems, details = external_receipt_checks(p, args.strict_artifacts)
             if external_ok:
-                print(f"  PASS [{sc:13}] external receipt  {role}")
+                validated = details["evidence_status"] == "validated"
+                declaration_only += not validated
+                label = "PASS" if validated else "DECLARED (evidence not validated)"
+                print(f"  {label} [{sc:13}] external receipt  {role}")
                 print(f"       pipeline={pn}")
                 print(f"       receipt={details['holdout_receipt']}")
                 print(f"       dashboard={details['dashboard']}")
@@ -240,7 +312,11 @@ def main() -> int:
     if any_problem:
         print("FAIL - one or more ship pipelines lacks a production-valid gate receipt")
         return 1
-    print("OK - every ship pipeline has a production-valid gate receipt")
+    if declaration_only:
+        print(f"OK - gate/declaration audit; {declaration_only} external receipt(s) NOT validated. "
+              "Use --strict-artifacts for evidence validation.")
+    else:
+        print("OK - every ship pipeline has a production-valid gate receipt")
     return 0
 
 
