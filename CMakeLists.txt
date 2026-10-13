@@ -106,10 +106,6 @@ else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
   MESSAGE( STATUS "Could not find source/lib/tiny_jpeg - disabling jpeg writing and setting GPR_JPEG_AVAILABLE=0" )
 endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 
-if(APPLE)
-  add_subdirectory("source/lib/gpr_polish")
-endif()
-
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
