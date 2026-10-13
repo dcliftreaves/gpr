@@ -30,6 +30,7 @@ case "$target" in
       "${LIBS[@]}" -o "$OUT/fuzz_decoder"
     "${FUZZ_CC:-clang}" -O1 -g -fsanitize=fuzzer,address \
       -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION "${INCS[@]}" \
+      -I"$REPO/source/app/ans_test" "$REPO/source/app/ans_test/ans.c" \
       "$REPO/source/app/fuzz_ans/fuzz_ans.c" \
       "$BUILD_LIB/vc5_common/libvc5_common.a" "$BUILD_LIB/common/libcommon.a" \
       -lm -lpthread -o "$OUT/fuzz_ans"
