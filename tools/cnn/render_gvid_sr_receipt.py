@@ -275,7 +275,7 @@ def main() -> int:
     import torch
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from bench_mission1_sr_8k import deinterleave, load_model, reinterleave_to_path, run_tiles, sync_device  # noqa: E402
+    from mission1_sr_runtime import deinterleave, load_model, reinterleave_to_path, run_tiles, sync_device  # noqa: E402
 
     if args.device == "auto":
         device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")

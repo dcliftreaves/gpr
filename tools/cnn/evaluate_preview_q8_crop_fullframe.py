@@ -40,8 +40,8 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 from build_preview_holdout_runtime_receipt import resolve_ref, scaled_box, sha256_file  # noqa: E402
 from evaluate_preview_runtime_policy import summarize  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import build_rgb_refiner, pass_preview  # noqa: E402
-from train_preview_fullimage_band_refiner import coordinate_tensor, source_multiband_tensor  # noqa: E402
+from preview_rgb_models import build_rgb_refiner, pass_preview  # noqa: E402
+from preview_input_features import coordinate_tensor, source_multiband_tensor  # noqa: E402
 
 
 Image.MAX_IMAGE_PIXELS = None

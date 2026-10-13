@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runtime model and inference helpers; experiment commands are archived."""
+"""PREVIEW RGB refiner architectures and fixed quality criteria."""
 from __future__ import annotations
 
 import sys

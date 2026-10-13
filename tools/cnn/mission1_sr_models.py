@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runtime model and inference helpers; experiment commands are archived."""
+"""Mission 1 Bayer SR architectures and checkpoint-config construction."""
 from __future__ import annotations
 
 from typing import Any

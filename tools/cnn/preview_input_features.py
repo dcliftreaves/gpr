@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runtime model and inference helpers; experiment commands are archived."""
+"""PREVIEW coordinate and multiband inference input features."""
 from __future__ import annotations
 
 import sys

@@ -72,6 +72,16 @@ The
 existing receipts and review artifacts. Architecture/load tests do not
 replace those trained-model quality measurements.
 
+The Python 8K renderer shares checkpoint loading and tiled inference through
+`tools/cnn/mission1_sr_runtime.py`, with architecture/config construction in
+`mission1_sr_models.py`; it does not import the benchmark CLI. PREVIEW model
+and input/routing helpers live in `preview_rgb_models.py`,
+`preview_input_features.py`, and `preview_scene_features.py` under `tools/cnn`.
+These runtime module names do not change approved model identities, hashes,
+checkpoint state dictionaries, config interpretation, or quality thresholds.
+The registered 4K cleanup `apply` entry point is unchanged. See the
+[CNN runtime tools](../tools/cnn/README.md) for the supported dependency graph.
+
 Artifact paths in that index are relative to the user-selected
 `GPR_EXTERNAL_ROOT`. This locates existing evidence; `GPR_ARTIFACT_ROOT`
 chooses where new local outputs are written. Set each

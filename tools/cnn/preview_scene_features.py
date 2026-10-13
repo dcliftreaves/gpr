@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runtime model and inference helpers; experiment commands are archived."""
+"""PREVIEW scene-routing features and source discovery."""
 from __future__ import annotations
 
 

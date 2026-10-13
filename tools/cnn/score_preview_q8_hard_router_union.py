@@ -17,7 +17,7 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from build_preview_holdout_runtime_receipt import scaled_box
-from build_preview_scene_router_audit import feature_vector_rgb  # noqa: E402
+from preview_scene_features import feature_vector_rgb  # noqa: E402
 
 
 Image.MAX_IMAGE_PIXELS = None

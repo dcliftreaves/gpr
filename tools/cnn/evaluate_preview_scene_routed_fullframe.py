@@ -36,7 +36,7 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from build_preview_holdout_runtime_receipt import resolve_ref, resolve_source, scaled_box  # noqa: E402
-from build_preview_scene_router_audit import feature_vector_rgb  # noqa: E402
+from preview_scene_features import feature_vector_rgb  # noqa: E402
 from evaluate_preview_runtime_policy import build_input, load_rgb, summarize, write_html  # noqa: E402
 from evaluate_preview_scene_routed import (  # noqa: E402
     parse_cluster_checkpoint,
@@ -48,7 +48,7 @@ from evaluate_preview_scene_routed import (  # noqa: E402
     sha256_file,
 )
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import DirectRGBRefiner, build_rgb_refiner, pass_preview  # noqa: E402
+from preview_rgb_models import DirectRGBRefiner, build_rgb_refiner, pass_preview  # noqa: E402
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")

@@ -9,7 +9,9 @@ candidate does not promote it.
 ## Entry points and dependencies
 
 - `render_gvid_sr_receipt.py`: .gvid to 8K Bayer; uses
-  `bench_mission1_sr_8k.py` and model definitions in `train_mission1_sr.py`.
+  `mission1_sr_runtime.py` and model definitions in `mission1_sr_models.py`.
+  `bench_mission1_sr_8k.py` uses the same runtime for timing receipts; it is
+  not a production inference dependency or a quality gate.
 - `train_bayer_rgb_target_cleanup.py apply`: registered, visually signed-off
   4K Bayer cleanup; registry scope remains offline review-only.
 - `upresable_pipeline.py`, `preview_timelapse_fast.py`, and
@@ -20,11 +22,11 @@ candidate does not promote it.
   `evaluate_preview_scene_routed_fullframe.py`,
   `evaluate_preview_scene_routed.py`, `evaluate_preview_runtime_policy.py`,
   and `build_preview_holdout_runtime_receipt.py`.
-- PREVIEW support libraries: `build_preview_scene_router_audit.py`,
+- PREVIEW support libraries: `preview_scene_features.py`,
   `score_preview_q8_hard_router_union.py`,
   `score_preview_q8_threeway_router_union.py`,
-  `train_display_rgb_direct_nonref.py`, and
-  `train_preview_fullimage_band_refiner.py`: inference, feature/routing,
+  `preview_rgb_models.py`, and
+  `preview_input_features.py`: inference, feature/routing,
   and model helpers.
 - Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py` and
   `bayer_detail_residual.py`.
@@ -33,6 +35,13 @@ candidate does not promote it.
 - Model support: `model.py` and the model definitions used by the entry
   points above.
 - Shared visual metrics: `tools/cnn/metrics.py`.
+
+The runtime-only model/feature libraries use runtime names; their former
+`train_*`/audit module paths are not compatibility APIs. Architecture classes,
+checkpoint config dispatch, state-dict keys, and PREVIEW quality thresholds
+are unchanged. Retained architecture branches support existing checkpoint
+configs; their presence does not approve additional models. The registered
+`train_bayer_rgb_target_cleanup.py apply` CLI retains its registry path.
 
 The approved offline-production 8K model is
 `mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1`. Model names, codec

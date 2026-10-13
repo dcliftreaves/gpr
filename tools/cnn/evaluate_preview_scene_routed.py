@@ -25,10 +25,10 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/cnn"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
-from build_preview_scene_router_audit import FEATURE_NAMES, discover_sources, feature_vector  # noqa: E402
+from preview_scene_features import FEATURE_NAMES, discover_sources, feature_vector  # noqa: E402
 from evaluate_preview_runtime_policy import build_input, load_rgb, summarize, write_html  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import DirectRGBRefiner, pass_preview  # noqa: E402
+from preview_rgb_models import DirectRGBRefiner, pass_preview  # noqa: E402
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")

@@ -39,7 +39,7 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import DirectRGBRefiner, parse_crop_png, pass_preview  # noqa: E402
+from preview_rgb_models import DirectRGBRefiner, parse_crop_png, pass_preview  # noqa: E402
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
