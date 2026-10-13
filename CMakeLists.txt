@@ -142,11 +142,3 @@ if(NOT IS_BIG_ENDIAN)
   target_compile_definitions(gpr_sdk PUBLIC qDNGLittleEndian=1)
 endif()
 
-if(NOT WIN32)
-  find_package(Threads REQUIRED)
-  add_executable(bayer_detail_residual_sidecar source/app/bayer_detail_residual_sidecar.c)
-  target_link_libraries(bayer_detail_residual_sidecar m Threads::Threads)
-  set_target_properties(bayer_detail_residual_sidecar PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-endif()
-

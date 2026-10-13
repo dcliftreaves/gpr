@@ -28,8 +28,9 @@ candidate does not promote it.
   `preview_rgb_models.py`, and
   `preview_input_features.py`: inference, feature/routing,
   and model helpers.
-- Sidecar encoding/decoding: `pack_bayer_detail_residual_sidecar.py` and
-  `bayer_detail_residual.py`.
+- Detail-residual sidecar diagnostics live in the companion
+  [validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation/tools/cnn).
+  They are not an extra stream required by the selected GVID runtime.
 - Offline packaging: `package_mission1_sr_receipt.py` and
   `package_mission1_sr_sequence_receipt.py`.
 - Model support: `model.py` and the model definitions used by the entry
