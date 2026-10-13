@@ -2,7 +2,7 @@ set( EXE_NAME ans_test )
 
 include_directories( "../../lib/vc5_common" )
 
-add_executable( ${EXE_NAME} ans_test.c )
+add_executable( ${EXE_NAME} ans_test.c ans.c )
 if(WIN32)
   target_link_libraries( ${EXE_NAME} vc5_common )
 else()

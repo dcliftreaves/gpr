@@ -68,6 +68,7 @@ The pre-cleanup tree is preserved at
 | Standalone CoreML polish API | Archived; no selected model or production caller | Removed rather than implying its availability test exercised inference |
 | Minimal fast TIFF still writer | Archived; the retired switch warns and uses the SDK writer | SDK readback regression; separate fast decoder retained |
 | Detail-residual sidecar experiment | Validation only | Not part of selected GVID or reconstruction formats |
+| Separate-stream ANS prototype | Validation-only diagnostic and fuzzer | No production callers; active codec uses joint ANS |
 
 `tools/test/audit_feature_coverage.py` inventories changed source against exact
 commits. LinuxRelease collects native and Python execution coverage in the
