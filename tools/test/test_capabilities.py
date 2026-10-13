@@ -57,6 +57,7 @@ GTOOLS = Path(os.environ.get("GTOOLS", BUILD_DIR / "source/app/gpr_tools/gpr_too
 # within 3x of the Release ceiling still passes. Quality criteria (PSNR,
 # compression ratio) ignore this — they're build-type independent.
 TIMING_TOLERANCE = float(os.environ.get("GPR_TIMING_TOLERANCE", "1.0"))
+INSTRUMENTED = bool(os.environ.get("GPR_COVERAGE_DIR"))
 TIMING_SAMPLES = int(os.environ.get("GPR_TIMING_SAMPLES", "3"))
 TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
     "GPR_TIMING_SAMPLE_MAX_PIXELS", str(4032 * 3024)))
@@ -765,14 +766,19 @@ VISUAL_METRIC_ORDER = [
 METRIC_ORDER = STILL_METRIC_ORDER + VISUAL_METRIC_ORDER
 
 
-def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
+def check_cap(cap: dict, m: Dict[str, float], *, instrumented=INSTRUMENTED) -> Tuple[str, list]:
     """Returns (overall_verdict, [(metric_id, value, verdict, criterion_text)])."""
     crits = cap["criteria"]
     rows = []
     overall = "MET"
     has_exceeded = False
+    skipped_performance = False
     for mid, *_ in METRIC_ORDER:
         if mid not in crits:
+            continue
+        if instrumented and mid in ("encode_ms", "decode_ms", "peak_rss_mb"):
+            rows.append((mid, m[mid], "SKIPPED", "instrumented; not a performance receipt"))
+            skipped_performance = True
             continue
         # Apply timing tolerance only to ms-based metrics; quality/size criteria
         # are build-type independent and stay strict.
@@ -792,6 +798,8 @@ def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
     if overall == "MET" and has_exceeded:
         # If at least one metric exceeded and none failed, mark overall as EXCEEDED.
         overall = "EXCEEDED"
+    if skipped_performance and overall != "FAILED":
+        overall = "PARTIAL"
     return overall, rows
 
 
@@ -800,7 +808,7 @@ def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
 # ---------------------------------------------------------------------------
 
 VERDICT_ICONS = {"MET": "✅ MET", "EXCEEDED": "✨ EXCEEDED",
-                 "FAILED": "❌ FAILED", "SKIPPED": "⊘ SKIPPED"}
+                 "FAILED": "❌ FAILED", "SKIPPED": "⊘ SKIPPED", "PARTIAL": "PARTIAL"}
 
 
 def emit_markdown(rows: list, out_path: Path):
@@ -816,6 +824,7 @@ def emit_markdown(rows: list, out_path: Path):
         "- **EXCEEDED** — measured value comfortably beats the criterion",
         "  by the metric-specific margin.",
         "- **FAILED**  — measured value breaks the criterion.",
+        "- **PARTIAL** — quality/size checked; instrumented timing and memory not evaluated.",
         "",
         "Regenerated on every run of `tools/test/test_capabilities.py`. Adding a",
         "capability = adding one row to that script with its criteria.",
@@ -827,11 +836,13 @@ def emit_markdown(rows: list, out_path: Path):
     n_exc  = sum(1 for _, _, v, _ in rows if v == "EXCEEDED")
     n_fail = sum(1 for _, _, v, _ in rows if v == "FAILED")
     n_skip = sum(1 for _, _, v, _ in rows if v == "SKIPPED")
+    n_partial = sum(1 for _, _, v, _ in rows if v == "PARTIAL")
     lines += [
         f"- **{n_exc}** EXCEEDED",
         f"- **{n_met}** MET",
         f"- **{n_fail}** FAILED",
         f"- **{n_skip}** SKIPPED (missing optional deps)",
+        f"- **{n_partial}** PARTIAL (instrumented performance not evaluated)",
         f"- last run: {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"- build dir: `{BUILD_DIR.relative_to(REPO) if str(BUILD_DIR).startswith(str(REPO)) else BUILD_DIR}`",
         "",
@@ -946,6 +957,8 @@ def main():
     print(f"ARTIFACT  : {ART_DIR}")
     print(f"FAST      : {FAST}")
     print(f"timing samples (≤{TIMING_SAMPLE_MAX_PIXELS} px stills): {max(1, TIMING_SAMPLES)}")
+    if INSTRUMENTED:
+        print("SKIP: timing and memory criteria on instrumented build; quality and size remain enforced")
     print(f"refresh   : {args.refresh}")
     print()
 

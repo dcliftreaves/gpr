@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import wave
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -53,6 +54,32 @@ def main():
         frames.mkdir()
         for index, payload in enumerate(payloads):
             (frames / f"frame_{index:04d}.gpr").write_bytes(payload)
+        extracted_frame = work / "extracted.gpr"
+        run(sys.executable, ROOT / "tools/extract_gvid_frame.py", clip, extracted_frame,
+            "--frame-index", 1)
+        assert extracted_frame.read_bytes() == payloads[1]
+        decoded = work / "decoded.raw"
+        run(build / "bin/fused_decode_cli", extracted_frame, 512, 512, decoded, env=env)
+        assert decoded.stat().st_size == 512 * 512 * 2 and len(set(decoded.read_bytes())) > 1
+        coeff_output = work / "coeff.raw"
+        run(build / "bin/coeff_io_tool", raw, 512, 512, coeff_output,
+            env=dict(env, GPR_INCLUDE_LL="1", GPR_BENCH_PIXEL_FORMAT="4", FUSED_QUALITY="3"))
+        assert coeff_output.read_bytes() == decoded.read_bytes()
+        preview_clip = work / "preview.gvid"
+        run(build / "source/app/bench_fused/bench_fused", raw, 512, 512, 2,
+            env=dict(env, GPR_BENCH_GVID=str(preview_clip), GPR_BENCH_PIXEL_FORMAT="4",
+                     GPR_INCLUDE_LL="1", FUSED_QUALITY="3", FUSED_MULTI_LEVEL="1",
+                     FUSED_WAVELET_LEVELS="3"))
+        preview = subprocess.run([
+            sys.executable, str(ROOT / "tools/render_gvid_preview_rgb_stream.py"),
+            "--gvid", str(preview_clip), "--decoder", str(build / "bin/fused_decode_cli"),
+            "--sensor-width", "512", "--sensor-height", "512", "--width", "128",
+            "--height", "128", "--tmp-dir", str(work)],
+            capture_output=True, env=env, timeout=180)
+        assert preview.returncode == 0, preview.stderr.decode(errors="replace")
+        assert len(preview.stdout) == 2 * 128 * 128 * 3 and len(set(preview.stdout)) > 1
+        assert preview.stdout[:128 * 128 * 3] == preview.stdout[128 * 128 * 3:]
+        assert not list(work.glob("gvid_preview_rgb_*")), "preview temporaries must be removed"
         wrapped, unpacked = work / "wrapped.mov", work / "unpacked"
         run(ROOT / "tools/gvid_mov/gvid_mov_pack", "--fps", 24, "--quality", 3,
             "--bit-depth", 16, "--black-level", 0, "--white-level", 65535,
@@ -60,6 +87,16 @@ def main():
         run(ROOT / "tools/gvid_mov/gvid_mov_unpack", wrapped, unpacked)
         assert [p.read_bytes() for p in sorted(unpacked.glob("*.gpr"))] == payloads
         print("PASS: MOV wrapper preserves both freshly encoded payloads")
+        packets = json.loads(run("ffprobe", "-v", "error", "-select_streams", "v:0",
+                                 "-show_packets", "-show_entries", "packet=pos,size",
+                                 "-of", "json", wrapped))["packets"]
+        last = packets[-1]
+        truncated = work / "truncated.mov"
+        truncated.write_bytes(wrapped.read_bytes()[:int(last["pos"]) + int(last["size"]) - 1])
+        rejected = subprocess.run([str(ROOT / "tools/gvid_mov/gvid_mov_unpack"),
+                                   str(truncated), str(work / "truncated frames")],
+                                  capture_output=True, text=True, timeout=30)
+        assert rejected.returncode != 0, "a corrupt short packet must not count as a complete frame"
         if args.wrapper_only:
             return 0
         metadata = work / "metadata.dng"
@@ -88,6 +125,37 @@ def main():
         print("PASS: macOS MOV companion preserves both payloads")
         summary = run(mov_tool, "info", compat)
         assert "yes (per-frame)" in summary, summary
+        for present in (0, 1):
+            sparse_meta = work / f"sparse metadata {present}"
+            sparse_meta.mkdir()
+            shutil.copyfile(metadata, sparse_meta / f"frame_{present:04d}.dng")
+            sparse_mov = work / f"sparse {present}.mov"
+            run(mov_tool, "pack", frames, sparse_mov, "--fps", 24, "--meta-dir", sparse_meta)
+            extracted = work / f"sparse frames {present}"
+            run(mov_tool, "unpack", sparse_mov, extracted)
+            assert [p.read_bytes() for p in sorted(extracted.glob("*.gpr"))] == payloads
+            sidecar = Path(str(sparse_mov) + ".exif").read_bytes()
+            assert sidecar[:4] == b"GEX0"
+            pos, sizes = 4, []
+            for _ in range(2):
+                size, = struct.unpack_from("<I", sidecar, pos)
+                sizes.append(size)
+                pos += 4 + size
+            assert pos == len(sidecar) and sizes[present] > 0 and sizes[1 - present] == 0
+            run(mov_tool, "pack", frames, sparse_mov, "--fps", 24)
+            assert not Path(str(sparse_mov) + ".exif").exists(), "old metadata must not survive overwrite"
+        audio = work / "audio.wav"
+        with wave.open(str(audio), "wb") as wav:
+            wav.setparams((1, 2, 48000, 0, "NONE", "not compressed"))
+            wav.writeframes(b"\0\0" * 4000)
+        audio_mov = work / "with audio.mov"
+        run(mov_tool, "pack", frames, audio_mov, "--fps", 24, "--audio", audio)
+        assert "audio     : yes" in run(mov_tool, "info", audio_mov)
+        bad_audio = work / "truncated audio.wav"
+        bad_audio.write_bytes(audio.read_bytes()[:-1])
+        rejected = subprocess.run([str(mov_tool), "pack", str(frames), str(work / "bad audio.mov"),
+                                   "--audio", str(bad_audio)], capture_output=True, text=True, timeout=30)
+        assert rejected.returncode > 0, "truncated WAV must fail without a crash"
         for source, reader, destination in (
                 (compat, ROOT / "tools/gvid_mov/gvid_mov_unpack", work / "portable cross"),
                 (wrapped, mov_tool, work / "desktop cross")):

@@ -83,6 +83,7 @@ jobs:
           python3 tools/test/test_verify_production_artifacts.py
           python3 tools/test/test_registry_evidence_scope.py
           python3 tools/test/test_audit_feature_coverage.py
+          python3 tools/test/test_capability_criteria.py
       - name: Repository history guard
         if: matrix.name == 'LinuxRelease'
         run: python3 tools/test/check_sensitive_content.py --history
@@ -134,6 +135,7 @@ jobs:
       - name: Container regressions
         run: |
           python3 tools/test/test_gvid_conformance.py
+          python3 tools/test/test_gvid_reader.py
           bash tools/test/test_gvid_pack.sh
           bash tools/test/test_gvid_metadata.sh
       - name: Capture regressions

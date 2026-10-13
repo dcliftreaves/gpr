@@ -33,6 +33,11 @@ import json
 import sys
 from pathlib import Path
 report = json.loads(Path(sys.argv[1]).read_text())
+by_path = {row['path']: row for row in report['files']}
+for source in ('gvid_mov.c', 'gvid_mov_pack.c', 'gvid_mov_unpack.c'):
+    row = by_path[f'tools/gvid_mov/src/{source}']
+    if row['execution']['status'] != 'EXECUTED':
+        raise SystemExit(f'MOV coverage missing despite required wrapper tests: {source}')
 states = collections.Counter(row['execution']['status'] for row in report['files'])
 measured = sum(row['changed_line_coverage']['measured_lines'] for row in report['files'])
 executed = sum(row['changed_line_coverage']['executed_lines'] for row in report['files'])
