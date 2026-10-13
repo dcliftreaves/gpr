@@ -1,7 +1,7 @@
 /*! @file main.c
  *  @brief libFuzzer entry point for the GPR raw-video decoder.
  *
- *  Two entry points are exercised on attacker-controlled bytes:
+ *  Container, entropy, and bounded image decode are exercised:
  *
  *    1. gpr_video_read_clip_header / gpr_video_read_frame_header
  *       (the container parser — first thing a decoder sees on the wire).
@@ -9,6 +9,7 @@
  *    2. jans_decode_band_x4 (the rANS band decoder used by the fused
  *       pipeline) on each frame's payload slice, for a few representative
  *       band dimensions.
+ *    3. gpr_decode_fused on payloads with dimensions at most 512 x 512.
  *
  *  The harness:
  *    - never aborts/crashes/OOMs on malformed input (that is the bug we'd
@@ -23,6 +24,8 @@
 
 #include "gpr_video_format.h"
 #include "ans_joint.h"
+#include "fused_encode.h"
+#include "fused_decode.h"
 
 #include <stdint.h>
 #include <stddef.h>
@@ -63,6 +66,22 @@ static void try_decode_band(const uint8_t *payload, size_t payload_size, int sha
     (void)jans_decode_band_x4(payload, payload_size, band, w, h, pitch);
 
     free(band);
+}
+
+static void try_decode_frame(const uint8_t *payload, size_t size)
+{
+    if (size < sizeof(FUSED_HEADER)) return;
+    FUSED_HEADER header;
+    memcpy(&header, payload, sizeof(header));
+    /* Bound image dimensions before the decoder allocates wavelet buffers. */
+    if (header.magic != FUSED_MAGIC || !header.width || !header.height ||
+        header.width > 512 || header.height > 512) return;
+    uint16_t *bayer = calloc((size_t)header.width * header.height, sizeof(*bayer));
+    if (!bayer) return;
+    int width = 0, height = 0;
+    (void)gpr_decode_fused(payload, size, bayer, header.width * sizeof(*bayer),
+                           &width, &height);
+    free(bayer);
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -109,6 +128,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         const uint8_t *payload = data + off;
         size_t psize = fh.payload_size;
 
+        try_decode_frame(payload, psize);
+
         /* Try a few band shapes against this payload. */
         for (int s = 0; s < NUM_BAND_SHAPES; s++) {
             try_decode_band(payload, psize, s);
@@ -123,6 +144,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             without needing a parseable header. ---- */
     if (size <= 1 * 1024 * 1024) {
         try_decode_band(data, size, 0 + ((int)(data[0] % NUM_BAND_SHAPES)));
+        try_decode_frame(data, size);
     }
 
     return 0;

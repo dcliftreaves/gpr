@@ -77,13 +77,15 @@ int main(int argc, char **argv)
     signal(SIGILL,  crash_handler);
 
     int crashes = 0;
+    int unreadable = 0;
     int ok = 0;
     for (int i = 1; i < argc; i++) {
         const char *path = argv[i];
         uint8_t *buf = NULL;
         size_t size = 0;
         if (read_file(path, &buf, &size) != 0) {
-            fprintf(stderr, "  [skip] cannot read %s\n", path);
+            fprintf(stderr, "  [error] cannot read %s\n", path);
+            unreadable++;
             continue;
         }
 
@@ -108,5 +110,5 @@ int main(int argc, char **argv)
     printf("\nfuzz_decoder_standalone: %d ok, %d crash%s out of %d input%s\n",
            ok, crashes, crashes == 1 ? "" : "es",
            argc - 1, (argc - 1) == 1 ? "" : "s");
-    return crashes == 0 ? 0 : 1;
+    return crashes == 0 && unreadable == 0 ? 0 : 1;
 }

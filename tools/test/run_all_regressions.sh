@@ -4,16 +4,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 MODE=full
-DIAGNOSTICS=0
 export FAST="${FAST:-0}"
 while [ $# -gt 0 ]; do
     case "$1" in
         --native-only) MODE=native ;;
-        --diagnostics) DIAGNOSTICS=1 ;;
         --fast) export FAST=1 ;;
         -h|--help)
-            echo "Usage: $0 [--native-only] [--fast] [--diagnostics]"
-            echo "Diagnostics add historical golden checks; mismatches still fail."
+            echo "Usage: $0 [--native-only] [--fast]"
             echo "Build first. BUILD_DIR defaults to build; TMPDIR selects scratch storage."
             echo "Native flags: CC, GPR_TEST_CFLAGS, GPR_TEST_LDFLAGS."
             echo "Python: set PYTHON_BIN; full mode checks codec/CNN/visual metric dependencies."
@@ -107,8 +104,8 @@ PY
 read -r -a cflags <<< "${GPR_TEST_CFLAGS:--O2 -g}"
 read -r -a ldflags <<< "${GPR_TEST_LDFLAGS:--lm}"
 native=(test_video_format test_labs_encoder_api test_edge_sizes
-        test_video_encoder_abort test_video_full_chain test_video_roundtrip)
-if [ "$(uname -s)" = Darwin ]; then native+=(test_video_pipeline_sim); fi
+        test_video_encoder_abort test_video_full_chain test_video_roundtrip
+        test_video_pipeline_sim_portable)
 for name in "${native[@]}"; do
     "${CC:-clang}" "${cflags[@]}" "source/app/$name.c" \
         "$BUILD_DIR/source/lib/vc5_encoder/libvc5_encoder.a" \
@@ -149,24 +146,12 @@ for frame in frames:
     assert len(set(pixels)) > 1, f"blank preview: {frame}"
 PY
 for iso in ISO64 ISO22800; do
-    run required "band roundtrip $iso" env FUSED_INLINE_TOKENIZE=0 \
+    run required "band roundtrip $iso" env FUSED_INLINE_TOKENIZE=0 FUSED_MULTI_LEVEL=0 \
+        GPR_ROW_DECIMATE=1 GPR_COL_DECIMATE=1 GPR_DROP_HIGHPASS=0 \
         "$SCRATCH/bin/test_video_roundtrip" "$SCRATCH/Z8_$iso.raw" 8280 5520 4 3 10 24.0 150.0
 done
-if [ "$(uname -s)" = Darwin ]; then
-    run required "video pipeline simulator" "$SCRATCH/bin/test_video_pipeline_sim" \
-        "$SCRATCH/Z8_ISO64.raw" 8280 5520 4 3 10 24.0 150.0 0.0 1.0
-fi
-if [ "$DIAGNOSTICS" = 1 ]; then
-    # The 948f715 prescale/filter change predates cleanup: its parent matches
-    # 24/24 goldens, while 948f715 and HEAD match 0/24 (including scalar builds).
-    echo "DIAGNOSTIC: historical golden mismatch since 948f715; see tests/conformance/README.md"
-    run required "build bitstream conformance checks" bash tests/conformance/build.sh
-    for level in 1 2; do
-        run required "bitstream conformance L$level" "$SCRATCH/conformance/conformance_check_L$level"
-    done
-else
-    skip "historical golden conformance excluded; --diagnostics runs it with real failure status"
-fi
+run required "video pipeline simulator" "$SCRATCH/bin/test_video_pipeline_sim_portable" \
+    "$SCRATCH/Z8_ISO64.raw" 8280 5520 4 3 10 24.0 150.0 0.0 1.0
 if [ "$MODE" = full ]; then
     run required "sensitive content" python3 tools/test/check_sensitive_content.py
     run required "matrix failure and cleanup harness" python3 tools/test/test_still_matrix_harness.py

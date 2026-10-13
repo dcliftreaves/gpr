@@ -4,10 +4,39 @@ Use the test appropriate to the claim. Passing container validation, codec
 regression, a rendered quality gate, or a hardware timing test establishes
 different facts.
 
+## Current entry point
+
+From the validation checkout root, with CMake and a C/C++ toolchain:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 4
+ctest --test-dir build --output-on-failure
+python3 tests/quality_gates/check_registry_consistency.py
+python3 tests/quality_gates/audit_ship_pipelines.py --strict
+```
+
+Inspect skips and prerequisite failures separately from passing tests.
+The strict audit checks retained signoffs, not fresh model inference. External
+PREVIEW receipts are reported as declarations unless their files, pinned hashes,
+coverage, and metrics are checked with `--strict-artifacts`:
+
+```bash
+python3 tools/verify_production_artifacts.py --strict
+python3 tests/quality_gates/audit_ship_pipelines.py --strict-artifacts
+```
+
+These release checks require external artifacts; the PREVIEW receipt currently
+lacks a pinned hash and must not be reported as independently verified. Normal
+CI remains usable without private weights. `verify_production_artifacts.py
+--all --include-training-data` inventories historical candidates separately.
+The full integration suite is `bash tools/test/run_all_regressions.sh`; install
+the Python and platform dependencies listed in the CI workflow first.
+
 | Evidence | What it establishes | What it does not establish |
 |---|---|---|
 | `tools/test/test_gvid_conformance.py` and C stream tests | Container accept/reject and recovery behavior | Payload quality or camera integration |
-| `tests/conformance/` | Manual historical bitstream comparison; currently mismatches | A passing release gate or universal perceptual quality |
+| `tests/conformance/` | Manual bitstream comparison infrastructure; no current committed goldens | A passing release gate or universal perceptual quality |
 | `tools/test/test_capabilities.py` | Declared codec cells and regression limits | Every end-to-end workflow or sensor |
 | `tests/quality_gates/run_gate.py` | The selected pipeline/class on its specified corpus | Other codecs, models, cameras, or output objectives |
 | Target capture/preview receipts | Throughput, memory, drops, storage, and identity on that setup | Camera readiness when the target is a stand-in |
@@ -18,7 +47,9 @@ different facts.
 Read `tests/quality_gates/gates.json` for thresholds and
 `pipelines/registry.json` for exact pipeline identities.
 [claims_log.md](claims_log.md) contains audited machine-written signoffs;
-each must resolve to its matching `runs/<hash>/run.json`.
+each current required signoff must resolve to its matching `runs/<hash>/run.json`.
+Two older ledger entries without committed receipts are labeled historical
+and do not establish current approval.
 Do not hand-edit measurements or infer a new pass from prose.
 
 Compare the entire stated pipeline, including codec, model, preprocessing,
@@ -39,7 +70,7 @@ appropriate backend hardware. Missing prerequisites are a skip or blocker,
 not a pass. Hosted CI cannot substitute for an actual camera-role
 sensor/DMA, storage, and display receipt.
 
-[Stills Pi 5 Timing](STILLS_PI5_TIMING.md) and [Video Status](VIDEO_STATUS.md)
-summarize existing measurements. [GVID Conformance](GVID_CONFORMANCE.md)
-lists focused container checks; [Labs Firmware API](LABS_FIRMWARE_API.md)
+[Pi Hardware](PI_HARDWARE.md) separates current replay verification from
+historical measurements. [GVID Conformance](GVID_CONFORMANCE.md)
+lists focused container checks; [Capture API](CAPTURE_API.md)
 defines hardware evidence.

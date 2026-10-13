@@ -1,49 +1,26 @@
-# Test Data Sets
+# Test Fixtures
 
-Organized test data for GPR noise-aware compression validation.
+This directory is a local fixture location, not a bundled camera corpus or
+a promise of fixed test durations. Acquire original camera files from their
+owner or an authorized artifact bundle; this checkout does not establish
+public download availability. Preserve source identity and metadata.
 
-## Structure
+The frozen quality corpus is defined by
+[tests/quality_gates/test_set.json](../../tests/quality_gates/test_set.json):
+Z8Z_0001, Z8Z_0067, Z8Z_5323, and Z8Z_6693. Place those original DNGs at the
+listed relative paths under `GPR_EXTERNAL_ROOT`, or use the runner's
+`GATE_SOURCE_PATH_MAP` prefix mapping. Do not substitute images or alter crops
+to obtain a passing result. See [Quality Gates](../../tests/quality_gates/README.md)
+for model and execution prerequisites.
 
-```
-test_sets/
-├── smoke/          — 5 images, ~30s, quick sanity check
-│   ├── gopro/      — Hero6 outdoor, HERO7 scene
-│   ├── hasselblad/ — X2D Austin ISO 200
-│   └── nikon/      — Z8 sample
-├── medium/         — 20 images, ~3min, corner case coverage
-│   ├── gopro/      — Hero5/6/7/9, Fusion
-│   ├── hasselblad/ — X2D ISO 64 + ISO 200
-│   ├── nikon/      — Z8 samples at different ISOs
-│   └── hero10_dark/— 3 dark frames at different ISOs
-├── full/           — 60+ images, ~15min, comprehensive proof
-│   ├── gopro/      — All samples
-│   ├── hasselblad/ — All X2D DNGs + Phocus calibration
-│   ├── nikon/      — 10 Z8 across dates/ISOs
-│   └── hero10_dark/— 10 spread across ISO range
-└── corner_cases/   — Specific challenging scenarios
-    ├── dark_frames/ — ISO 100-1600 HERO10 darks
-    ├── high_iso/    — ISO 3200+ (X2D, Z8)
-    ├── saturated/   — Images with blown highlights
-    └── low_light/   — Dark scenes with shadow noise
-```
+The broader informational preview set is
+[pipelines/preview_holdout_set.json](../../pipelines/preview_holdout_set.json).
+Capability and real-fixture tests may require other camera sources; inspect
+the selected test's input paths and environment options before running it.
+Large sources and trained weights are external and must be supplied separately.
 
-## Image Categories
-
-### Representative (Normal)
-- Well-lit outdoor GoPro scenes (Hero5/6/7/9)
-- X2D landscape/portrait at ISO 64-200
-- Z8 general photography at ISO 64-500
-
-### Corner Cases
-- Dark frames (lens cap): pure noise, tests noise floor detection
-- High ISO (3200+): high noise, tests denoise aggressiveness
-- Saturated highlights: tests clipping behavior
-- Fusion stereo: different aspect ratio/resolution
-- HERO10: different sensor dimensions (5568×4176)
-
-## Source Locations
-- GoPro samples: `data/samples/` (checked into repo)
-- HERO10 darks: `<your-path>/100GOPRO/` (set `HERO10_DARK` env var)
-- X2D: `<your-path>/hasselblad/` (set `HASSEL` env var)
-- Phocus: `<your-path>/phocus-captures/` (set `PHOCUS` env var)
-- Z8: `<your-path>/nikon-z8/` (external storage)
+Record fixture provenance, hashes, dimensions, bit depth, and acquisition
+conditions with new results. Missing fixtures mean skipped or blocked work,
+not a pass. Synthetic conformance/fuzz inputs exercise parser and codec
+behavior; they do not replace real-camera quality evidence. Historical
+smoke/medium/full counts and duration estimates are not current guarantees.

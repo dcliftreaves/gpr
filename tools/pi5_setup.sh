@@ -2,7 +2,7 @@
 # pi5_setup.sh — one-shot Pi 5 capture-side setup.
 #
 # Run AFTER flashing Raspberry Pi OS to the new SD card and SSH-ing in
-# (see tools/pi5_setup.md for the SD imager step).
+# (see docs/PI_HARDWARE.md for setup and storage requirements).
 #
 # What it does:
 #   1. apt installs build deps (gcc, cmake, git, python3, numpy)

@@ -21,7 +21,8 @@ Use a full registry key, not the ellipsis above. Missing fixtures or checkpoints
 mean the image gate has not run. Hosted CI checks registry structure and saved
 signoffs; it is not a substitute for inference on the original images.
 
-`preview_holdout_set.json` provides a broader informational set. Alternate sets
+[pipelines/preview_holdout_set.json](../../pipelines/preview_holdout_set.json)
+is the canonical broader informational set. Alternate sets
 cannot replace the frozen gate or authorize `--claim`. External-receipt-only
 paths have a separate runtime evaluation; the registry audit checks declarations,
 not the contents of unmounted external dashboards.
@@ -29,16 +30,19 @@ not the contents of unmounted external dashboards.
 ## Evidence
 
 `runs/*/run.json` preserves measured metrics and original run identities.
-Machine-specific crop paths were relocated to repository-relative paths without
-changing metrics or verdicts. Each relocated receipt records its original byte
-hash and archive revision; the historical run ID is not a hash of the edited JSON.
+The eight approved baseline receipts support the required signoffs. Historical
+run IDs are not hashes of the current JSON bytes; consult each receipt's
+provenance fields. Metrics and recorded verdicts are unchanged.
 Generated crops and visual differences are not bundled with these JSON receipts.
 Regenerate them for visual review rather than treating absent media as verified.
 
 [Quality signoffs](../../docs/claims_log.md) and
 [release evidence](../../docs/release_evidence.json) summarize retained results.
 Experimental diagnostics and iteration reports are preserved on the
-[research archive branch](https://github.com/dcliftreaves/gpr/tree/archive/research-and-integration-2026-09-09).
+[pinned archive snapshot](https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96/tests/quality_gates/runs),
+including the seven removed experimental receipts. They are not current
+required signoffs. The ledger separately labels two older entries lacking
+committed receipts as historical, not current approval evidence.
 
 Changes to thresholds belong in a separate, justified review, never in a cleanup
 or as a way to make a failing model pass.

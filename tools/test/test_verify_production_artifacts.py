@@ -48,13 +48,13 @@ def patched_env(**updates: str):
                 os.environ[key] = value
 
 
-def run_tool(module, registry: Path) -> tuple[int, dict]:
+def run_tool(module, registry: Path, *flags: str) -> tuple[int, dict]:
     old_registry = module.REGISTRY
     old_argv = sys.argv[:]
     stdout = io.StringIO()
     try:
         module.REGISTRY = registry
-        sys.argv = ["verify_production_artifacts.py", "--strict", "--json"]
+        sys.argv = ["verify_production_artifacts.py", "--strict", "--json", *flags]
         with contextlib.redirect_stdout(stdout):
             code = module.main()
     finally:
@@ -79,6 +79,7 @@ def main() -> int:
 
         registry = root / "registry.json"
         registry.write_text(json.dumps({
+            "pipelines": {"fixture": {"cnn": "sr_fixture", "release_selection": "production"}},
             "cnns": {
                 "sr_fixture": {
                     "ckpt_path": "artifacts/sr/model.pt",
@@ -91,7 +92,7 @@ def main() -> int:
 
         module = import_tool()
         with patched_env(GPR_EXTERNAL_ROOT=str(external)):
-            code, payload = run_tool(module, registry)
+            code, payload = run_tool(module, registry, "--include-training-data")
             if code != 0 or payload.get("failures") != 0:
                 print(f"expected verifier success, got code={code} payload={payload}", file=sys.stderr)
                 return 1
@@ -104,7 +105,7 @@ def main() -> int:
             bad = json.loads(registry.read_text())
             bad["cnns"]["sr_fixture"]["training_pairs_sha256"] = "0" * 64
             bad_registry.write_text(json.dumps(bad), encoding="utf-8")
-            bad_code, bad_payload = run_tool(module, bad_registry)
+            bad_code, bad_payload = run_tool(module, bad_registry, "--include-training-data")
             bad_rows = [
                 row for row in (bad_payload.get("artifacts") or [])
                 if row.get("path_field") == "training_pairs_path"
@@ -116,6 +117,36 @@ def main() -> int:
                     file=sys.stderr,
                 )
                 return 1
+
+            code, payload = run_tool(module, bad_registry)
+            assert code == 0 and len(payload["artifacts"]) == 1, payload
+            data = json.loads(registry.read_text())
+            data["cnns"]["historical"] = {"ckpt_path": "missing-history.pt", "ckpt_sha256": "0" * 64}
+            data["pipelines"]["old"] = {"cnn": "historical", "release_selection": "historical"}
+            registry.write_text(json.dumps(data))
+            assert run_tool(module, registry)[0] == 0
+            code, payload = run_tool(module, registry, "--all")
+            assert code == 1 and payload["artifacts"][-1]["status"] == "missing"
+            checkpoint.write_bytes(b"corrupt")
+            code, payload = run_tool(module, registry)
+            assert code == 1 and payload["artifacts"][0]["status"] == "sha_mismatch"
+            checkpoint.unlink()
+            code, payload = run_tool(module, registry)
+            assert code == 1 and payload["artifacts"][0]["status"] == "missing"
+
+            for selection in ("ship_root", "existing_offline", "production", "review_only", "historical"):
+                assert module.release_required({"release_selection": selection}) == (
+                    selection in {"ship_root", "existing_offline", "production"})
+            assert module.release_required({"$role": "ship-still"})
+            assert module.release_required({"$role": "UPRESABLE production chain legacy"})
+            assert module.release_required({"production_scope": "offline_production"})
+            assert not module.release_required({"$role": "ship-old", "release_selection": "historical"})
+            specs = module.artifact_specs({
+                "router_sidecar_path": "router.json", "router_sidecar_sha256": "r",
+                "expert_checkpoints": {"one": {"path": "expert.pt", "sha256": "e"}},
+                "ckpt_rgb_detail": "detail.pt", "ckpt_rgb_detail_sha256": "d",
+            })
+            assert {s[0] for s in specs} == {"router_sidecar_path", "expert_checkpoints.one.path", "ckpt_rgb_detail"}
 
     print("test_verify_production_artifacts: PASS")
     return 0
