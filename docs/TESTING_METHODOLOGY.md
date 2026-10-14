@@ -48,18 +48,18 @@ Metal/MPSGraph, both, then no-CNN again without cleaning. This tests linking,
 selection and ordinary RAW rendering, not trained-model quality.
 
 Inspect skips and prerequisite failures separately from passing tests.
-The strict audit checks retained signoffs, not fresh model inference. External
-PREVIEW receipts are reported as declarations unless their files, pinned hashes,
-coverage, and metrics are checked with `--strict-artifacts`:
+The strict audit checks retained signoffs, not fresh model inference. Check
+external production artifacts separately before making a release claim:
 
 ```bash
 python3 tools/verify_production_artifacts.py --strict
 python3 tests/quality_gates/audit_ship_pipelines.py --strict-artifacts
 ```
 
-These release checks require external artifacts; the PREVIEW receipt currently
-lacks a pinned hash and must not be reported as independently verified. Normal
-CI remains usable without private weights. The production artifact verifier
+Artifact-backed checks require external files. Normal CI remains usable without
+private weights. The legacy offline PREVIEW workflow is now research-only;
+its receipt lacks a pinned hash and is not independently verified or part of
+the production release audit. The production artifact verifier
 and ship audit read only the supported registry. Gate/consistency/dashboard tools explicitly merge
 `pipelines/research_registry.json` through `tools/validation_registry.py` for
 historical lookup; production renderers never perform that merge.
