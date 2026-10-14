@@ -39,7 +39,7 @@ for feature in stills preview desktop; do
     if [ "$feature" = stills ]; then
       "$PYTHON_BIN" tools/test/test_still_metadata.py
     elif [ "$feature" = preview ]; then
-      "$PYTHON_BIN" tools/test/test_native_preview.py
+      "$PYTHON_BIN" tools/test/test_native_preview.py --bench-bin "$BUILD_DIR/source/app/bench_fused/bench_fused"
     else
       wrappers=0
       for makefile in tools/*/Makefile; do

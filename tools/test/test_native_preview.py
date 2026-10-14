@@ -3,6 +3,7 @@
 
 BUILD_DIR=/absolute/build python3 tools/test/test_native_preview.py
 Optional --reference-bin compares valid RGB bytes against a baseline CLI.
+Explicit --bench-bin uses the legacy benchmark fixture writer.
 """
 
 import argparse
@@ -52,12 +53,15 @@ class NativePreviewTest(unittest.TestCase):
                        GPR_BENCH_PIXEL_FORMAT=str(pf), GPR_INCLUDE_LL="1",
                        FUSED_MULTI_LEVEL="0", GPR_COL_DECIMATE="1",
                        GPR_ROW_DECIMATE="1", FUSED_QUALITY="3", FUSED_THREADS="1")
-            result = run([OPTIONS.bench_bin, raw, WIDTH, HEIGHT, 2], env)
+            command = ([OPTIONS.bench_bin, raw, WIDTH, HEIGHT, 2]
+                       if OPTIONS.bench_bin else
+                       [OPTIONS.fixture_bin, raw, WIDTH, HEIGHT, pf, clip])
+            result = run(command, env)
             if result.returncode != 0:
-                raise RuntimeError(f"bench_fused failed: {result.stderr.decode(errors='replace')}")
+                raise RuntimeError(f"fixture writer failed: {result.stderr.decode(errors='replace')}")
             data = clip.read_bytes()
             if data[:4] != b"GVID" or struct.unpack_from("<I", data, 28)[0] != 2:
-                raise RuntimeError("bench_fused did not emit the expected two-frame GVID")
+                raise RuntimeError("fixture writer did not emit the expected two-frame GVID")
             cls.clips[pf] = data
         cls.valid = cls.clips[0]
         cls.second = 48 + struct.unpack_from("<I", cls.valid, 36)[0]
@@ -119,6 +123,44 @@ class NativePreviewTest(unittest.TestCase):
                     for frame in frames:
                         self.assertEqual(frame.read_bytes(),
                                          (reference / "frames_rgb" / frame.name).read_bytes())
+
+    def test_fixture_rejects_malformed_inputs(self):
+        if OPTIONS.bench_bin:
+            self.skipTest("legacy benchmark fixture writer selected")
+        raw = self.root / "input.raw"
+        output = self.case / "fixture.gvid"
+        cases = [[], [raw, WIDTH, HEIGHT, 0]]
+        for value in ("", "junk", "256junk", "-128", "+256", " 256", "0",
+                      "127", "255", "1025", "99999999999999999999"):
+            cases.append([raw, value, HEIGHT, 0, output])
+            cases.append([raw, WIDTH, value, 0, output])
+        for pf in ("", "junk", "-1", "2", "3", "5", "4x"):
+            cases.append([raw, WIDTH, HEIGHT, pf, output])
+        for name, data in (("empty.raw", b""), ("short.raw", b"\0" * 4),
+                           ("long.raw", raw.read_bytes() + b"\0")):
+            malformed = self.case / name
+            malformed.write_bytes(data)
+            cases.append([malformed, WIDTH, HEIGHT, 0, output])
+        cases.append([self.case / "missing.raw", WIDTH, HEIGHT, 0, output])
+        for args in cases:
+            with self.subTest(args=args):
+                result = run([OPTIONS.fixture_bin, *args], self.env)
+                self.assertGreater(result.returncode, 0, "must reject without a crash")
+                self.assertTrue(result.stderr)
+                self.assertFalse(output.exists())
+
+    def test_fixture_output_failures(self):
+        if OPTIONS.bench_bin:
+            self.skipTest("legacy benchmark fixture writer selected")
+        outputs = [self.case]  # A directory cannot be opened as a file.
+        if Path("/dev/full").exists():
+            outputs.append(Path("/dev/full"))
+        for output in outputs:
+            with self.subTest(output=output):
+                result = run([OPTIONS.fixture_bin, self.root / "input.raw",
+                              WIDTH, HEIGHT, 0, output], self.env)
+                self.assertGreater(result.returncode, 0)
+                self.assertTrue(result.stderr)
 
     def test_measure_only_and_json_paths(self):
         out, receipt = self.success(write=0, name='quote"back\\tab\tline\n\u00e9.gvid')
@@ -235,11 +277,15 @@ class NativePreviewTest(unittest.TestCase):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preview-bin", type=Path, default=BUILD / "bin/gvid_preview_rgb_cli")
-    parser.add_argument("--bench-bin", type=Path,
-                        default=BUILD / "source/app/bench_fused/bench_fused")
+    fixtures = parser.add_mutually_exclusive_group()
+    fixtures.add_argument("--fixture-bin", type=Path)
+    fixtures.add_argument("--bench-bin", type=Path,
+                          help="explicit legacy bench_fused fixture writer")
     parser.add_argument("--reference-bin", type=Path)
     OPTIONS, unittest_args = parser.parse_known_args()
-    for key in ("preview_bin", "bench_bin", "reference_bin"):
+    if OPTIONS.fixture_bin is None and OPTIONS.bench_bin is None:
+        OPTIONS.fixture_bin = BUILD / "bin/test_preview_fixture"
+    for key in ("preview_bin", "fixture_bin", "bench_bin", "reference_bin"):
         value = getattr(OPTIONS, key)
         if value is not None:
             value = value.resolve()
