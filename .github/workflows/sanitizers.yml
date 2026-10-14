@@ -48,7 +48,7 @@ jobs:
         run: |
           cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug -DNEON=OFF \
             -DBUILD_TESTING=ON -DGPR_BUILD_DIAGNOSTICS=ON -DGPR_BUILD_CODEC_UTILITIES=ON \
-            -DGPR_TEST_CODEC=ON -DGPR_TEST_CONTAINER=ON -DGPR_TEST_CAPTURE=ON -DGPR_TEST_RESEARCH=ON
+            -DGPR_TEST_CODEC=ON -DGPR_TEST_CONTAINER=ON -DGPR_TEST_CAPTURE=ON
           cmake --build "$BUILD_DIR" --parallel
       - name: Native safety regressions
         run: bash tools/test/run_all_regressions.sh --native-only

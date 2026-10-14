@@ -58,7 +58,8 @@ fi
 
 # ---- 3. build -------------------------------------------------------------
 say "Configuring build (CMake, Release)"
-cmake -S "$REPO_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release 2>&1 | tail -5 | tee -a "$LOG"
+cmake -S "$REPO_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
+    -DGPR_BUILD_DIAGNOSTICS=ON 2>&1 | tail -5 | tee -a "$LOG"
 
 say "Building (uses all cores)"
 cmake --build "$BUILD_DIR" -j"$(nproc)" 2>&1 | tail -5 | tee -a "$LOG"

@@ -44,7 +44,7 @@ note() { printf '    %s\n' "$*"; }
 
 if [ ! -x "$BENCH" ]; then
     echo "ERROR: bench_fused not built at $BENCH" >&2
-    echo "  Run: cmake -B $REPO/build -DCMAKE_BUILD_TYPE=Release && cmake --build $REPO/build -j" >&2
+    echo "  Run: cmake -B $REPO/build -DCMAKE_BUILD_TYPE=Release -DGPR_BUILD_DIAGNOSTICS=ON && cmake --build $REPO/build -j" >&2
     exit 2
 fi
 mkdir -p "$FIXTURE_DIR"

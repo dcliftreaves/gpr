@@ -12,7 +12,7 @@
 #   RAW=/path/to.raw W=8280 H=5520 N=30 ./pi_benchmark.sh
 #
 # To build the bench binary on the Pi after scp'ing this repo:
-#   cmake -B build -DCMAKE_BUILD_TYPE=Release
+#   cmake -B build -DCMAKE_BUILD_TYPE=Release -DGPR_BUILD_DIAGNOSTICS=ON
 #   cmake --build build -j$(nproc) --target bench_fused
 
 set -u

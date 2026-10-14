@@ -35,9 +35,12 @@ CTest labels are `codec`, `stills`, `container`, `capture`, `preview`, and
 Python dependencies require the packages used by the CI workflow. Contradictory
 suite/feature selections fail at configure time. `GPR_BUILD_DIAGNOSTICS` and
 `GPR_BUILD_CODEC_UTILITIES` independently opt into runtime evaluation tools;
-the full integration script requires both. CI explicitly selects all native
-suites, while profile tests build and exercise codec-only and preview-only
+the full integration script requires both. CI explicitly selects supported
+runtime suites, while profile tests build and exercise codec-only and preview-only
 subsets. Historical cherry-pick tests remain separate.
+Native research diagnostics remain off in normal CI; the manual Windows
+workflow explicitly builds its ANS prototype smoke. Legacy CLI binaries are
+built only in the opt-in utilities profile, not every regression job.
 
 Desktop backend isolation is checked on macOS with
 `GPR_TEST_DESKTOP_BUILD_PROFILES=1 bash tools/test/test_desktop_build_profiles.sh`: default/no-CNN, CoreML,

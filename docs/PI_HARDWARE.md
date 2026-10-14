@@ -26,6 +26,8 @@ The validation tools live in the validation checkout, not necessarily in that
 production revision. Record both revisions when using those tools against a
 production binary. The synthetic `tools/pi5_setup.sh` benchmark and its
 historical storage verdict are not current capture-readiness evidence.
+For the current branch (rather than that pinned historical revision), add
+`-DGPR_BUILD_DIAGNOSTICS=ON` to build the evaluation binaries explicitly.
 
 Choose an artifact directory on the storage device being evaluated through
 `GPR_ARTIFACT_ROOT`; do not assume a particular mounted volume or device name.
