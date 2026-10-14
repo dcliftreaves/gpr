@@ -49,6 +49,8 @@ import numpy as np
 from PIL import Image
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools"))
+from validation_registry import load_validation_registry
 GATES_PATH = REPO / "tests/quality_gates/gates.json"
 TEST_SET_PATH = REPO / "tests/quality_gates/test_set.json"
 REGISTRY_PATH = REPO / "pipelines/registry.json"
@@ -1095,7 +1097,7 @@ def evaluate_pipeline(
     gates = load_json(GATES_PATH)
     test_set_path = test_set_path.resolve()
     test_set = load_json(test_set_path)
-    registry = load_json(REGISTRY_PATH)
+    registry = load_validation_registry(REGISTRY_PATH)
     if pipeline_name not in registry["pipelines"]:
         die(3, f"unknown pipeline: {pipeline_name}. "
                f"Available: {list(registry['pipelines'].keys())}")

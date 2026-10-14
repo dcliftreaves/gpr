@@ -19,8 +19,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools"))
 from verify_production_artifacts import artifact_specs, selected_cnns
+from validation_registry import load_validation_registry
 
-REG = json.loads((REPO / "pipelines/registry.json").read_text())
+REG = load_validation_registry()
 GATES = json.loads((REPO / "tests/quality_gates/gates.json").read_text())
 
 warnings = []

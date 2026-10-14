@@ -23,9 +23,12 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools"))
+from validation_registry import load_validation_registry
 RUNS_DIR = REPO / "tests/quality_gates/runs"
 REGISTRY = REPO / "pipelines/registry.json"
 GATES = REPO / "tests/quality_gates/gates.json"
@@ -70,7 +73,7 @@ def main():
     if not runs:
         print("No runs found. Execute run_gate.py first.")
         return
-    registry = json.loads(REGISTRY.read_text())
+    registry = load_validation_registry(REGISTRY)
     gates = json.loads(GATES.read_text())
     test_set = json.loads(TEST_SET.read_text())
 
