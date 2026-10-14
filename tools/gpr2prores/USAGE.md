@@ -33,9 +33,10 @@ switching selections does not require `make clean`. Builds share output paths,
 so do not run different selections concurrently in the same directory. Pass the
 same `CNN_BACKENDS` selection to `make install` (omitting it selects `none`).
 
-Run `python3 tools/gpr2prores/test_backend_config.py` for lightweight selection
-and rebuild checks using mock build tools. On macOS it also checks pipeline
-syntax and CLI parsing with stub readers, without external libraries or models.
+Backend build/selection tests live in the companion
+[validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation/tools/test).
+`test_desktop_backend_config.py` checks build selection with mock tools;
+`test_desktop_build_profiles.sh` explicitly builds each backend on macOS.
 
 Override `GPR_BUILD=/path/to/build` for an external CMake build. Source headers
 always come from this repository. Set `PKG_CONFIG_PATH` for dependency prefixes,
