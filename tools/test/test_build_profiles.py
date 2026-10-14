@@ -66,9 +66,9 @@ def main():
                 assert "bench_fused.c" not in sources
                 assert "coeff_io_tool.c" not in sources
             if args.build:
-                run(["cmake", "--build", str(build), "--parallel", "3"])
+                run(["cmake", "--build", str(build), "--config", "Release", "--parallel", "3"])
                 if name in ("codec_test", "preview_test"):
-                    run(["ctest", "--test-dir", str(build), "--output-on-failure"])
+                    run(["ctest", "--test-dir", str(build), "-C", "Release", "--output-on-failure"])
                 for binary in present & {"gpr_tools", "gvid_preview_rgb_cli", "fused_decode_cli"}:
                     paths = list(build.rglob(binary))
                     assert any(p.is_file() and os.access(p, os.X_OK) for p in paths), binary

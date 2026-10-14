@@ -22,7 +22,7 @@ test framework, not every suite. Select independent groups explicitly:
 
 | Option | Scope | Production prerequisites |
 |---|---|---|
-| `GPR_TEST_CODEC` | Fused bands, edges, entropy, pool reuse | Shared codec only |
+| `GPR_TEST_CODEC` | Fused bands, edges, entropy, pool reuse | Shared codec; POSIX test drivers |
 | `GPR_TEST_STILLS` | Quality comparison tool and metadata roundtrips | SDK and still apps |
 | `GPR_TEST_CONTAINER` | GVID validity | Video or preview container support |
 | `GPR_TEST_CAPTURE` | Queue, abort, callback and full capture chain | Video capture |
