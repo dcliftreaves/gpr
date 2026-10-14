@@ -16,7 +16,9 @@ NS_ASSUME_NONNULL_BEGIN
 // firstFrame: path to the first input frame (.dng or .gpr).
 // metaDngPath: when firstFrame is .gpr, the DNG to pull color/black/white/wb
 //   metadata from. When firstFrame is .dng this may be nil.
-// cnnBackend: "coreml" (default), "mpsgraph", or "metal".
+// cnnBackend: "coreml", "mpsgraph", or "metal"; must be compiled in.
+// nil selects CoreML when built, otherwise Metal. With no backends, noCNN
+// must be YES. An unavailable backend with noCNN=NO fails initialization.
 // When "mpsgraph"/"metal", ckptPath is interpreted as a directory of fp16 weight
 // blobs (see extract_F_weights.py). When "coreml" it's the mlpackage path.
 // demosaicMode: "metal-bilinear" (default) or "core-image" (CIRAWFilter).

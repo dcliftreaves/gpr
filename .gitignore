@@ -45,6 +45,7 @@ build-*/
 *.dSYM/
 tools/gpr2prores/gpr2prores
 tools/gpr2prores/gpr_mov_tool
+tools/gpr2prores/.build-config*
 tools/gvid_mov/gvid_mov_pack
 tools/gvid_mov/gvid_mov_unpack
 tools/gvid_mov/build/

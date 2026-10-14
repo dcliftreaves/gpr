@@ -15,6 +15,28 @@ cmake --build build --parallel
 make -C tools/gpr2prores
 ```
 
+The default `CNN_BACKENDS=none` build decodes, demosaics, writes ProRes, and
+packs/unpacks MOV without CNN objects, CoreML, MPS/MPSGraph, or CNN kernels.
+Metal remains required for demosaic/downscale. Select optional backends explicitly:
+
+```sh
+make -C tools/gpr2prores CNN_BACKENDS=coreml
+make -C tools/gpr2prores CNN_BACKENDS=metal  # hybrid Metal and pure MPSGraph
+make -C tools/gpr2prores CNN_BACKENDS=both
+make -C tools/gpr2prores CNN_BACKENDS=none  # return to the default
+```
+
+Only selected backend objects, frameworks, and kernels are compiled/linked.
+CoreML uses CPU postprocessing and needs no CNN Metal kernels. A build
+configuration stamp invalidates objects and metallibs when options change;
+switching selections does not require `make clean`. Builds share output paths,
+so do not run different selections concurrently in the same directory. Pass the
+same `CNN_BACKENDS` selection to `make install` (omitting it selects `none`).
+
+Run `python3 tools/gpr2prores/test_backend_config.py` for lightweight selection
+and rebuild checks using mock build tools. On macOS it also checks pipeline
+syntax and CLI parsing with stub readers, without external libraries or models.
+
 Override `GPR_BUILD=/path/to/build` for an external CMake build. Source headers
 always come from this repository. Set `PKG_CONFIG_PATH` for dependency prefixes,
 or override `LIBRAW_CFLAGS`, `LIBRAW_LIBS`, `FFMPEG_CFLAGS`, and `FFMPEG_LIBS`.
@@ -24,10 +46,10 @@ Keep `default.metallib` and `Demosaic.metallib` beside the executable.
 ## Render
 
 ```sh
-tools/gpr2prores/gpr2prores --meta-dng sample.dng --no-cnn \
+tools/gpr2prores/gpr2prores --meta-dng sample.dng \
   --demosaic core-image --out-resolution uhd clip.gvid out.mov
 
-# Optional restoration with compatible, separately supplied weights:
+# Optional restoration after building with CNN_BACKENDS=metal or both:
 tools/gpr2prores/gpr2prores --meta-dng sample.dng \
   --ckpt models/weights_1x --cnn-backend metal --cnn-scale 1x \
   --demosaic core-image --out-resolution uhd clip.gvid out.mov
@@ -41,7 +63,7 @@ metadata and performs an encode/decode round trip unless `--no-codec` is given.
 
 | Option | Values |
 |---|---|
-| `--cnn-backend` | `coreml` (default), `mpsgraph`, `metal` |
+| `--cnn-backend` | `coreml`, `mpsgraph`, `metal`; must be compiled in |
 | `--ckpt` | CoreML model package, or fp16 weight directory for Metal/MPSGraph |
 | `--cnn-scale` | `2x` (default) or `1x`; must match the model |
 | `--no-cnn` | Decode, demosaic, and encode without a model |
@@ -54,12 +76,23 @@ metadata and performs an encode/decode round trip unless `--no-codec` is given.
 See `--help` for all options. The retained experimental `--mission-look` mode
 requires `--demosaic core-image`; its CPU tone pass can be slow.
 
+With `CNN_BACKENDS=none`, `--no-cnn` is implicit: output is decoded/demosaiced,
+not CNN-restored. Explicit `--ckpt` or `--cnn-backend` options are errors, even
+with `--no-cnn`; model environment variables do not enable restoration.
+CNN-enabled builds run restoration by default, using `coreml` when available
+and otherwise `metal`. Use `--no-cnn` to bypass it. Requesting an unavailable
+backend is always an error, never a fallback. `--help` reports compiled backend
+availability and the default. The existing Metal backend's internal execution
+fallbacks are unchanged.
+
 ## Models and Configuration
 
-Checkpoint precedence: `--ckpt`, then `GPR_SUPER_RES_MLPACKAGE`, then
+For CNN-enabled rendering, checkpoint precedence: `--ckpt`, then
+`GPR_SUPER_RES_MLPACKAGE`, then
 `super_res.mlpackage` under `GPR_MODEL_ROOT`. Without `GPR_MODEL_ROOT`, the model
 directory is `$GPR_EXTERNAL_ROOT/models` when configured, otherwise `models`
-under the current working directory.
+under the current working directory. For Metal/MPSGraph, supply a compatible
+weight directory with `--ckpt` instead of the default CoreML package path.
 
 Exporters require Python 3, NumPy, and PyTorch:
 
@@ -99,10 +132,9 @@ white balance from the MOV's EXIF sidecar. For patched FFmpeg decoding, see
 ## Adoption
 
 This desktop layer needs the shared and fused codecs plus GVID framing, but
-not the capture API or native preview. Model weights are optional: the
-`--no-cnn` path is tested without them. Building the renderer includes its
-Metal/CoreML interfaces; training and quality-gated model selection are
-separate from this executable.
+not the capture API or native preview. Model weights and CNN backends are
+optional; the default build needs neither. Training and quality-gated model
+selection are separate from this executable.
 
 Desktop output and kernel checks live in the companion
 [validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation).

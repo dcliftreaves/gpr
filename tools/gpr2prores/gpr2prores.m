@@ -17,6 +17,7 @@
 #include <string.h>
 #import "DNGReader.h"
 #import "GPRPipeline.h"
+#import "CNNConfig.h"
 
 #define GPR2PRORES_VERSION "1.0.0"
 
@@ -61,7 +62,7 @@ static void print_usage(FILE *out) {
         "  --aa {on,off}       GPR codec AA filter, DNG mode only (default on)\n"
         "  --no-cnn            skip CNN (decode + demosaic + ProRes only)\n"
         "  --no-codec          skip codec, DNG mode only (direct demosaic + ProRes)\n"
-        "  --cnn-backend B     coreml (default), mpsgraph, or metal\n"
+        "  --cnn-backend B     coreml, mpsgraph, or metal (must be built in)\n"
         "                      mpsgraph/metal use --ckpt as a directory of fp16\n"
         "                      .bin weights (see extract_F_weights.py)\n"
         "  --cnn-scale S       2x (default — F super-res CNN, 2× upscale) or\n"
@@ -97,6 +98,12 @@ static void print_usage(FILE *out) {
         "  # Run on a GVID MOV wrapper (auto-unpacks)\n"
         "  gpr2prores --meta-dng src.dng clip.mov $TMPDIR/out.mov\n",
         GPR2PRORES_VERSION);
+    fprintf(out, "\nCNN build: coreml=%s, metal/mpsgraph=%s; default=%s\n",
+            GPR_HAVE_SUPER_RES_COREML ? "yes" : "no",
+            GPR_HAVE_SUPER_RES_METAL ? "yes" : "no",
+            [GPR_DEFAULT_CNN_BACKEND UTF8String]);
+    if (!GPR_HAVE_CNN)
+        fprintf(out, "CNN restoration is disabled; --no-cnn is implicit.\n");
 }
 
 static BOOL pathHasExt(NSString *p, NSString *ext) {
@@ -383,7 +390,7 @@ int main(int argc, const char *argv[]) {
         if (ckptPath.length == 0) {
             ckptPath = [modelRoot stringByAppendingPathComponent:@"super_res.mlpackage"];
         }
-        NSString *cnnBackend = @"coreml";
+        NSString *cnnBackend = GPR_DEFAULT_CNN_BACKEND;
         NSString *demosaicMode = @"metal-bilinear";
         NSString *outResolution = @"8k";
         NSString *cnnScale = @"2x";
@@ -392,7 +399,7 @@ int main(int argc, const char *argv[]) {
         int fps = 24;
         int maxFrames = INT_MAX;
         BOOL aaOn = YES;
-        BOOL noCNN = NO;
+        BOOL noCNN = !GPR_HAVE_CNN;
         BOOL noCodec = NO;
         BOOL timing = NO;
         BOOL phase0 = NO;
@@ -417,6 +424,10 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
             } else if (!strcmp(a, "--ckpt") && i + 1 < argc) {
+                if (!GPR_HAVE_CNN) {
+                    fprintf(stderr, "error: --ckpt requires CNN support; rebuild with CNN_BACKENDS=coreml, metal, or both\n");
+                    return 1;
+                }
                 ckptPath = @(argv[++i]);
             } else if (!strcmp(a, "--aa") && i + 1 < argc) {
                 const char *v = argv[++i];
@@ -432,6 +443,12 @@ int main(int argc, const char *argv[]) {
                     ![cnnBackend isEqualToString:@"metal"]) {
                     fprintf(stderr, "error: --cnn-backend expects coreml|mpsgraph|metal (got '%s')\n",
                             [cnnBackend UTF8String]);
+                    return 1;
+                }
+                if (!GPRCNNBackendAvailable(cnnBackend)) {
+                    fprintf(stderr, "error: --cnn-backend '%s' is unavailable in this build; rebuild with CNN_BACKENDS=%s or both\n",
+                            [cnnBackend UTF8String],
+                            [cnnBackend isEqualToString:@"coreml"] ? "coreml" : "metal");
                     return 1;
                 }
             } else if (!strcmp(a, "--demosaic") && i + 1 < argc) {

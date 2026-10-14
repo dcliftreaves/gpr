@@ -25,8 +25,13 @@
 #import "CIRawDemosaic.h"
 #import "ProResWriter.h"
 #import "GPRCodec.h"
+#import "CNNConfig.h"
+#if GPR_HAVE_SUPER_RES_COREML
 #import "SuperResCNN.h"
+#endif
+#if GPR_HAVE_SUPER_RES_METAL
 #import "SuperResMetal.h"
+#endif
 
 #import <Metal/Metal.h>
 #import <CoreVideo/CoreVideo.h>
@@ -206,6 +211,7 @@ static BOOL pathIsGPR(NSString *p) {
 
 // Pick the kCVPixelFormatType_14Bayer_* CFA constant matching our enum.
 // DNGInfo->cfaPattern: 0=RGGB, 1=GBRG, 2=GRBG, 3=BGGR.
+#if GPR_HAVE_SUPER_RES_METAL
 static OSType bayerFormatForCFA_pipeline(uint32_t cfa) {
     switch (cfa) {
         case 0: return kCVPixelFormatType_14Bayer_RGGB;
@@ -215,6 +221,7 @@ static OSType bayerFormatForCFA_pipeline(uint32_t cfa) {
         default: return kCVPixelFormatType_14Bayer_RGGB;
     }
 }
+#endif
 
 // Per-frame job moving through the pipeline. The bayer pointers are owned by
 // the job and freed by whoever last touches them (the producer of the next
@@ -313,8 +320,12 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     CIRawDemosaic *_ciDemosaic;
     ProResWriter *_writer;
     GPRCodec *_codec;
+#if GPR_HAVE_SUPER_RES_COREML
     SuperResCNN *_cnn;
+#endif
+#if GPR_HAVE_SUPER_RES_METAL
     SuperResMetal *_cnnMetal;
+#endif
     // Zero-copy bayer-share pool: (CVPixelBuffer, MTLBuffer) pairs shared
     // between SuperResMetal output and CIRawDemosaic input. nil when the
     // zero-copy path is unavailable (non-core-image demosaic, no CNN, no
@@ -412,7 +423,12 @@ static void resolveOutputDims(NSString *preset,
     _noCodec = noCodec;
     _timing = timing;
     _gprInput = pathIsGPR(firstFrame);
-    _cnnBackend = cnnBackend ?: @"coreml";
+    _cnnBackend = cnnBackend ?: GPR_DEFAULT_CNN_BACKEND;
+    if (!_noCNN && !GPRCNNBackendAvailable(_cnnBackend)) {
+        fprintf(stderr, "error: CNN backend '%s' is unavailable in this build\n",
+                [_cnnBackend UTF8String]);
+        return nil;
+    }
     _demosaicMode = demosaicMode ?: @"metal-bilinear";
     _outResolution = outResolution ?: @"8k";
     _lookMode = lookMode ?: @"none";
@@ -587,7 +603,7 @@ static void resolveOutputDims(NSString *preset,
 
     if (!_noCNN) {
         if ([_cnnBackend isEqualToString:@"mpsgraph"] || [_cnnBackend isEqualToString:@"metal"]) {
-#if defined(GPR_HAVE_SUPER_RES_METAL) && GPR_HAVE_SUPER_RES_METAL
+#if GPR_HAVE_SUPER_RES_METAL
             uint32_t inBayerW = _gprInput ? _codecInfo.width : _codecInfo.width;
             uint32_t inBayerH = _gprInput ? _codecInfo.height : _codecInfo.height;
             if (_noCodec && !_gprInput) { inBayerW = _info.width; inBayerH = _info.height; }
@@ -605,15 +621,12 @@ static void resolveOutputDims(NSString *preset,
                                                             backend:be
                                                    useSubpixelHead:useSubpixel];
             if (!_cnnMetal) { fprintf(stderr, "CNN(metal) init failed\n"); return nil; }
-#else
-            fprintf(stderr, "warning: --cnn-backend=%s requested but SuperResMetal not in this build; falling back to CoreML\n",
-                    [_cnnBackend UTF8String]);
+#endif
+        } else {
+#if GPR_HAVE_SUPER_RES_COREML
             _cnn = [[SuperResCNN alloc] initWithMLPackagePath:_ckptPath device:_device];
             if (!_cnn) { fprintf(stderr, "CNN init failed\n"); return nil; }
 #endif
-        } else {
-            _cnn = [[SuperResCNN alloc] initWithMLPackagePath:_ckptPath device:_device];
-            if (!_cnn) { fprintf(stderr, "CNN init failed\n"); return nil; }
         }
     }
 
@@ -622,6 +635,7 @@ static void resolveOutputDims(NSString *preset,
     //    Pool dims = (demoW, demoH) == CIRawDemosaic's sensorW × sensorH ==
     //    CNN output dims. Sized to 5 entries (one per in-flight frame in the
     //    4-deep pipeline plus a hot-spare slot).
+#if GPR_HAVE_SUPER_RES_METAL
     if (_ciDemosaic && _cnnMetal && !_noCNN) {
         OSType bayerFormat = bayerFormatForCFA_pipeline(_info.cfaPattern);
         _bayerSharePool = [BayerIOSurfacePool poolWithDevice:_device
@@ -634,6 +648,8 @@ static void resolveOutputDims(NSString *preset,
                             "falling back to CPU memcpy path\n");
         }
     }
+
+#endif
 
     _writePending = [NSMutableDictionary dictionary];
     _nextWriteIdx = 0;
@@ -678,6 +694,7 @@ static void resolveOutputDims(NSString *preset,
 //   - 1× clean-bayer (cnnScale=1x, BIBO_1x): output at the same dims as input.
 - (int)runCNNStage:(FrameJob *)job {
     if (_noCNN) return 0;
+#if GPR_HAVE_CNN
     // CNN output dims depend on mode.
     uint32_t cnnOutW = _cnnScale1x ? job.bayerW : _info.width;
     uint32_t cnnOutH = _cnnScale1x ? job.bayerH : _info.height;
@@ -687,6 +704,7 @@ static void resolveOutputDims(NSString *preset,
     // aliases the IOSurface CIRAWFilter will consume next). No CPU buffer
     // for the CNN output, no parallel memcpy out, no per-row memcpy on the
     // demosaic side.
+#if GPR_HAVE_SUPER_RES_METAL
     if (_bayerSharePool && _cnnMetal) {
         BayerIOSurfaceEntry *entry = [_bayerSharePool acquire];
         if (!entry) {
@@ -716,10 +734,13 @@ static void resolveOutputDims(NSString *preset,
         return 0;
     }
 
+#endif
+
     // CPU-copy fallback path (no IOSurface pool — metal-bilinear demosaic,
     // CoreML CNN, etc.).
     uint16_t *cnnBuf = malloc((size_t)cnnOutW * cnnOutH * 2);
-    int crc;
+    int crc = -1;
+#if GPR_HAVE_SUPER_RES_METAL
     if (_cnnMetal) {
         crc = [_cnnMetal runOnBayer:job.bayer
                               width:job.bayerW height:job.bayerH
@@ -728,7 +749,10 @@ static void resolveOutputDims(NSString *preset,
                           outHeight:cnnOutH
                          blackLevel:_info.blackLevel
                          whiteLevel:_info.whiteLevel];
-    } else {
+    }
+#endif
+#if GPR_HAVE_SUPER_RES_COREML
+    if (_cnn) {
         crc = [_cnn runOnBayer:job.bayer
                          width:job.bayerW height:job.bayerH
                       outBayer:cnnBuf
@@ -737,6 +761,7 @@ static void resolveOutputDims(NSString *preset,
                     blackLevel:_info.blackLevel
                     whiteLevel:_info.whiteLevel];
     }
+#endif
     if (crc != 0) {
         fprintf(stderr, "CNN rc=%d (frame %d)\n", crc, job.idx);
         free(cnnBuf);
@@ -748,6 +773,9 @@ static void resolveOutputDims(NSString *preset,
     job.bayerW = cnnOutW;
     job.bayerH = cnnOutH;
     return 0;
+#else
+    return -1;
+#endif
 }
 
 // Demosaic + grab CVPixelBuffer. Encodes one MTLCommandBuffer; this method
