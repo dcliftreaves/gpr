@@ -12,7 +12,7 @@ jobs:
       - name: Build
         shell: cmd
         run: |
-          cmake -S . -B build -DNEON=OFF
+          cmake -S . -B build -DNEON=OFF -DBUILD_TESTING=ON -DGPR_TEST_RESEARCH=ON -DGPR_ENABLE_VIDEO=OFF -DGPR_BUILD_PREVIEW_TOOLS=OFF
           cmake --build build --config Release --parallel
       - name: ANS and codec smoke
         shell: bash

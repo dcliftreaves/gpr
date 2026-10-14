@@ -73,7 +73,11 @@ jobs:
           fi
       - name: Compile
         run: |
-          cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_TESTING=ON \
+            -DGPR_BUILD_DIAGNOSTICS=ON -DGPR_BUILD_CODEC_UTILITIES=ON -DGPR_BUILD_LEGACY_CLI=ON \
+            -DGPR_TEST_CODEC=ON -DGPR_TEST_STILLS=ON -DGPR_TEST_CONTAINER=ON \
+            -DGPR_TEST_CAPTURE=ON -DGPR_TEST_PREVIEW=ON -DGPR_TEST_RECONSTRUCTION=ON -DGPR_TEST_RESEARCH=ON
           cmake --build "$BUILD_DIR" --parallel 4
       - name: Repository checks
         run: |
@@ -84,6 +88,8 @@ jobs:
           python3 tools/test/test_registry_evidence_scope.py
           python3 tools/test/test_audit_feature_coverage.py
           python3 tools/test/test_capability_criteria.py
+          python3 tools/test/test_production_registry.py
+          python3 tools/test/test_desktop_backend_config.py
       - name: Repository history guard
         if: matrix.name == 'LinuxRelease'
         run: python3 tools/test/check_sensitive_content.py --history
@@ -100,8 +106,16 @@ jobs:
           else
             python3 tools/test/test_desktop_outputs.py --wrapper-only
           fi
+      - name: Optional desktop backend builds
+        if: matrix.name == 'MacRelease'
+        env:
+          GPR_TEST_DESKTOP_BUILD_PROFILES: '1'
+        run: bash tools/test/test_desktop_build_profiles.sh
       - name: Native regressions
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Lean and optional build profiles
+        if: matrix.name == 'LinuxDebug'
+        run: python3 tools/test/test_build_profiles.py --build
       - name: Patched FFmpeg integration
         if: matrix.name == 'LinuxDebug'
         run: bash tools/test/test_ffmpeg_integration.sh --runtime-root "$GITHUB_WORKSPACE" --build "$BUILD_DIR" --jobs 3 --build-timeout 1800

@@ -15,6 +15,22 @@ maps may change during cleanup.
 
 ## Production Features
 
+The current integration adds three independently scoped commits on top of the
+previous production tree:
+
+| Commit | Unit | Matching validation |
+|---|---|---|
+| `04d41f4` | Native build options and source/target isolation | `test_build_profiles.py`; selected `GPR_TEST_*` groups |
+| `d59a506` | Optional desktop CNN backends | `test_desktop_build_profiles.sh`; no-CNN output regressions |
+| `1071089` | Supported registry and reconstruction/research separation | `test_production_registry.py`; research registry union |
+
+These are integration refinements to existing features, not standalone codecs.
+Native build choices are documented in [Getting Started](GETTING_STARTED.md).
+Desktop choices are in [Renderer Usage](../tools/gpr2prores/USAGE.md).
+No test suite is enabled by default; see [Testing Methodology](TESTING_METHODOLOGY.md).
+The feature-introduction checkpoints below remain useful for partial adoption
+and are tested with their matching historical drivers.
+
 | Commit | Feature | Prerequisites |
 |---|---|---|
 | `95d1a2d` | High-bit-depth stills and metadata | GoPro baseline |
@@ -69,6 +85,8 @@ The pre-cleanup tree is preserved at
 | Minimal fast TIFF still writer | Archived; the retired switch warns and uses the SDK writer | SDK readback regression; separate fast decoder retained |
 | Detail-residual sidecar experiment | Validation only | Not part of selected GVID or reconstruction formats |
 | Separate-stream ANS prototype | Validation-only diagnostic and fuzzer | No production callers; active codec uses joint ANS |
+| Legacy routed offline PREVIEW | Validation-only evaluator workflow | Rebuilds routing from labeled receipts; not the native camera preview |
+| Historical/unselected model records | Validation-only research registry | Original identities/configs/hashes preserved; explicit merged lookup |
 
 `tools/test/audit_feature_coverage.py` inventories changed source against exact
 commits. LinuxRelease collects native and Python execution coverage in the

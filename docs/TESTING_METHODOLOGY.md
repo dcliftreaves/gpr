@@ -9,12 +9,40 @@ different facts.
 From the validation checkout root, with CMake and a C/C++ toolchain:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON -DGPR_TEST_CODEC=ON
 cmake --build build --parallel 4
 ctest --test-dir build --output-on-failure
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
 ```
+
+No validation targets are built by default. `BUILD_TESTING=ON` enables the
+test framework, not every suite. Select independent groups explicitly:
+
+| Option | Scope | Production prerequisites |
+|---|---|---|
+| `GPR_TEST_CODEC` | Fused bands, edges, entropy, pool reuse | Shared codec only |
+| `GPR_TEST_STILLS` | Quality comparison tool and metadata roundtrips | SDK and still apps |
+| `GPR_TEST_CONTAINER` | GVID validity | Video or preview container support |
+| `GPR_TEST_CAPTURE` | Queue, abort, callback and full capture chain | Video capture |
+| `GPR_TEST_PREVIEW` | Small fixture encoder and RGB preview tests | Preview tools; no capture or SDK |
+| `GPR_TEST_RECONSTRUCTION` | Synthetic tiled SR contracts | Python/Torch; no native test binaries |
+| `GPR_TEST_RESEARCH` | Separate ANS prototype, coefficient benchmark, residual diagnostic | Shared codec; POSIX for residual tool |
+
+CTest labels are `codec`, `stills`, `container`, `capture`, `preview`, and
+`reconstruction`; for example, `ctest --test-dir build -L codec`. Tests with
+Python dependencies require the packages used by the CI workflow. Contradictory
+suite/feature selections fail at configure time. `GPR_BUILD_DIAGNOSTICS` and
+`GPR_BUILD_CODEC_UTILITIES` independently opt into runtime evaluation tools;
+the full integration script requires both. CI explicitly selects all native
+suites, while profile tests build and exercise codec-only and preview-only
+subsets. Historical cherry-pick tests remain separate.
+
+Desktop backend isolation is checked on macOS with
+`GPR_TEST_DESKTOP_BUILD_PROFILES=1 bash tools/test/test_desktop_build_profiles.sh`: default/no-CNN, CoreML,
+Metal/MPSGraph, both, then no-CNN again without cleaning. This tests linking,
+selection and ordinary RAW rendering, not trained-model quality.
 
 Inspect skips and prerequisite failures separately from passing tests.
 The strict audit checks retained signoffs, not fresh model inference. External
@@ -28,8 +56,10 @@ python3 tests/quality_gates/audit_ship_pipelines.py --strict-artifacts
 
 These release checks require external artifacts; the PREVIEW receipt currently
 lacks a pinned hash and must not be reported as independently verified. Normal
-CI remains usable without private weights. `verify_production_artifacts.py
---all --include-training-data` inventories historical candidates separately.
+CI remains usable without private weights. The production artifact verifier
+and ship audit read only the supported registry. Gate/consistency/dashboard tools explicitly merge
+`pipelines/research_registry.json` through `tools/validation_registry.py` for
+historical lookup; production renderers never perform that merge.
 The full integration suite is `bash tools/test/run_all_regressions.sh`; install
 the Python and platform dependencies listed in the CI workflow first.
 
