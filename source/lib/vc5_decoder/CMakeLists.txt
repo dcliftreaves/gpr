@@ -2,7 +2,10 @@
 set( LIB_NAME vc5_decoder )
 
 # get source files
-file( GLOB SRC_FILES "*.c" )
+set(SRC_FILES
+  codebooks.c component.c decoder.c dequantize.c fast_decode.c fast_gpr.c
+  fused_decode.c fused_stream_decode.c inverse.c parameters.c raw.c
+  syntax.c vc5_decoder.c vlc.c wavelet.c)
 
 # get include files
 file( GLOB INC_FILES "*.h" )

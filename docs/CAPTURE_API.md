@@ -40,6 +40,10 @@ prefix after writer failure for recovery analysis; see
 [GVID Conformance](GVID_CONFORMANCE.md) for stream validity.
 
 This layer requires the shared codec, fused codec, and GVID format layers.
+Build it with `GPR_ENABLE_VIDEO=ON`. Disable `GPR_BUILD_SDK` and
+`GPR_BUILD_STILL_APPS` for a camera-only integration. The optional evaluation
+binary `labs_encoder_bench_cli` requires `GPR_BUILD_DIAGNOSTICS=ON`; it is not
+part of the firmware API. See [build profiles](GETTING_STARTED.md#native-build-options).
 It does not require preview, a desktop renderer, or CNN models. It is an
 integration API, not a downloadable Mission 1 firmware plugin; sensor access,
 threading, storage, and camera shutdown must be connected and tested by the

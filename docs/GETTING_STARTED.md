@@ -23,6 +23,36 @@ CNN-assisted still tiers require the matched weights described in
 
 ## Native build options
 
+The default POSIX build produces `gpr_tools`, `fused_decode_cli`, and
+`gvid_preview_rgb_cli`, plus the still SDK and capture libraries. It does not
+build benchmarks, coefficient diagnostics, legacy codec applications, or tests.
+Use separate build directories for different deployments:
+
+| CMake option | Default | Included when enabled |
+|---|---|---|
+| `GPR_BUILD_SDK` | ON | DNG/XMP-backed GPR still SDK |
+| `GPR_BUILD_STILL_APPS` | ON | `gpr_tools`; requires SDK |
+| `GPR_ENABLE_VIDEO` | ON on POSIX | Capture queue and labs encoder API |
+| `GPR_BUILD_PREVIEW_TOOLS` | ON on POSIX | `gvid_preview_rgb_cli`, `fused_decode_cli` |
+| `GPR_BUILD_CODEC_UTILITIES` | OFF | `coeff_io_tool`; required by UPRESABLE workflows |
+| `GPR_BUILD_LEGACY_CLI` | OFF | `vc5_encoder_app`, `vc5_decoder_app` |
+| `GPR_BUILD_DIAGNOSTICS` | OFF | `bench_fused`, `labs_encoder_bench_cli`; requires video |
+
+Camera-only capture and playback, without DNG/XMP or desktop dependencies:
+
+```bash
+cmake -S . -B build-camera -DCMAKE_BUILD_TYPE=Release \
+  -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF
+cmake --build build-camera --parallel 4
+```
+
+For stills only, set `-DGPR_ENABLE_VIDEO=OFF -DGPR_BUILD_PREVIEW_TOOLS=OFF`.
+For SDK libraries without still applications, set `-DGPR_BUILD_STILL_APPS=OFF`.
+Windows defaults capture and preview off; those POSIX components cannot be
+enabled there. Disabled video sources are omitted from the library, not merely
+hidden from command-line help. The companion validation branch additionally
+requires `-DBUILD_TESTING=ON` to build tests; runtime builds do not import it.
+
 Linux ARM64 defaults to `FUSED_TUNE_CPU=native`. Use
 `-DFUSED_TUNE_CPU=cortex-a76` for Pi 5 or `-DFUSED_TUNE_CPU=` for a
 generic build. NEON defaults on for ARM64; `-DNEON=OFF` disables the

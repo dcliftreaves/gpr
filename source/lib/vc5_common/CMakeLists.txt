@@ -2,7 +2,9 @@
 set( LIB_NAME vc5_common )
 
 # get source files
-file( GLOB SRC_FILES "*.c" )
+set(SRC_FILES
+  ans_joint.c bitstream.c codec.c companding.c image.c logcurve.c
+  noise_model.c stream.c syntax.c utilities.c wavelet.c)
 
 # get include files
 file( GLOB INC_FILES "*.h" )

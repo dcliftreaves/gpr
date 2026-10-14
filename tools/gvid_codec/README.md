@@ -18,7 +18,8 @@ From the GPR repository root:
 export GPR_ROOT="$PWD"
 export GPR_BUILD="$GPR_ROOT/build"
 export FF_ROOT="$GPR_ROOT/external/ffmpeg_gpr"
-cmake -S "$GPR_ROOT" -B "$GPR_BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+cmake -S "$GPR_ROOT" -B "$GPR_BUILD" -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DGPR_BUILD_DIAGNOSTICS=ON
 cmake --build "$GPR_BUILD" --parallel 4 --target bench_fused fused_decode_cli
 git clone --depth=1 --branch=n8.0 https://github.com/FFmpeg/FFmpeg.git "$FF_ROOT"
 "$GPR_ROOT/tools/gvid_codec/install_patch.sh" "$FF_ROOT"
