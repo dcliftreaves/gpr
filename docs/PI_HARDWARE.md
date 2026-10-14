@@ -37,7 +37,34 @@ The current workload is native 4096 x 3072 Bayer FUSED capture and full-frame
 pixel format, source provenance, and frame count when comparing runs.
 [Ship Decision](SHIP_DECISION.md) defines current approval boundaries.
 
-## Verified production replay: October 13, 2026
+## Build-isolation replay: October 14, 2026
+
+Production `89a6479` was built camera-only with SDK/still applications off,
+then diagnostics explicitly enabled for measurement. Validation `83f30c9`
+passed all ten selected codec, container, capture, and preview CTests on Pi 5.
+All six isolated build profiles also passed: default, camera, stills, utilities,
+codec tests, and preview tests, including the latter two profiles' CTests and
+invalid-configuration rejection checks.
+The stills-only production build passed metadata roundtrips for all four Bayer
+phases at 14 and 16 bits, plus the synthetic RAW-to-GPR regression (80.66 dB).
+The fresh GP017601 Bayer replay retained 4096 x 3072 pixels for all 120 encodes;
+the GVID bytes matched the prior build exactly.
+
+| Check | Prior build | Current build |
+|---|---:|---:|
+| Buffered capture wall throughput | 23.77 fps | 23.94 fps |
+| Capture including final SSD fsync | 17.60 fps | 17.71 fps |
+| Capture peak RSS | 55,280 KiB | 55,296 KiB |
+
+Full-frame 1024 x 768 preview pixels also matched on three output frames.
+A separate cached 120-frame replay with RGB file writes disabled took 2.97 s
+(40.4 fps), with 22,752 KiB peak RSS and 22.421 ms median decode-plus-ISP time.
+This is not display presentation or a diverse-scene quality gate. Capture still
+misses the 20 fps floor when final SSD durability is included; no new SD or
+Mission 1 firmware approval follows from these results.
+Receipt identities and hashes are in [Release evidence](release_evidence.json).
+
+## Previous production replay: October 13, 2026
 
 Production `fdb9171` encoded 120 fresh GP017601 frames at 4096 x 3072,
 with output identical to the previous build. Buffered throughput was

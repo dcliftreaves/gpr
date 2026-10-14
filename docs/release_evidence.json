@@ -5,17 +5,71 @@
   "scope": "source_revision identifies retained historical evidence, not the current verification below. Artifact paths are relative to GPR_EXTERNAL_ROOT. Recorded verdicts are unchanged; consult current_scope for approval boundaries.",
   "preserved_parent_archive": "https://github.com/dcliftreaves/gpr/tree/f13dbe95d3e97c400e8d493ba178dbb037ff3c96",
   "current_scope": {
-    "as_of": "2026-10-13",
+    "as_of": "2026-10-14",
     "approved_offline_8k_model": "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1",
     "approved_offline_8k_registry_scope": "offline_production",
     "visually_approved_4k_model": "mission1_native12_4k_cleanup_rgb_cfa_w40_v1",
     "visually_approved_4k_registry_scope": "offline_review_only",
     "model_promotion_performed": false,
+    "legacy_offline_preview_scope": "Research-only evaluator; historical production_paths verdict is retained, not current runtime support.",
     "psf_policy": "Optional research, not a baseline requirement. Historical candidate flags are not current release policy.",
     "camera_production_verified": false,
     "durable_sd_20fps_verified": false
   },
   "current_verification": {
+    "date": "2026-10-14",
+    "production_revision": "89a6479981d1baa32e69e1a952ef4b3650ae14e2",
+    "validation_revision": "83f30c9c9d8e15a1c5bf679a0239a1a81081d5c2",
+    "target": "Pi 5 file-backed replay; camera-only build, diagnostics explicitly enabled",
+    "input": "GP017601.raw",
+    "input_sha256": "379a68e7a2f8cfd99d71937cf1816c749389e831ba60358485f7a4a69186c15a",
+    "source_width": 4096,
+    "source_height": 3072,
+    "fresh_encodes": 120,
+    "unique_input_frames": 1,
+    "outputs_identical_to_previous_build": true,
+    "gvid_sha256": "02f52c46a5a03155c61309b4dd5c4c3e3203a439ea1fbae4d6acb7b68a31774c",
+    "encoder_binary_sha256": "5f498e51f474335641c082903734d00e9f110edf78c43593d3a3e0070bfa3b38",
+    "encode_write_seconds": 5.011677982285619,
+    "final_fsync_seconds": 1.7659502197057009,
+    "ssd_fsync_fps": 17.705308763431884,
+    "baseline_encode_write_seconds": 5.049391435459256,
+    "baseline_ssd_fsync_fps": 17.602560699208315,
+    "peak_rss_kib": 55296,
+    "native_ctest_passed": 10,
+    "build_profiles_passed": ["default", "camera", "stills", "utilities", "codec_test", "preview_test"],
+    "invalid_build_profiles_rejected": true,
+    "stills_only_tests": {
+      "metadata_phases": ["rggb", "gbrg", "grbg", "bggr"],
+      "metadata_bit_depths": [14, 16],
+      "metadata_roundtrips_passed": 8,
+      "synthetic_raw_gpr_roundtrip_psnr14_db": 80.66
+    },
+    "preview": {
+      "width": 1024,
+      "height": 768,
+      "pixel_equivalence_frames": 3,
+      "identical_pixels": true,
+      "timing_frames": 120,
+      "write_frames": false,
+      "wall_seconds": 2.97,
+      "median_decode_plus_isp_ms": 22.421,
+      "peak_rss_kib": 22752,
+      "binary_sha256": "3d49aee6fb80adc240a587437f0fb343888ccf73a1bc246351a25d1ce0c9e093"
+    },
+    "receipts": [
+      {"path": "artifacts/pr-isolation-20261014/capture.json", "sha256": "fd54d9c04a20a40c4ed9ae1060ad009164bdadcaf3dad4b9baa890c0b8e416a2"},
+      {"path": "artifacts/pr-isolation-20261014/preview-equivalence.json", "sha256": "f3993d1ff0b33e81695665385f470d1b87271f5013c13b335086ddbbd9f7a977"},
+      {"path": "artifacts/pr-isolation-20261014/preview-idle/receipt.json", "sha256": "96f15f08f3862b9f2fb3e4e4920fae8aadcce19cd56c2818833c5aaeacbc3e73"}
+    ],
+    "limitations": [
+      "Receipts retained on Pi SSD under GPR_EXTERNAL_ROOT; temporary GVID and RGB frames removed after verification.",
+      "Single-input replay, not sensor/DMA, camera display, sustained SD capture, or fresh CNN quality evidence.",
+      "SSD final-fsync throughput remains below 20 fps; buffered throughput does not establish durability.",
+      "Preview timing uses a cached clip with RGB frame writes disabled."
+    ]
+  },
+  "previous_verification": {
     "date": "2026-10-13",
     "production_revision": "fdb9171",
     "target": "Pi 5 file-backed replay",
