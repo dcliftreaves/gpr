@@ -1,7 +1,7 @@
 # CNN runtime tools
 
 This directory supports registered still restoration, offline 4K cleanup,
-offline 8K SR, editable raw packaging, and PREVIEW review rendering. Live
+offline 8K SR, editable raw packaging, and desktop timelapse rendering. Live
 raw4K capture and full-frame 1024 preview on Pi are native paths outside this
 directory. Registry scope and ship status remain authoritative; retaining a
 candidate does not promote it.
@@ -10,36 +10,25 @@ candidate does not promote it.
 
 - `render_gvid_sr_receipt.py`: .gvid to 8K Bayer; uses
   `mission1_sr_runtime.py` and model definitions in `mission1_sr_models.py`.
-  `bench_mission1_sr_8k.py` uses the same runtime for timing receipts; it is
-  not a production inference dependency or a quality gate.
+  `bench_mission1_sr_8k.py` lives in validation and uses the same runtime
+  for timing receipts; it is not a production inference dependency or a
+  quality gate.
 - `train_bayer_rgb_target_cleanup.py apply`: registered, visually signed-off
   4K Bayer cleanup; registry scope remains offline review-only.
 - `upresable_pipeline.py`, `preview_timelapse_fast.py`, and
   `preview_timelapse_fast_sota.py`: editable raw/timelapse rendering.
-- `render_preview_q8_threeway_runtime.py`: registered offline PREVIEW;
-  depends on `evaluate_preview_q8_threeway_runtime_fullframe.py`,
-  `evaluate_preview_q8_crop_fullframe.py`,
-  `evaluate_preview_scene_routed_fullframe.py`,
-  `evaluate_preview_scene_routed.py`, `evaluate_preview_runtime_policy.py`,
-  and `build_preview_holdout_runtime_receipt.py`.
-- PREVIEW support libraries: `preview_scene_features.py`,
-  `score_preview_q8_hard_router_union.py`,
-  `score_preview_q8_threeway_router_union.py`,
-  `preview_rgb_models.py`, and
-  `preview_input_features.py`: inference, feature/routing,
-  and model helpers.
-- Detail-residual sidecar diagnostics live in the companion
+- Legacy routed PREVIEW, its model/feature helpers, metrics, holdout manifest,
+  benchmarks, and detail-residual diagnostics live in the companion
   [validation branch](https://github.com/dcliftreaves/gpr/tree/review/product-validation/tools/cnn).
   They are not an extra stream required by the selected GVID runtime.
 - Offline packaging: `package_mission1_sr_receipt.py` and
   `package_mission1_sr_sequence_receipt.py`.
 - Model support: `model.py` and the model definitions used by the entry
   points above.
-- Shared visual metrics: `tools/cnn/metrics.py`.
 
 The runtime-only model/feature libraries use runtime names; their former
 `train_*`/audit module paths are not compatibility APIs. Architecture classes,
-checkpoint config dispatch, state-dict keys, and PREVIEW quality thresholds
+checkpoint config dispatch, state-dict keys, and quality thresholds
 are unchanged. Retained architecture branches support existing checkpoint
 configs; their presence does not approve additional models. The registered
 `train_bayer_rgb_target_cleanup.py apply` CLI retains its registry path.
@@ -50,13 +39,23 @@ pairings, and review-only scope are documented in
 [Reconstruction](../../docs/RECONSTRUCTION.md#approval-boundary).
 
 Outside this directory, retain `tools/gvid_metadata.py`,
-`tools/gvid_pack.py`, and the PREVIEW manifest
-`pipelines/preview_holdout_set.json`. Native decoder/encoder tools, `gpr_tools`, `gpr2prores`, and
+`tools/gvid_pack.py`. Native decoder/encoder tools, `gpr_tools`, `gpr2prores`, and
 `gpr_mov_tool` provide capture, raw packaging, and ProRes integration.
 The ProRes Makefile has no Python training dependency; its weight exporters
 use `model.py`. Python dependencies are listed in `requirements.txt`;
 rendering also uses macOS `sips`, FFmpeg, and DNG metadata extraction uses
 ExifTool.
+
+UPRESABLE/timelapse workflows require `GPR_BUILD_CODEC_UTILITIES=ON` for
+`coeff_io_tool`. The 8K GVID renderer needs `fused_decode_cli` from
+`GPR_BUILD_PREVIEW_TOOLS=ON`. These desktop tools are opt-in consumers;
+native capture and camera preview have no Python/CNN dependency.
+
+The old routed PREVIEW wrapper rebuilds routing from labeled evaluation
+receipts and invokes dashboard evaluators. It is preserved for reproducibility,
+not presented as a standalone production renderer. Its records remain in the
+validation-only `pipelines/research_registry.json`; it is unrelated to the
+native camera preview path. Production renderers never merge that registry.
 
 ## Portable artifacts
 

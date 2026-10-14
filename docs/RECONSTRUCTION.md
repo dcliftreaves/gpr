@@ -39,6 +39,7 @@ measure different outcomes.
 For a supplied compatible Metal 1x model package and matching source metadata:
 
 ```bash
+make -C tools/gpr2prores CNN_BACKENDS=metal
 tools/gpr2prores/gpr2prores \
   --meta-dng data/sample.dng \
   --ckpt "${GPR_MODEL_ROOT:?Set the matching exported model directory}" \
@@ -64,9 +65,10 @@ The [pipeline registry](../pipelines/registry.json) distinguishes:
   `review_only_visual_signed_off_camera_handoff_separate`.
 
 Both use codec `mission1_native12_t233` and demosaic `sips_via_gpr_tools`.
-Visual approval does not automatically promote registry scope. Other
-registered candidates and historical gate identities remain lookup-compatible,
-not interchangeable approved replacements. Neither path is live-camera SR.
+Visual approval does not automatically promote registry scope. Historical and
+unselected candidates live in the validation-only `research_registry.json`,
+not the production renderer's registry. Their identities and evidence remain
+lookup-compatible through validation tooling. Neither path is live-camera SR.
 The
 [compact release evidence index](https://github.com/dcliftreaves/gpr/blob/review/product-validation/docs/release_evidence.json) identifies
 existing receipts and review artifacts. Architecture/load tests do not
@@ -74,9 +76,9 @@ replace those trained-model quality measurements.
 
 The Python 8K renderer shares checkpoint loading and tiled inference through
 `tools/cnn/mission1_sr_runtime.py`, with architecture/config construction in
-`mission1_sr_models.py`; it does not import the benchmark CLI. PREVIEW model
-and input/routing helpers live in `preview_rgb_models.py`,
-`preview_input_features.py`, and `preview_scene_features.py` under `tools/cnn`.
+`mission1_sr_models.py`; it does not import the benchmark CLI. The legacy
+routed PREVIEW evaluator and its model/input helpers live on the validation
+branch; native camera preview does not use them.
 These runtime module names do not change approved model identities, hashes,
 checkpoint state dictionaries, config interpretation, or quality thresholds.
 The registered 4K cleanup `apply` entry point is unchanged. See the
