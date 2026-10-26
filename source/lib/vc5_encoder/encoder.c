@@ -37,6 +37,10 @@
 #include <arm_neon.h>
 #endif
 
+#if GPR_ENABLE_PARALLEL_CHANNELS
+#include <pthread.h>
+#endif
+
 /*!
 	@brief Align the bitstream to a byte boundary
  
@@ -1277,6 +1281,56 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     ForwardWaveletTransformRecursive( transform_data, 0, 0, 0xFFFF );
 }
 
+#if GPR_ENABLE_PARALLEL_CHANNELS
+typedef struct _channel_encode_thread
+{
+    ENCODER *parent;
+    int channel_number;
+    CODEC_STATE initial_codec_state;
+    uint8_t *output;
+    size_t capacity;
+    size_t size;
+    CODEC_ERROR error;
+} CHANNEL_ENCODE_THREAD;
+
+static void *EncodeChannelThread(void *arg)
+{
+    CHANNEL_ENCODE_THREAD *thread = (CHANNEL_ENCODE_THREAD *)arg;
+    ENCODER encoder = *thread->parent;
+    STREAM byte_stream;
+    BITSTREAM bitstream;
+
+    encoder.codec = thread->initial_codec_state;
+    thread->size = 0;
+    thread->error = CreateStreamBuffer(&byte_stream, thread->output, thread->capacity);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+
+    thread->error = InitBitstream(&bitstream);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+    thread->error = AttachBitstream(&bitstream, &byte_stream);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+
+    thread->error = EncodeChannelHeader(&encoder, thread->channel_number, &bitstream);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+    thread->error = EncodeChannelSubbands(&encoder, thread->channel_number, &bitstream);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+    thread->error = EncodeChannelTrailer(&encoder, thread->channel_number, &bitstream);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+    if (!IsAlignedSegment(&bitstream))
+    {
+        thread->error = CODEC_ERROR_BITSTREAM;
+        return NULL;
+    }
+
+    thread->error = FlushBitstream(&bitstream);
+    if (thread->error == CODEC_ERROR_OKAY)
+    {
+        thread->size = byte_stream.byte_count;
+    }
+    return NULL;
+}
+#endif
+
 /*!
 	@brief Encode the portion of a sample that corresponds to a single layer
 
@@ -1318,12 +1372,133 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
     
     CODEC_STATE *codec = &encoder->codec;
     
-	// Compute the wavelet transform tree for each channel
+    // Compute the wavelet transform tree for each channel
 	for (channel_index = 0; channel_index < channel_count; channel_index++)
 	{
-        int channel_number;
-        
         ForwardWaveletTransform(&encoder->transform[channel_index], &image->component_array_list[channel_index], encoder->lowpass_buffer, encoder->highpass_buffer, encoder->midpoint_prequant );
+    }
+
+#if GPR_ENABLE_PARALLEL_CHANNELS
+    if (channel_count > 1 && stream->stream->type == STREAM_TYPE_MEMORY)
+    {
+        int channel_number = encoder->channel_order_table[0];
+        CHANNEL_ENCODE_THREAD thread[MAX_CHANNEL_COUNT] = {0};
+        pthread_t handle[MAX_CHANNEL_COUNT];
+        int started[MAX_CHANNEL_COUNT] = {0};
+        int parallel_ok = 1;
+        size_t channel_capacity =
+            (size_t)image->component_array_list[0].width *
+            (size_t)image->component_array_list[0].height * 4 + 65536;
+
+        error = EncodeChannelHeader(encoder, channel_number, stream);
+        if (error != CODEC_ERROR_OKAY) return error;
+        error = EncodeChannelSubbands(encoder, channel_number, stream);
+        if (error != CODEC_ERROR_OKAY) return error;
+        error = EncodeChannelTrailer(encoder, channel_number, stream);
+        if (error != CODEC_ERROR_OKAY) return error;
+        assert(IsAlignedSegment(stream));
+        codec->channel_number = (channel_number + 1);
+        codec->subband_number = 0;
+
+        if (stream->count > 0)
+        {
+            error = PutBuffer(stream);
+            if (error != CODEC_ERROR_OKAY) return error;
+        }
+
+        for (channel_index = 1; channel_index < channel_count; channel_index++)
+        {
+            int previous_channel = encoder->channel_order_table[channel_index - 1];
+            thread[channel_index].parent = encoder;
+            thread[channel_index].channel_number = encoder->channel_order_table[channel_index];
+            thread[channel_index].initial_codec_state = *codec;
+            thread[channel_index].initial_codec_state.channel_number = (previous_channel + 1);
+            thread[channel_index].initial_codec_state.subband_number = 0;
+            thread[channel_index].initial_codec_state.band.quantization =
+                encoder->transform[previous_channel].wavelet[0]->quant[HH_BAND];
+            thread[channel_index].capacity = channel_capacity;
+            thread[channel_index].output = encoder->allocator->Alloc(channel_capacity);
+            if (thread[channel_index].output == NULL)
+            {
+                parallel_ok = 0;
+                break;
+            }
+        }
+
+        if (parallel_ok)
+        {
+            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            {
+                started[channel_index] = (pthread_create(&handle[channel_index], NULL,
+                                                          EncodeChannelThread,
+                                                          &thread[channel_index]) == 0);
+                if (!started[channel_index])
+                {
+                    EncodeChannelThread(&thread[channel_index]);
+                }
+            }
+            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            {
+                if (started[channel_index]) pthread_join(handle[channel_index], NULL);
+                if (thread[channel_index].error != CODEC_ERROR_OKAY) parallel_ok = 0;
+            }
+        }
+
+        if (parallel_ok)
+        {
+            STREAM *output_stream = stream->stream;
+            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            {
+                size_t size = thread[channel_index].size;
+                channel_number = encoder->channel_order_table[channel_index];
+                if (size > output_stream->location.memory.size - output_stream->byte_count)
+                {
+                    parallel_ok = 0;
+                    error = CODEC_ERROR_OUTOFMEMORY;
+                    break;
+                }
+                memcpy((uint8_t *)output_stream->location.memory.buffer + output_stream->byte_count,
+                       thread[channel_index].output, size);
+                output_stream->byte_count += size;
+                codec->channel_number = (channel_number + 1);
+                codec->subband_number = 0;
+                codec->band.quantization =
+                    encoder->transform[channel_number].wavelet[0]->quant[HH_BAND];
+            }
+        }
+
+        for (channel_index = 1; channel_index < channel_count; channel_index++)
+        {
+            if (thread[channel_index].output != NULL)
+            {
+                encoder->allocator->Free(thread[channel_index].output);
+            }
+        }
+
+        if (!parallel_ok)
+        {
+            if (error != CODEC_ERROR_OKAY) return error;
+            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            {
+                channel_number = encoder->channel_order_table[channel_index];
+                error = EncodeChannelHeader(encoder, channel_number, stream);
+                if (error != CODEC_ERROR_OKAY) return error;
+                error = EncodeChannelSubbands(encoder, channel_number, stream);
+                if (error != CODEC_ERROR_OKAY) return error;
+                error = EncodeChannelTrailer(encoder, channel_number, stream);
+                if (error != CODEC_ERROR_OKAY) return error;
+                assert(IsAlignedSegment(stream));
+                codec->channel_number = (channel_number + 1);
+                codec->subband_number = 0;
+            }
+        }
+    }
+    else
+#endif
+    {
+    for (channel_index = 0; channel_index < channel_count; channel_index++)
+    {
+        int channel_number;
 
         channel_number = encoder->channel_order_table[channel_index];
         
@@ -1353,6 +1528,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         codec->channel_number = (channel_number + 1);
         codec->subband_number = 0;
 	}
+    }
     
 #if VC5_ENABLED_PART(VC5_PART_LAYERS)
 	if (IsPartEnabled(encoder->enabled_parts, VC5_PART_LAYERS))
