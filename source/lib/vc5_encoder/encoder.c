@@ -37,7 +37,7 @@
 #include <arm_neon.h>
 #endif
 
-#if GPR_ENABLE_PARALLEL_CHANNELS
+#if GPR_ENABLE_PARALLEL_CHANNELS || GPR_ENABLE_PARALLEL_UNPACK
 #include <pthread.h>
 #endif
 
@@ -727,6 +727,43 @@ CODEC_ERROR PrepareEncoderTransforms(ENCODER *encoder)
 	return CODEC_ERROR_OKAY;
 }
 
+#if GPR_ENABLE_PARALLEL_UNPACK
+typedef struct _unpack_thread
+{
+    PACKED_IMAGE input;
+    UNPACKED_IMAGE output;
+    COMPONENT_ARRAY component[MAX_CHANNEL_COUNT];
+    ENABLED_PARTS enabled_parts;
+} UNPACK_THREAD;
+
+static void *UnpackImageThread(void *arg)
+{
+    UNPACK_THREAD *thread = (UNPACK_THREAD *)arg;
+
+    switch (thread->input.format)
+    {
+        case PIXEL_FORMAT_RAW_RGGB_14:
+            UnpackImage_14(&thread->input, &thread->output, thread->enabled_parts, true);
+            break;
+        case PIXEL_FORMAT_RAW_RGGB_12:
+            UnpackImage_12(&thread->input, &thread->output, thread->enabled_parts, true);
+            break;
+        case PIXEL_FORMAT_RAW_GBRG_12:
+            UnpackImage_12(&thread->input, &thread->output, thread->enabled_parts, false);
+            break;
+        case PIXEL_FORMAT_RAW_RGGB_12P:
+            UnpackImage_12P(&thread->input, &thread->output, thread->enabled_parts, true);
+            break;
+        case PIXEL_FORMAT_RAW_GBRG_12P:
+            UnpackImage_12P(&thread->input, &thread->output, thread->enabled_parts, false);
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+#endif
+
 /*!
 	@brief Unpack the image into component arrays for encoding
 */
@@ -766,7 +803,60 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 	AllocateComponentArrays(allocator, output, channel_count, max_channel_width, max_channel_height,
 		input->format, bits_per_component);
 
-    
+#if GPR_ENABLE_PARALLEL_UNPACK
+    {
+        enum { unpack_thread_count = 4 };
+        UNPACK_THREAD thread[unpack_thread_count] = {0};
+        pthread_t handle[unpack_thread_count];
+        int started[unpack_thread_count] = {0};
+        int rows_per_thread = (max_channel_height + unpack_thread_count - 1) / unpack_thread_count;
+        int thread_index;
+
+        for (thread_index = 0; thread_index < unpack_thread_count; thread_index++)
+        {
+            int channel;
+            int row_start = thread_index * rows_per_thread;
+            int row_end = row_start + rows_per_thread;
+            int stripe_height;
+
+            if (row_start >= max_channel_height) break;
+            if (row_end > max_channel_height) row_end = max_channel_height;
+            stripe_height = row_end - row_start;
+
+            thread[thread_index].input = *input;
+            thread[thread_index].input.height = stripe_height * 2;
+            thread[thread_index].input.offset = input->offset + row_start * 2 * input->pitch;
+            thread[thread_index].output.component_count = output->component_count;
+            thread[thread_index].output.component_array_list = thread[thread_index].component;
+            thread[thread_index].enabled_parts = enabled_parts;
+
+            for (channel = 0; channel < channel_count; channel++)
+            {
+                thread[thread_index].component[channel] = output->component_array_list[channel];
+                thread[thread_index].component[channel].height = stripe_height;
+                thread[thread_index].component[channel].data =
+                    (COMPONENT_VALUE *)((uint8_t *)output->component_array_list[channel].data +
+                                        row_start * output->component_array_list[channel].pitch);
+            }
+
+            started[thread_index] = (pthread_create(&handle[thread_index], NULL,
+                                                     UnpackImageThread,
+                                                     &thread[thread_index]) == 0);
+            if (!started[thread_index])
+            {
+                UnpackImageThread(&thread[thread_index]);
+            }
+        }
+
+        for (thread_index = 0; thread_index < unpack_thread_count; thread_index++)
+        {
+            if (started[thread_index])
+            {
+                pthread_join(handle[thread_index], NULL);
+            }
+        }
+    }
+#else
     // The configuration of component arrays is determined by the image format
     switch (input->format)
     {
@@ -795,6 +885,7 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
             return CODEC_ERROR_PIXEL_FORMAT;
             break;
     }
+#endif
     
 	return CODEC_ERROR_OKAY;
 }

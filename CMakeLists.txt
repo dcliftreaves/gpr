@@ -25,6 +25,8 @@ endif()
 
 option(GPR_ENABLE_PARALLEL_CHANNELS
        "Encode independent VC-5 channels in parallel on supported hosts" ON)
+option(GPR_ENABLE_PARALLEL_UNPACK
+       "Split Bayer unpacking across worker threads on supported hosts" ON)
 
 option(GPR_ENABLE_IPO "Enable interprocedural optimization in release builds" ON)
 if(GPR_ENABLE_IPO AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND
