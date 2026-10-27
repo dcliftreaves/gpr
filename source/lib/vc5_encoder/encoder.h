@@ -177,6 +177,7 @@ typedef struct _encoder
     
     //! Six rows of horizontal highpass results for each channel
     PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
+    const PACKED_IMAGE *packed_input;
     
 #if VC5_ENABLED_PART(VC5_PART_SECTIONS)
     ENABLED_SECTIONS enabled_sections;
@@ -215,7 +216,8 @@ extern "C" {
     CODEC_ERROR EncodingProcess(ENCODER *encoder,
                                 const UNPACKED_IMAGE *image,
                                 BITSTREAM *stream,
-                                const ENCODER_PARAMETERS *parameters);
+                                const ENCODER_PARAMETERS *parameters,
+                                const PACKED_IMAGE *packed_input);
     
     CODEC_ERROR EncodeSingleImage(ENCODER *encoder, const UNPACKED_IMAGE *image, BITSTREAM *stream);
     

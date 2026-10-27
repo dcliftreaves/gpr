@@ -182,19 +182,20 @@ void HorizontalFilter_Prescale0_4x_NEON_(PIXEL *input, PIXEL* lowpass, PIXEL* hi
     }
 }
 
-void QuantizeBand_8x_NEON_(int16_t* wavelet_band, int16_t midpoint, int32_t multiplier, PIXEL *output )
+static inline int16x8_t QuantizeVector_8x_NEON_(int16x8_t __wavelet_band, int16_t midpoint, int32_t multiplier)
 {
-    int16x8_t __wavelet_band	 = vld1q_s16( wavelet_band );
+    if (multiplier == 65536 && midpoint == 0) return __wavelet_band;
 
     int16x8_t __wavelet_band_abs = vaddq_s16( vabsq_s16(__wavelet_band), vdupq_n_s16( midpoint ) );
 
-    int32x4_t __multipliers     = vdupq_n_s32( multiplier );
-
-    int32x4_t __value_high =  vmovl_s16( vget_high_s16(__wavelet_band_abs) );
-    __value_high = vmulq_s32( __value_high, __multipliers );
-    
-    int32x4_t __value_low  =  vmovl_s16( vget_low_s16(__wavelet_band_abs) );
-    __value_low = vmulq_s32( __value_low, __multipliers );
+    int32x4_t __value_high, __value_low;
+    if (multiplier <= 32767) {
+        __value_low = vmull_n_s16(vget_low_s16(__wavelet_band_abs), (int16_t)multiplier);
+        __value_high = vmull_n_s16(vget_high_s16(__wavelet_band_abs), (int16_t)multiplier);
+    } else {
+        __value_low = vmulq_n_s32(vmovl_s16(vget_low_s16(__wavelet_band_abs)), multiplier);
+        __value_high = vmulq_n_s32(vmovl_s16(vget_high_s16(__wavelet_band_abs)), multiplier);
+    }
 
     int16x8_t __multiplied = vcombine_s16( vshrn_n_s32( __value_low, 16 ), vshrn_n_s32( __value_high, 16 ) );
 
@@ -203,7 +204,12 @@ void QuantizeBand_8x_NEON_(int16_t* wavelet_band, int16_t midpoint, int32_t mult
 
     int16x8_t __result = vbslq_s16( mask, __neg_output, __multiplied );
 
-    vst1q_s16(output, __result);
+    return __result;
+}
+
+void QuantizeBand_8x_NEON_(int16_t* wavelet_band, int16_t midpoint, int32_t multiplier, PIXEL *output )
+{
+    vst1q_s16(output, QuantizeVector_8x_NEON_(vld1q_s16(wavelet_band), midpoint, multiplier));
 }
 
 void FilterVerticalMiddle_Core_8x_NEON_(PIXEL *coefficients[], int column, int16_t* highpass, int16_t* lowpass )

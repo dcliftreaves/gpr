@@ -15,7 +15,7 @@ include_directories( "../common/public" )
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$" AND NEON)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$" AND NEON AND NOT WIN32)
   enable_language(ASM)
   target_sources(${LIB_NAME} PRIVATE stock_unpack_arm64.S)
   target_compile_definitions(${LIB_NAME} PRIVATE GPR_STOCK_UNPACK_ASM=1)

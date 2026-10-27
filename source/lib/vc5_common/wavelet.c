@@ -65,7 +65,7 @@ CODEC_ERROR AllocWavelet(gpr_allocator *allocator, WAVELET *wavelet, DIMENSION w
 		int band;
 
 		//TODO: Align the pitch?
-		DIMENSION pitch = width * sizeof(PIXEL);
+		DIMENSION pitch = ((width * sizeof(PIXEL) + 63) & ~(size_t)63) + 64;
 
 		size_t band_data_size = height * pitch;
         
@@ -80,7 +80,7 @@ CODEC_ERROR AllocWavelet(gpr_allocator *allocator, WAVELET *wavelet, DIMENSION w
 		// Allocate the wavelet bands
 		for (band = 0; band < MAX_BAND_COUNT; band++)
 		{
-			wavelet->data[band] = data_all_bands + band * height * width;
+			wavelet->data[band] = (PIXEL *)((uint8_t *)data_all_bands + band * band_data_size);
 		}
 
 		wavelet->pitch = pitch;

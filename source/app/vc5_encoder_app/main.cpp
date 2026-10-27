@@ -129,11 +129,14 @@ int main(int argc, char *argv[])
     int encoder_run;
     int encoder_run_count = 1;
     if (getenv("GPR_BENCH_RUNS")) encoder_run_count = atoi(getenv("GPR_BENCH_RUNS"));
+    if (encoder_run_count < 1) return 1;
     
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 
     vc5_encoder_parameters vc5_encoder_params;
     vc5_encoder_parameters_set_default(&vc5_encoder_params);
+    if (getenv("GPR_BENCH_QUALITY")) vc5_encoder_params.quality_setting =
+        (VC5_ENCODER_QUALITY_SETTING)atoi(getenv("GPR_BENCH_QUALITY"));
     
     vc5_encoder_params.enabled_parts    = VC5_ENABLED_PARTS;
     vc5_encoder_params.input_width      = args.input_width;
@@ -215,10 +218,14 @@ int main(int argc, char *argv[])
         
         struct timespec wall_begin, wall_end;
         clock_gettime(CLOCK_MONOTONIC, &wall_begin);
-        vc5_encoder_process( &vc5_encoder_params, &raw_image, &vc5_image, NULL );
+        error = vc5_encoder_process( &vc5_encoder_params, &raw_image, &vc5_image, NULL );
         clock_gettime(CLOCK_MONOTONIC, &wall_end);
         LogPrint("Encode wall %.6f seconds", (wall_end.tv_sec - wall_begin.tv_sec) +
             (wall_end.tv_nsec - wall_begin.tv_nsec) * 1e-9);
+        if (error != CODEC_ERROR_OKAY || !vc5_image.buffer || !vc5_image.size) {
+            LogPrint("Encoding failed: %d", error);
+            return 1;
+        }
         
         StopTimer(&timer);
         
@@ -304,9 +311,10 @@ int main(int argc, char *argv[])
     
     if( raw_image.buffer )
     {
-        vc5_encoder_params.mem_free( raw_image.buffer );
+        free(raw_image.buffer);
     }
     
+    free(bench_arena);
     LogUninit();
     
 	return error;
