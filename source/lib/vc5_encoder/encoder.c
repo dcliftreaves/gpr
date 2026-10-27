@@ -1285,8 +1285,10 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
 typedef struct _channel_encode_thread
 {
     ENCODER *parent;
+    const COMPONENT_ARRAY *input_component;
     int channel_number;
     CODEC_STATE initial_codec_state;
+    CODEC_STATE final_codec_state;
     uint8_t *output;
     size_t capacity;
     size_t size;
@@ -1301,6 +1303,12 @@ static void *EncodeChannelThread(void *arg)
     BITSTREAM bitstream;
 
     encoder.codec = thread->initial_codec_state;
+    thread->error = AllocateEncoderHorizontalBuffers(&encoder);
+    if (thread->error != CODEC_ERROR_OKAY) return NULL;
+    ForwardWaveletTransform(&encoder.transform[thread->channel_number],
+        thread->input_component, encoder.lowpass_buffer, encoder.highpass_buffer,
+        encoder.midpoint_prequant);
+    DeallocateEncoderHorizontalBuffers(&encoder);
     thread->size = 0;
     thread->error = CreateStreamBuffer(&byte_stream, thread->output, thread->capacity);
     if (thread->error != CODEC_ERROR_OKAY) return NULL;
@@ -1326,6 +1334,7 @@ static void *EncodeChannelThread(void *arg)
     if (thread->error == CODEC_ERROR_OKAY)
     {
         thread->size = byte_stream.byte_count;
+        thread->final_codec_state = encoder.codec;
     }
     return NULL;
 }
@@ -1372,11 +1381,14 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
     
     CODEC_STATE *codec = &encoder->codec;
     
-    // Compute the wavelet transform tree for each channel
+    // Each worker consumes its channel while the transformed coefficients
+    // are still hot, instead of transforming every channel before VLC.
+#if !GPR_ENABLE_PARALLEL_CHANNELS
 	for (channel_index = 0; channel_index < channel_count; channel_index++)
 	{
         ForwardWaveletTransform(&encoder->transform[channel_index], &image->component_array_list[channel_index], encoder->lowpass_buffer, encoder->highpass_buffer, encoder->midpoint_prequant );
     }
+#endif
 
 #if GPR_ENABLE_PARALLEL_CHANNELS
     if (channel_count > 1 && stream->stream->type == STREAM_TYPE_MEMORY)
@@ -1390,32 +1402,29 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
             (size_t)image->component_array_list[0].width *
             (size_t)image->component_array_list[0].height * 4 + 65536;
 
-        error = EncodeChannelHeader(encoder, channel_number, stream);
-        if (error != CODEC_ERROR_OKAY) return error;
-        error = EncodeChannelSubbands(encoder, channel_number, stream);
-        if (error != CODEC_ERROR_OKAY) return error;
-        error = EncodeChannelTrailer(encoder, channel_number, stream);
-        if (error != CODEC_ERROR_OKAY) return error;
-        assert(IsAlignedSegment(stream));
-        codec->channel_number = (channel_number + 1);
-        codec->subband_number = 0;
-
         if (stream->count > 0)
         {
             error = PutBuffer(stream);
             if (error != CODEC_ERROR_OKAY) return error;
         }
 
-        for (channel_index = 1; channel_index < channel_count; channel_index++)
+        for (channel_index = 0; channel_index < channel_count; channel_index++)
         {
-            int previous_channel = encoder->channel_order_table[channel_index - 1];
             thread[channel_index].parent = encoder;
             thread[channel_index].channel_number = encoder->channel_order_table[channel_index];
+            thread[channel_index].input_component = &image->component_array_list[thread[channel_index].channel_number];
             thread[channel_index].initial_codec_state = *codec;
-            thread[channel_index].initial_codec_state.channel_number = (previous_channel + 1);
-            thread[channel_index].initial_codec_state.subband_number = 0;
-            thread[channel_index].initial_codec_state.band.quantization =
-                encoder->transform[previous_channel].wavelet[0]->quant[HH_BAND];
+            if (channel_index > 0) {
+                int previous_channel = encoder->channel_order_table[channel_index - 1];
+                CODEC_STATE *state = &thread[channel_index].initial_codec_state;
+                state->channel_number = previous_channel + 1;
+                state->subband_number = 0;
+                state->channel_width = encoder->channel[previous_channel].width;
+                state->channel_height = encoder->channel[previous_channel].height;
+                state->bits_per_component = encoder->channel[previous_channel].bits_per_component;
+                state->lowpass_precision = encoder->channel[previous_channel].lowpass_precision;
+                state->band.quantization = encoder->transform[previous_channel].wavelet[0]->quant[HH_BAND];
+            }
             thread[channel_index].capacity = channel_capacity;
             thread[channel_index].output = encoder->allocator->Alloc(channel_capacity);
             if (thread[channel_index].output == NULL)
@@ -1437,7 +1446,9 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
                     EncodeChannelThread(&thread[channel_index]);
                 }
             }
-            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            EncodeChannelThread(&thread[0]);
+            if (thread[0].error != CODEC_ERROR_OKAY) parallel_ok = 0;
+            for (channel_index = 0; channel_index < channel_count; channel_index++)
             {
                 if (started[channel_index]) pthread_join(handle[channel_index], NULL);
                 if (thread[channel_index].error != CODEC_ERROR_OKAY) parallel_ok = 0;
@@ -1447,7 +1458,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         if (parallel_ok)
         {
             STREAM *output_stream = stream->stream;
-            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            for (channel_index = 0; channel_index < channel_count; channel_index++)
             {
                 size_t size = thread[channel_index].size;
                 channel_number = encoder->channel_order_table[channel_index];
@@ -1460,6 +1471,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
                 memcpy((uint8_t *)output_stream->location.memory.buffer + output_stream->byte_count,
                        thread[channel_index].output, size);
                 output_stream->byte_count += size;
+                *codec = thread[channel_index].final_codec_state;
                 codec->channel_number = (channel_number + 1);
                 codec->subband_number = 0;
                 codec->band.quantization =
@@ -1467,7 +1479,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
             }
         }
 
-        for (channel_index = 1; channel_index < channel_count; channel_index++)
+        for (channel_index = 0; channel_index < channel_count; channel_index++)
         {
             if (thread[channel_index].output != NULL)
             {
@@ -1478,9 +1490,10 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         if (!parallel_ok)
         {
             if (error != CODEC_ERROR_OKAY) return error;
-            for (channel_index = 1; channel_index < channel_count; channel_index++)
+            for (channel_index = 0; channel_index < channel_count; channel_index++)
             {
                 channel_number = encoder->channel_order_table[channel_index];
+                ForwardWaveletTransform(&encoder->transform[channel_number], &image->component_array_list[channel_number], encoder->lowpass_buffer, encoder->highpass_buffer, encoder->midpoint_prequant);
                 error = EncodeChannelHeader(encoder, channel_number, stream);
                 if (error != CODEC_ERROR_OKAY) return error;
                 error = EncodeChannelSubbands(encoder, channel_number, stream);
@@ -1501,6 +1514,9 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         int channel_number;
 
         channel_number = encoder->channel_order_table[channel_index];
+#if GPR_ENABLE_PARALLEL_CHANNELS
+        ForwardWaveletTransform(&encoder->transform[channel_number], &image->component_array_list[channel_number], encoder->lowpass_buffer, encoder->highpass_buffer, encoder->midpoint_prequant);
+#endif
         
         // Encode the tag value pairs in the header for this channel
         error = EncodeChannelHeader(encoder, channel_number, stream);
