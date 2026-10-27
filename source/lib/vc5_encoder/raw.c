@@ -22,6 +22,11 @@
 #include <arm_neon.h>
 #endif
 
+#if GPR_STOCK_UNPACK_ASM
+extern void gpr_stock_unpack14_row(const uint16_t *, const uint16_t *,
+    const uint16_t *, PIXEL *, PIXEL *, PIXEL *, PIXEL *, unsigned, int);
+#endif
+
 /** ------------------- **/
 /** 14 BIT INPUT FORMAT **/
 /** ------------------- **/
@@ -186,10 +191,17 @@ void UnpackImage_14(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_P
         int column = 0;
         
         // Unpack the row of Bayer components from the BYR4 pattern elements
+#if GPR_STOCK_UNPACK_ASM
+        gpr_stock_unpack14_row(input_row_ptr, input_row2_ptr, EncoderLogCurve,
+            output_row_ptr_array[0], output_row_ptr_array[1],
+            output_row_ptr_array[2], output_row_ptr_array[3], input_width_m8, rggb);
+        column = input_width_m8;
+#else
         for (; column < input_width_m8; column+= 8)
         {
             UnpackPixel_14_8x(input_row_ptr, input_row2_ptr, column, output_row_ptr_array, rggb );
         }
+#endif
         
         // Unpack the row of Bayer components from the BYR4 pattern elements
         for (; column < input_width; column++)

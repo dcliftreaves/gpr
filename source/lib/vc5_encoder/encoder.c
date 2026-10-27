@@ -2337,10 +2337,8 @@ CODEC_ERROR EncodeHighpassBandRowRuns(BITSTREAM *stream, ENCODER_CODESET *codese
 
 	VLE *mags_table_entry = (VLE *)((uint8_t *)mags_table + sizeof(MAGS_TABLE));
 
-    VLE stream_bits;
-    
-    stream_bits.bits = stream->buffer;
-    stream_bits.size = stream->count;
+    uint64_t accumulator = (uint64_t)stream->buffer >> (32 - stream->count);
+    unsigned occupied = stream->count;
     
     struct _stream *bit_stream = stream->stream;
     
@@ -2382,7 +2380,13 @@ CODEC_ERROR EncodeHighpassBandRowRuns(BITSTREAM *stream, ENCODER_CODESET *codese
                 {
                     if( count < 12 )
                     {
-                        stream_bits = PutZeroBits(&stream_buffer, stream_bits, count );
+                        accumulator <<= count;
+                        occupied += count;
+                        if (occupied >= 32) {
+                            occupied -= 32;
+                            write_bits(&stream_buffer, (uint32_t)(accumulator >> occupied));
+                            stream_buffer += 4;
+                        }
                         break;
                     }
                     else
@@ -2392,7 +2396,13 @@ CODEC_ERROR EncodeHighpassBandRowRuns(BITSTREAM *stream, ENCODER_CODESET *codese
                         
                         RLC rlc_val = rlc[count_index];
                         
-                        stream_bits = PutBitsCore(&stream_buffer, stream_bits, rlc_val.bits, rlc_val.size );
+                        accumulator = (accumulator << rlc_val.size) | rlc_val.bits;
+                        occupied += rlc_val.size;
+                        if (occupied >= 32) {
+                            occupied -= 32;
+                            write_bits(&stream_buffer, (uint32_t)(accumulator >> occupied));
+                            stream_buffer += 4;
+                        }
                         
                         // Reduce the length of the run by the amount output
                         count -= rlc_val.count;
@@ -2410,10 +2420,14 @@ CODEC_ERROR EncodeHighpassBandRowRuns(BITSTREAM *stream, ENCODER_CODESET *codese
                     
                     VLE magnitude = mags_table_entry[abs_value];
                     assert(magnitude.size < bit_word_count);
-                    stream_bits = PutBitsCore(&stream_buffer,
-                                              stream_bits,
-                                              (magnitude.bits << 1) | (value < 0),
-                                              magnitude.size + 1);
+                    unsigned size = magnitude.size + 1;
+                    accumulator = (accumulator << size) | (magnitude.bits << 1) | (value < 0);
+                    occupied += size;
+                    if (occupied >= 32) {
+                        occupied -= 32;
+                        write_bits(&stream_buffer, (uint32_t)(accumulator >> occupied));
+                        stream_buffer += 4;
+                    }
 				}
 			}
 
@@ -2432,8 +2446,8 @@ CODEC_ERROR EncodeHighpassBandRowRuns(BITSTREAM *stream, ENCODER_CODESET *codese
 		rowptr += pitch;
 	}
 
-	stream->count = stream_bits.size;
-	stream->buffer = stream_bits.bits;
+	stream->count = occupied;
+	stream->buffer = (uint32_t)(accumulator << (32 - occupied));
     bit_stream->byte_count += (stream_buffer - stream_buffer_orig);
     
 	// // Need to output a pending run of zeros?

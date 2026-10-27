@@ -192,7 +192,12 @@ int main(int argc, char *argv[])
         
         StartTimer(&timer);
         
+        struct timespec wall_begin, wall_end;
+        clock_gettime(CLOCK_MONOTONIC, &wall_begin);
         vc5_encoder_process( &vc5_encoder_params, &raw_image, &vc5_image, NULL );
+        clock_gettime(CLOCK_MONOTONIC, &wall_end);
+        LogPrint("Encode wall %.6f seconds", (wall_end.tv_sec - wall_begin.tv_sec) +
+            (wall_end.tv_nsec - wall_begin.tv_nsec) * 1e-9);
         
         StopTimer(&timer);
         
