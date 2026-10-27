@@ -3,7 +3,8 @@ cmake_minimum_required( VERSION 3.5 FATAL_ERROR )
 
 set(CMAKE_SUPPRESS_REGENERATION true)
 
-set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # project name
 project( gpr )
@@ -22,6 +23,11 @@ if(NEON)
 else()
   add_definitions(-DNEON=0)
 endif()
+
+option(GPR_ENABLE_PARALLEL_CHANNELS
+       "Encode independent VC-5 channels in parallel on supported hosts" ON)
+option(GPR_ENABLE_PARALLEL_UNPACK
+       "Split Bayer unpacking across worker threads on supported hosts" ON)
 
 option(GPR_ENABLE_IPO "Enable interprocedural optimization in release builds" ON)
 if(GPR_ENABLE_IPO AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND
