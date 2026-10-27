@@ -31,6 +31,19 @@
 
 using namespace std;
 
+// Experimental camera-style workspace. Its first-touch cost is paid once
+// before timing, and all frame allocations retain their normal lifetimes.
+static uint8_t *bench_arena;
+static size_t bench_used;
+static const size_t bench_capacity = (size_t)768 * 1024 * 1024;
+static void *BenchAllocate(size_t size)
+{
+    size_t rounded = (size + 63) & ~(size_t)63;
+    size_t offset = __sync_fetch_and_add(&bench_used, rounded);
+    return offset <= bench_capacity && rounded <= bench_capacity - offset ? bench_arena + offset : NULL;
+}
+static void BenchFree(void *) {}
+
 class my_argument_parser : public argument_parser
 {
 protected:
@@ -115,6 +128,7 @@ int main(int argc, char *argv[])
 
     int encoder_run;
     int encoder_run_count = 1;
+    if (getenv("GPR_BENCH_RUNS")) encoder_run_count = atoi(getenv("GPR_BENCH_RUNS"));
     
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 
@@ -182,6 +196,13 @@ int main(int argc, char *argv[])
     }
     
     TIMER timer;
+    if (getenv("GPR_BENCH_ARENA")) {
+        bench_arena = (uint8_t *)malloc(bench_capacity);
+        if (!bench_arena) return 1;
+        memset(bench_arena, 0, bench_capacity);
+        vc5_encoder_params.mem_alloc = BenchAllocate;
+        vc5_encoder_params.mem_free = BenchFree;
+    }
     InitTimer(&timer);
 
     unsigned char old_digest[MD5_DIGEST_SIZE];
@@ -247,6 +268,10 @@ int main(int argc, char *argv[])
         }
         
         vc5_encoder_params.mem_free(vc5_image.buffer);
+        if (bench_arena) {
+            LogPrint("Workspace used %zu bytes", bench_used);
+            bench_used = 0;
+        }
     }
 
     LogPrint("Encoding %.3f secs per frame", TimeSecs(&timer) / encoder_run_count );

@@ -17,22 +17,18 @@ SYM(gpr_stock_unpack14_row):
     /* Each group makes eight unrelated lookups available to the scheduler.
      * Only caller-saved integer/vector registers are used. */
     .macro GATHER off, lane0, lane1
-    ldrh w9, [x0, #\off]
-    ldrh w10, [x0, #(\off + 2)]
-    ldrh w11, [x0, #(\off + 4)]
-    ldrh w12, [x0, #(\off + 6)]
-    ldrh w13, [x1, #\off]
-    ldrh w14, [x1, #(\off + 2)]
-    ldrh w15, [x1, #(\off + 4)]
-    ldrh w16, [x1, #(\off + 6)]
-    lsr w9, w9, #2
-    lsr w10, w10, #2
-    lsr w11, w11, #2
-    lsr w12, w12, #2
-    lsr w13, w13, #2
-    lsr w14, w14, #2
-    lsr w15, w15, #2
-    lsr w16, w16, #2
+    ldr w9, [x0, #\off]
+    ldr w11, [x0, #(\off + 4)]
+    ldr w13, [x1, #\off]
+    ldr w15, [x1, #(\off + 4)]
+    ubfx w10, w9, #18, #14
+    ubfx w12, w11, #18, #14
+    ubfx w14, w13, #18, #14
+    ubfx w16, w15, #18, #14
+    ubfx w9, w9, #2, #14
+    ubfx w11, w11, #2, #14
+    ubfx w13, w13, #2, #14
+    ubfx w15, w15, #2, #14
     ldrh w9, [x2, w9, uxtw #1]
     ldrh w10, [x2, w10, uxtw #1]
     ldrh w11, [x2, w11, uxtw #1]
@@ -41,14 +37,14 @@ SYM(gpr_stock_unpack14_row):
     ldrh w14, [x2, w14, uxtw #1]
     ldrh w15, [x2, w15, uxtw #1]
     ldrh w16, [x2, w16, uxtw #1]
-    ins v0.h[\lane0], w9
-    ins v1.h[\lane0], w10
-    ins v0.h[\lane1], w11
-    ins v1.h[\lane1], w12
-    ins v2.h[\lane0], w13
-    ins v3.h[\lane0], w14
-    ins v2.h[\lane1], w15
-    ins v3.h[\lane1], w16
+    orr w9, w9, w11, lsl #16
+    orr w10, w10, w12, lsl #16
+    orr w13, w13, w15, lsl #16
+    orr w14, w14, w16, lsl #16
+    ins v0.s[(\lane0 / 2)], w9
+    ins v1.s[(\lane0 / 2)], w10
+    ins v2.s[(\lane0 / 2)], w13
+    ins v3.s[(\lane0 / 2)], w14
     .endm
     GATHER 0, 0, 1
     GATHER 8, 2, 3

@@ -31,7 +31,16 @@
  *  limitations under the License.
  */
 
+#define _POSIX_C_SOURCE 200809L
 #include "headers.h"
+#include <time.h>
+
+static double EncoderWallTime(void)
+{
+    struct timespec value;
+    clock_gettime(CLOCK_MONOTONIC, &value);
+    return value.tv_sec + value.tv_nsec * 1e-9;
+}
 
 #if ENABLED(NEON)
 #include <arm_neon.h>
@@ -341,6 +350,7 @@ CODEC_ERROR InitEncoder(ENCODER *encoder, const gpr_allocator *allocator, const 
 CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCODER_PARAMETERS *parameters)
 {
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
+    double start_wall = EncoderWallTime();
 
 	// Allocate data structures for the encoder state and the bitstream
 	ENCODER encoder;
@@ -352,6 +362,7 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 
 	// Unpack the image into a set of component arrays
 	error = ImageUnpackingProcess(image, &unpacked_image, parameters, &parameters->allocator);
+    if (getenv("GPR_PROFILE")) fprintf(stderr, "unpack_wall=%.6f\n", EncoderWallTime() - start_wall);
 	if (error != CODEC_ERROR_OKAY) {
 		return error;
 	}
@@ -367,6 +378,7 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 
 	// Encode the component arrays into the bitstream
 	error = EncodingProcess(&encoder, &unpacked_image, &bitstream, parameters);
+    if (getenv("GPR_PROFILE")) fprintf(stderr, "encoding_end_wall=%.6f\n", EncoderWallTime() - start_wall);
 	if (error != CODEC_ERROR_OKAY) {
 		return error;
 	}
@@ -1393,6 +1405,7 @@ static void *EncodeChannelThread(void *arg)
     STREAM byte_stream;
     BITSTREAM bitstream;
 
+    double worker_begin = EncoderWallTime();
     encoder.codec = thread->initial_codec_state;
     thread->error = AllocateEncoderHorizontalBuffers(&encoder);
     if (thread->error != CODEC_ERROR_OKAY) return NULL;
@@ -1400,6 +1413,7 @@ static void *EncodeChannelThread(void *arg)
         thread->input_component, encoder.lowpass_buffer, encoder.highpass_buffer,
         encoder.midpoint_prequant);
     DeallocateEncoderHorizontalBuffers(&encoder);
+    double transform_end = EncoderWallTime();
     thread->size = 0;
     thread->error = CreateStreamBuffer(&byte_stream, thread->output, thread->capacity);
     if (thread->error != CODEC_ERROR_OKAY) return NULL;
@@ -1427,6 +1441,7 @@ static void *EncodeChannelThread(void *arg)
         thread->size = byte_stream.byte_count;
         thread->final_codec_state = encoder.codec;
     }
+    if (getenv("GPR_PROFILE")) fprintf(stderr, "channel=%d transform_wall=%.6f entropy_wall=%.6f\n", thread->channel_number, transform_end - worker_begin, EncoderWallTime() - transform_end);
     return NULL;
 }
 #endif
@@ -1954,8 +1969,12 @@ CODEC_ERROR AllocateEncoderHorizontalBuffers(ENCODER *encoder)
         
         for (row = 0; row < ROW_BUFFER_COUNT; row++)
         {
-            PIXEL *lowpass_buffer  = allocator->Alloc(channel_width * sizeof(PIXEL) * 2);
-            PIXEL *highpass_buffer = lowpass_buffer + channel_width;
+            size_t row_bytes = ((size_t)channel_width * sizeof(PIXEL) + 63) & ~(size_t)63;
+            /* Leave one line between low/high rows to avoid identical cache
+             * set indexing for power-of-two camera widths. */
+            PIXEL *lowpass_buffer = gpr_aligned_alloc(allocator, row_bytes * 2 + 64);
+            PIXEL *highpass_buffer = lowpass_buffer == NULL ? NULL :
+                (PIXEL *)((uint8_t *)lowpass_buffer + row_bytes + 64);
 
             assert(lowpass_buffer != NULL);
             if (! (lowpass_buffer != NULL)) {
@@ -1992,7 +2011,7 @@ CODEC_ERROR DeallocateEncoderHorizontalBuffers(ENCODER *encoder)
         
         for (row = 0; row < ROW_BUFFER_COUNT; row++)
         {
-            allocator->Free(encoder->lowpass_buffer[wavelet_index][row]);
+            gpr_aligned_free(allocator, encoder->lowpass_buffer[wavelet_index][row]);
         }
     }
     

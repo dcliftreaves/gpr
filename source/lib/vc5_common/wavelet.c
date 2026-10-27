@@ -69,7 +69,7 @@ CODEC_ERROR AllocWavelet(gpr_allocator *allocator, WAVELET *wavelet, DIMENSION w
 
 		size_t band_data_size = height * pitch;
         
-        PIXEL* data_all_bands = (PIXEL *)allocator->Alloc(band_data_size * MAX_BAND_COUNT);
+        PIXEL* data_all_bands = (PIXEL *)gpr_aligned_alloc(allocator, band_data_size * MAX_BAND_COUNT);
 
         if ( data_all_bands == NULL )
         {
@@ -100,7 +100,7 @@ CODEC_ERROR ReleaseWavelet(gpr_allocator *allocator, WAVELET *wavelet)
 
     PIXEL* data_all_bands = wavelet->data[0];
     
-    allocator->Free(data_all_bands);
+    gpr_aligned_free(allocator, data_all_bands);
 
     for (band = 0; band < MAX_BAND_COUNT; band++) {
 		wavelet->data[band] = NULL;

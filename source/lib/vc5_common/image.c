@@ -208,7 +208,7 @@ CODEC_ERROR ReleaseComponentArrays(gpr_allocator *allocator,
     
     for (channel = 0; channel < channel_count; channel++)
     {
-        allocator->Free( image->component_array_list[channel].data );
+        gpr_aligned_free(allocator, image->component_array_list[channel].data);
     }
     
     allocator->Free( image->component_array_list );
@@ -268,7 +268,7 @@ CODEC_ERROR AllocateComponentArray(gpr_allocator *allocator,
     // Allocate space for the data in the component array
     size_t pitch = width * sizeof(COMPONENT_VALUE);
     size_t size = height * pitch;
-    void *buffer = allocator->Alloc(size);
+    void *buffer = gpr_aligned_alloc(allocator, size);
     assert(buffer != NULL);
     if (! (buffer != NULL)) {
         return CODEC_ERROR_OUTOFMEMORY;
