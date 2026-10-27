@@ -1,5 +1,9 @@
 # Stock VC-5 latency experiment
 
+The follow-up [sub-100 ms experiment](stock-encoder-sub100.md) adds streaming
+band entropy coding and a reusable workspace, reaching a 95.7 ms median on
+the reference 50 MP frame. The measurements below describe the first phase.
+
 This branch builds on GoPro PR #73 and preserves its encoded representation.
 It is a prototype for Raspberry Pi 5 / AArch64, with an opt-in streaming path:
 

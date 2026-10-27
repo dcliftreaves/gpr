@@ -25,6 +25,8 @@
 #if GPR_STOCK_UNPACK_ASM
 extern void gpr_stock_unpack14_row(const uint16_t *, const uint16_t *,
     const uint16_t *, PIXEL *, PIXEL *, PIXEL *, PIXEL *, unsigned, int);
+extern void gpr_stock_unpack14_channel(const uint16_t *, const uint16_t *,
+    const uint16_t *, PIXEL *, unsigned, unsigned);
 #endif
 
 /** ------------------- **/
@@ -257,6 +259,12 @@ void UnpackChannelRow14(const PACKED_IMAGE *input, int row, int channel, PIXEL *
     const uint16_t *row1 = (const uint16_t *)((const uint8_t *)input->buffer + input->offset +
         (size_t)row * 2 * input->pitch);
     const uint16_t *row2 = (const uint16_t *)((const uint8_t *)row1 + input->pitch);
+#if GPR_STOCK_UNPACK_ASM
+    if (getenv("GPR_CHANNEL_ASM")) {
+        gpr_stock_unpack14_channel(row1,row2,EncoderLogCurve,output,input->width/2,channel);
+        return;
+    }
+#endif
     switch (channel) {
         case 0: UnpackChannel14Impl(row1, row2, output, input->width/2, 0); break;
         case 1: UnpackChannel14Impl(row1, row2, output, input->width/2, 1); break;
