@@ -35,12 +35,22 @@
 #define _POSIX_C_SOURCE 200809L
 #include "headers.h"
 #include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 static double EncoderWallTime(void)
 {
+#if defined(_WIN32)
+    LARGE_INTEGER counter, frequency;
+    QueryPerformanceCounter(&counter);
+    QueryPerformanceFrequency(&frequency);
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
     struct timespec value;
     clock_gettime(CLOCK_MONOTONIC, &value);
     return value.tv_sec + value.tv_nsec * 1e-9;
+#endif
 }
 
 extern void UnpackChannelRow14(const PACKED_IMAGE *, int, int, PIXEL *);

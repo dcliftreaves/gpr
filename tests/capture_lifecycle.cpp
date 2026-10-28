@@ -237,7 +237,13 @@ static void formats() {
 int main(int argc,char **argv) {
     try {
         for (const char *flag : {"GPR_STREAM_UNPACK","GPR_BAND_STREAM","GPR_CHANNEL_ASM",
-                 "GPR_PIN_CHANNELS","GPR_DIRECT_BANDS","GPR_COMPACT_BANDS"}) setenv(flag,"1",1);
+                 "GPR_PIN_CHANNELS","GPR_DIRECT_BANDS","GPR_COMPACT_BANDS"}) {
+#if defined(_WIN32)
+            _putenv_s(flag,"1");
+#else
+            setenv(flag,"1",1);
+#endif
+        }
         ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); formats();
         std::cout<<"PASS: bounded capture, copy/lease ownership, padded stride, timestamps, stock payloads, flush/finish, writer failures, cancellation, concurrent SDK/capture\n";
         return 0;

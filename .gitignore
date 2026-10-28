@@ -2,6 +2,7 @@
 build/
 build-video*/
 build-runtime*/
+build-profile*/
 __pycache__/
 scripts/*.pyc
 

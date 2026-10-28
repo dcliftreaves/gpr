@@ -39,8 +39,47 @@ jobs:
             -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON -DGPR_BUILD_CAPTURE_APP=ON \
             -DGPR_BUILD_PREVIEW_TOOLS=ON -DGPR_BUILD_PREVIEW_TESTS=ON \
             -DGPR_BUILD_STOCK_VIDEO_EXPERIMENT=ON -DGPR_BUILD_MEDIA_TESTS=ON \
+            -DGPR_BUILD_PACKAGE=ON \
             -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
       - name: Build
         run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app preview_contract_test gpr_preview_app stock_video gpr_tools --parallel 4
       - name: Test
         run: ctest --test-dir build-runtime --output-on-failure
+      - name: Stripped builds, relocated packages and public C/C++ clients
+        if: matrix.type == 'Release'
+        run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.type == 'Release'
+        with:
+          name: stock-raw-media-${{ matrix.name }}
+          path: |
+            profile-check/**/archives/*.zip
+            profile-check/**/*.log
+            profile-check/receipt.json
+          if-no-files-found: error
+  windows:
+    name: WindowsNativePackages
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Native zlib dependency
+        shell: pwsh
+        run: '& "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install zlib:x64-windows'
+      - name: Stripped builds, relocated packages and public C/C++ clients
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          python tests/build_profiles.py --work-dir profile-check `
+            --cmake-arg="-DCMAKE_TOOLCHAIN_FILE=$toolchain" --cmake-arg="-DVCPKG_TARGET_TRIPLET=x64-windows"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: stock-raw-media-WindowsNative
+          path: |
+            profile-check/**/archives/*.zip
+            profile-check/**/*.log
+            profile-check/receipt.json
+          if-no-files-found: error

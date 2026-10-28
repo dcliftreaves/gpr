@@ -83,9 +83,17 @@ decodes verify calibration, EXIF/GPS, compressed bytes and Bayer values.
 Standalone uncompressed DNG packaging supports four CFA phases and 12/14/16-bit
 counts; this does not extend the encoder's accepted formats.
 
+The [independent build profiles](stock-build-profiles.md) now separate the
+capture, preview and desktop SDK dependencies, export installed CMake targets
+and generate relocatable static-library ZIPs. Package checks remove the SDK
+and unused codec sources from minimal builds, delete producer paths and run
+outside C/C++ clients against the extracted archive. Full packages also check
+the installed Python/native editable-export workflow.
+
 This is not feature-suite parity. The complete high-bit-depth/CFA encoding and
 still-tier workflow, MOV/ProRes export, full reconstruction/model quality
-selection, integrated capture/display performance and platform delivery remain
+selection, calibrated/oriented preview, integrated capture/display performance
+and remaining platform/release integration remain
 pending. Earlier
 feature/validation PRs remain open and unchanged.
 

@@ -1,0 +1,42 @@
+{
+  "schema": "gpr.build_profiles.v1",
+  "platform": "Linux-6.6.51+rpt-rpi-2712-aarch64-with-glibc2.36",
+  "profiles": [
+    {
+      "profile": "capture",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": false,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "a47bbce7b24827c24a11ade4d25e92627289a1b00246f4d34f0903e35b61fbfc",
+      "source_digest": "9b222325afa6ba3c156c6f7826f7b8132a5b652d0ad165661805e0ea79009afd",
+      "seconds": 14.30451143719256
+    },
+    {
+      "profile": "preview",
+      "sdk_sources_present": false,
+      "encoder": false,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "4459bc6173e5c3ef89acbe833164f5aa58598c998001644dfb70243471208354",
+      "source_digest": "d4670fb39b083ff1623b7f181ee3c003012c8785cd65f1d0e2603307cac66900",
+      "seconds": 12.44611388631165
+    },
+    {
+      "profile": "camera",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "bd6b943e88ce79a59031aee91b13c0a3fa34136a543293134695bd3595d0e38e",
+      "source_digest": "f78b0dd47649fc5859229eea3bf5cb0f32d58580fe2897d263569f3cf8360eb8",
+      "seconds": 17.98805139400065
+    },
+    {
+      "profile": "full",
+      "relocated_sdk_consumer": true,
+      "source_digest": "8ddf76386ea42a1137d80a6646b9d80f4528bc273ad71e2ec78de26e3236e402",
+      "archive_sha256": "5b79960c7a222e0cd0c0fb4a33e66af6cdcd3ffb4c2ab1d06964e7cfa2d68220"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "gpr.build_profiles.v1",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "profiles": [
+    {
+      "profile": "capture",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": false,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "1b56533a813ffdb9d490a02545c4a70f6533d89a6e831fd09101b5b80bb693e4",
+      "source_digest": "9b222325afa6ba3c156c6f7826f7b8132a5b652d0ad165661805e0ea79009afd",
+      "seconds": 5.906633375
+    },
+    {
+      "profile": "preview",
+      "sdk_sources_present": false,
+      "encoder": false,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "d692a942812825c32ad77ca983667fb533598dc9993708e58e4a0858120fb3f4",
+      "source_digest": "d4670fb39b083ff1623b7f181ee3c003012c8785cd65f1d0e2603307cac66900",
+      "seconds": 5.124592042
+    },
+    {
+      "profile": "camera",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "edfa16346f5e1905a31c06b3912c5efdd73c4c2cd299341622742c8d70b3a5f8",
+      "source_digest": "f78b0dd47649fc5859229eea3bf5cb0f32d58580fe2897d263569f3cf8360eb8",
+      "seconds": 6.442428417000002
+    },
+    {
+      "profile": "full",
+      "relocated_sdk_consumer": true,
+      "source_digest": "8ddf76386ea42a1137d80a6646b9d80f4528bc273ad71e2ec78de26e3236e402",
+      "archive_sha256": "4fca46a5be871393f736f4b84d74787f572da39746de0ab5802a964ae474ff6d"
+    }
+  ]
+}
