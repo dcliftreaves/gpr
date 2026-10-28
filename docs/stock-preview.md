@@ -6,6 +6,9 @@ caller-owned RGB24 rows. The full frame is reduced by 4, 8 or 16 on each axis;
 materialize a full-resolution Bayer image or run a CNN. The display application
 owns its buffers and scheduling. Row padding is preserved; unaligned payloads
 are copied to aligned scratch. See `gpr_preview.h` for the C interface.
+Both sensor dimensions must be at least 48; dimensions/rendering reject
+smaller input before decoding. The framing reader retains its separate
+container contract. See [encoder bounds and alignment](stock-encoder-bounds.md).
 
 `gpr_gvid_reader` supplies bounded, callback-based reads of stock GVID v2/v3.
 Short reads are supported. Metadata is opaque, frame views expire on the next

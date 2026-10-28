@@ -1,0 +1,42 @@
+{
+  "schema": "gpr.encoder_bounds_validation.v1",
+  "source_revision": "f88ce5deec0ceefa4d541f2d808bbf747a9846dd",
+  "source_file_count": 435,
+  "source_sha256": "4f8a2ac1c8bbfe63a4992a3d495fe4d4d33d29acd8dde19cb3fc097ee13262fe",
+  "mac_release": "Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/build-runtime\n      Start  1: stock_prores\n 1/19 Test  #1: stock_prores .....................   Passed    6.22 sec\n      Start  2: stock_mov\n 2/19 Test  #2: stock_mov ........................   Passed    0.75 sec\n      Start  3: preview_contract\n 3/19 Test  #3: preview_contract .................   Passed    0.19 sec\n      Start  4: preview_queue\n 4/19 Test  #4: preview_queue ....................   Passed    0.13 sec\n      Start  5: preview_scalar_contract\n 5/19 Test  #5: preview_scalar_contract ..........   Passed    0.05 sec\n      Start  6: preview_cli\n 6/19 Test  #6: preview_cli ......................   Passed    0.21 sec\n      Start  7: stock_preview_profiles\n 7/19 Test  #7: stock_preview_profiles ...........   Passed    0.26 sec\n      Start  8: capture_preview\n 8/19 Test  #8: capture_preview ..................   Passed    1.00 sec\n      Start  9: capture_lifecycle\n 9/19 Test  #9: capture_lifecycle ................   Passed    0.16 sec\n      Start 10: capture_c_api\n10/19 Test #10: capture_c_api ....................   Passed    0.17 sec\n      Start 11: gvid3_conformance\n11/19 Test #11: gvid3_conformance ................   Passed    0.07 sec\n      Start 12: gvid2_compatibility\n12/19 Test #12: gvid2_compatibility ..............   Passed    0.05 sec\n      Start 13: sdk_c_api\n13/19 Test #13: sdk_c_api ........................   Passed    0.17 sec\n      Start 14: raw_media\n14/19 Test #14: raw_media ........................   Passed    1.33 sec\n      Start 15: stock_still\n15/19 Test #15: stock_still ......................   Passed    0.42 sec\n      Start 16: encoder_bounds\n16/19 Test #16: encoder_bounds ...................   Passed    0.34 sec\n      Start 17: encoder_bounds_fast\n17/19 Test #17: encoder_bounds_fast ..............   Passed    0.18 sec\n      Start 18: bayer_formats\n18/19 Test #18: bayer_formats ....................   Passed    0.26 sec\n      Start 19: bayer_formats_fast\n19/19 Test #19: bayer_formats_fast ...............   Passed    0.10 sec\n\n100% tests passed, 0 tests failed out of 19\n\nTotal Test time (real) =  12.07 sec\n",
+  "mac_asan_ubsan": "Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/build-runtime-asan\n    Start  1: preview_contract\n1/7 Test  #1: preview_contract .................   Passed    0.68 sec\n    Start  3: preview_scalar_contract\n2/7 Test  #3: preview_scalar_contract ..........   Passed    0.51 sec\n    Start  8: capture_c_api\n3/7 Test  #8: capture_c_api ....................   Passed    0.32 sec\n    Start 14: encoder_bounds\n4/7 Test #14: encoder_bounds ...................   Passed    2.61 sec\n    Start 15: encoder_bounds_fast\n5/7 Test #15: encoder_bounds_fast ..............   Passed    2.02 sec\n    Start 16: bayer_formats\n6/7 Test #16: bayer_formats ....................   Passed    1.81 sec\n    Start 17: bayer_formats_fast\n7/7 Test #17: bayer_formats_fast ...............   Passed    1.68 sec\n\n100% tests passed, 0 tests failed out of 7\n\nTotal Test time (real) =   9.64 sec\n",
+  "asan_environment": {
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "UBSAN_OPTIONS": "halt_on_error=1"
+  },
+  "baseline_probes": {
+    "short": {
+      "log": "",
+      "outcome": "invalid short input accepted"
+    },
+    "tiny": {
+      "log": "=================================================================\n==83571==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x618000000bc6 at pc 0x00010413d12c bp 0x00016be236f0 sp 0x00016be236e8\nREAD of size 2 at 0x618000000bc6 thread T6\nAssertion failed: (result[LL_BAND][column] >= 0), function FilterVerticalBottomRow, file forward.c, line 846.\nAssertion failed: (result[LL_BAND][column] >= 0), function FilterVerticalBottomRow, file forward.c, line 846.\n",
+      "outcome": "heap-buffer-overflow and filter assertion abort"
+    }
+  },
+  "unchanged_probes_after": {
+    "short": {
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "meaning": "The unchanged probe now rejects this invalid request without sanitizer diagnostics."
+    },
+    "tiny": {
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "meaning": "The unchanged probe now rejects this invalid request without sanitizer diagnostics."
+    }
+  },
+  "roundtrip_probe_log": "PASS 48x48 encode/decode\nPASS 50x50 encode/decode\nPASS 56x56 encode/decode\nPASS 72x72 encode/decode\n",
+  "scope": "19 local Release targets; seven selected ASan/UBSan targets. Separate instrumented 48/50/56/72 square encode/decode probe. Apple LeakSanitizer unsupported. Does not establish arbitrary decoder input safety or full still-SDK thread safety.",
+  "probe_sources": {
+    "gpr-encoder-boundary-probe-20261028.cpp": "3cb18b9385358cbbc9947245b73e7702b3d4e9da441a01b207b1a309a7151b6a",
+    "gpr-boundary-roundtrip-20261028.cpp": "b6c667e8527303f9b7c564dcc5ff68f6a338efca58f56468d324468f5f3ac185"
+  }
+}

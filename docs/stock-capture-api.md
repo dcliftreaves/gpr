@@ -31,6 +31,10 @@ cancel, destroy and stats. Submission indices start at zero and advance only
 on success. Timestamps must strictly increase and are preserved as supplied;
 the library does not replace them with a nominal frame-rate clock.
 
+Capture requires width and height at least 48, in addition to the framing
+geometry limits. Smaller configurations are rejected before starting workers.
+See the [encoder boundary contract](stock-encoder-bounds.md).
+
 By default, input is copied before submit returns, including repacking padded
 rows. Metadata is always copied. Alternatively, set `frame.release` and its
 user pointer to transfer a read-only input lease. Leases require tightly
@@ -39,6 +43,10 @@ until the release callback runs exactly once on the codec thread. This also
 holds on cancellation or failure. Rejected submits retain caller ownership
 and do not invoke release. The source buffer can be reused after release;
 storage need not have finished with the compressed frame yet.
+
+The lease bypasses the frontend RAW copy. An odd source address still makes
+the legacy encoder use aligned scratch; it does not establish a zero-copy
+codec path for every caller layout.
 
 `max_inflight` (1–16) bounds **all** copied/leased, encoding, encoded and
 writing frames together. There are no unbounded raw or storage queues. A
