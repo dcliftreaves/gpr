@@ -74,6 +74,23 @@ jobs:
           $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           python tests/build_profiles.py --work-dir profile-check `
             --cmake-arg="-DCMAKE_TOOLCHAIN_FILE=$toolchain" --cmake-arg="-DVCPKG_TARGET_TRIPLET=x64-windows"
+      - name: Diagnose native failure with MSVC AddressSanitizer
+        if: failure()
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $asan = Get-ChildItem "$vs/VC/Tools/MSVC/*/bin/Hostx64/x64/clang_rt.asan_dynamic-x86_64.dll" | Select-Object -Last 1
+          $env:PATH = "$($asan.DirectoryName);$env:PATH"
+          cmake -S profile-check/capture/source -B profile-check/asan `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF `
+            -DGPR_BUILD_DECODER=OFF -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON -DGPR_ENABLE_IPO=OFF `
+            '-DCMAKE_C_FLAGS=/fsanitize=address /Zi' '-DCMAKE_CXX_FLAGS=/fsanitize=address /Zi' `
+            '-DCMAKE_EXE_LINKER_FLAGS_RELEASE=/DEBUG /INCREMENTAL:NO'
+          cmake --build profile-check/asan --config Release --target capture_lifecycle_test --parallel 4
+          & ./profile-check/asan/Release/capture_lifecycle_test.exe ./profile-check/asan/diagnostic.gvid 2>&1 | Tee-Object profile-check/asan/diagnostic.log
       - uses: actions/upload-artifact@v7
         if: always()
         with:
