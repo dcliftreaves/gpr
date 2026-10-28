@@ -37,6 +37,7 @@
 #include <time.h>
 #if defined(_WIN32)
 #include <windows.h>
+#include <malloc.h>
 #endif
 
 static double EncoderWallTime(void)
@@ -1460,7 +1461,12 @@ static void SetRecursiveTransformData(RECURSIVE_TRANSFORM_DATA* transform_data,
 static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY *input_image_component, PIXEL *lowpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT], PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT], int midpoint_prequant, const PACKED_IMAGE *packed_input, int channel, ENCODER *encoder)
 {
     RECURSIVE_TRANSFORM_DATA transform_data[MAX_WAVELET_COUNT] = {0};
+#if defined(_WIN32)
+    /* MSVC has no C VLAs. Preserve the same stack lifetime and alignment pad. */
+    PIXEL *unpack_storage = (PIXEL *)_alloca(((size_t)input_image_component->width + 32) * sizeof(PIXEL));
+#else
     PIXEL unpack_storage[input_image_component->width + 32];
+#endif
     PIXEL *unpack_row = (PIXEL *)(((uintptr_t)unpack_storage + 63) & ~(uintptr_t)63);
     transform_data[0].packed_input = packed_input;
     transform_data[0].unpack_row = unpack_row;
