@@ -813,6 +813,17 @@ static void *UnpackImageThread(void *arg)
         case PIXEL_FORMAT_RAW_GBRG_12P:
             UnpackImage_12P(&thread->input, &thread->output, thread->enabled_parts, false);
             break;
+        case PIXEL_FORMAT_RAW_RGGB_16:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
+            UnpackImage_WordBayer(&thread->input, &thread->output);
+            break;
         default:
             break;
     }
@@ -843,6 +854,14 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
     case PIXEL_FORMAT_RAW_GBRG_12:
     case PIXEL_FORMAT_RAW_GBRG_12P:
     case PIXEL_FORMAT_RAW_RGGB_16:
+    case PIXEL_FORMAT_RAW_GBRG_16:
+    case PIXEL_FORMAT_RAW_GBRG_14:
+    case PIXEL_FORMAT_RAW_GRBG_12:
+    case PIXEL_FORMAT_RAW_GRBG_14:
+    case PIXEL_FORMAT_RAW_GRBG_16:
+    case PIXEL_FORMAT_RAW_BGGR_12:
+    case PIXEL_FORMAT_RAW_BGGR_14:
+    case PIXEL_FORMAT_RAW_BGGR_16:
         channel_count = 4;
         max_channel_width = input->width / 2;
         max_channel_height = input->height / 2;
@@ -948,6 +967,17 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 
         case PIXEL_FORMAT_RAW_GBRG_12P:
             UnpackImage_12P(input, output, enabled_parts, false );
+            break;
+        case PIXEL_FORMAT_RAW_RGGB_16:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
+            UnpackImage_WordBayer(input, output);
             break;
             
         default:

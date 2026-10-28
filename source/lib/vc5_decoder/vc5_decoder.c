@@ -79,8 +79,32 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
             parameters.output.format = PIXEL_FORMAT_RAW_GBRG_14;
             break;
             
+        case VC5_DECODER_PIXEL_FORMAT_RGGB_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_RGGB_16;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_GBRG_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_GBRG_16;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_12:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_12;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_14:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_14;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_16;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_12:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_12;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_14:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_14;
+            break;
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_16;
+            break;
         default:
-            assert(0);
+            return CODEC_ERROR_PIXEL_FORMAT;
     }
     
     // Check that the enabled parts are correct

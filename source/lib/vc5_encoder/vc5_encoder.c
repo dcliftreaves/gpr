@@ -139,8 +139,35 @@ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters*   
             image.format = PIXEL_FORMAT_RAW_GBRG_12P;
             break;
             
+        case VC5_ENCODER_PIXEL_FORMAT_RGGB_16:
+            image.format = PIXEL_FORMAT_RAW_RGGB_16;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_GBRG_16:
+            image.format = PIXEL_FORMAT_RAW_GBRG_16;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_GBRG_14:
+            image.format = PIXEL_FORMAT_RAW_GBRG_14;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_GRBG_12:
+            image.format = PIXEL_FORMAT_RAW_GRBG_12;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_GRBG_14:
+            image.format = PIXEL_FORMAT_RAW_GRBG_14;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_GRBG_16:
+            image.format = PIXEL_FORMAT_RAW_GRBG_16;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_BGGR_12:
+            image.format = PIXEL_FORMAT_RAW_BGGR_12;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_BGGR_14:
+            image.format = PIXEL_FORMAT_RAW_BGGR_14;
+            break;
+        case VC5_ENCODER_PIXEL_FORMAT_BGGR_16:
+            image.format = PIXEL_FORMAT_RAW_BGGR_16;
+            break;
         default:
-            assert(0);
+            return CODEC_ERROR_PIXEL_FORMAT;
     }
     
     // Set the dimensions and pixel format of the packed input image

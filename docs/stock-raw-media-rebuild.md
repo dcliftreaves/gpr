@@ -90,6 +90,12 @@ and unused codec sources from minimal builds, delete producer paths and run
 outside C/C++ clients against the extracted archive. Full packages also check
 the installed Python/native editable-export workflow.
 
+The [low-level Bayer format port](stock-bayer-formats.md) now accepts all four
+Bayer phases with word-packed 12/14/16-bit counts while retaining the stock
+12-bit logarithmic transform. It does not import the earlier codec's higher
+internal precision. The still SDK and video frontend mappings, calibrated CFA
+handling and still-tier workflows remain separate integration work.
+
 This is not feature-suite parity. The complete high-bit-depth/CFA encoding and
 still-tier workflow, MOV/ProRes export, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance

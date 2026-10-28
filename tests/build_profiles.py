@@ -121,7 +121,8 @@ def main():
         settings = dict(GPR_BUILD_SDK=False, GPR_BUILD_STILL_APPS=False, GPR_BUILD_LEGACY_CLI=False,
                         GPR_BUILD_ENCODER=encoder, GPR_BUILD_DECODER=decoder,
                         GPR_ENABLE_VIDEO=capture, GPR_ENABLE_PREVIEW=preview,
-                        GPR_BUILD_VIDEO_TESTS=capture, GPR_BUILD_PREVIEW_TESTS=preview, GPR_BUILD_PACKAGE=True)
+                        GPR_BUILD_VIDEO_TESTS=capture, GPR_BUILD_PREVIEW_TESTS=preview,
+                        GPR_BUILD_CODEC_TESTS=encoder and decoder, GPR_BUILD_PACKAGE=True)
         command = ['cmake', '-S', src, '-B', build, '-DCMAKE_BUILD_TYPE=Release',
                    '-DCMAKE_INSTALL_LIBDIR=lib', '-DGPR_VIDEO_PYTHON='+sys.executable,
                    '-DGPR_SOURCE_REVISION='+revision, '-DGPR_SOURCE_DIGEST='+digest,

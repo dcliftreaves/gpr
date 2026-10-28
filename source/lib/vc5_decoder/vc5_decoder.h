@@ -42,6 +42,16 @@
         
         VC5_DECODER_PIXEL_FORMAT_GBRG_14 = 3,               // GBRG 12bit pixels packed into 16bits
         
+        /* Appended values preserve the historical ABI and the earlier feature PR. */
+        VC5_DECODER_PIXEL_FORMAT_RGGB_16 = 4,
+        VC5_DECODER_PIXEL_FORMAT_GBRG_16 = 5,
+        VC5_DECODER_PIXEL_FORMAT_GRBG_12 = 6,
+        VC5_DECODER_PIXEL_FORMAT_GRBG_14 = 7,
+        VC5_DECODER_PIXEL_FORMAT_GRBG_16 = 8,
+        VC5_DECODER_PIXEL_FORMAT_BGGR_12 = 9,
+        VC5_DECODER_PIXEL_FORMAT_BGGR_14 = 10,
+        VC5_DECODER_PIXEL_FORMAT_BGGR_16 = 11,
+
         VC5_DECODER_PIXEL_FORMAT_DEFAULT = VC5_DECODER_PIXEL_FORMAT_RGGB_14,
         
     } VC5_DECODER_PIXEL_FORMAT;
