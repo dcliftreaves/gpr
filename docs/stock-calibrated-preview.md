@@ -137,17 +137,21 @@ and per-frame JSON logging; no PPM writes are timed.
 
 | Calibrated output | Decode + display color median | Full wall throughput |
 |---|---:|---:|
-| 1024x768, NEON | 67.38 ms | 13.59 previews/s |
-| 1024x768, forced scalar, same binary | 91.10 ms | 10.35 previews/s |
-| 512x384, NEON | 16.16 ms | 50.78 previews/s |
-| 256x192, NEON | 3.16 ms | 176.57 previews/s |
+| 1024x768, NEON | 66.27 ms | 13.77 previews/s |
+| 1024x768, forced scalar, same binary | 89.92 ms | 10.49 previews/s |
+| 512x384, NEON | 16.28 ms | 50.77 previews/s |
+| 256x192, NEON | 3.18 ms | 173.26 previews/s |
 
-The NEON kernel reduces the 1024x768 decode/color median by about 26% (1.35x).
+The NEON kernel reduces the 1024x768 decode/color median by about 26% (1.36x).
 Two 12 MP source profiles and preview pixels also matched across Mac/Pi in the
 checked runs. These are standalone playback measurements, **not simultaneous
 capture, sensor delivery, display presentation or live camera frame rates**.
 Combined capture/preview scheduling and actual display integration remain work
 in the active rebuild. No CNN runs in this path.
 
-Source/binary identities, full per-frame logs, platform comparisons, sanitizer
-checks and relocated-package evidence accompany the milestone receipts.
+[Pi source/binary identities and every benchmark event](stock-calibrated-preview-receipts/pi5.json),
+[local Release/ASan/UBSan/TSan and stock-reference checks](stock-calibrated-preview-receipts/validation.json),
+and [relocated-package evidence](stock-calibrated-preview-receipts/packages.json)
+record this milestone. Pi passes all four preview targets with ASan/UBSan/leak
+checks in 145.60 s; local full Release passes all fourteen targets. The Pi
+snapshot verifies 430 source/test/tool/build/fixture files against Git `269f814`.
