@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Still preset workflows against independent stock bytes and TIFF reading."""
 import argparse
+import errno
 import hashlib
 import json
 from pathlib import Path
@@ -8,6 +9,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import numpy as np
 import tifffile
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
@@ -17,6 +19,29 @@ from raw_media_test import metadata
 
 
 class Stills(unittest.TestCase):
+    def test_copy_fallback_and_partial_repeats(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); source=root/'staged'; source.write_bytes(b'encoded bytes')
+            with mock.patch.object(still.os,'link',side_effect=OSError(errno.EOPNOTSUPP,'links unavailable')):
+                still.publish([(source,root/'copied')])
+                self.assertEqual((root/'copied').read_bytes(),source.read_bytes())
+                protected=root/'protected'; protected.write_bytes(b'original')
+                with self.assertRaises(FileExistsError): still.publish([(source,root/'first'),(source,protected)])
+                self.assertFalse((root/'first').exists()); self.assertEqual(protected.read_bytes(),b'original')
+                with mock.patch.object(still.shutil,'copyfileobj',side_effect=OSError('copy failed')):
+                    with self.assertRaises(OSError): still.publish([(source,root/'partial')])
+                    self.assertFalse((root/'partial').exists())
+            raw=(np.arange(128*96,dtype=np.uint16).reshape(96,128)*7)&16383
+            raw.tofile(root/'input.raw')
+            for repeat in ((1,2),(2,1)):
+                meta=metadata(); meta['image']=[t for t in meta['image'] if t['code'] not in (50713,50714)]
+                meta['image'] += [media.record(50713,3,2,struct.pack('<2H',*repeat)),
+                                  media.record(50714,5,2,struct.pack('<4I',33,2,17,1))]
+                dng=root/f'{repeat[0]}x{repeat[1]}.dng'
+                still.encode(root/'input.raw',meta,3,args.sdk,root/f'{repeat[0]}x{repeat[1]}.gpr',
+                             editable=dng,receipt=root/'receipts'/f'{repeat[0]}x{repeat[1]}.json')
+                self.assertEqual(still.canonical(media.extract(dng,14)),still.canonical(meta))
+
     def test_even_geometry_and_transform_boundaries(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)

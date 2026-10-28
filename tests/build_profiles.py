@@ -94,6 +94,15 @@ def main():
                 decoded = build/f'{kind}.raw'
                 run([prefix/'bin/gpr_tools', '-i', output, '-o', decoded], dest/f'installed-sdk-{kind}.log')
                 if decoded.read_bytes() != raw.read_bytes(): raise RuntimeError('installed editable workflow changed Bayer values')
+            preset=build/'preset.gpr'; editable=build/'preset.dng'
+            run([sys.executable,tools/'stock_still.py','encode',raw,'--metadata',meta,'--quality','0',
+                 '--sdk',prefix/'bin/gpr_tools','--output',preset],dest/'installed-still-encode.log')
+            run([sys.executable,tools/'stock_still.py','decode',preset,'--sample-bits','14',
+                 '--sdk',prefix/'bin/gpr_tools','--output',editable],dest/'installed-still-decode.log')
+            for image,name in ((preset,'preset'),(editable,'preset-dng')):
+                run([prefix/'bin/gpr_tools','-i',image,'-o',build/(name+'.raw')],dest/(name+'-decode.log'))
+            if (build/'preset.raw').read_bytes()!=(build/'preset-dng.raw').read_bytes():
+                raise RuntimeError('installed still preset workflow changed decoded samples')
     for name, encoder, decoder, capture, preview in (
             ('capture', True, False, True, False), ('preview', False, True, False, True),
             ('camera', True, True, True, True)):

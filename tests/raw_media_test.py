@@ -306,6 +306,8 @@ class Media(unittest.TestCase):
 
     def test_invalid_calibration(self):
         variants = []
+        m = metadata(); m['image'].append(media.record(50710,1,3,b'\2\1\0')); variants.append(m)
+        m = metadata(); m['image'].append(media.record(50711,3,1,struct.pack('<H',2))); variants.append(m)
         m = metadata(); m['image'] += [m['image'][0]]; variants.append(m)
         m = metadata(); m['image'][6]['data'] += 'AAAA'; variants.append(m)
         m = metadata(); m['cfa'] = 'BGGR'; variants.append(m)

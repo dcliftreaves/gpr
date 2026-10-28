@@ -6,11 +6,13 @@ encoder remains stock VC-5; no CNN runs and no restored-quality claim is made.
 """
 import argparse
 import copy
+import errno
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import time
@@ -44,12 +46,19 @@ def run(sdk, args, environment):
 
 
 def publish(files):
-    # Every staged file is on the output filesystem. link() creates each final
-    # name atomically and exclusively; clean up only links created by us.
+    # Prefer an atomic, exclusive link. exFAT and cross-filesystem destinations
+    # need an exclusive copy instead. Roll back only names created by us.
     created=[]
     try:
         for source,destination in files:
-            os.link(source,destination); created.append(destination)
+            try:
+                os.link(source,destination)
+            except OSError as error:
+                if error.errno not in (errno.EXDEV,errno.EPERM,errno.EACCES,errno.ENOTSUP,errno.EOPNOTSUPP): raise
+                with Path(destination).open('xb') as output:
+                    created.append(destination)
+                    with Path(source).open('rb') as staged: shutil.copyfileobj(staged,output,1024*1024)
+            else: created.append(destination)
     except BaseException:
         for path in reversed(created): path.unlink()
         raise
@@ -63,8 +72,7 @@ def outputs(output, receipt, editable):
     if len(set(paths))!=len(paths): raise ValueError('output names must differ')
     for path in paths:
         if path.exists() or path.is_symlink(): raise FileExistsError(path)
-        if path.parent!=output.parent: raise ValueError('outputs must share a directory')
-    output.parent.mkdir(parents=True,exist_ok=True)
+    for path in paths: path.parent.mkdir(parents=True,exist_ok=True)
     return output,receipt,editable
 
 
@@ -131,6 +139,7 @@ def encode(source, metadata, quality, sdk, output, receipt=None, editable=None, 
 
 
 def decode(source, bits, sdk, output, receipt=None):
+    if sys.byteorder!='little': raise ValueError('still frontend requires a little-endian host')
     start=time.perf_counter(); source=Path(source).resolve(); sdk=Path(sdk).resolve()
     meta,payload=raw_media.extract(source,bits,with_payload=True)
     if meta['width']<48 or meta['height']<48: raise ValueError('still frontend requires Bayer dimensions at least 48')

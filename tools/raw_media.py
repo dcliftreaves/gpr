@@ -130,7 +130,7 @@ def validate(meta, header=None):
         raise ValueError('requires DNG version no newer than 1.4')
     pattern = bytes({'R': 0, 'G': 1, 'B': 2}[c] for c in meta['cfa'])
     if (values(image[33421]) != (2, 2) or unpack_record(image[33422]) != pattern or
-            values(image[50713]) not in ((1, 1), (2, 2))):
+            values(image[50713]) not in ((1, 1), (1, 2), (2, 1), (2, 2))):
         raise ValueError('calibration CFA/black repeat mismatch')
     black, white, neutral = values(image[50714]), values(image[50717]), values(image[50728])
     repeat = values(image[50713])

@@ -62,8 +62,10 @@ uses C-backed byte translation and reuses already computed hashes.
 Outputs are created exclusively, with JSON receipts binding source/raw,
 calibration, compressed payload, output and SDK binary hashes. Preparation
 happens in a private directory on the output filesystem. Current publication
-uses exclusive hard links; it requires filesystem hard-link support. A failed
-publication removes only names created by that operation. The scripts use the
+uses atomic exclusive links when supported, with exclusive copying for exFAT
+or cross-filesystem destinations. A failed publication removes only names
+created by that operation, including partial copies. Receipts and editable
+outputs can use separate directories. The scripts use the
 standard library; optional benchmarks need numpy/tifffile and imagecodecs for
 independent lossless-DNG decoding. Exact preservation boundaries and TIFF/DNG
 version limits remain those in [editable RAW](stock-editable-raw.md).
@@ -75,7 +77,7 @@ when the legacy metadata reader cannot infer a nonstandard saturation level.
 
 ## Results
 
-The nine benchmark sets use three fresh processes per preset/input. Five are
+The nine benchmark sets at implementation `9adbc90` use three fresh processes per preset/input. Five are
 lossless source DNGs: four 8280x5520 Z8 frames and one 11664x8750 X2D frame.
 Their reference arrays match independent imagecodecs/tifffile decompression
 exactly. The other four sets are the two 4096x3072 camera GPR inputs on macOS
@@ -113,7 +115,7 @@ testing CNN restoration than comparison only against camera-compressed replay.
 Pi 5 uses four A76 cores at 2.4 GHz, the performance governor and USB SSD.
 Post-run temperature was 53.2 C; the receipt records the raw throttle status.
 The macOS host is an Apple M5 Max with 128 GiB RAM. No builds, tests or other
-benchmarks overlapped the measurements on either host. Files were warm in the
+benchmark runs launched by this work overlapped the measurements on either host. Files were warm in the
 cache, no JPEG preview or CNN ran, and no final storage fsync was timed.
 
 ![Pi still preparation timings](stock-still-pi5-presets.svg)
