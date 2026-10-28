@@ -34,7 +34,7 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->enabled_parts      = VC5_ENABLED_PARTS;
     encoding_parameters->input_width        = 4000;
     encoding_parameters->input_height       = 3000;
-    encoding_parameters->input_pitch        = 4000;
+    encoding_parameters->input_pitch        = 8000;
     
     encoding_parameters->pixel_format       = VC5_ENCODER_PIXEL_FORMAT_DEFAULT;
     encoding_parameters->quality_setting    = VC5_ENCODER_QUALITY_SETTING_DEFAULT;
@@ -43,7 +43,7 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->mem_free  = free;
 }
 
-static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
+static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
                                 const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                       gpr_buffer*               vc5_buffer,
                                       gpr_rgb_buffer*           rgb_buffer)             /* rgb output buffer. */
@@ -114,7 +114,7 @@ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters*   
     image.width  = encoding_parameters->input_width;
     image.height = encoding_parameters->input_height;
     image.pitch  = encoding_parameters->input_pitch;
-    image.size   = image.width * image.height * 2;
+    image.size   = raw_buffer->size;
     image.offset = 0;
 
     switch( encoding_parameters->pixel_format )
@@ -218,6 +218,65 @@ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters*   
     vc5_buffer->size = bitstream_file.byte_count;
     
     return CODEC_ERROR_OKAY;
+}
+
+/* Validate the advertised input span before assembly, SIMD or scalar unpacking.
+ * The third six-tap transform requires at least 48 sensor samples per axis.
+ * Dimensions are stored in 16-bit codec fields and image counts use signed int. */
+static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters *p,
+                                               const gpr_buffer *raw, gpr_buffer *out,
+                                               gpr_rgb_buffer *rgb)
+{
+    size_t row,span,pitch;
+    gpr_buffer input;
+    vc5_encoder_parameters normalized;
+    void *scratch=NULL;
+    CODEC_ERROR error;
+    bool packed;
+    if (!p || !raw || !raw->buffer || !out || raw==out || !p->mem_alloc || !p->mem_free)
+        return CODEC_ERROR_BAD_ARGUMENT;
+    if ((unsigned)p->pixel_format>VC5_ENCODER_PIXEL_FORMAT_BGGR_16)
+        return CODEC_ERROR_PIXEL_FORMAT;
+    if ((unsigned)p->quality_setting>=VC5_ENCODER_QUALITY_SETTING_COUNT)
+        return CODEC_ERROR_BAD_ARGUMENT;
+    if (p->input_width<48 || p->input_height<48 || p->input_width>UINT16_MAX ||
+        p->input_height>UINT16_MAX || (p->input_width&1) || (p->input_height&1) ||
+        (uint64_t)p->input_width*p->input_height>INT_MAX/2)
+        return CODEC_ERROR_IMAGE_DIMENSIONS;
+    packed=p->pixel_format==VC5_ENCODER_PIXEL_FORMAT_RGGB_12P ||
+        p->pixel_format==VC5_ENCODER_PIXEL_FORMAT_GBRG_12P;
+    row=packed ? (size_t)p->input_width*3/2 : (size_t)p->input_width*2;
+    if (p->input_pitch<=0 || (size_t)p->input_pitch<row) return CODEC_ERROR_BAD_ARGUMENT;
+    pitch=(size_t)p->input_pitch;
+    if (p->input_height-1>(SIZE_MAX-row)/pitch) return CODEC_ERROR_BAD_ARGUMENT;
+    span=(p->input_height-1)*pitch+row;
+    if (raw->size<span) return CODEC_ERROR_BAD_ARGUMENT;
+    input=*raw;input.size=span;
+    normalized=*p;
+    /* Historical unpackers address uint16_t rows. Keep the aligned fast path
+     * untouched; normalize only layouts that would misalign/round that stride.
+     * New word-Bayer fallbacks already use memcpy and accept arbitrary bytes. */
+    if (p->pixel_format<=VC5_ENCODER_PIXEL_FORMAT_GBRG_12P &&
+        (((uintptr_t)raw->buffer&1) || (pitch&1))) {
+        const gpr_allocator allocator={p->mem_alloc,p->mem_free};
+        size_t aligned_pitch=(row+1)&~(size_t)1;
+        if (p->input_height>SIZE_MAX/aligned_pitch) return CODEC_ERROR_BAD_ARGUMENT;
+        scratch=gpr_aligned_alloc(&allocator,aligned_pitch*p->input_height);
+        if (!scratch) return CODEC_ERROR_OUTOFMEMORY;
+        for (unsigned y=0;y<p->input_height;++y) {
+            uint8_t *destination=(uint8_t *)scratch+y*aligned_pitch;
+            memcpy(destination,(const uint8_t *)raw->buffer+y*pitch,row);
+            if (aligned_pitch>row) destination[row]=0;
+        }
+        normalized.input_pitch=(int)aligned_pitch;
+        input.buffer=scratch;input.size=(p->input_height-1)*aligned_pitch+row;
+    }
+    error=vc5_encoder_encode(&normalized,&input,out,rgb);
+    if (scratch) {
+        const gpr_allocator allocator={p->mem_alloc,p->mem_free};
+        gpr_aligned_free(&allocator,scratch);
+    }
+    return error;
 }
 
 /* Codebook lookup buffers are process-global in the historical implementation.

@@ -363,7 +363,7 @@ extern "C" void gpr_preview_options_default(gpr_preview_options *out) {
 }
 extern "C" int gpr_preview_dimensions(const gpr_gvid_config *v,const gpr_preview_options *o,gpr_preview_info *out) {
     uint8_t check[64];
-    if (!v || !o || !out || gpr_gvid_write_header(check,v,nullptr,0) ||
+    if (!v || !o || !out || v->width<48 || v->height<48 || gpr_gvid_write_header(check,v,nullptr,0) ||
         (o->downsample!=4 && o->downsample!=8 && o->downsample!=16)) return GPR_PREVIEW_INVALID;
     for (unsigned i=0;i<3;++i) if (!o->gain_num[i] || o->gain_num[i]>1024 || o->gain_pow2_den[i]>16) return GPR_PREVIEW_INVALID;
     out->width=(v->width+o->downsample-1)/o->downsample;

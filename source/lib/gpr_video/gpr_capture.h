@@ -14,7 +14,7 @@ enum {
     GPR_CAPTURE_WRITER = -6, GPR_CAPTURE_NOMEM = -7
 };
 typedef struct {
-    gpr_gvid_config video;
+    gpr_gvid_config video; /* Capture requires width/height >=48, in addition to framing limits. */
     uint32_t stride_bytes;
     uint32_t max_inflight; /* 1..16, counts raw+encoding+encoded+writing together. */
     size_t workspace_bytes; /* 0: malloc; otherwise first-touched reusable arena. */

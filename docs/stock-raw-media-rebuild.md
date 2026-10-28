@@ -115,6 +115,13 @@ parameter cleanup repeatable and classifies VC-5 metadata without image decode.
 Real C callers, allocation-failure tests and installed clients exercise the
 contracts; broader geometry/buffer and still concurrency auditing remain open.
 
+The [encoder boundary audit](stock-encoder-bounds.md) additionally rejects tiny
+or overflowing geometry and short row capacity before codec allocation, and
+normalizes unaligned/odd-stride historical Bayer layouts through scratch
+allocated with the caller's callbacks. Valid aligned callers retain their existing fast path and
+stock-byte evidence. Full compressed-decoder and SDK failure/concurrency audits
+remain separate requirements.
+
 The [optional still reconstruction workflow](stock-cnn-quality.md) now produces
 calibrated editable DNG using the existing stock-Q3 1x model. Twenty-four
 lossless-reference comparisons show modest aggregate improvements, including

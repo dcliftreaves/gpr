@@ -88,7 +88,7 @@
         
         unsigned int                input_width;            // Image Width in Components (Default: 4000)
         unsigned int                input_height;           // Image Height in Components (Default: 3000)
-        int                         input_pitch;            // Image Buffer Stride in Components (Default: 4000)
+        int                         input_pitch;            // Row stride in bytes (Default: 8000)
         
         VC5_ENCODER_PIXEL_FORMAT    pixel_format;         // Bayer Ordering Pattern (Default: VC5_ENCODER_BAYER_ORDERING_RGGB)
         
@@ -102,6 +102,12 @@
 
     void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_parameters);
 
+    /* Even sensor dimensions >=48, <=UINT16_MAX, with width*height*2 <=INT_MAX.
+     * Input capacity must cover every active row through the last pixel;
+     * trailing row padding is optional. Stride is positive bytes. Unaligned
+     * historical word/packed-12 layouts use an aligned scratch copy; ordinary
+     * aligned inputs retain the existing fast path. Invalid geometry/span,
+     * formats, quality or callbacks are rejected before codec allocation. */
     CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
                                     const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                           gpr_buffer*               vc5_buffer,

@@ -258,6 +258,7 @@ extern "C" int gpr_capture_create(const gpr_capture_config *cfg,
     *out=nullptr;
     uint8_t header[64];
     if (!cfg || !cb || !cb->write || !cfg->max_inflight || cfg->max_inflight>16 ||
+        cfg->video.width<48 || cfg->video.height<48 ||
         cfg->stride_bytes<size_t(cfg->video.width)*2 || cfg->stride_bytes>INT32_MAX ||
         cfg->workspace_bytes>size_t(2048)*1024*1024 ||
         (!std::memcmp(cfg->video.cfa,"GBRG",4) && cfg->video.sample_bits!=12) ||

@@ -100,6 +100,14 @@ static void invalid_preview(const std::string &root) {
     check(gpr_preview_render(&cfg,&options,bad.data(),bad.size(),rgb.data(),rgb.size(),96,&info)==GPR_PREVIEW_PAYLOAD,"changed VC5 width accepted");
     options.gain_pow2_den[0]=32;
     check(gpr_preview_dimensions(&cfg,&options,&info)==GPR_PREVIEW_INVALID,"unsafe gain shift accepted");
+    gpr_preview_options_default(&options);
+    for (unsigned dimension=8;dimension<48;dimension+=8) {
+        auto small=cfg;small.width=dimension;
+        check(gpr_preview_dimensions(&small,&options,&info)==GPR_PREVIEW_INVALID,"unsafe preview width accepted");
+        check(gpr_preview_render(&small,&options,payload.data(),payload.size(),rgb.data(),rgb.size(),96,&info)==GPR_PREVIEW_INVALID,"small width reached decoder");
+        small=cfg;small.height=dimension;
+        check(gpr_preview_dimensions(&small,&options,&info)==GPR_PREVIEW_INVALID,"unsafe preview height accepted");
+    }
     check(std::all_of(rgb.begin(),rgb.end(),[](uint8_t p){ return p==0xcd; }),"invalid input modified RGB");
 }
 static uint8_t display(double value) {
