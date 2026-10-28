@@ -160,7 +160,8 @@ installed wrapping/recovery, guide presence and external-dependency declarations
 Receipts: [current Pi benchmark](stock-mov-receipts/pi5-current.json),
 [initial tests and SDK pixel/calibration checks](stock-mov-receipts/pi5-initial-validation.json),
 [cross-version exchange](stock-mov-receipts/cross-version.json),
-[relocated packages](stock-mov-receipts/packages-mac.json).
+[relocated packages](stock-mov-receipts/packages-mac.json),
+[final Pi Release input guards](stock-mov-receipts/pi5-final-guards.json).
 The source recordings remain outside the repository.
 
 ProRes rendering, audio/timecode integration and integrated capture/display

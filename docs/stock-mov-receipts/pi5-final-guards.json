@@ -1,0 +1,13 @@
+{
+  "test_log": "Internal ctest changing into directory: /mnt/ssd/gpr_work/stock-raw-media-runtime/build-mov\nTest project /mnt/ssd/gpr_work/stock-raw-media-runtime/build-mov\n    Start 1: stock_mov\n1/1 Test #1: stock_mov ........................   Passed    1.61 sec\n\n100% tests passed, 0 tests failed out of 1\n\nTotal Test time (real) =   1.62 sec\n",
+  "source_sha256": {
+    "source/app/gpr_mov.cpp": "03cf9be7876c2a4a4f1c4f3fe063ed3d2aa610bf3c8359e568e7cb194ab3e2be",
+    "tools/stock_mov.py": "8d67bd6748df72a6b1b0382035723cd2dc9fa2a17d4c5df0959935123c10cb0b",
+    "tools/benchmark_stock_mov.py": "e1f35cd52626d1828f6e62328965f5315052664fe317bb56930943e9d4e2f652",
+    "tests/stock_mov_test.py": "438cc72e0c2a54ee029c0eb26f1b0d8cc7550f65930dc3a876007894b07e2969",
+    "CMakeLists.txt": "ebf9ae92b8704ff46b42514530dc3a594d2cef0fea5f74173f5c420378e9ed27"
+  },
+  "binary_sha256": "82e77d8dbf8f1347ba893ff52a68d2e661301600f27742ac95504662c1abbc8a",
+  "source_revision": "4e0963c6965186f2fef1ea556e9c4bdf11487ae1",
+  "scope": "Final Release MOV contracts including prompt rejection of FIFO/device inputs; prior sanitizer and performance snapshots remain separately identified."
+}
