@@ -110,8 +110,9 @@ restored-tier or 2x quality approval; training-split membership is unknown.
 architecture and supports explicit 1x/2x still and recorded-sequence inference,
 including scaled crop/EXIF and phase-correct GainMap metadata. Four legacy 2x
 checkpoints all regress against bicubic in sixteen simulated-stock comparisons;
-no 2x model is approved. Stock-matched training/selection and the full quality
-gate remain pending.
+no 2x model is approved. A [fresh stock-matched candidate](stock-sr-training.md)
+now has source-grouped training and frozen final evaluation. Its modest overall
+gains and shadow regression leave the full quality gate unfinished.
 
 This is not feature-suite parity. Restored still tiers, MOV/ProRes export, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance

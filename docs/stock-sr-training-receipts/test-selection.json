@@ -1,0 +1,5 @@
+{
+  "checkpoint_sha256": "3a6fa544e1d5d2e07ced41018795c2daa572f577c2fbed9196a290f2c998febf",
+  "selection": "lowest validation rounded-count MSE only; final test not yet evaluated",
+  "training_complete": true
+}

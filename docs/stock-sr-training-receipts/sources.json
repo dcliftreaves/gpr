@@ -1,0 +1,85 @@
+{
+  "schema": "gpr.stock_sr_sources.v1",
+  "sources": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_BarnAndSky_001.dng",
+      "group": "20250727_BarnAndSky",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_BarnAndSky_010.dng",
+      "group": "20250727_BarnAndSky",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250729_05__FieldAndSky_001.dng",
+      "group": "20250729_05__FieldAndSky",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250729_05__FieldAndSky_010.dng",
+      "group": "20250729_05__FieldAndSky",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/118NCZ_8_001.dng",
+      "group": "118NCZ_8",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/118NCZ_8_010.dng",
+      "group": "118NCZ_8",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/2026-01-18_001.dng",
+      "group": "2026-01-18",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/2026-01-18_010.dng",
+      "group": "2026-01-18",
+      "split": "train"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation"
+    },
+    {
+      "path": "/Users/dcliftreaves/gpr_data/gate_dngs/Z8Z_0001.dng",
+      "group": "nikon_gate_0001",
+      "split": "test"
+    },
+    {
+      "path": "/Users/dcliftreaves/gpr_data/gate_dngs/Z8Z_0067.dng",
+      "group": "nikon_gate_0067",
+      "split": "test"
+    },
+    {
+      "path": "/Users/dcliftreaves/gpr_data/gate_dngs/Z8Z_5323.dng",
+      "group": "nikon_gate_5323",
+      "split": "test"
+    },
+    {
+      "path": "/Users/dcliftreaves/gpr_data/gate_dngs/Z8Z_6693.dng",
+      "group": "nikon_gate_6693",
+      "split": "test"
+    }
+  ]
+}

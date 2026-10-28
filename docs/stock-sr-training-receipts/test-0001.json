@@ -1,0 +1,204 @@
+{
+  "schema": "gpr.stock_sr_benchmark.v1",
+  "complete": true,
+  "quality_approval": false,
+  "host": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "torch": "2.12.0",
+  "device": "mps",
+  "width": 8280,
+  "height": 5520,
+  "input_width": 4140,
+  "input_height": 2760,
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "output_scale": 2,
+  "source_sha256": "1458244f1221c2ab0ba863301cb6aba65aa96f021c05fd0c6f1941865e650e6f",
+  "reference_raw_sha256": "f18ca274ab12cc436fbaf83232727754d7269df91c8e613fa86d48175d1fd57a",
+  "independent_lossless_decode_verified": true,
+  "simulated_low_raw_sha256": "037e8ced5253d1723069ae9f3d9db30997ba5a841f0afd3c76b61d4d7f247766",
+  "low_gpr_sha256": "b4914b042d5c5c1795a992f692ac34ae6f8f1284b3e2e2a687206f388b8f996f",
+  "low_gpr_bytes": 1438464,
+  "low_decoded_raw_sha256": "fd12b7a46e9d37d902eaecf2fe74ef0d5734d8995ca711d94cbeae216a115379",
+  "sdk_sha256": "31155dccfbccd663f1afb369045eebc2430e5a50c4eede27d1dca77e116167b0",
+  "simulated_metadata_sha256": "c2445b04714c6c434d67462bb44cace0e51066bf58b1e2ac099d237273ff23be",
+  "simulation_metadata_omissions": [
+    {
+      "code": 700,
+      "reason": "simulation changes pixel geometry; opaque source XMP omitted"
+    }
+  ],
+  "stock_quality": 3,
+  "tile_plane_pixels": 256,
+  "halo_plane_pixels": 64,
+  "bicubic_metrics": {
+    "full_frame": {
+      "rmse_counts": 63.65042084015544,
+      "psnr_db": 48.21184303626019
+    },
+    "active": {
+      "rmse_counts": 63.65042084015544,
+      "psnr_db": 48.21184303626019
+    },
+    "active_area": [
+      0,
+      0,
+      5520,
+      8280
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 11.0,
+      "p90": 65.0,
+      "p99": 266.0,
+      "p99_9": 624.0
+    },
+    "active_max_abs_error": 5579,
+    "active_bias_counts": -3.3753698890289154,
+    "detail_gradient_threshold_counts": 230.0,
+    "detail_top_decile": {
+      "rmse_counts": 175.87429096462455,
+      "psnr_db": 39.38382143325126
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 9.105863044133086,
+      "psnr_db": 65.10144634397513
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 147.4650084891142,
+      "psnr_db": 40.91408902192934
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 47.964629697005634,
+        "psnr_db": 50.66944670670048
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 73.8326858000985,
+        "psnr_db": 46.92289528565482
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 73.79067757517498,
+        "psnr_db": 46.92783866056625
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 54.850423891572675,
+        "psnr_db": 49.504268860887855
+      }
+    ]
+  },
+  "bicubic_s": 0.2618834590539336,
+  "bicubic_raw_sha256": "2c03e9220dfe4bd1bf2787e6af8331a6799bd4d2b108d9b86b9b8ab66f6e8c45",
+  "rows": [
+    {
+      "checkpoint_name": "best.pt",
+      "model": {
+        "checkpoint_sha256": "3a6fa544e1d5d2e07ced41018795c2daa572f577c2fbed9196a290f2c998febf",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.6557061669882387,
+      "restored_raw_sha256": "d1b43d57c9b2a71e0fe65853cfd542c7f33079e3d694c767fe88da6e28c61adf",
+      "editable_dng_sha256": "ddede545194c0891eb236eb7b0d882a71e7f3085e7d0f38ecc54b23658ab9725",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 61.57525664668528,
+          "psnr_db": 48.49974401187459
+        },
+        "active": {
+          "rmse_counts": 61.57525664668528,
+          "psnr_db": 48.49974401187459
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 11.0,
+          "p90": 67.0,
+          "p99": 261.0,
+          "p99_9": 584.0
+        },
+        "active_max_abs_error": 5265,
+        "active_bias_counts": 0.4052717828887489,
+        "detail_gradient_threshold_counts": 230.0,
+        "detail_top_decile": {
+          "rmse_counts": 167.3205676624228,
+          "psnr_db": 39.816882038579465
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 9.359405813556366,
+          "psnr_db": 64.86290306077962
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 142.00222432350364,
+          "psnr_db": 41.24196568056162
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 49.411198587022795,
+            "psnr_db": 50.41136084769362
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 70.72098768559692,
+            "psnr_db": 47.296902277478544
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 70.2244400187743,
+            "psnr_db": 47.358102930067105
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 52.83608902481005,
+            "psnr_db": 49.82925535988231
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.28790097561439865
+    }
+  ],
+  "source_files": {
+    "benchmark_stock_sr.py": "c528c9b77ab2f35ff50913b0d3cec5c7c9c5ccdc284a18fe0d4cd19cffb52704",
+    "benchmark_stills.py": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6",
+    "stock_video.py": "b0a0ff4b2e2985916aacb994292feab2dc1a7b016086b1f9ff4c5da3bb2287c9",
+    "stock_still.py": "b58a71887502dcd002a1e286deeadc8267e9c9fba4e28520acd0a450189446d3",
+    "stock_cnn_models.py": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "stock_cnn_metadata.py": "8f4afc596189877b9514b32595bf2cab89a4e773610fcfe664538579829e3e90",
+    "raw_media.py": "452a1a4badf0f923264c618426f3ae4f98a1b86422abaae9fdd5f230405599e4"
+  },
+  "limitations": "Same-site rounded 2x2 area average, then actual stock Q3: not the previous fused decimator, sensor footage or temporal evidence. Checkpoint training/split provenance requires its separate receipt; inference support is not quality approval. Timing is diagnostic tiled inference, not capture throughput."
+}

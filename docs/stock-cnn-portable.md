@@ -88,10 +88,11 @@ verify display color, image detail/noise and temporal behavior.
   reconstructed sample, and SDK calibration parsing succeeds.
   [Receipt](stock-sr-receipts/camera-2x.json). There is no higher-resolution
   camera truth for this sample, so it provides no quality approval.
-- Six optional Torch tests pass locally: known-filter halo seams against
+- Seven optional Torch tests pass locally: known-filter halo seams against
   whole-image inference, finite/shape rejection, declared 2x bicubic tiling,
   bundled zero-residual checkpoint contracts, calibrated 1x/2x still workflows,
-  and native stock recording-to-2x-editable-DNG sequence integration.
+  native stock recording-to-2x-editable-DNG sequence integration, and audited
+  training/checkpoint/split-isolation contracts.
 - Ordinary media tests independently check geometry, fractional crops,
   masked areas, EXIF, all four GainMap sites, pitch-one splitting, preserved
   flags/grid data, analytic gain interpolation and malformed/unsupported cases.
@@ -154,7 +155,8 @@ python tools/benchmark_stock_sr.py --source source.dng \
   --checkpoint /path/to/candidate.pt --device mps --output-dir /new/sr-benchmark
 ```
 
-The next model step is a reproducible stock-input training/selection path with
-source-disjoint training, validation and final quality references. Functional
+A [fresh stock-input training/selection path](stock-sr-training.md) now uses
+separate source groups and a frozen validation-selected checkpoint. Its four
+final-image overall gains are modest and shadows regress; it remains unapproved. Functional
 2x packaging is implemented; stock-matched reconstruction quality, restored
 tiers, rendered color/noise/detail and temporal approval remain unfinished.
