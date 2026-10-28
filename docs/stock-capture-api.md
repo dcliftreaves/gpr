@@ -164,3 +164,50 @@ These are host integration tests, not camera delivery evidence. The broader
 goal still includes calibrated metadata/stills/high-bit-depth workflows,
 native preview, MOV/ProRes/editable outputs, model pairing and quality gates,
 cross-platform packaging, and sustained hardware measurements.
+
+## First Pi measurement for the committed implementation
+
+Source `ea418d147980b5f91a22a5a02596ef6231b85e2a` was measured with four
+in-flight slots, input leases and ARM CRC acceleration. The harness attempts
+900 arrivals at 30 fps, alternates the two supplied 4096×3072 RAW fixtures,
+and rejects a source arrival explicitly when the queue is full. Accepted
+frame mixtures can therefore differ between runs. All accepted frames are
+retained; the recorder does not hide rejected source arrivals as encoded FPS.
+
+| Quality | Written / attempted | Source overruns | Buffered FPS | FPS incl. final flush | Median codec call | Late completions |
+|---|---:|---:|---:|---:|---:|---:|
+| Q3 | 895 / 900 | 5 | 29.84 | 28.47 | 25.76 ms | 327 / 895 |
+| Q4 | 811 / 900 | 89 | 26.95 | 25.91 | 35.53 ms | 783 / 811 |
+
+These are **not reliable 30 fps results**. Completion p95 was 104.8 ms at Q3
+and 155.2 ms at Q4; four slots absorb only bounded backlog. Q3 final `fsync`
+took 1.44 s and Q4 1.20 s. Peak RSS was 510,656,512 bytes (~487 MiB), including
+both RAW fixtures; peak arena use was 97,936,896 bytes with zero fallback.
+The source-frame mixture and asynchronous work make these timings different
+from #100's serial, paced catch-up loop; do not interpret their FPS as a
+matched architectural speedup or a frame-deadline guarantee.
+
+All **1,706 accepted payloads** matched independent fresh stock encodes at
+the corresponding quality, and frame metadata, checksums, accounting and
+END3 were verified before large temporary clips were removed. The source,
+binary, input and output hashes and individual frame timings are preserved in
+[the Pi summaries](stock-capture-pi5/summary.jsonl), the per-frame JSONL files,
+[source manifest](stock-capture-pi5/source-manifest.json) and
+[environment receipt](stock-capture-pi5/environment.json). All 368 committed
+source/test/tool files were independently hashed and matched on the Pi.
+
+Reproduce with the instrumented independent reference from
+[the original experiment](stock-raw-video-12mp.md):
+
+```sh
+python3 tools/benchmark_capture.py --binary build-runtime/gpr_capture_app \
+  --reference "$REF" --input GP011728.raw --input GPAB1094.raw \
+  --out-dir capture-results --frames 900 --queue 4 --leased
+```
+
+The initial two-scan-CRC copied-input prototype fell below 20 fps on Q4.
+That led to explicit input leases, algebraic CRC combination and hardware
+CRC dispatch. The default copy path remains available for caller-owned
+short-lived buffers; it is not assumed to meet the lease path's throughput.
+Further memory/storage scheduling, preview integration and real sensor/SD
+tests remain part of the active rebuild.
