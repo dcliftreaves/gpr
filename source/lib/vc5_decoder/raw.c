@@ -85,8 +85,9 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
             RG -= midpoint;
             BG -= midpoint;
             
-            R = (RG << 1) + GS;
-            B = (BG << 1) + GS;
+            // Differences may be negative; signed left shift is undefined in C.
+            R = RG * 2 + GS;
+            B = BG * 2 + GS;
             G1 = GS + GD;
             G2 = GS - GD;
             
