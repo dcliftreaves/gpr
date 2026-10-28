@@ -217,9 +217,15 @@ if(GPR_BUILD_MEDIA_TESTS)
   endif()
   enable_testing()
   find_package(PythonInterp 3 REQUIRED)
+  add_executable(sdk_bayer_probe tests/sdk_bayer_probe.cpp)
+  target_compile_features(sdk_bayer_probe PRIVATE cxx_std_11)
+  target_link_libraries(sdk_bayer_probe gpr_sdk)
   add_test(NAME raw_media COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/raw_media_test.py
-    --sdk $<TARGET_FILE:gpr_tools> --decoder $<TARGET_FILE:stock_video> --capture $<TARGET_FILE:gpr_capture_app>)
-  set_tests_properties(raw_media PROPERTIES TIMEOUT 180)
+    --sdk $<TARGET_FILE:gpr_tools> --decoder $<TARGET_FILE:stock_video> --capture $<TARGET_FILE:gpr_capture_app>
+    --sdk-probe $<TARGET_FILE:sdk_bayer_probe>)
+  # Many isolated SDK subprocesses exercise all formats; Pi leak-sanitizer
+  # startup is much slower than native desktop startup.
+  set_tests_properties(raw_media PROPERTIES TIMEOUT 1200)
 endif()
 
 include(cmake/GPRInstall.cmake)

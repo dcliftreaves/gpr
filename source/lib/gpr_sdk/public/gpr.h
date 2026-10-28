@@ -50,7 +50,7 @@
 
             unsigned int        input_height;                  /* Height of input source in pixels (only applies to raw input) */
             
-            unsigned int        input_pitch;                   /* Pitch of input source in pixels (only applies to raw input) */
+            unsigned int        input_pitch;                   /* Row pitch of raw input in bytes */
 
             bool                fast_encoding;
             

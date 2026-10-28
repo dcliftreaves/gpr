@@ -73,9 +73,10 @@ These are correctness checks, not comparative encoding speed measurements.
 
 ## Remaining integration
 
-These are low-level codec capabilities. The public still SDK's format mapping,
-DNG CFA/calibration handling, still-tier size/quality selection and full
-high-level format workflows still need porting and validation. Capture/GVID,
-preview and Python video adapters retain their documented format restrictions.
+The [still SDK format port](stock-still-formats.md) extends its public mapping
+and DNG CFA/calibration handling with separate validation and explicit schema
+limits. Still-tier size/quality selection and the remaining high-level format
+workflows remain pending. Capture/GVID, preview and Python video adapters retain
+their documented format restrictions.
 Uncompressed editable DNG packaging already accepts all four Bayer phases and
 12/14/16-bit domains; that alone does not extend any encoder frontend.

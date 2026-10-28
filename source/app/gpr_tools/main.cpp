@@ -98,9 +98,9 @@ public:
         
         ("InputHeight,h",                                   input_height,                               3000,                   "Input image height in pixel samples [3000]")
 
-        ("InputPitch,p",                                    input_pitch,                                8000,                   "Input image pitch in bytes [8000]")
+        ("InputPitch,p",                                    input_pitch,                                -1,                     "Input row pitch in bytes (default: derive from width and format)")
         
-        ("InputPixelFormat,x",                              input_pixel_format,                         string("rggb14"),       "Input pixel format \n(rggb12, rggb12p, [rggb14], gbrg12, gbrg12p)")
+        ("InputPixelFormat,x",                              input_pixel_format,                         string("rggb14"),       "Input Bayer format: rggb/gbrg/grbg/bggr with 12,14,16; packed rggb12p/gbrg12p (default rggb14)")
         
         ("ApplyGprParameters,a",                            apply_gpr_parameters,                       string(""),             "Parameters to use for GPR or DNG file.")
         

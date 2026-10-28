@@ -20,6 +20,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "gpr.h"
 
@@ -147,55 +148,38 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else
     {
-        params.input_width  = input_width;
+        struct input_format { const char *name; GPR_PIXEL_FORMAT format; unsigned bits; bool packed; };
+        static const struct input_format formats[] = {
+            {"rggb12",PIXEL_FORMAT_RGGB_12,12,false},
+            {"rggb12p",PIXEL_FORMAT_RGGB_12P,12,true},
+            {"rggb14",PIXEL_FORMAT_RGGB_14,14,false},
+            {"gbrg12",PIXEL_FORMAT_GBRG_12,12,false},
+            {"gbrg12p",PIXEL_FORMAT_GBRG_12P,12,true},
+            {"rggb16",PIXEL_FORMAT_RGGB_16,16,false},
+            {"gbrg16",PIXEL_FORMAT_GBRG_16,16,false},
+            {"gbrg14",PIXEL_FORMAT_GBRG_14,14,false},
+            {"grbg12",PIXEL_FORMAT_GRBG_12,12,false},
+            {"grbg14",PIXEL_FORMAT_GRBG_14,14,false},
+            {"grbg16",PIXEL_FORMAT_GRBG_16,16,false},
+            {"bggr12",PIXEL_FORMAT_BGGR_12,12,false},
+            {"bggr14",PIXEL_FORMAT_BGGR_14,14,false},
+            {"bggr16",PIXEL_FORMAT_BGGR_16,16,false},
+        };
+        const struct input_format *selected = NULL;
+        for (size_t i=0;i<sizeof(formats)/sizeof(formats[0]);++i)
+            if (!strcmp(input_pixel_format,formats[i].name)) { selected=&formats[i]; break; }
+        if (!selected) { fprintf(stderr,"Unsupported Bayer input format: %s\n",input_pixel_format); goto cleanup; }
+        size_t row_bytes = selected->packed ? (size_t)input_width*3/2 : (size_t)input_width*2;
+        if (input_pitch == SIZE_MAX) input_pitch = row_bytes;
+        if (!input_width || !input_height || input_width%2 || input_height%2 ||
+            input_pitch<row_bytes || input_pitch>UINT_MAX ||
+            input_height-1 > (SIZE_MAX-row_bytes)/input_pitch ||
+            input_buffer.size < (input_height-1)*input_pitch+row_bytes) goto cleanup;
+        params.input_width = input_width;
         params.input_height = input_height;
-        params.input_pitch  = input_pitch;
-        
-        int32_t saturation_level = params.tuning_info.dgain_saturation_level.level_red;
-        
-        if( output_file_type == FILE_TYPE_GPR )
-            saturation_level = (1 << 14) - 1;
-        else if( output_file_type == FILE_TYPE_DNG )
-            saturation_level = (1 << 12) - 1;
-        
-        if( strcmp(input_pixel_format, "rggb12") == 0 )
-        {
-            params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_12;
-            
-            if( input_pitch == -1 )
-                input_pitch = input_width * 2;
-        }
-        if( strcmp(input_pixel_format, "rggb12p") == 0 )
-        {
-            params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_12P;
-            
-            if( input_pitch == -1 )
-                input_pitch = (input_width * 3 / 4) * 2;
-        }
-        else if( strcmp(input_pixel_format, "rggb14") == 0 )
-        {
-            params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_14;
-            
-            saturation_level = (1 << 14) - 1;
-
-            if( input_pitch == -1 )
-                input_pitch = input_width * 2;
-        }
-        else if( strcmp(input_pixel_format, "gbrg12") == 0 )
-        {
-            params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_12;
-            
-            if( input_pitch == -1 )
-                input_pitch = input_width * 2;
-        }
-        else if( strcmp(input_pixel_format, "gbrg12p") == 0 )
-        {
-            params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_12P;
-            
-            if( input_pitch == -1 )
-                input_pitch = (input_width * 3 / 4) * 2;
-        }
-        
+        params.input_pitch = (unsigned int)input_pitch;
+        params.tuning_info.pixel_format = selected->format;
+        int32_t saturation_level = (1u << selected->bits)-1;
         params.tuning_info.dgain_saturation_level.level_red         = saturation_level;
         params.tuning_info.dgain_saturation_level.level_green_even  = saturation_level;
         params.tuning_info.dgain_saturation_level.level_green_odd   = saturation_level;

@@ -40,6 +40,203 @@ def metadata(width=128, height=96, bits=14, cfa='RGGB'):
 
 
 class Media(unittest.TestCase):
+    def test_sdk_bayer_formats_and_spatial_calibration(self):
+        positions = {'RGGB': (0, 1, 2, 3), 'GBRG': (2, 0, 3, 1),
+                     'GRBG': (1, 0, 3, 2), 'BGGR': (3, 1, 2, 0)}
+        black_sites = {'RGGB': (0, 1, 2, 3), 'GBRG': (2, 3, 0, 1),
+                       'GRBG': (1, 0, 3, 2), 'BGGR': (3, 2, 1, 0)}
+        enum = {'RGGB': (0, 2, 5), 'GBRG': (3, 7, 6), 'GRBG': (8, 9, 10), 'BGGR': (11, 12, 13)}
+        def gain_maps():
+            records = []
+            for site in range(4):
+                area = struct.pack('>8I', site//2, site%2, 96, 128, 0, 1, 2, 2)
+                grid = struct.pack('>2I4dI4f', 2, 2, 1., 1., 0., 0., 1,
+                                   1.+site/8, 1.1+site/8, 1.2+site/8, 1.3+site/8)
+                data = area+grid
+                records.append(struct.pack('>4I', 9, 0x01030000, 1+(site%2)*2, len(data))+data)
+            return struct.pack('>I', 4)+b''.join(records)
+        def raw_page(f):
+            def walk(pages):
+                for page in pages:
+                    if 33422 in page.tags: return page
+                    if page.pages:
+                        child = walk(page.pages)
+                        if child is not None: return child
+            result = walk(f.pages)
+            self.assertIsNotNone(result)
+            return result
+        y, x = np.indices((96, 128), dtype=np.uint32)
+        canonical14 = ((x*123+y*97+x*y*29+(x^y)*37)&16383).astype('<u2')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); original = root/'reference.raw'; reference = root/'reference.decoded.raw'
+            canonical14.tofile(original)
+            fixture = Path(__file__).parent/'fixtures/stock_preview/128x96-q3.vc5'
+            (root/'reference.vc5').write_bytes(fixture.read_bytes())
+            run([str(args.decoder), '--decode', str(root/'reference.vc5'), '--output', str(reference),
+                 '--width', '128', '--height', '96'])
+            decoded14 = np.frombuffer(reference.read_bytes(), dtype='<u2').reshape(96, 128)
+            for bits_index, bits in enumerate((12, 14, 16)):
+              for phase, sites in positions.items():
+                with self.subTest(bits=bits, phase=phase):
+                    case = root/f'{phase}{bits}'; case.mkdir()
+                    raw = np.empty_like(canonical14)
+                    for c, site in enumerate(sites):
+                        raw[site//2::2, site%2::2] = (canonical14[c//2::2, c%2::2]>>2) << (bits-12)
+                    meta = metadata(bits=bits, cfa=phase)
+                    # Distinct matrices/illuminants, orientation and per-site gains.
+                    meta['image'] += [media.record(274, 3, 1, struct.pack('<H', 6)),
+                                      media.record(51041, 12, 2, struct.pack('<2d', .001, .0001))]
+                    if bits != 12:
+                        matrix2 = (12,10, -1,10, 0,1, 0,1, 11,10, -1,10, -1,10, 0,1, 11,10)
+                        meta['image'] += [media.record(50722, 10, 9, struct.pack('<18i', *matrix2)),
+                                          media.record(50779, 3, 1, struct.pack('<H', 17))]
+                    maps = gain_maps()
+                    meta['image'] = [t for t in meta['image'] if t['code'] != 51009]
+                    meta['image'].append(media.record(51009, 7, len(maps), maps))
+                    source, compressed = case/'source.dng', case/'encoded.gpr'
+                    media.write(source, meta, raw.tobytes())
+                    run([str(args.sdk), '-i', str(source), '-o', str(case/'source.raw')])
+                    self.assertEqual((case/'source.raw').read_bytes(), raw.tobytes())
+                    run([str(args.sdk), '-i', str(source), '-o', str(compressed)])
+                    run([str(args.sdk), '-i', str(compressed), '-o', str(case/'decoded.raw')])
+                    run([str(args.sdk), '-i', str(compressed), '-o', str(case/'legacy.ppm'), '-r', '4:1'])
+                    ppm=(case/'legacy.ppm').read_bytes()
+                    self.assertTrue(ppm.startswith(b'P6\n32 24\n255\n'))
+                    self.assertEqual(len(ppm.split(b'\n',3)[3]),32*24*3)
+                    decoded = np.frombuffer((case/'decoded.raw').read_bytes(), dtype='<u2').reshape(96, 128)
+                    for c, site in enumerate(sites):
+                        actual = decoded[site//2::2, site%2::2].astype(np.uint32)
+                        expected = decoded14[c//2::2, c%2::2].astype(np.uint32)
+                        # The 16-bit inverse curve retains two bits omitted by the 14-bit reference.
+                        if bits == 16: actual >>= 2
+                        else: expected >>= 14-bits
+                        self.assertTrue(np.array_equal(actual, expected), (bits, phase, c))
+                    run([str(args.sdk), '-i', str(compressed), '-o', str(case/'editable.dng')])
+                    run([str(args.sdk), '-i', str(source), '-o', str(case/'rewritten.dng')])
+                    for path in (compressed, case/'editable.dng', case/'rewritten.dng'):
+                        with tifffile.TiffFile(path) as f:
+                            page = raw_page(f)
+                            tags = {t.code: t.value for p in (f.pages[0], page) for t in p.tags.values()}
+                            self.assertEqual(tags[33422], bytes('RGB'.index(ch) for ch in phase))
+                            black = np.array(tags[50714]).reshape(-1,2)
+                            self.assertTrue(np.array_equal(black[:,0]/black[:,1], (16,17,18,19)))
+                            self.assertEqual(tags[50717], (1<<bits)-1)
+                            self.assertEqual(int(tags[274]), 6)
+                            self.assertEqual(tags[50778], 21)
+                            matrix1 = np.array(tags[50721]).reshape(-1,2)
+                            self.assertTrue(np.array_equal(matrix1[:,0]/matrix1[:,1], np.eye(3).reshape(-1)))
+                            neutral = np.array(tags[50728]).reshape(-1,2)
+                            self.assertTrue(np.allclose(neutral[:,0]/neutral[:,1], (.5,1.,2/3), atol=1e-6))
+                            self.assertEqual(tags[51009], maps)
+                            self.assertTrue(np.allclose(tags[51041], (.001, .0001), rtol=0, atol=1e-12))
+                            if bits == 12: self.assertNotIn(50722, tags)
+                            else:
+                                self.assertEqual(tags[50779], 17)
+                                m = np.array(tags[50722]).reshape(-1,2)
+                                self.assertTrue(np.allclose(m[:,0]/m[:,1], np.array(matrix2)[::2]/np.array(matrix2)[1::2], atol=1e-6))
+                            if path.suffix == '.gpr':
+                                offset, size = page.dataoffsets[0], page.databytecounts[0]
+                                self.assertEqual(path.read_bytes()[offset:offset+size], (root/'reference.vc5').read_bytes())
+                            else:
+                                expected = decoded if path.name == 'editable.dng' else raw
+                                self.assertTrue(np.array_equal(page.asarray(), expected))
+                        dumped = run([str(args.sdk), '-i', str(path), '-d', '1']).stdout
+                        params = json.loads(dumped[dumped.index('{'):dumped.rindex('}')+1])
+                        tuning = params['tuning_info']
+                        self.assertEqual(tuning['pixel_format'], enum[phase][bits_index])
+                        self.assertEqual(tuple(tuning['static_black_level'][k] for k in ('r_black','g_r_black','g_b_black','b_black')),
+                                         tuple(16+i for i in black_sites[phase]))
+                    # Raw CLI selections use the declared domain, independent of output extension.
+                    raw.tofile(case/'input.raw')
+                    for extension in ('dng', 'gpr'):
+                        path = case/f'cli.{extension}'
+                        run([str(args.sdk), '-i', str(case/'input.raw'), '-o', str(path),
+                             '-w', '128', '-h', '96', '-x', phase.lower()+str(bits)])
+                        with tifffile.TiffFile(path) as f:
+                            page = raw_page(f)
+                            self.assertEqual(page.tags[50717].value, (1<<bits)-1)
+                            self.assertEqual(page.tags[33422].value, bytes('RGB'.index(ch) for ch in phase))
+                            if extension == 'dng': self.assertTrue(np.array_equal(page.asarray(),raw))
+                    padded = np.pad(raw, ((0,0),(0,8)), constant_values=0xCDEF)
+                    padded.tofile(case/'padded.raw')
+                    run([str(args.sdk), '-i', str(case/'padded.raw'), '-o', str(case/'padded.dng'),
+                         '-w', '128', '-h', '96', '-p', '272', '-x', phase.lower()+str(bits)])
+                    with tifffile.TiffFile(case/'padded.dng') as f:
+                        self.assertTrue(np.array_equal(raw_page(f).asarray(),raw))
+
+    def test_sdk_packed_input_and_metadata_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            raw = (np.arange(128*96,dtype=np.uint16).reshape(96,128)*13)&4095
+            packed = np.empty((96,192),dtype=np.uint8)
+            packed[:,0::3] = raw[:,0::2]&255
+            packed[:,1::3] = (raw[:,0::2]>>8)|((raw[:,1::2]&15)<<4)
+            packed[:,2::3] = raw[:,1::2]>>4
+            packed.tofile(root/'packed.raw')
+            for phase in ('rggb','gbrg'):
+                for extension in ('dng','gpr'):
+                    path = root/f'{phase}.{extension}'
+                    run([str(args.sdk), '-i', str(root/'packed.raw'), '-o', str(path),
+                         '-w', '128', '-h', '96', '-x', phase+'12p'])
+                    if extension == 'dng':
+                        with tifffile.TiffFile(path) as f: self.assertTrue(np.array_equal(f.asarray(),raw))
+                    else:
+                        run([str(args.sdk), '-i', str(path), '-o', str(root/f'{phase}.raw')])
+                        self.assertEqual(len((root/f'{phase}.raw').read_bytes()),128*96*2)
+            for kind in ('cfa','white','fractional-black','gain-map-count'):
+                meta = metadata()
+                if kind == 'white':
+                    meta['image'] = [t for t in meta['image'] if t['code']!=50717]
+                    meta['image'].append(media.record(50717,4,1,struct.pack('<I',15000)))
+                if kind == 'fractional-black':
+                    meta['image'] = [t for t in meta['image'] if t['code']!=50714]
+                    meta['image'].append(media.record(50714,5,4,struct.pack('<8I',33,2,17,1,18,1,19,1)))
+                if kind == 'gain-map-count':
+                    body=struct.pack('>8I2I4dIf',0,0,96,128,0,1,1,1,1,1,1.,1.,0.,0.,1,1.)
+                    opcode=struct.pack('>5I',1,9,0x01030000,1,len(body))+body
+                    meta['image']=[t for t in meta['image'] if t['code']!=51009]
+                    meta['image'].append(media.record(51009,7,len(opcode),opcode))
+                path = root/f'{kind}.dng'; media.write(path,meta,raw.tobytes())
+                if kind == 'cfa':
+                    with tifffile.TiffFile(path) as f: offset=f.pages[0].tags[33422].valueoffset
+                    data=bytearray(path.read_bytes()); data[offset:offset+4]=bytes((0,1,2,1)); path.write_bytes(data)
+                output=root/f'{kind}-rejected.gpr'
+                result=subprocess.run([str(args.sdk),'-i',str(path),'-o',str(output)],capture_output=True,text=True)
+                self.assertNotEqual(result.returncode,0)
+                self.assertFalse(output.exists())
+                self.assertNotIn('Sanitizer',result.stderr)
+            # A single black value repeats at every physical Bayer site.
+            meta=metadata(cfa='GBRG',bits=12)
+            meta['image']=[t for t in meta['image'] if t['code'] not in (50713,50714)]
+            meta['image'] += [media.record(50713,3,2,struct.pack('<2H',1,1)),
+                              media.record(50714,5,1,struct.pack('<2I',16,1))]
+            media.write(root/'uniform.dng',meta,raw.tobytes())
+            run([str(args.sdk),'-i',str(root/'uniform.dng'),'-o',str(root/'uniform-copy.dng')])
+            with tifffile.TiffFile(root/'uniform-copy.dng') as f:
+                black=np.array(f.pages[0].tags[50714].value).reshape(-1,2)
+                self.assertTrue(np.array_equal(black[:,0]/black[:,1],(16,16,16,16)))
+
+    def test_sdk_public_wrapping_apis(self):
+        bits = (12,12,14,12,12,16,16,14,12,14,16,12,14,16)
+        phases = ('RGGB','RGGB','RGGB','GBRG','GBRG','RGGB','GBRG','GBRG','GRBG','GRBG','GRBG','BGGR','BGGR','BGGR')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); fixture = Path(__file__).parent/'fixtures/stock_preview/128x96-q3.vc5'
+            for index in range(14):
+                with self.subTest(format=index):
+                    gpr, dng = root/f'{index}.gpr', root/f'{index}.dng'
+                    run([str(args.sdk_probe), str(index), str(fixture), str(gpr), str(dng)])
+                    for path in (gpr,dng):
+                        with tifffile.TiffFile(path) as f:
+                            page = f.pages[0]
+                            if 33422 not in page.tags: page = page.pages[0]
+                            self.assertEqual(page.compression, 9 if path==gpr else 1)
+                            self.assertEqual(page.tags[33422].value, bytes('RGB'.index(ch) for ch in phases[index]))
+                            self.assertEqual(page.tags[50717].value, (1<<bits[index])-1)
+                            if path==gpr:
+                                offset,length=page.dataoffsets[0],page.databytecounts[0]
+                                self.assertEqual(path.read_bytes()[offset:offset+length],fixture.read_bytes())
+                            else: self.assertEqual(page.asarray().shape,(96,128))
+
     def test_big_endian_subifd_and_global_calibration(self):
         m = metadata()
         def extra(tag):
@@ -176,5 +373,6 @@ class Media(unittest.TestCase):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(); p.add_argument('--sdk', type=Path, required=True); p.add_argument('--decoder', type=Path, required=True)
     p.add_argument('--capture', type=Path, required=True)
+    p.add_argument('--sdk-probe', type=Path, required=True)
     args = p.parse_args(); args.sdk = args.sdk.resolve(); args.decoder = args.decoder.resolve(); args.capture = args.capture.resolve()
     unittest.main(argv=[sys.argv[0]])
