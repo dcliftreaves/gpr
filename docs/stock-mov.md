@@ -92,7 +92,8 @@ original records, verifies source SHA-256, then validates the recovered GVID
 again. Additional data references/network I/O are disabled. This is integrity
 checking, not authenticated provenance.
 
-Native output files are created exclusively and removed on failure. The Python
+Inputs must be regular local files; devices and FIFOs fail before reads. Native
+output files are created exclusively and removed on failure. The Python
 wrapper stages privately, verifies a complete inverse round trip before wrapping
 publication, validates recovered JSON/calibration before unwrapping publication,
 and publishes output/receipt exclusively with owned-partial rollback. Existing
@@ -111,8 +112,9 @@ hash, PTS and sync flag, plus dimensions and private codec tag.
 
 All eight cases pass locally in Release and ASan/UBSan. With MOV enabled, all
 eleven local native/media CTest targets pass. Pi Release passes the transport
-suite using system FFmpeg 5/libavformat 59; its leak-sanitizer run is a separate
-gate. CI adds standalone Linux Release/sanitizer transport builds with SDK and
+suite using system FFmpeg 5/libavformat 59. The eight-case Pi ASan/UBSan/leak
+suite also passes in 128.71 s at `5824f81`; subsequent Release/report changes
+are source-verified separately at `e2065cb`. CI adds standalone Linux Release/sanitizer transport builds with SDK and
 both image-codec source directories physically absent.
 
 A new 12-frame Pi replay alternates the supplied GP011728/GPAB1094-derived
@@ -120,8 +122,8 @@ A new 12-frame Pi replay alternates the supplied GP011728/GPAB1094-derived
 
 | Offline workflow | Median wall time |
 |---|---:|
-| Verified GVID to MOV wrapper | **1.066 s** |
-| Verified MOV to original GVID | **0.599 s** |
+| Verified GVID to MOV wrapper | **1.074 s** |
+| Verified MOV to original GVID | **0.602 s** |
 
 Wrapping includes source JSON/calibration checks, hashes, native muxing and a
 complete inverse readback/hash check. Unwrapping includes native demuxing,
@@ -138,6 +140,28 @@ GPRs matches the two independent historical RAW references. Source/binary/librar
 identity, per-frame hashes and revision-bound test/measurement receipts accompany
 the PR. Cross-version exchange is checked in both directions between Pi/FFmpeg
 5 and Mac/FFmpeg 8, without copying a metadata sidecar.
+
+Reproduce the measured wrapper path on an existing complete recording:
+
+```sh
+python tools/benchmark_stock_mov.py --input recording.gvid \
+  --bridge build-mov/gpr_mov --ffprobe /path/to/ffprobe --repeats 3 \
+  --output-dir /new/mov-benchmark
+```
+
+The benchmark independently verifies all packet hashes/timestamps and stream
+properties after timing. Measurement tools/runtime files match Git `e2065cb`;
+415 source/test/tool/build/fixture files on Pi were checked against that revision.
+The initial sanitizer/SDK-pixel validation snapshot matches `5824f81` (414 files).
+The independent capture/SDK/decoder binaries retain their verified `31274ea`
+identity. All four MOV-enabled relocated package profiles pass C/C++ clients,
+installed wrapping/recovery, guide presence and external-dependency declarations.
+
+Receipts: [current Pi benchmark](stock-mov-receipts/pi5-current.json),
+[initial tests and SDK pixel/calibration checks](stock-mov-receipts/pi5-initial-validation.json),
+[cross-version exchange](stock-mov-receipts/cross-version.json),
+[relocated packages](stock-mov-receipts/packages-mac.json).
+The source recordings remain outside the repository.
 
 ProRes rendering, audio/timecode integration and integrated capture/display
 performance remain part of the active high-level rebuild.

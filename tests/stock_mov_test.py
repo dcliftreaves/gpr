@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -151,6 +152,14 @@ class Transport(unittest.TestCase):
     def test_exclusive_outputs_and_dangling_symlinks(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source,movie,_=self.wrap(root,fixture());protected=root/'protected'
+            with self.assertRaisesRegex(ValueError,'regular input'):
+                stock_mov.convert('wrap',Path('/dev/null'),args.bridge,root/'device.mov')
+            self.assertFalse((root/'device.mov').exists())
+            fifo=root/'pipe';os.mkfifo(fifo)
+            with self.assertRaisesRegex(ValueError,'regular input'):
+                stock_mov.convert('wrap',fifo,args.bridge,root/'pipe.mov')
+            result=subprocess.run([str(args.bridge),'mux',str(fifo),str(root/'pipe.mov')],capture_output=True,timeout=20)
+            self.assertNotEqual(result.returncode,0);self.assertFalse((root/'pipe.mov').exists())
             protected.write_bytes(b'keep')
             for action,input_path in (('wrap',source),('unwrap',movie)):
                 with self.assertRaises(FileExistsError):stock_mov.convert(action,input_path,args.bridge,protected)

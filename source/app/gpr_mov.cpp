@@ -32,10 +32,10 @@ void checked(int code,const char *message) {
 }
 typedef std::unique_ptr<FILE,decltype(&fclose)> File;
 File input(const char *path) {
-    FILE *f=fopen(path,"rb");require(f!=nullptr,"cannot open input");
-    File result(f,fclose);struct stat st;
-    require(fstat(fileno(f),&st)==0 && S_ISREG(st.st_mode),"input must be a regular local file");
-    return result;
+    int fd=open(path,O_RDONLY|O_NONBLOCK);require(fd>=0,"cannot open input");struct stat st;
+    if(fstat(fd,&st)!=0||!S_ISREG(st.st_mode)){close(fd);throw std::runtime_error("input must be a regular local file");}
+    FILE *f=fdopen(fd,"rb");if(!f){close(fd);throw std::runtime_error("input stream creation failed");}
+    return File(f,fclose);
 }
 struct Sha {
     AVSHA *p=av_sha_alloc();

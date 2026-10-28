@@ -114,7 +114,14 @@ no 2x model is approved. A [fresh stock-matched candidate](stock-sr-training.md)
 now has source-grouped training and frozen final evaluation. Its modest overall
 gains and shadow regression leave the full quality gate unfinished.
 
-This is not feature-suite parity. Restored still tiers, MOV/ProRes export, full reconstruction/model quality
+[Stock MOV interchange](stock-mov.md) now preserves complete stock GVID files
+through private GVS2/GVS3 MOV sample profiles, including original payloads,
+metadata and timestamps. Independent packet checks, Pi SDK pixels/calibration,
+Mac/Pi FFmpeg-version exchange, sanitizer checks and relocated packages validate
+the transport. It is not standard CFHD or rendered ProRes; audio/timecode
+extensions remain pending.
+
+This is not feature-suite parity. Restored still tiers, MOV audio/timecode extensions and ProRes rendering, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance
 and remaining platform/release integration remain
 pending. Earlier

@@ -18,7 +18,9 @@ import stock_video
 
 def benchmark(source,bridge,ffprobe,output_dir,repeats=3):
     if not 1<=repeats<=20:raise ValueError('repeats must be 1..20')
-    source=Path(source).resolve();root=Path(output_dir).resolve();root.mkdir(parents=True,exist_ok=False)
+    source=Path(source).resolve()
+    if not source.is_file():raise ValueError('benchmark input must be a regular recording file')
+    root=Path(output_dir).resolve();root.mkdir(parents=True,exist_ok=False)
     source_sha=stock_still.digest(source);attempts=[]
     for repeat in range(repeats):
         movie=root/f'wrap-{repeat}.mov';returned=root/f'returned-{repeat}.gvid'

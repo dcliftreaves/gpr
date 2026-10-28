@@ -44,9 +44,10 @@ def run(bridge,action,source,output):
 def convert(action,source,bridge,output,receipt=None):
     if action not in ('wrap','unwrap'):raise ValueError('action must be wrap or unwrap')
     start=time.perf_counter();source=Path(source).resolve();bridge=Path(bridge).resolve()
+    if not source.is_file() or not bridge.is_file():raise ValueError('requires regular input and native bridge files')
     output,receipt,_=stock_still.outputs(output,receipt,None)
-    source_sha=stock_still.digest(source)
     source_info=recording(source) if action=='wrap' else None
+    source_sha=stock_still.digest(source)
     with tempfile.TemporaryDirectory(prefix='.stock-mov-',dir=output.parent) as temp:
         root=Path(temp);staged=root/('output.mov' if action=='wrap' else 'output.gvid')
         native=run(bridge,'mux' if action=='wrap' else 'demux',source,staged)

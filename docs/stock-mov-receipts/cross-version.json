@@ -1,0 +1,49 @@
+{
+  "schema": "gpr.stock_mov_cross_version.v1",
+  "gvid_sha256": "fe9a47ac4f4c5cd4fd81968dd41b3c8efd95aa68ec98195f998745ab4aba64b3",
+  "pi_to_mac": {
+    "schema": "gpr.stock_mov.v1",
+    "action": "unwrap",
+    "profile": "GVS3",
+    "reencoded": false,
+    "source_sha256": "96f414ba0b347bfd5938fd7cf050dba8c392133fe8cf88efab24b812a3e92847",
+    "output_sha256": "fe9a47ac4f4c5cd4fd81968dd41b3c8efd95aa68ec98195f998745ab4aba64b3",
+    "output_bytes": 40793268,
+    "gvid_sha256": "fe9a47ac4f4c5cd4fd81968dd41b3c8efd95aa68ec98195f998745ab4aba64b3",
+    "movie_sha256": "96f414ba0b347bfd5938fd7cf050dba8c392133fe8cf88efab24b812a3e92847",
+    "native_binary_sha256": "a50017d6075374dc71b65cb46eb9827e5a418b0cd2cbfbba68ce62afebe90e5f",
+    "native_libavformat_version": 4066405,
+    "mov_tick_ns": 1,
+    "mov_track_timestamps_quantized": false,
+    "original_timestamps_preserved_exactly": true,
+    "video": {
+      "width": 4096,
+      "height": 3072,
+      "fps_num": 30,
+      "fps_den": 1,
+      "quality": 3,
+      "bayer": "RGGB",
+      "sample_bits": 14,
+      "version": 3
+    },
+    "frames": 12,
+    "calibrated_frames": 12,
+    "first_timestamp_ns": 12765583620817268,
+    "last_timestamp_ns": 12765583835901652,
+    "complete": true,
+    "end_marker_verified": true,
+    "elapsed_before_publication_s": 0.22919079200000003
+  },
+  "mac_to_pi": {
+    "profile": "GVS3",
+    "source_version": 3,
+    "frames": 12,
+    "width": 4096,
+    "height": 3072,
+    "unit_ns": 1,
+    "libavformat_version": 3873636,
+    "gvid_sha256": "fe9a47ac4f4c5cd4fd81968dd41b3c8efd95aa68ec98195f998745ab4aba64b3"
+  },
+  "whole_recording_exact_both_directions": true,
+  "scope": "Functional cross-version exchange; timing values are diagnostic and may overlap local builds."
+}
