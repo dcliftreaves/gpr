@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate explicit legacy 2x candidates on simulated stock-Q3 low-res RAW.
+"""Evaluate explicit 2x checkpoints on simulated stock-Q3 low-res RAW.
 
 The source is independently decoded lossless RGGB14 DNG. Same-site 2x2 area
 averaging generates a known low-resolution input, followed by actual stock
@@ -123,7 +123,7 @@ def evaluate(source,sdk,checkpoints,output_dir,device='cpu',tile=256,halo=64,cnn
                     bicubic_raw_sha256=hashlib.sha256(baseline.astype('<u2').tobytes()).hexdigest(),rows=rows,
                     source_files={name:stock_still.digest(Path(__file__).parent/name) for name in
                                   ('benchmark_stock_sr.py','benchmark_stills.py','stock_video.py','stock_still.py','stock_cnn_models.py','stock_cnn_metadata.py','raw_media.py')},
-                    limitations='Same-site rounded 2x2 area average, then actual stock Q3: not the previous fused decimator, sensor footage or temporal evidence. Existing legacy checkpoints are candidates, not stock-trained approvals. Training-split membership is unknown. Timing is diagnostic tiled inference, not capture throughput.')
+                    limitations='Same-site rounded 2x2 area average, then actual stock Q3: not the previous fused decimator, sensor footage or temporal evidence. Checkpoint training/split provenance requires its separate receipt; inference support is not quality approval. Timing is diagnostic tiled inference, not capture throughput.')
         (root/'benchmark.json').write_text(json.dumps(report,indent=2)+'\n')
         print(json.dumps(dict(checkpoint=row['checkpoint_name'],bicubic_psnr_db=base_metrics['active']['psnr_db'],
                               model_psnr_db=metrics['active']['psnr_db'],delta_db=row['active_psnr_delta_vs_bicubic_db'])),flush=True)
