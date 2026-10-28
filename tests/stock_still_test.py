@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Still preset workflows against independent stock bytes and TIFF reading."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import struct
+import sys
+import tempfile
+import unittest
+import numpy as np
+import tifffile
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+import raw_media as media
+import stock_still as still
+from raw_media_test import metadata
+
+
+class Stills(unittest.TestCase):
+    def test_even_geometry_and_transform_boundaries(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for w,h in ((48,48),(50,50),(130,96),(128,98)):
+                with self.subTest(width=w,height=h):
+                    meta=metadata(width=w,height=h)
+                    y,x=np.indices((h,w),dtype=np.uint32)
+                    raw=((x*123+y*97+x*y*29)&16383).astype('<u2')
+                    source=root/f'{w}x{h}.raw'; raw.tofile(source)
+                    editable=root/f'{w}x{h}.dng'; output=root/f'{w}x{h}.gpr'
+                    still.encode(source,meta,3,args.sdk,output,editable=editable)
+                    recovered=root/f'{w}x{h}-decoded.dng'; still.decode(output,14,args.sdk,recovered)
+                    with tifffile.TiffFile(editable) as a,tifffile.TiffFile(recovered) as b:
+                        self.assertEqual(a.asarray().shape,(h,w))
+                        self.assertTrue(np.array_equal(a.asarray(),b.asarray()))
+
+    def test_all_formats_with_exact_nonstandard_calibration(self):
+        positions={'RGGB':(0,1,2,3),'GBRG':(2,0,3,1),'GRBG':(1,0,3,2),'BGGR':(3,1,2,0)}
+        y,x=np.indices((96,128),dtype=np.uint32)
+        canonical=((x*123+y*97+x*y*29+(x^y)*37)&16383).astype('<u2')
+        fixture=(Path(__file__).parent/'fixtures/stock_preview/128x96-q3.vc5').read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for bits in (12,14,16):
+              for phase,sites in positions.items():
+                with self.subTest(bits=bits,phase=phase):
+                    raw=np.empty_like(canonical)
+                    for c,site in enumerate(sites): raw[site//2::2,site%2::2]=(canonical[c//2::2,c%2::2]>>2)<<(bits-12)
+                    meta=metadata(bits=bits,cfa=phase)
+                    meta['image']=[t for t in meta['image'] if t['code'] not in (50714,50717)]
+                    meta['image'] += [media.record(50717,4,1,struct.pack('<I',(1<<bits)-101)),
+                                      media.record(50714,5,4,struct.pack('<8I',33,2,17,1,18,1,19,1))]
+                    prefix=f'{phase}{bits}'
+                    path=root/f'{prefix}.raw'; raw.tofile(path)
+                    output=root/f'{prefix}.gpr'; editable=root/f'{prefix}.dng'
+                    report=still.encode(path,meta,3,args.sdk,output,editable=editable)
+                    self.assertEqual(report['payload_sha256'],hashlib.sha256(fixture).hexdigest())
+                    self.assertEqual(report['output_sha256'],still.digest(output))
+                    self.assertEqual(report['metadata_sha256'],hashlib.sha256(still.canonical(meta)).hexdigest())
+                    recovered,payload=media.extract(output,bits,with_payload=True)
+                    self.assertEqual(payload,fixture)
+                    self.assertEqual(still.canonical(recovered),still.canonical(meta))
+                    decoded=root/f'{prefix}-decoded.dng'; result=still.decode(output,bits,args.sdk,decoded)
+                    self.assertEqual(result['metadata_sha256'],report['metadata_sha256'])
+                    self.assertEqual(still.canonical(media.extract(decoded,bits)),still.canonical(meta))
+                    with tifffile.TiffFile(editable) as a,tifffile.TiffFile(decoded) as b:
+                        self.assertTrue(np.array_equal(a.asarray(),b.asarray()))
+                        self.assertEqual(a.pages[0].tags[50714].value,(33,2,17,1,18,1,19,1))
+                    self.assertEqual(json.loads(output.with_suffix('.gpr.json').read_text()),report)
+                    with self.assertRaises(FileExistsError): still.encode(path,meta,3,args.sdk,output)
+
+    def test_dng_input_and_exclusive_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); raw=(np.arange(128*96,dtype=np.uint16).reshape(96,128)*7)&16383
+            meta=metadata(); meta['image']=[t for t in meta['image'] if t['code']!=50717]
+            meta['image'].append(media.record(50717,4,1,struct.pack('<I',15000)))
+            source=root/'source.dng'; media.write(source,meta,raw.tobytes())
+            result=still.encode(source,meta,0,args.sdk,root/'encoded.gpr',source_type='dng')
+            self.assertEqual(result['raw_sha256'],hashlib.sha256(raw.tobytes()).hexdigest())
+            # A competing existing output is never replaced; earlier links roll back.
+            staged=root/'staged'; staged.write_bytes(b'new')
+            protected=root/'protected'; protected.write_bytes(b'original')
+            with self.assertRaises(FileExistsError): still.publish([(staged,root/'first'),(staged,protected)])
+            self.assertFalse((root/'first').exists()); self.assertEqual(protected.read_bytes(),b'original')
+            short=root/'short.raw'; short.write_bytes(bytes(10))
+            with self.assertRaises(ValueError): still.encode(short,meta,3,args.sdk,root/'bad.gpr')
+            self.assertFalse((root/'bad.gpr').exists())
+            overflow=root/'overflow.raw'; np.full((96,128),65535,dtype='<u2').tofile(overflow)
+            with self.assertRaises(ValueError): still.encode(overflow,meta,3,args.sdk,root/'overflow.gpr')
+            with self.assertRaises(ValueError): still.encode(short,meta,6,args.sdk,root/'invalid.gpr')
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser(); p.add_argument('--sdk',type=Path,required=True); args=p.parse_args()
+    unittest.main(argv=[sys.argv[0]])

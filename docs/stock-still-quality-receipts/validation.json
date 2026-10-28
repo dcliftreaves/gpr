@@ -1,0 +1,10 @@
+{
+  "mac_cpu": "Apple M5 Max",
+  "mac_memory_bytes": 137438953472,
+  "all_nine_source_manifests_identical": true,
+  "source_file_count": 384,
+  "mac_pi_camera_payloads_and_decoded_pixels_exact": true,
+  "mac_pi_metric_absolute_tolerance": 1e-12,
+  "measurements": "3 fresh processes per preset/input, 6 presets; no concurrent builds/tests/benchmarks on each host",
+  "pi_post_run_status": "temp=53.2'C\nthrottled=0x80000\nperformance\n2400000"
+}

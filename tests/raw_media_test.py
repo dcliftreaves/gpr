@@ -40,6 +40,32 @@ def metadata(width=128, height=96, bits=14, cfa='RGGB'):
 
 
 class Media(unittest.TestCase):
+    def test_sdk_cli_quality_selection(self):
+        def payload(path):
+            with tifffile.TiffFile(path) as f:
+                page=f.pages[0]
+                if 33422 not in page.tags: page=page.pages[0]
+                offset,size=page.dataoffsets[0],page.databytecounts[0]
+                return path.read_bytes()[offset:offset+size]
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); y,x=np.indices((96,128),dtype=np.uint32)
+            raw=((x*123+y*97+x*y*29+(x^y)*37)&16383).astype('<u2')
+            raw.tofile(root/'input.raw'); media.write(root/'input.dng',metadata(),raw.tobytes())
+            outputs=[]
+            for q in range(6):
+                raw_gpr,dng_gpr=root/f'raw-q{q}.gpr',root/f'dng-q{q}.gpr'
+                run([str(args.sdk),'-i',str(root/'input.raw'),'-o',str(raw_gpr),'-w','128','-h','96','-x','rggb14','-q',str(q)])
+                run([str(args.sdk),'-i',str(root/'input.dng'),'-o',str(dng_gpr),'--quality',str(q)])
+                self.assertEqual(payload(raw_gpr),payload(dng_gpr)); outputs.append(payload(raw_gpr))
+                run([str(args.sdk),'-i',str(dng_gpr),'-o',str(root/f'q{q}.raw')])
+                self.assertEqual((root/f'q{q}.raw').stat().st_size,128*96*2)
+            self.assertEqual(outputs[3],(Path(__file__).parent/'fixtures/stock_preview/128x96-q3.vc5').read_bytes())
+            self.assertNotEqual(outputs[0],outputs[5])
+            for q in ('6','-2'):
+                path=root/f'bad-{q}.gpr'
+                result=subprocess.run([str(args.sdk),'-i',str(root/'input.dng'),'-o',str(path),'-q',q],capture_output=True)
+                self.assertNotEqual(result.returncode,0); self.assertFalse(path.exists())
+
     def test_sdk_bayer_formats_and_spatial_calibration(self):
         positions = {'RGGB': (0, 1, 2, 3), 'GBRG': (2, 0, 3, 1),
                      'GRBG': (1, 0, 3, 2), 'BGGR': (3, 1, 2, 0)}

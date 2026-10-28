@@ -103,11 +103,13 @@ JPEG bit shifting and null arithmetic for empty DNG blocks, which are fixed.
 Local macOS Release and ASan/UBSan pass all nine CTest targets. SDK builds with
 only the encoder or only the decoder also compile successfully; those build
 checks do not claim runtime coverage of every API in each reduced profile.
-Pi 5 Release passes all nine targets. The expanded Pi leak-sanitizer run is
-still pending; its timeout was raised from 180 to 1200 seconds because of the
-many isolated SDK subprocesses. A timeout is not counted as a passing check.
+For implementation `5feae29`, Pi 5 Release and ASan/UBSan with leak detection
+pass all nine targets. The complete sanitizer run took 946.37 seconds, with
+852.52 seconds in the many isolated SDK media subprocesses. The earlier
+180-second timeout is not counted as a pass. The [Pi receipt](stock-still-sdk-pi5.json)
+checks 381 source/test/build files against that Git revision.
 
-Still quality/size tiers and their image-quality evidence are the next step.
-The legacy SDK continues to select stock Q3 normally and Q1 with its
-`fast_encoding` flag; this does not provide all six stock presets through that
-legacy flag or recreate the old fused-codec tiers.
+The [still preset workflow](stock-still-quality.md) now exposes all six stock
+presets and measured size/fidelity evidence with exact typed calibration.
+Legacy defaults stay Q3 normally and Q1 with `fast_encoding`. Recreating the
+old restored tiers still requires compatible CNN selection and quality gates.

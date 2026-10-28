@@ -30,6 +30,13 @@ MAX_METADATA = 2 * 1024 * 1024
 GLOBAL_TAGS = IMAGE_TAGS - {33421, 33422, 50711, 50712, 50713, 50714, 50715, 50716,
                            50717, 50718, 50719, 50720, 50829, 50830, 50831, 50832,
                            51008, 51009, 51022, 51125}
+DOMAIN_LOOKUP = {bits: bytes(int(value >= 1 << (bits-8)) for value in range(256)) for bits in (12,14)}
+
+
+def samples_in_domain(payload, bits):
+    # bytes.translate performs the high-byte test in a C loop; avoid Python's
+    # generic per-byte comparisons over large sensor images.
+    return bits==16 or payload[1::2].translate(DOMAIN_LOOKUP[bits]).find(b'\1')<0
 
 
 def size_of(dtype, count):
@@ -106,6 +113,9 @@ def validate(meta, header=None):
             table[code] = tag
         groups.append(table)
     image = groups[0]
+    if (50710 in image and (image[50710]['type']!=1 or values(image[50710])!=(0,1,2)) or
+            50711 in image and values(image[50711])!=(1,)):
+        raise ValueError('requires canonical RGB CFA palette and rectangular Bayer layout')
     for code in (271, 272, 50706, 50708, 33421, 33422, 50713, 50714, 50717, 50721, 50728, 50778):
         if code not in image:
             raise ValueError(f'missing required calibration tag {code}')
@@ -146,7 +156,7 @@ def validate(meta, header=None):
     return groups
 
 
-def extract(path, sample_bits):
+def extract(path, sample_bits, with_payload=False):
     """Read classic TIFF/DNG metadata without decoding its image payload."""
     path = Path(path)
     with path.open('rb') as f:
@@ -221,6 +231,21 @@ def extract(path, sample_bits):
                 result[name] = [table[c] for c in sorted(table) if c != 37500]
                 if 37500 in table: result['omitted_'+name+'_tags'] = [37500]
         validate(result)
+        if with_payload:
+            if values(image[259]) != (9,) or 324 not in image or 325 not in image:
+                raise ValueError('requires one-tile VC-5 GPR')
+            offsets, lengths = values(image[324]), values(image[325])
+            if len(offsets)!=1 or len(lengths)!=1:
+                raise ValueError('requires one-tile VC-5 GPR')
+            if values(image[322])!=(result['width'],) or values(image[323])!=(result['height'],):
+                raise ValueError('requires one full-image VC-5 tile')
+            offset, length = int(offsets[0]), int(lengths[0])
+            if (offset<8 or length<36 or offset+length>file_size or
+                    length>result['width']*result['height']*3+1024*1024):
+                raise ValueError('VC-5 tile outside source/size limit')
+            f.seek(offset); payload=f.read(length)
+            if len(payload)!=length: raise ValueError('truncated VC-5 tile')
+            return result, payload
         return result
 
 
@@ -232,14 +257,14 @@ def write(path, meta, payload, kind='dng'):
     w, h = meta['width'], meta['height']
     if kind == 'dng' and len(payload) != w*h*2:
         raise ValueError('unpacked Bayer payload size mismatch')
-    if kind == 'dng' and meta['sample_bits'] < 16 and max(payload[1::2]) >= 1 << (meta['sample_bits']-8):
+    if kind == 'dng' and not samples_in_domain(payload,meta['sample_bits']):
         raise ValueError('Bayer sample exceeds declared bit domain')
     if kind == 'gpr' and (len(payload) < 4 or payload[:4] != b'VC-5'):
         raise ValueError('requires stock VC-5 payload')
     if kind == 'gpr':
         header = b''.join(struct.pack('>HH', tag, value) for tag, value in
                           ((12, 4), (20, w), (21, h), (84, 4), (106, 2), (107, 2), (108, 1), (102, 12)))
-        if payload[4:36] != header or meta['sample_bits'] not in (12, 14) or meta['cfa'] not in ('RGGB', 'GBRG'):
+        if payload[4:36] != header:
             raise ValueError('requires matching stock four-channel RAW header/domain')
     image = dict(groups[0])
     def add(code, dtype, count, data): image[code] = record(code, dtype, count, data)

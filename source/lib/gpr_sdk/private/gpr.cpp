@@ -89,6 +89,22 @@ struct gpr_parameter_cleanup {
     ~gpr_parameter_cleanup() { gpr_parameters_destroy(value, Free); }
 };
 
+static bool word_samples_in_domain(const gpr_buffer_auto &raw, unsigned width,
+                                  unsigned height, size_t pitch, const gpr_bayer_layout &layout)
+{
+    if (layout.packed || layout.bits==16) return true;
+    unsigned sample_bits=0;
+    for (unsigned y=0;y<height;++y) {
+        const uint8_t *row=static_cast<const uint8_t *>(raw.get_buffer())+y*pitch;
+        for (unsigned x=0;x<width;++x) {
+            uint16_t sample;
+            memcpy(&sample,row+2*x,sizeof(sample));
+            sample_bits |= sample;
+        }
+    }
+    return (sample_bits>>layout.bits)==0;
+}
+
 void find_rational(float number, float error_tolerance, int* numerator, int* denominator_pow2)
 {
     int _num;
@@ -144,7 +160,7 @@ static void unpack_pixel_format( const gpr_buffer_auto* input_buffer, const gpr_
 }
 
 #if GPR_WRITING
-static bool set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_params, const gpr_parameters* convert_params )
+static bool set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_params, const gpr_parameters* convert_params, int quality = -1 )
 {
     vc5_encoder_params.input_width      = convert_params->input_width;
     vc5_encoder_params.input_height     = convert_params->input_height;
@@ -203,7 +219,11 @@ static bool set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_para
             return false;
     }
     
-    if( convert_params->fast_encoding )
+    if (quality >= 0) {
+        if (quality > 5) return false;
+        vc5_encoder_params.quality_setting = static_cast<VC5_ENCODER_QUALITY_SETTING>(quality);
+    }
+    else if( convert_params->fast_encoding )
         vc5_encoder_params.quality_setting = VC5_ENCODER_QUALITY_SETTING_MEDIUM;
     else
         vc5_encoder_params.quality_setting = VC5_ENCODER_QUALITY_SETTING_FS1;
@@ -1006,7 +1026,7 @@ static bool write_dng(const gpr_allocator*          allocator,
                       const gpr_buffer_auto*        raw_image_buffer,
                             bool                    compress_raw_to_vc5,
                             gpr_buffer_auto*        vc5_image_buffer,
-                      const gpr_parameters*   	    convert_params )
+                      const gpr_parameters*   	    convert_params, int quality = -1 )
 {
     gpr_profile_info* profile_info  = (gpr_profile_info *) &convert_params->profile_info;
     const gpr_exif_info*    exif_info     = &convert_params->exif_info;
@@ -1028,6 +1048,8 @@ static bool write_dng(const gpr_allocator*          allocator,
             convert_params->input_height-1>(SIZE_MAX-row)/pitch ||
             raw_image_buffer->get_size()<(convert_params->input_height-1)*pitch+row ||
             (!vc5_dng && !layout.packed && pitch%sizeof(uint16_t))) return false;
+        if (!word_samples_in_domain(*raw_image_buffer,convert_params->input_width,
+                                    convert_params->input_height,pitch,layout)) return false;
     }
     
     int i,j;
@@ -1343,12 +1365,18 @@ static bool write_dng(const gpr_allocator*          allocator,
     if( vc5_dng )
     {
         gpr_image_writer* gpr_writer = new gpr_image_writer(raw_image_buffer, convert_params->input_width, convert_params->input_height, convert_params->input_pitch, vc5_image_buffer );
-        if (!set_vc5_encoder_parameters(gpr_writer->GetVc5EncoderParams(), convert_params)) {
+        if (!set_vc5_encoder_parameters(gpr_writer->GetVc5EncoderParams(), convert_params, quality)) {
             delete gpr_writer;
             return false;
         }
       
-        gpr_writer->EncodeVc5Image();
+        gpr_writer->GetVc5EncoderParams().mem_alloc=allocator->Alloc;
+        gpr_writer->GetVc5EncoderParams().mem_free=allocator->Free;
+        if (!gpr_writer->EncodeVc5Image(convert_params->enable_preview &&
+                                       !convert_params->preview_image.jpg_preview.buffer)) {
+            delete gpr_writer;
+            return false;
+        }
                 
         if( convert_params->enable_preview )
         {
@@ -1594,11 +1622,21 @@ bool gpr_convert_gpr_to_vc5(const gpr_allocator*            allocator,
 
 #if GPR_WRITING
 
-bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
+bool gpr_convert_raw_to_gpr(const gpr_allocator* allocator,
+                            const gpr_parameters* parameters,
+                            gpr_buffer* input, gpr_buffer* output)
+{
+    return gpr_convert_raw_to_gpr_with_quality(allocator, parameters,
+        parameters->fast_encoding ? 1 : 3, input, output);
+}
+
+bool gpr_convert_raw_to_gpr_with_quality(const gpr_allocator*    allocator,
                             const gpr_parameters*   parameters,
+                            unsigned int quality,
                                   gpr_buffer*       inp_raw_buffer,
                                   gpr_buffer*       out_gpr_buffer)
 {
+    if (quality > 5) return false;
     TIMESTAMP("[BEG]", 1)
     
     gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
@@ -1607,7 +1645,7 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
     
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
     
-    if (!write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters )) return false;
+    if (!write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters, int(quality) )) return false;
 
     if (!write_dngstream_to_buffer( &out_gpr_stream, out_gpr_buffer, allocator->Alloc, allocator->Free )) return false;
 
@@ -1616,11 +1654,21 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
     return true;
 }
 
-bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
+bool gpr_convert_dng_to_gpr(const gpr_allocator* allocator,
+                            const gpr_parameters* parameters,
+                            gpr_buffer* input, gpr_buffer* output)
+{
+    return gpr_convert_dng_to_gpr_with_quality(allocator, parameters,
+        parameters->fast_encoding ? 1 : 3, input, output);
+}
+
+bool gpr_convert_dng_to_gpr_with_quality(const gpr_allocator*    allocator,
                             const gpr_parameters*   parameters,
+                            unsigned int quality,
                                   gpr_buffer*       inp_dng_buffer,
                                   gpr_buffer*       out_gpr_buffer)
 {
+    if (quality > 5) return false;
     TIMESTAMP("[BEG]", 1)
 
     gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
@@ -1636,7 +1684,7 @@ bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
     
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
     
-    if (!write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters )) return false;
+    if (!write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters, int(quality) )) return false;
     
     if (!write_dngstream_to_buffer( &out_gpr_stream, out_gpr_buffer, allocator->Alloc, allocator->Free )) return false;
     
@@ -1668,6 +1716,9 @@ bool gpr_convert_dng_to_vc5(const gpr_allocator*    allocator,
     vc5_encoder_parameters encoding;
     vc5_encoder_parameters_set_default(&encoding);
     if (!set_vc5_encoder_parameters(encoding,&params)) return false;
+    gpr_bayer_layout layout;
+    if (!gpr_get_bayer_layout(params.tuning_info.pixel_format,layout) ||
+        !word_samples_in_domain(raw_buffer,params.input_width,params.input_height,params.input_pitch,layout)) return false;
     encoding.mem_alloc=allocator->Alloc;
     encoding.mem_free=allocator->Free;
     gpr_buffer encoded={NULL,0};

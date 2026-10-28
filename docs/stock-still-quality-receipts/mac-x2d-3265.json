@@ -1,0 +1,615 @@
+{
+  "schema": "gpr.stock_still_benchmark.v1",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "reference_kind": "lossless_sensor_dng",
+  "independent_source_decode_verified": true,
+  "width": 11664,
+  "height": 8750,
+  "sample_bits": 16,
+  "cfa": "RGGB",
+  "source_sha256": "47204b60044ca470b59cd6c0298c809f425a5682a214e37798d126897668c4b0",
+  "raw_sha256": "0c8e2aca96da6807a8396ad0ebe885ee3caca30cfe97bfcd2bd72f35589a6266",
+  "sdk_sha256": "866e0ffecef1eaafb037ab653b9647540e3b93f05393abeadb7b1656d58a7fc9",
+  "source_files_sha256": "5e9666f5b0c6fffa563fc2cc32c9cb8d573717780846ef6627abdfe9f1cb02a5",
+  "metadata_sha256": "df287a1411b01b9dcf90ad18ad17e2e06ab2ef9206cfbe1eb352cfde626410f5",
+  "repeats": 3,
+  "cnn": false,
+  "reference_decode_process_s": 0.699800875,
+  "rows": [
+    {
+      "quality": 0,
+      "payload_bytes": 4866536,
+      "gpr_bytes": 4940148,
+      "bits_per_pixel": 0.3872348030570253,
+      "raw_word_compression_ratio": 41.31860017149284,
+      "encode_process_median_s": 0.0734148750000001,
+      "encode_workflow_median_s": 0.15065662499999988,
+      "payload_sha256": "a586482cc49a3378b09808b2af02d672ce219f669ce91a3b3b06f94ee2f10656",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 208.6531676708526,
+          "psnr_db": 49.94096642839989
+        },
+        "active": {
+          "rmse_counts": 208.6531676708526,
+          "psnr_db": 49.94096642839989
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 106.0,
+          "p90": 323.0,
+          "p99": 686.0,
+          "p99_9": 1226.0
+        },
+        "active_max_abs_error": 7731,
+        "active_bias_counts": -17.812064422888497,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 445.417286108346,
+          "psnr_db": 43.35412472588917
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 68.70948110502559,
+          "psnr_db": 59.5891327002007
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 387.7093632304131,
+          "psnr_db": 44.55934028728879
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 169.22779447608843,
+            "psnr_db": 51.760032187740066
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 242.47600485142567,
+            "psnr_db": 48.63609071973311
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 242.01601133046884,
+            "psnr_db": 48.652584094337215
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 167.75031571971564,
+            "psnr_db": 51.83619915091942
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.077311833,
+          "encode_workflow_s": 0.15480766599999995,
+          "decode_process_s": 0.20407604200000007,
+          "decode_workflow_s": 0.384694917,
+          "gpr_sha256": "2554bacd666d0dbf3f57ddfde6eda5a7d323212827ea5b302765ef9421172865",
+          "decoded_raw_sha256": "ec1b047ae162b5353e97bac5e5547f6fb8f6fbc37b34b5d561c9df5f001f98fd"
+        },
+        {
+          "encode_process_s": 0.0734148750000001,
+          "encode_workflow_s": 0.15065662499999988,
+          "decode_process_s": 0.1977407499999999,
+          "decode_workflow_s": 0.35695491599999984,
+          "gpr_sha256": "2554bacd666d0dbf3f57ddfde6eda5a7d323212827ea5b302765ef9421172865",
+          "decoded_raw_sha256": "ec1b047ae162b5353e97bac5e5547f6fb8f6fbc37b34b5d561c9df5f001f98fd"
+        },
+        {
+          "encode_process_s": 0.06620095800000048,
+          "encode_workflow_s": 0.14333999999999936,
+          "decode_process_s": 0.1989620409999997,
+          "decode_workflow_s": 0.35773754099999966,
+          "gpr_sha256": "2554bacd666d0dbf3f57ddfde6eda5a7d323212827ea5b302765ef9421172865",
+          "decoded_raw_sha256": "ec1b047ae162b5353e97bac5e5547f6fb8f6fbc37b34b5d561c9df5f001f98fd"
+        }
+      ]
+    },
+    {
+      "quality": 1,
+      "payload_bytes": 5865524,
+      "gpr_bytes": 5939136,
+      "bits_per_pixel": 0.46554074074074075,
+      "raw_word_compression_ratio": 34.36863543788187,
+      "encode_process_median_s": 0.05381108299999937,
+      "encode_workflow_median_s": 0.13193024999999992,
+      "payload_sha256": "e1e218645b855c5174e8b7f7039d29e8e49d531453ad1f60375307e5c9dff09d",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 200.30777282060615,
+          "psnr_db": 50.29551003225909
+        },
+        "active": {
+          "rmse_counts": 200.30777282060615,
+          "psnr_db": 50.29551003225909
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 106.0,
+          "p90": 318.0,
+          "p99": 647.0,
+          "p99_9": 1040.0
+        },
+        "active_max_abs_error": 5106,
+        "active_bias_counts": -17.620751606897905,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 409.51166072610556,
+          "psnr_db": 44.08414062165946
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 69.87405519951841,
+          "psnr_db": 59.443147102684726
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 366.1761321781848,
+          "psnr_db": 45.05566541477492
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 166.79068577395003,
+            "psnr_db": 51.88603018882958
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 230.15876868472586,
+            "psnr_db": 49.08891556575653
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 229.6587844376325,
+            "psnr_db": 49.10780483900454
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 164.18729084987544,
+            "psnr_db": 52.02267533722317
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.05352825000000028,
+          "encode_workflow_s": 0.1317064170000002,
+          "decode_process_s": 0.21247141600000052,
+          "decode_workflow_s": 0.36838795899999965,
+          "gpr_sha256": "7d3991178a5b198b719a71e457eeb5f918e818624185381d2c8df57ce2c42ee8",
+          "decoded_raw_sha256": "4430cca4fddf7705f449b7a85eb95be8c824a0edf43fc0b5c15b736341d62f70"
+        },
+        {
+          "encode_process_s": 0.0766250829999997,
+          "encode_workflow_s": 0.15501962500000044,
+          "decode_process_s": 0.21770879100000062,
+          "decode_workflow_s": 0.3773092920000005,
+          "gpr_sha256": "7d3991178a5b198b719a71e457eeb5f918e818624185381d2c8df57ce2c42ee8",
+          "decoded_raw_sha256": "4430cca4fddf7705f449b7a85eb95be8c824a0edf43fc0b5c15b736341d62f70"
+        },
+        {
+          "encode_process_s": 0.05381108299999937,
+          "encode_workflow_s": 0.13193024999999992,
+          "decode_process_s": 0.2223020000000009,
+          "decode_workflow_s": 0.39757679199999885,
+          "gpr_sha256": "7d3991178a5b198b719a71e457eeb5f918e818624185381d2c8df57ce2c42ee8",
+          "decoded_raw_sha256": "4430cca4fddf7705f449b7a85eb95be8c824a0edf43fc0b5c15b736341d62f70"
+        }
+      ]
+    },
+    {
+      "quality": 2,
+      "payload_bytes": 7969548,
+      "gpr_bytes": 8043160,
+      "bits_per_pixel": 0.6304652165392907,
+      "raw_word_compression_ratio": 25.37808523018316,
+      "encode_process_median_s": 0.05925433300000016,
+      "encode_workflow_median_s": 0.14551129100000004,
+      "payload_sha256": "743464883ad5fd69266e80de1750bd1c61a9b809444acf562b0540da432acfe2",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 193.3453219936326,
+          "psnr_db": 50.60279270041312
+        },
+        "active": {
+          "rmse_counts": 193.3453219936326,
+          "psnr_db": 50.60279270041312
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 104.0,
+          "p90": 310.0,
+          "p99": 611.0,
+          "p99_9": 960.0
+        },
+        "active_max_abs_error": 2974,
+        "active_bias_counts": -17.286494375857338,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 377.08292904494004,
+          "psnr_db": 44.80072863798
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 71.59779868233343,
+          "psnr_db": 59.23147267797807
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 347.3609750584044,
+          "psnr_db": 45.51384557136789
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 166.9454726384921,
+            "psnr_db": 51.87797315523974
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 217.81726575301946,
+            "psnr_db": 49.56762003393786
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 217.23884713974147,
+            "psnr_db": 49.5907162877355
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 164.38304458207037,
+            "psnr_db": 52.01232567791494
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.058804832999999945,
+          "encode_workflow_s": 0.13961774999999932,
+          "decode_process_s": 0.26998299999999986,
+          "decode_workflow_s": 0.43061208299999976,
+          "gpr_sha256": "41fc08bbdee29066c187f59b452d6aefed3cbef546f6efa711057a04d16bf620",
+          "decoded_raw_sha256": "5c9c3519fa3320ac536aaa4963dcb4555d77d4cfcc016ddbfbf537ff1a3d767d"
+        },
+        {
+          "encode_process_s": 0.08322849999999882,
+          "encode_workflow_s": 0.16373737500000018,
+          "decode_process_s": 0.27154475000000033,
+          "decode_workflow_s": 0.4323082920000001,
+          "gpr_sha256": "41fc08bbdee29066c187f59b452d6aefed3cbef546f6efa711057a04d16bf620",
+          "decoded_raw_sha256": "5c9c3519fa3320ac536aaa4963dcb4555d77d4cfcc016ddbfbf537ff1a3d767d"
+        },
+        {
+          "encode_process_s": 0.05925433300000016,
+          "encode_workflow_s": 0.14551129100000004,
+          "decode_process_s": 0.2601642919999989,
+          "decode_workflow_s": 0.43064808299999946,
+          "gpr_sha256": "41fc08bbdee29066c187f59b452d6aefed3cbef546f6efa711057a04d16bf620",
+          "decoded_raw_sha256": "5c9c3519fa3320ac536aaa4963dcb4555d77d4cfcc016ddbfbf537ff1a3d767d"
+        }
+      ]
+    },
+    {
+      "quality": 3,
+      "payload_bytes": 11065604,
+      "gpr_bytes": 11139216,
+      "bits_per_pixel": 0.8731503821281599,
+      "raw_word_compression_ratio": 18.32444940469778,
+      "encode_process_median_s": 0.06629116599999918,
+      "encode_workflow_median_s": 0.15002408299999992,
+      "payload_sha256": "2a5265e9db206f3b0642b059415929347331c22bc2823b909237971891f5c691",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 185.85346203340964,
+          "psnr_db": 50.94605296650846
+        },
+        "active": {
+          "rmse_counts": 185.85346203340964,
+          "psnr_db": 50.94605296650846
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 102.0,
+          "p90": 298.0,
+          "p99": 581.0,
+          "p99_9": 915.0
+        },
+        "active_max_abs_error": 2910,
+        "active_bias_counts": -16.917127033117772,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 344.2625006590612,
+          "psnr_db": 45.59167169404269
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 72.19252440455737,
+          "psnr_db": 59.15962150838269
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 330.25175400110385,
+          "psnr_db": 45.95256341779609
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 166.8185463949401,
+            "psnr_db": 51.884579423944224
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 204.57703395798188,
+            "psnr_db": 50.11232852054328
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 203.93497099609795,
+            "psnr_db": 50.139631965984975
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 164.00114255599192,
+            "psnr_db": 52.03252860166395
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.06629116599999918,
+          "encode_workflow_s": 0.15002408299999992,
+          "decode_process_s": 0.3234637920000001,
+          "decode_workflow_s": 0.48493987500000024,
+          "gpr_sha256": "1cd33c62918057c2494b7e24f55206b2027e304c8b132a2435b39d66672fb524",
+          "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe"
+        },
+        {
+          "encode_process_s": 0.08933687499999898,
+          "encode_workflow_s": 0.17263754100000028,
+          "decode_process_s": 0.32216641699999826,
+          "decode_workflow_s": 0.4856042080000016,
+          "gpr_sha256": "1cd33c62918057c2494b7e24f55206b2027e304c8b132a2435b39d66672fb524",
+          "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe"
+        },
+        {
+          "encode_process_s": 0.06577624999999898,
+          "encode_workflow_s": 0.14935887500000078,
+          "decode_process_s": 0.3261808330000022,
+          "decode_workflow_s": 0.5046193750000008,
+          "gpr_sha256": "1cd33c62918057c2494b7e24f55206b2027e304c8b132a2435b39d66672fb524",
+          "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe"
+        }
+      ]
+    },
+    {
+      "quality": 4,
+      "payload_bytes": 16469188,
+      "gpr_bytes": 16542800,
+      "bits_per_pixel": 1.2967117381932196,
+      "raw_word_compression_ratio": 12.338902725052591,
+      "encode_process_median_s": 0.08211391600000084,
+      "encode_workflow_median_s": 0.17149366700000002,
+      "payload_sha256": "b3acb38cee481b97c429f7fb1c877c47f22982d42e2858813316ebe46f976aba",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 171.52598981047296,
+          "psnr_db": 51.64286739226519
+        },
+        "active": {
+          "rmse_counts": 171.52598981047296,
+          "psnr_db": 51.64286739226519
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 97.0,
+          "p90": 274.0,
+          "p99": 530.0,
+          "p99_9": 852.0
+        },
+        "active_max_abs_error": 2910,
+        "active_bias_counts": -16.060673858514598,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 279.4454869097335,
+          "psnr_db": 47.403524073670425
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 77.91575967868334,
+          "psnr_db": 58.49695988738525
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 302.38236544381505,
+          "psnr_db": 46.71833687402302
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 165.31884802349845,
+            "psnr_db": 51.96301866800645
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 178.84384917697946,
+            "psnr_db": 51.27998590681649
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 178.18354451442502,
+            "psnr_db": 51.312114197625434
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 163.15588032881638,
+            "psnr_db": 52.07741145756076
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.08150425000000183,
+          "encode_workflow_s": 0.17084674999999905,
+          "decode_process_s": 0.45456679099999775,
+          "decode_workflow_s": 0.6213202500000001,
+          "gpr_sha256": "15505767db21cc8b951e5640b8ceae55c9c4afe24da246286c28a2851ca58eb9",
+          "decoded_raw_sha256": "81ce5c746f9a5c66bdff49312c891ef6e8abdf5779ce618bdd08e753180826a9"
+        },
+        {
+          "encode_process_s": 0.10411995799999829,
+          "encode_workflow_s": 0.20098587500000065,
+          "decode_process_s": 0.4498486660000012,
+          "decode_workflow_s": 0.6283248750000006,
+          "gpr_sha256": "15505767db21cc8b951e5640b8ceae55c9c4afe24da246286c28a2851ca58eb9",
+          "decoded_raw_sha256": "81ce5c746f9a5c66bdff49312c891ef6e8abdf5779ce618bdd08e753180826a9"
+        },
+        {
+          "encode_process_s": 0.08211391600000084,
+          "encode_workflow_s": 0.17149366700000002,
+          "decode_process_s": 0.4421222500000006,
+          "decode_workflow_s": 0.6061767919999994,
+          "gpr_sha256": "15505767db21cc8b951e5640b8ceae55c9c4afe24da246286c28a2851ca58eb9",
+          "decoded_raw_sha256": "81ce5c746f9a5c66bdff49312c891ef6e8abdf5779ce618bdd08e753180826a9"
+        }
+      ]
+    },
+    {
+      "quality": 5,
+      "payload_bytes": 24955396,
+      "gpr_bytes": 25029008,
+      "bits_per_pixel": 1.9619053889868705,
+      "raw_word_compression_ratio": 8.155337199141092,
+      "encode_process_median_s": 0.1229092910000027,
+      "encode_workflow_median_s": 0.22285891699999993,
+      "payload_sha256": "cb314535b3ba097bc7016fdf5bd32321ba247b6a7553be7bce714edfe7478be7",
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 119.16978037754461,
+          "psnr_db": 54.8061432959432
+        },
+        "active": {
+          "rmse_counts": 119.16978037754461,
+          "psnr_db": 54.8061432959432
+        },
+        "active_area": [
+          0,
+          0,
+          8750,
+          11664
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 68.0,
+          "p90": 187.0,
+          "p99": 368.0,
+          "p99_9": 618.0
+        },
+        "active_max_abs_error": 2640,
+        "active_bias_counts": -16.059912433862433,
+        "detail_gradient_threshold_counts": 849.0,
+        "detail_top_decile": {
+          "rmse_counts": 178.02677132202166,
+          "psnr_db": 51.319759763600395
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 66.49786538741222,
+          "psnr_db": 59.87331198588864
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 212.94673508819662,
+          "psnr_db": 49.76404635865695
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 118.97049383906578,
+            "psnr_db": 54.82068078893423
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 119.83854379732367,
+            "psnr_db": 54.75753561302848
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 118.63733421848433,
+            "psnr_db": 54.845038484691
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 119.22950208185163,
+            "psnr_db": 54.80179146956094
+          }
+        ]
+      },
+      "attempts": [
+        {
+          "encode_process_s": 0.1229092910000027,
+          "encode_workflow_s": 0.22285891699999993,
+          "decode_process_s": 0.6290329159999999,
+          "decode_workflow_s": 0.8023834579999978,
+          "gpr_sha256": "e06c25802927bfd17b811d96bc3acf210720c622ef51569930830459844fc44c",
+          "decoded_raw_sha256": "d595711c65671d35d9aeead9161dc35938d9d48d602d553ed494739ae5c10b9e"
+        },
+        {
+          "encode_process_s": 0.126218374999997,
+          "encode_workflow_s": 0.22390566700000036,
+          "decode_process_s": 0.6340696250000022,
+          "decode_workflow_s": 0.826459332999999,
+          "gpr_sha256": "e06c25802927bfd17b811d96bc3acf210720c622ef51569930830459844fc44c",
+          "decoded_raw_sha256": "d595711c65671d35d9aeead9161dc35938d9d48d602d553ed494739ae5c10b9e"
+        },
+        {
+          "encode_process_s": 0.10470845800000106,
+          "encode_workflow_s": 0.20285512499999925,
+          "decode_process_s": 0.6355070410000003,
+          "decode_workflow_s": 0.8085874590000017,
+          "gpr_sha256": "e06c25802927bfd17b811d96bc3acf210720c622ef51569930830459844fc44c",
+          "decoded_raw_sha256": "d595711c65671d35d9aeead9161dc35938d9d48d602d553ed494739ae5c10b9e"
+        }
+      ]
+    }
+  ],
+  "timing_scope": "fresh SDK processes with input/file I/O, warm file cache, no JPEG preview; workflow also validates/hashes and preserves typed calibration; no final fsync"
+}

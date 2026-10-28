@@ -116,6 +116,20 @@
         
 #if GPR_WRITING
 
+        /* Explicit stock presets 0..5 (LOW, MEDIUM, HIGH, FS1, FSX, FS2).
+         * These override fast_encoding. Invalid values return false without
+         * allocating output. Existing entry points keep their Q1/Q3 defaults. */
+        bool gpr_convert_raw_to_gpr_with_quality(const gpr_allocator* allocator,
+                                                const gpr_parameters* parameters,
+                                                unsigned int quality,
+                                                gpr_buffer* input,
+                                                gpr_buffer* output);
+        bool gpr_convert_dng_to_gpr_with_quality(const gpr_allocator* allocator,
+                                                const gpr_parameters* parameters,
+                                                unsigned int quality,
+                                                gpr_buffer* input,
+                                                gpr_buffer* output);
+
         //!< raw to gpr conversion
         bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
                                     const gpr_parameters*   parameters,

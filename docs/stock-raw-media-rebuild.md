@@ -95,8 +95,10 @@ Bayer phases with word-packed 12/14/16-bit counts while retaining the stock
 12-bit logarithmic transform. It does not import the earlier codec's higher
 internal precision. The [still SDK port](stock-still-formats.md) adds its public
 format mapping, spatial black-level handling, source matrices/illuminants and
-supported GainMaps. Still tiers, broader metadata-schema support and video
-frontend mappings remain separate integration work.
+supported GainMaps. The [still preset workflow](stock-still-quality.md) adds
+explicit Q0–Q5 selection and exact typed-calibration packaging around the SDK,
+with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
+approval, broader metadata support and video frontend mappings remain pending.
 
 This is not feature-suite parity. The complete high-bit-depth/CFA encoding and
 still-tier workflow, MOV/ProRes export, full reconstruction/model quality

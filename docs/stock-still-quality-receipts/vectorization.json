@@ -1,0 +1,11 @@
+{
+  "source": "source/lib/gpr_sdk/private/gpr.cpp",
+  "source_sha256": "4c8d79f5ca45f865909d35e26db9217123d6188b487cef95375ad36825b3c3ce",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "inspection": "Release compile command with -S -fno-lto -gline-tables-only -Rpass=loop-vectorize; LTO disabled only for assembly inspection",
+  "domain_reduction_remarks": [
+    "gpr_sdk/private/gpr.cpp:99:9: remark: vectorized loop (vectorization width: 8, interleaved count: 4) [-Rpass=loop-vectorize]",
+    "gpr_sdk/private/gpr.cpp:99:9: remark: vectorized loop (vectorization width: 8, interleaved count: 4) [-Rpass=loop-vectorize]"
+  ],
+  "assembly_sha256": "82c7bd1f61f49e66c633f6d295e92356385efd46c7769133a60bd521cd701c14"
+}

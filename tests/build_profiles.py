@@ -107,7 +107,7 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
         components = ['common', 'vc5_common', 'gpr_video']
         if encoder: components.append('vc5_encoder')
         if decoder: components.append('vc5_decoder')

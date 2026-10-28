@@ -98,13 +98,18 @@ static FILE_TYPE GetFileType( const char* file_path )
 
 int dng_convert_main(const char*  input_file_path, unsigned int input_width, unsigned int input_height, size_t input_pitch, size_t input_skip_rows, const char* input_pixel_format,
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
-                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height )
+                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality, bool enable_preview )
 {
     bool success;
     bool write_buffer_to_file = true;
     
     FILE_TYPE input_file_type  = GetFileType( input_file_path );
     FILE_TYPE output_file_type = GetFileType( output_file_path );
+    if (quality < -1 || quality > 5 || (quality >= 0 &&
+        (output_file_type != FILE_TYPE_GPR || (input_file_type != FILE_TYPE_RAW && input_file_type != FILE_TYPE_DNG)))) {
+        fprintf(stderr,"Quality must be 0..5 and applies to RAW/DNG to GPR encoding\n");
+        return -1;
+    }
     
     if( input_file_type == FILE_TYPE_UNKNOWN )
     {
@@ -143,7 +148,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR || input_file_type == FILE_TYPE_DNG )
     {
-        if( !gpr_parse_metadata( &allocator, &input_buffer, &params ) )
+        if( output_file_type != FILE_TYPE_RAW && !gpr_parse_metadata( &allocator, &input_buffer, &params ) )
             goto cleanup;
     }
     else
@@ -186,6 +191,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         params.tuning_info.dgain_saturation_level.level_blue        = saturation_level;
     }
     
+    params.enable_preview=enable_preview;
     if( gpmf_file_path != NULL && strcmp(gpmf_file_path, "") )
     {
         if( params.gpmf_payload.buffer ) allocator.Free(params.gpmf_payload.buffer);
@@ -229,11 +235,13 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
 #if GPR_WRITING
     else if( input_file_type == FILE_TYPE_DNG && output_file_type == FILE_TYPE_GPR )
     {
-        success = gpr_convert_dng_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        success = quality < 0 ? gpr_convert_dng_to_gpr( &allocator, &params, &input_buffer, &output_buffer ) :
+            gpr_convert_dng_to_gpr_with_quality(&allocator,&params,(unsigned)quality,&input_buffer,&output_buffer);
     }
     else if( input_file_type == FILE_TYPE_RAW && output_file_type == FILE_TYPE_GPR )
     {
-        success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        success = quality < 0 ? gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer ) :
+            gpr_convert_raw_to_gpr_with_quality(&allocator,&params,(unsigned)quality,&input_buffer,&output_buffer);
     }
 #endif
 #if GPR_READING
