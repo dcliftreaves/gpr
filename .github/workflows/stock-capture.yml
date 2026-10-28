@@ -45,6 +45,16 @@ jobs:
         run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app preview_contract_test gpr_preview_app stock_video gpr_tools --parallel 4
       - name: Test
         run: ctest --test-dir build-runtime --output-on-failure
+      - name: Serial encoder with fast-path requests and sanitizers
+        if: matrix.name == 'LinuxSanitizers'
+        run: |
+          cmake -S . -B build-serial -DCMAKE_BUILD_TYPE=Debug \
+            -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF \
+            -DGPR_BUILD_DECODER=OFF -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON \
+            -DGPR_ENABLE_PARALLEL_CHANNELS=OFF -DGPR_ENABLE_PARALLEL_UNPACK=OFF -DNEON=OFF \
+            -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
+          cmake --build build-serial --parallel 4
+          ctest --test-dir build-serial --output-on-failure
       - name: Stripped builds, relocated packages and public C/C++ clients
         if: matrix.type == 'Release'
         run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime
@@ -83,7 +93,7 @@ jobs:
           $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           $asan = Get-ChildItem "$vs/VC/Tools/MSVC/*/bin/Hostx64/x64/clang_rt.asan_dynamic-x86_64.dll" | Select-Object -Last 1
           $env:PATH = "$($asan.DirectoryName);$env:PATH"
-          cmake -S profile-check/capture/source -B profile-check/asan `
+          cmake -S . -B profile-check/asan `
             "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows `
             -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF `
             -DGPR_BUILD_DECODER=OFF -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON -DGPR_ENABLE_IPO=OFF `

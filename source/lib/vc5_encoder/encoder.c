@@ -455,7 +455,8 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 
 	// Initialize the encoder using the parameters provided by the application
-	error = PrepareEncoder(encoder, image, parameters);
+	error = PrepareEncoder(encoder, image, parameters,
+        bitstream && bitstream->stream && bitstream->stream->type == STREAM_TYPE_MEMORY);
     encoder->packed_input = packed_input;
 	assert(error == CODEC_ERROR_OKAY);
 	if (! (error == CODEC_ERROR_OKAY)) {
@@ -541,7 +542,8 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
 */
 CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 						   const UNPACKED_IMAGE *image,
-						   const ENCODER_PARAMETERS *parameters)
+						   const ENCODER_PARAMETERS *parameters,
+                           bool memory_stream)
 {
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 	VERSION version = VERSION_INITIALIZER(VC5_VERSION_MAJOR, VC5_VERSION_MINOR, VC5_VERSION_REVISION, 0);
@@ -566,8 +568,20 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 	// Initialize the encoding parameters and the codec state
 	PrepareEncoderState(encoder, image, parameters);
 
+    /* Compact highpass rows are consumed immediately by channel workers.
+     * The serial/file path writes complete bands and needs full storage even
+     * when a caller leaves the fast-path environment requests enabled. */
+#if GPR_ENABLE_PARALLEL_CHANNELS
+    encoder->compact_bands = memory_stream && encoder->channel_count > 1 &&
+        getenv("GPR_BAND_STREAM") && getenv("GPR_COMPACT_BANDS");
+#else
+    (void)memory_stream;
+    encoder->compact_bands = false;
+#endif
+
 	// Allocate the wavelet transforms
-	AllocEncoderTransforms(encoder);
+	error = AllocEncoderTransforms(encoder);
+    if (error != CODEC_ERROR_OKAY) return error;
 
 	// Initialize the quantizer
 	SetEncoderQuantization(encoder, parameters);
@@ -1798,7 +1812,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         if (!parallel_ok)
         {
             if (error != CODEC_ERROR_OKAY) return error;
-            if (getenv("GPR_COMPACT_BANDS")) return CODEC_ERROR_OUTOFMEMORY;
+            if (encoder->compact_bands) return CODEC_ERROR_OUTOFMEMORY;
             for (channel_index = 0; channel_index < channel_count; channel_index++)
             {
                 channel_number = encoder->channel_order_table[channel_index];
@@ -2344,7 +2358,7 @@ CODEC_ERROR AllocEncoderTransforms(ENCODER *encoder)
 			//assert((wavelet_width % 2) == 0);
 
 			// Allocate the wavelet
-            if (getenv("GPR_BAND_STREAM") && getenv("GPR_COMPACT_BANDS")) {
+            if (encoder->compact_bands) {
                 wavelet = allocator->Alloc(sizeof(WAVELET));
                 if (!wavelet) return CODEC_ERROR_OUTOFMEMORY;
                 InitWavelet(wavelet,wavelet_width,wavelet_height);
