@@ -1,5 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 OR MIT */
 #include "gpr_capture.h"
+#if GPR_CAPTURE_HAS_PREVIEW
+#include "gpr_preview_queue.h"
+#endif
+#include <atomic>
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -16,6 +20,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 
 using Clock=std::chrono::steady_clock;
 static uint64_t now_ns() { return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count()); }
@@ -39,12 +44,64 @@ static std::vector<uint8_t> read_file(const std::string &path,size_t expected) {
     return out;
 }
 struct Completion { gpr_capture_completion frame; uint64_t done_ns; };
+#if GPR_CAPTURE_HAS_PREVIEW
+using Plan=std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)>;
+using PreviewQueue=std::unique_ptr<gpr_preview_queue,decltype(&gpr_preview_queue_destroy)>;
+struct PreviewCompletion {
+    uint64_t index,timestamp_ns,done_ns,offered_ns,render_ns,capture_inflight;
+    uint32_t source,payload_crc,rgb_crc,width,height;
+    bool before_capture_finish;
+};
+static Plan read_profile(const std::string &path,const gpr_gvid_config &video) {
+    int fd=open(path.c_str(),O_RDONLY|O_NONBLOCK);struct stat st={};
+    if (fd<0) throw std::runtime_error("cannot open preview profile");
+    if (fstat(fd,&st) || !S_ISREG(st.st_mode) || st.st_size<144 || st.st_size>16*1024*1024) {
+        close(fd);throw std::runtime_error("invalid preview profile size/type");
+    }
+    FILE *file=fdopen(fd,"rb");if (!file) {close(fd);throw std::runtime_error("cannot read preview profile");}
+    std::unique_ptr<FILE,decltype(&fclose)> input(file,fclose);std::vector<uint8_t> bytes(size_t(st.st_size));
+    if (fread(bytes.data(),1,bytes.size(),file)!=bytes.size() || fgetc(file)!=EOF || ferror(file)) throw std::runtime_error("short/changing preview profile");
+    gpr_preview_plan *created=nullptr;
+    if (gpr_preview_plan_from_profile(&video,bytes.data(),bytes.size(),&created)) throw std::runtime_error("invalid preview calibration/domain");
+    return Plan(created,gpr_preview_plan_destroy);
+}
+#endif
 struct Output {
     int fd=-1;
     bool sync_each=false;
     uint64_t frame_remaining=0;
     std::vector<Completion> completions;
-    ~Output() { if (fd>=0) close(fd); }
+#if GPR_CAPTURE_HAS_PREVIEW
+    std::vector<Plan> plans;
+    PreviewQueue preview{nullptr,gpr_preview_queue_destroy};
+    std::unique_ptr<std::atomic<uint32_t>[]> source_for_frame;
+    size_t source_count=0;
+    uint32_t preview_every=3,preview_delay_ms=0,preview_fail_after=0;
+    uint64_t preview_setup_ns=0;
+    uint64_t current_index=0,current_timestamp=0,payload_bytes=0;
+    int preview_offer_error=0;
+    gpr_capture *capture=nullptr;
+    std::atomic<bool> capture_finished{false};
+    std::vector<PreviewCompletion> previews;
+    static int display(void *user,const gpr_preview_frame_view *frame) {
+        auto &out=*static_cast<Output *>(user);
+        if (out.preview_fail_after && out.previews.size()>=out.preview_fail_after) return 1;
+        uint32_t crc=gpr_gvid_crc32(0,frame->rgb,frame->size_bytes);
+        if (out.preview_delay_ms) std::this_thread::sleep_for(std::chrono::milliseconds(out.preview_delay_ms));
+        gpr_capture_stats stats={};if (out.capture) gpr_capture_get_stats(out.capture,&stats);
+        uint32_t source=out.source_for_frame[frame->index].load(std::memory_order_acquire);
+        out.previews.push_back({frame->index,frame->timestamp_ns,now_ns(),frame->offered_ns,frame->render_ns,
+            stats.inflight,source,frame->payload_crc32,crc,frame->image.width,frame->image.height,
+            !out.capture_finished.load(std::memory_order_acquire)});
+        return 0;
+    }
+#endif
+    ~Output() {
+#if GPR_CAPTURE_HAS_PREVIEW
+        preview.reset();
+#endif
+        if (fd>=0) close(fd);
+    }
     static int write(void *user,const uint8_t *p,size_t n) {
         Output &out=*static_cast<Output *>(user);
         const uint8_t *cursor=p; size_t remaining=n;
@@ -54,11 +111,24 @@ struct Output {
             if (count<=0) return -1;
             cursor+=count; remaining-=size_t(count);
         }
-        if (n==48 && !std::memcmp(p,"FRM3",4)) out.frame_remaining=get(p+24,8)+get(p+32,4);
+        if (n==48 && !std::memcmp(p,"FRM3",4)) {
+            out.frame_remaining=get(p+24,8)+get(p+32,4);
+#if GPR_CAPTURE_HAS_PREVIEW
+            out.current_index=get(p+8,8);out.current_timestamp=get(p+16,8);out.payload_bytes=get(p+24,8);
+#endif
+        }
         else if (out.frame_remaining) {
             if (n>out.frame_remaining) return -1;
             out.frame_remaining-=n;
             if (!out.frame_remaining && out.sync_each && fsync(out.fd)) return -1;
+#if GPR_CAPTURE_HAS_PREVIEW
+            if (!out.frame_remaining && out.preview && !out.preview_offer_error && out.current_index%out.preview_every==0) {
+                if (out.current_index>=out.source_count || n!=out.payload_bytes) return -1;
+                uint32_t source=out.source_for_frame[out.current_index].load(std::memory_order_acquire);
+                out.preview_offer_error=gpr_preview_queue_offer(out.preview.get(),out.plans[source].get(),out.current_index,
+                    out.current_timestamp,p,n);
+            }
+#endif
         }
         return 0;
     }
@@ -67,6 +137,15 @@ struct Output {
         out.completions.push_back({*frame,now_ns()});
     }
 };
+#if GPR_CAPTURE_HAS_PREVIEW
+// On every exit, stop display callbacks while their capture handle still lives.
+struct PreviewBeforeCaptureDestruction {
+    Output &output;
+    ~PreviewBeforeCaptureDestruction() {
+        if (output.preview) {gpr_preview_queue_cancel(output.preview.get());gpr_preview_queue_finish(output.preview.get());}
+    }
+};
+#endif
 static double percentile(std::vector<double> values,double fraction) {
     if (values.empty()) return 0;
     std::sort(values.begin(),values.end());
@@ -82,6 +161,7 @@ int main(int argc,char **argv) {
         uint32_t attempts=120,timeout=0;
         bool paced=false,leased=false; Output output;
         std::string path; std::vector<std::string> inputs,metadata_paths,source_metadata;
+        std::vector<std::string> preview_profiles;uint32_t preview_every=3,preview_delay=0,preview_fail_after=0;bool preview_option=false,preview_background=true;
         for (int a=1;a<argc;++a) {
             std::string k=argv[a];
             if (k=="--help") {
@@ -89,15 +169,23 @@ int main(int argc,char **argv) {
                     "  [--width 4096 --height 3072 --quality 4 --frames 900 --fps-num 30 --fps-den 1]\n"
                     "  [--queue 4 --workspace-mib 192 --submit-timeout-ms 0] [--paced] [--fsync-each] [--leased]\n"
                     "  [--source-metadata calibration.json] (one per input, in input order; trusted JSON)\n";
+#if GPR_CAPTURE_HAS_PREVIEW
+                std::cout<<"  [--preview-profile source.gprp] (one per input; calibrated memory sink)\n"
+                    "  [--preview-every 3 --preview-delay-ms 0] (delay simulates a slow display sink)\n"
+                    "  [--preview-fail-after 0] (nonzero simulates failure after N accepted images)\n"
+                    "  [--preview-foreground] (default is best-effort background priority)\n";
+#endif
                 return 0;
             }
             if (k=="--paced") { paced=true; continue; }
             if (k=="--leased") { leased=true; continue; }
             if (k=="--fsync-each") { output.sync_each=true; continue; }
+            if (k=="--preview-foreground") {preview_background=false;preview_option=true;continue;}
             if (++a==argc) throw std::runtime_error("missing argument: "+k);
             std::string v=argv[a];
             if (k=="--input") inputs.push_back(v);
             else if (k=="--source-metadata") metadata_paths.push_back(v);
+            else if (k=="--preview-profile") preview_profiles.push_back(v);
             else if (k=="--output") path=v;
             else {
                 uint64_t n=integer(v);
@@ -112,6 +200,9 @@ int main(int argc,char **argv) {
                     cfg.workspace_bytes=size_t(n)*1024*1024;
                 } else if (k=="--submit-timeout-ms") timeout=uint32_t(n);
                 else if (k=="--frames") attempts=uint32_t(n);
+                else if (k=="--preview-every") {preview_every=uint32_t(n);preview_option=true;}
+                else if (k=="--preview-delay-ms") {preview_delay=uint32_t(n);preview_option=true;}
+                else if (k=="--preview-fail-after") {preview_fail_after=uint32_t(n);preview_option=true;}
                 else throw std::runtime_error("unknown option: "+k);
             }
         }
@@ -133,6 +224,26 @@ int main(int argc,char **argv) {
             !cfg.max_inflight || cfg.max_inflight>16 ||
             gpr_gvid_write_header(header,&cfg.video,cfg.metadata,cfg.metadata_size)) throw std::runtime_error("invalid configuration");
         cfg.stride_bytes=cfg.video.width*2;
+#if GPR_CAPTURE_HAS_PREVIEW
+        if (!preview_profiles.empty()) {
+            uint64_t preview_setup_begin=now_ns();
+            if (preview_profiles.size()!=inputs.size() || !preview_every || preview_delay>1000)
+                throw std::runtime_error("preview requires one profile per input, positive interval and sink delay <=1000 ms");
+            size_t rgb_limit=0;
+            for (const auto &file:preview_profiles) {
+                output.plans.push_back(read_profile(file,cfg.video));gpr_preview_info info={};gpr_preview_plan_info(output.plans.back().get(),&info);
+                rgb_limit=std::max(rgb_limit,info.row_bytes*info.height);
+            }
+            output.preview_every=preview_every;output.preview_delay_ms=preview_delay;output.preview_fail_after=preview_fail_after;output.source_count=attempts;
+            output.source_for_frame.reset(new std::atomic<uint32_t>[attempts]);output.previews.reserve(attempts);
+            gpr_preview_queue_config config={std::min(size_t(128)*1024*1024,size_t(cfg.video.width)*cfg.video.height*3+1024*1024),rgb_limit,Output::display,&output,uint32_t(preview_background)};
+            gpr_preview_queue *created=nullptr;if (gpr_preview_queue_create(&config,&created)) throw std::runtime_error("preview queue create failed");
+            output.preview.reset(created);
+            output.preview_setup_ns=now_ns()-preview_setup_begin;
+        } else if (preview_option) throw std::runtime_error("preview options require explicit source profiles");
+#else
+        if (!preview_profiles.empty() || preview_option) throw std::runtime_error("this capture build has no preview component");
+#endif
         std::vector<std::vector<uint8_t>> raw;
         for (const auto &input:inputs) raw.push_back(read_file(input,size_t(cfg.stride_bytes)*cfg.video.height));
         for (const char *flag:{"GPR_STREAM_UNPACK","GPR_BAND_STREAM","GPR_CHANNEL_ASM",
@@ -144,6 +255,9 @@ int main(int argc,char **argv) {
         uint64_t setup_begin=now_ns(); gpr_capture *created=nullptr;
         if (gpr_capture_create(&cfg,&callbacks,&created)) throw std::runtime_error("capture create failed");
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture(created,gpr_capture_destroy);
+#if GPR_CAPTURE_HAS_PREVIEW
+        output.capture=created;PreviewBeforeCaptureDestruction preview_guard{output};
+#endif
         uint64_t setup_ns=now_ns()-setup_begin,begin=now_ns(),accepted=0,overruns=0,submit_ns=0;
         for (uint64_t i=0;i<attempts;++i) {
             uint64_t due=begin+i*1000000000ULL*cfg.video.fps_den/cfg.video.fps_num;
@@ -154,6 +268,9 @@ int main(int argc,char **argv) {
             metadata+="}";
             gpr_capture_frame frame={input.data(),input.size(),accepted,now_ns(),metadata.data(),metadata.size()};
             if (leased) frame.release=release_replay_input;
+#if GPR_CAPTURE_HAS_PREVIEW
+            if (output.preview) output.source_for_frame[accepted].store(uint32_t(i%raw.size()),std::memory_order_release);
+#endif
             uint64_t start=now_ns(); int error=gpr_capture_submit(capture.get(),&frame,timeout);
             submit_ns+=now_ns()-start;
             if (error==GPR_CAPTURE_BUSY) ++overruns;
@@ -162,9 +279,16 @@ int main(int argc,char **argv) {
         }
         int error=gpr_capture_finish(capture.get());
         uint64_t finish=now_ns();
+#if GPR_CAPTURE_HAS_PREVIEW
+        output.capture_finished.store(true,std::memory_order_release);
+#endif
         if (error) throw std::runtime_error("capture finish failed: "+std::to_string(error));
         if (fsync(output.fd)) throw std::runtime_error("final fsync failed");
         uint64_t durable=now_ns();
+#if GPR_CAPTURE_HAS_PREVIEW
+        int preview_error=output.preview ? gpr_preview_queue_finish(output.preview.get()):0;
+        uint64_t display_finish=now_ns();
+#endif
         gpr_capture_stats stats={}; gpr_capture_get_stats(capture.get(),&stats);
         struct rusage usage={}; getrusage(RUSAGE_SELF,&usage);
         uint64_t peak_rss_bytes=uint64_t(usage.ru_maxrss);
@@ -181,6 +305,32 @@ int main(int argc,char **argv) {
                 <<",\"write_ms\":"<<r.frame.write_ns*1e-6<<",\"capture_to_written_ms\":"<<latency_s*1000
                 <<",\"deadline_missed\":"<<(late ? "true":"false")<<"}\n";
         }
+#if GPR_CAPTURE_HAS_PREVIEW
+        if (output.preview) {
+            gpr_preview_queue_stats state={};gpr_preview_queue_get_stats(output.preview.get(),&state);
+            size_t before_finish=0,with_inflight=0;std::vector<double> render_ms,display_latency;
+            for (const auto &r:output.previews) {
+                before_finish+=r.before_capture_finish;with_inflight+=r.capture_inflight>0;
+                render_ms.push_back(r.render_ns*1e-6);display_latency.push_back((r.done_ns-r.timestamp_ns)*1e-6);
+                std::cout<<"{\"event\":\"preview\",\"index\":"<<r.index<<",\"timestamp_ns\":"<<r.timestamp_ns
+                    <<",\"source_index\":"<<r.source<<",\"width\":"<<r.width<<",\"height\":"<<r.height
+                    <<",\"payload_crc32\":"<<r.payload_crc<<",\"rgb_crc32\":"<<r.rgb_crc
+                    <<",\"render_ms\":"<<r.render_ns*1e-6<<",\"capture_to_sink_ms\":"<<(r.done_ns-r.timestamp_ns)*1e-6
+                    <<",\"offer_to_sink_ms\":"<<(r.done_ns-r.offered_ns)*1e-6<<",\"capture_inflight\":"<<r.capture_inflight
+                    <<",\"before_capture_finish\":"<<(r.before_capture_finish ? "true":"false")<<"}\n";
+            }
+            std::cout<<"{\"event\":\"preview_summary\",\"schema\":\"gpr.capture_preview.v1\",\"sink\":\"memory_crc\""
+                <<",\"every\":"<<preview_every<<",\"sink_delay_ms\":"<<preview_delay<<",\"offered\":"<<state.offered
+                <<",\"rendered\":"<<state.rendered<<",\"discarded\":"<<state.discarded<<",\"replaced\":"<<state.replaced
+                <<",\"inflight_high_water\":"<<state.inflight_high_water<<",\"payload_peak_bytes\":"<<state.payload_peak_bytes
+                <<",\"render_median_ms\":"<<percentile(render_ms,.5)<<",\"capture_to_sink_p95_ms\":"<<percentile(display_latency,.95)
+                <<",\"before_capture_finish\":"<<before_finish<<",\"with_capture_inflight\":"<<with_inflight
+                <<",\"drain_after_durability_s\":"<<(display_finish-durable)*1e-9
+                <<",\"setup_s\":"<<output.preview_setup_ns*1e-9
+                <<",\"background_requested\":"<<state.background_requested<<",\"background_applied\":"<<state.background_applied
+                <<",\"error\":"<<(preview_error ? preview_error:output.preview_offer_error)<<"}\n";
+        }
+#endif
         std::cout<<"{\"event\":\"summary\",\"schema\":\"gpr.capture_replay.v1\",\"attempts\":"<<attempts
             <<",\"accepted\":"<<accepted<<",\"written\":"<<stats.written<<",\"overruns\":"<<overruns
             <<",\"queue\":"<<cfg.max_inflight<<",\"inflight_high_water\":"<<stats.inflight_high_water
@@ -195,6 +345,9 @@ int main(int argc,char **argv) {
             <<",\"workspace_peak_bytes\":"<<stats.workspace_peak_bytes<<",\"workspace_fallback_peak_bytes\":"<<stats.workspace_fallback_peak_bytes
             <<",\"peak_rss_bytes\":"<<peak_rss_bytes
             <<",\"payload_bytes\":"<<stats.payload_bytes<<",\"complete\":true}\n";
+#if GPR_CAPTURE_HAS_PREVIEW
+        if (output.preview && (preview_error || output.preview_offer_error)) return 1;
+#endif
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }
 }

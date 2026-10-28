@@ -74,12 +74,16 @@ and still SDK calls, and skips an unrequested thumbnail allocation.
 
 The [native preview](stock-preview.md) now renders full-frame reductions from
 the same stock recording, with independent stock RGB fixtures and Pi playback
-measurements. Capture and preview have not yet been measured together.
+measurements. The [bounded asynchronous capture preview](stock-capture-preview.md)
+now connects recording to a calibrated RGB callback with copied payloads,
+retained source plans, latest-pending replacement and isolated sink failure.
+Matched 900-attempt Pi runs show 256x192 preview is much cheaper than 512x384;
+capture overruns and late completions remain.
 The [prepared calibrated preview](stock-calibrated-preview.md) additionally uses
 source matrix/white-point/black/white/GainMap data and crop/orientation, with an
 SDK-independent immutable plan and four-pixel NEON processing. It is a reduced
-wavelet approximation; full look/lens/temporal approval and combined scheduling
-remain pending.
+wavelet approximation; full look/lens/temporal approval, physical display
+integration and reliable capture/display scheduling remain pending.
 
 The [metadata and editable RAW workflow](stock-editable-raw.md) now carries
 per-source calibration through recording and exports decoded DNGs or GPRs

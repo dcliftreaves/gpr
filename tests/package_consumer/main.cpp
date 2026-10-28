@@ -13,6 +13,7 @@
 #endif
 #if HAS_PREVIEW
 #include "gpr_preview.h"
+#include "gpr_preview_queue.h"
 #endif
 #include <algorithm>
 #include <cstdlib>
@@ -47,6 +48,18 @@ struct Recording {
     static ptrdiff_t read(void *user,uint8_t *out,size_t size) {
         auto &r=*static_cast<Recording *>(user); size=std::min(size,r.bytes.size()-r.cursor);
         std::memcpy(out,r.bytes.data()+r.cursor,size); r.cursor+=size; return ptrdiff_t(size);
+    }
+};
+#endif
+#if HAS_PREVIEW
+struct Display {
+    std::vector<uint8_t> rgb;
+    uint64_t index=0,timestamp=0;
+    static int accept(void *user,const gpr_preview_frame_view *frame) {
+        auto &display=*static_cast<Display *>(user);
+        display.rgb.assign(frame->rgb,frame->rgb+frame->size_bytes);
+        display.index=frame->index;display.timestamp=frame->timestamp_ns;
+        return 0;
     }
 };
 #endif
@@ -102,6 +115,16 @@ int main(int argc,char **argv) {
         size_t pitch=info.row_bytes+7;rgb.assign(pitch*info.height,0xcd);
         check(!gpr_preview_plan_render(plan.get(),payload.data(),payload.size(),rgb.data(),rgb.size(),pitch,&info),"installed calibrated render");
         for (size_t y=0;y<info.height;++y) for (size_t x=info.row_bytes;x<pitch;++x) check(rgb[y*pitch+x]==0xcd,"installed calibrated pitch");
+        std::vector<uint8_t> expected;
+        for (size_t y=0;y<info.height;++y) expected.insert(expected.end(),rgb.begin()+y*pitch,rgb.begin()+y*pitch+info.row_bytes);
+        Display display;gpr_preview_queue *created_queue=nullptr;
+        gpr_preview_queue_config queue_config={payload.size(),expected.size(),Display::accept,&display,1};
+        check(!gpr_preview_queue_create(&queue_config,&created_queue),"installed preview queue create");
+        std::unique_ptr<gpr_preview_queue,decltype(&gpr_preview_queue_destroy)> queue(created_queue,gpr_preview_queue_destroy);
+        check(!gpr_preview_queue_offer(queue.get(),plan.get(),7,123456,payload.data(),payload.size()),"installed preview queue offer");
+        plan.reset(); // The installed queue owns the plan until delivery.
+        check(!gpr_preview_queue_finish(queue.get()),"installed preview queue finish");
+        check(display.rgb==expected && display.index==7 && display.timestamp==123456,"installed preview queue pixels/identity");
 #endif
 #if HAS_SDK && !NATIVE_CLIENT
         gpr_parameters parameters; gpr_parameters_set_defaults(&parameters);

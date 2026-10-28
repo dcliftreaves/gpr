@@ -15,7 +15,7 @@ if(GPR_ENABLE_VIDEO)
   target_link_libraries(gpr_video PUBLIC gpr_gvid vc5_encoder vc5_common common Threads::Threads)
 endif()
 if(GPR_PREVIEW_ENABLED)
-  add_library(gpr_preview STATIC gpr_preview.cpp)
+  add_library(gpr_preview STATIC gpr_preview.cpp gpr_preview_queue.cpp)
   target_compile_features(gpr_preview PRIVATE cxx_std_11)
   target_include_directories(gpr_preview PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gpr>)

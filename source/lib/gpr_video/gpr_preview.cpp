@@ -9,6 +9,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #if defined(__aarch64__) && NEON
 #include <arm_neon.h>
 #endif
@@ -88,6 +89,7 @@ void release(void *p) {
 }
 
 struct gpr_preview_plan {
+    mutable std::atomic<size_t> references{1};
     gpr_gvid_config video;
     uint32_t downsample,orientation,columns,rows,full_width,full_height;
     gpr_preview_info info;
@@ -296,7 +298,10 @@ extern "C" int gpr_preview_plan_from_profile(const gpr_gvid_config *v,const uint
         return gpr_preview_plan_create(v,&c,out);
     } catch (...) { return GPR_PREVIEW_NOMEM; }
 }
-extern "C" void gpr_preview_plan_destroy(gpr_preview_plan *p) { delete p; }
+extern "C" void gpr_preview_plan_retain(const gpr_preview_plan *p) { if (p) p->references.fetch_add(1,std::memory_order_relaxed); }
+extern "C" void gpr_preview_plan_destroy(gpr_preview_plan *p) {
+    if (p && p->references.fetch_sub(1,std::memory_order_acq_rel)==1) delete p;
+}
 extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *payload,size_t size,
     uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out) {
     if (!p || !rgb || !out) return GPR_PREVIEW_INVALID;

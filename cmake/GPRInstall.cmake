@@ -29,7 +29,7 @@ if(TARGET gpr_video)
   install(FILES source/lib/gpr_video/gpr_capture.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
 endif()
 if(TARGET gpr_preview)
-  install(FILES source/lib/gpr_video/gpr_preview.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
+  install(FILES source/lib/gpr_video/gpr_preview.h source/lib/gpr_video/gpr_preview_queue.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
 endif()
 install(DIRECTORY source/lib/common/public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr FILES_MATCHING PATTERN "*.h")
 install(FILES source/lib/vc5_common/error.h source/lib/vc5_common/types.h

@@ -97,6 +97,12 @@ gain table. At 1024x768 this is about 25.2 MB per mapped plan. The player keeps 
 bounded four-plan LRU cache, shared across playback passes. Real camera callers
 control plan lifetime and scheduling.
 
+The [bounded asynchronous queue](stock-capture-preview.md) can retain a plan
+and copied compressed payload for one active/one pending frame. It adds explicit
+latest-pending replacement and sink error/drain contracts. Pi combined capture
+measurements demonstrate its CPU cost; physical display integration and reliable
+live 30 fps remain unverified.
+
 On AArch64 with NEON enabled, a four-pixel kernel deinterleaves linear word
 triplets, fixes byte/lane order and processes independent pixels in vector
 registers through black normalization, gains, clipping and the 3x3 transform.

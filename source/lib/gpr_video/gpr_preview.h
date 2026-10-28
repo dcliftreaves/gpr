@@ -6,7 +6,8 @@
 extern "C" {
 #endif
 enum { GPR_PREVIEW_OK=0,GPR_PREVIEW_INVALID=-1,GPR_PREVIEW_CAPACITY=-2,
-       GPR_PREVIEW_PAYLOAD=-3,GPR_PREVIEW_CODEC=-4,GPR_PREVIEW_NOMEM=-5 };
+       GPR_PREVIEW_PAYLOAD=-3,GPR_PREVIEW_CODEC=-4,GPR_PREVIEW_NOMEM=-5,
+       GPR_PREVIEW_CLOSED=-6,GPR_PREVIEW_CALLBACK=-7 };
 typedef struct {
     uint32_t downsample; /* 4, 8 or 16 Bayer samples per RGB sample axis. */
     uint32_t gain_num[3],gain_pow2_den[3]; /* R,G,B gain = num / 2^den. */
@@ -65,6 +66,9 @@ int gpr_preview_plan_info(const gpr_preview_plan *plan,gpr_preview_info *out);
 int gpr_preview_plan_render(const gpr_preview_plan *plan,const uint8_t *payload,size_t payload_size,
     uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out);
 void gpr_preview_plan_destroy(gpr_preview_plan *plan);
+/* Acquire another ownership reference. Each reference is released by destroy.
+ * The caller must hold a reference while retaining or rendering. */
+void gpr_preview_plan_retain(const gpr_preview_plan *plan);
 #ifdef __cplusplus
 }
 #endif
