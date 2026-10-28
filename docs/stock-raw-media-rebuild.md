@@ -121,7 +121,14 @@ Mac/Pi FFmpeg-version exchange, sanitizer checks and relocated packages validate
 the transport. It is not standard CFHD or rendered ProRes; audio/timecode
 extensions remain pending.
 
-This is not feature-suite parity. Restored still tiers, MOV audio/timecode extensions and ProRes rendering, full reconstruction/model quality
+[Calibrated ProRes rendering](stock-prores.md) now processes each actual typed
+DNG through the macOS RAW decoder into a 16-bit Rec.709 intermediate and deep
+ProRes HQ/4444, with explicit frame durations and independent packet/color checks.
+Both caller-selected 1x and 2x CNN paths run through this renderer. Real camera
+functional checks include 8192x6144 12-bit 4444 output; broader rendered/temporal
+quality approval and audio/timecode integration remain pending.
+
+This is not feature-suite parity. Restored still tiers, MOV audio/timecode extensions, broader rendering validation, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance
 and remaining platform/release integration remain
 pending. Earlier

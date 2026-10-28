@@ -51,7 +51,7 @@ distinct **`GVS2` / `GVS3` private video sample tags**:
 - This is a MOV compatibility wrapper for these tools. It is **not standard
   CFHD**, fused GPRr/GPR1, ProRes or a promise of playback in generic editors.
   Unwrap for the existing RAW extraction/reconstruction tools; calibrated
-  rendered ProRes is a separate remaining workflow.
+  rendered ProRes uses the separate [calibrated renderer](stock-prores.md).
 
 The native transport validates GVID framing/CRC/end-marker/whole-file identity,
 not opaque compressed-image syntax. The Python wrapper additionally validates
@@ -164,5 +164,5 @@ Receipts: [current Pi benchmark](stock-mov-receipts/pi5-current.json),
 [final Pi Release input guards](stock-mov-receipts/pi5-final-guards.json).
 The source recordings remain outside the repository.
 
-ProRes rendering, audio/timecode integration and integrated capture/display
+Broader rendering validation, audio/timecode integration and integrated capture/display
 performance remain part of the active high-level rebuild.

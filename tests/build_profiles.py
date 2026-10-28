@@ -96,6 +96,12 @@ def main():
                 run([sys.executable,tools/'stock_mov.py',action,source,'--bridge',prefix/'bin/gpr_mov',
                      '--output',output],dest/f'installed-mov-{action}.log')
             if returned.read_bytes()!=original.read_bytes():raise RuntimeError('installed MOV interchange changed recording bytes')
+        if (prefix/'bin/gpr_render').is_file():
+            if 'Optional RAW/ProRes renderer: ON' not in (prefix/'share/gpr/gpr-build-info.txt').read_text():
+                raise RuntimeError('renderer package does not declare its macOS dependency')
+            for helper in ('gpr_render', 'gpr_prores'):
+                run([prefix/'bin'/helper, '--version'], dest/f'installed-{helper}.log')
+            run([sys.executable, tools/'stock_prores.py', '--help'], dest/'installed-prores-help.log')
         if 'sdk' in expected:
             meta = build/'calibration.json'
             run([sys.executable, tools/'raw_media.py', 'metadata', build/'sample.gpr', '--sample-bits', '14', '--output', meta], dest/'python-metadata.log')
@@ -129,9 +135,11 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
         (src/'source/app').mkdir(parents=True)
         shutil.copy2(root/'source/app/gpr_mov.cpp',src/'source/app/gpr_mov.cpp')
+        for helper_name in ('gpr_render.m', 'gpr_prores.m'):
+            shutil.copy2(root/'source/app'/helper_name, src/'source/app'/helper_name)
         components = ['common', 'vc5_common', 'gpr_video']
         if encoder: components.append('vc5_encoder')
         if decoder: components.append('vc5_decoder')

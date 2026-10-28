@@ -95,6 +95,13 @@ jobs:
             -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
           cmake --build build-serial --parallel 4
           ctest --test-dir build-serial --output-on-failure
+      - name: Optional calibrated RAW and deep ProRes rendering
+        if: matrix.name == 'MacRelease'
+        run: |
+          brew install ffmpeg
+          cmake -S . -B build-runtime -DGPR_BUILD_RENDER_TOOLS=ON -DGPR_BUILD_RENDER_TESTS=ON
+          cmake --build build-runtime --target gpr_render gpr_prores --parallel 4
+          ctest --test-dir build-runtime -R '^stock_prores$' --output-on-failure
       - name: Stripped builds, relocated packages and public C/C++ clients
         if: matrix.type == 'Release'
         run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime
