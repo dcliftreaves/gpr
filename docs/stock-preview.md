@@ -54,6 +54,11 @@ camera-calibrated color processing. No exposure, tone mapping, CNN or quality
 approval is implied. A real 12 MP Q3 frame also matched independent stock
 quarter-resolution output exactly (RGB SHA-256
 `3bf5e715fb80f9f20ea4aaa75949f015766beb506389fbad9b4872463bc5f360`).
+The legacy `WaveletToRGB` also mirrors horizontally and does not apply the
+source TIFF Orientation. This API currently preserves that convention;
+metadata-aware display orientation and calibrated preview color remain part
+of the rebuild. Editable DNG export instead preserves the source Orientation
+and Bayer layout for the RAW renderer.
 
 ## Pi 5 measurement, 2026-10-28
 

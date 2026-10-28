@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <fcntl.h>
 #include <unistd.h>
@@ -80,13 +81,14 @@ int main(int argc,char **argv) {
         cfg.metadata_size=std::strlen(static_cast<const char *>(cfg.metadata));
         uint32_t attempts=120,timeout=0;
         bool paced=false,leased=false; Output output;
-        std::string path; std::vector<std::string> inputs;
+        std::string path; std::vector<std::string> inputs,metadata_paths,source_metadata;
         for (int a=1;a<argc;++a) {
             std::string k=argv[a];
             if (k=="--help") {
                 std::cout<<"gpr_capture_app --input frame.raw [--input another.raw] --output clip.gvid\n"
                     "  [--width 4096 --height 3072 --quality 4 --frames 900 --fps-num 30 --fps-den 1]\n"
-                    "  [--queue 4 --workspace-mib 192 --submit-timeout-ms 0] [--paced] [--fsync-each] [--leased]\n";
+                    "  [--queue 4 --workspace-mib 192 --submit-timeout-ms 0] [--paced] [--fsync-each] [--leased]\n"
+                    "  [--source-metadata calibration.json] (one per input, in input order; trusted JSON)\n";
                 return 0;
             }
             if (k=="--paced") { paced=true; continue; }
@@ -95,6 +97,7 @@ int main(int argc,char **argv) {
             if (++a==argc) throw std::runtime_error("missing argument: "+k);
             std::string v=argv[a];
             if (k=="--input") inputs.push_back(v);
+            else if (k=="--source-metadata") metadata_paths.push_back(v);
             else if (k=="--output") path=v;
             else {
                 uint64_t n=integer(v);
@@ -111,6 +114,19 @@ int main(int argc,char **argv) {
                 else if (k=="--frames") attempts=uint32_t(n);
                 else throw std::runtime_error("unknown option: "+k);
             }
+        }
+        if (!metadata_paths.empty()) {
+            if (metadata_paths.size()!=inputs.size()) throw std::runtime_error("supply one calibration per RAW input");
+            for (const auto &file:metadata_paths) {
+                std::ifstream in(file,std::ios::binary|std::ios::ate);
+                if (!in || in.tellg()<=0 || in.tellg()>std::streamoff(GPR_GVID_METADATA_LIMIT-256))
+                    throw std::runtime_error("invalid/large calibration JSON");
+                std::string data(size_t(in.tellg()),'\0'); in.seekg(0);
+                if (!in.read(&data[0],data.size())) throw std::runtime_error("short calibration JSON");
+                source_metadata.push_back(std::move(data));
+            }
+            cfg.metadata="{\"source_kind\":\"raw_fixture_replay\",\"calibration\":\"per_source_metadata\"}";
+            cfg.metadata_size=std::strlen(static_cast<const char *>(cfg.metadata));
         }
         uint8_t header[64];
         if (path.empty() || inputs.empty() || inputs.size()>16 || !attempts || attempts>1000000 ||
@@ -133,7 +149,9 @@ int main(int argc,char **argv) {
             uint64_t due=begin+i*1000000000ULL*cfg.video.fps_den/cfg.video.fps_num;
             if (paced) std::this_thread::sleep_until(Clock::time_point(std::chrono::duration_cast<Clock::duration>(std::chrono::nanoseconds(due))));
             auto &input=raw[i%raw.size()];
-            std::string metadata="{\"source_index\":"+std::to_string(i%raw.size())+",\"attempt_index\":"+std::to_string(i)+"}";
+            std::string metadata="{\"source_index\":"+std::to_string(i%raw.size())+",\"attempt_index\":"+std::to_string(i);
+            if (!source_metadata.empty()) metadata+=",\"raw_metadata\":"+source_metadata[i%raw.size()];
+            metadata+="}";
             gpr_capture_frame frame={input.data(),input.size(),accepted,now_ns(),metadata.data(),metadata.size()};
             if (leased) frame.release=release_replay_input;
             uint64_t start=now_ns(); int error=gpr_capture_submit(capture.get(),&frame,timeout);

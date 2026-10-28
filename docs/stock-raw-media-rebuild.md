@@ -76,9 +76,17 @@ The [native preview](stock-preview.md) now renders full-frame reductions from
 the same stock recording, with independent stock RGB fixtures and Pi playback
 measurements. Capture and preview have not yet been measured together.
 
-This is not feature-suite parity. Typed calibrated metadata, the complete
-high-bit-depth/CFA stills workflow, MOV/ProRes/editable export,
-model/quality selection and platform delivery are still pending. Earlier
+The [metadata and editable RAW workflow](stock-editable-raw.md) now carries
+per-source calibration through recording and exports decoded DNGs or GPRs
+without re-encoding their stock payloads. Independent TIFF reads and SDK
+decodes verify calibration, EXIF/GPS, compressed bytes and Bayer values.
+Standalone uncompressed DNG packaging supports four CFA phases and 12/14/16-bit
+counts; this does not extend the encoder's accepted formats.
+
+This is not feature-suite parity. The complete high-bit-depth/CFA encoding and
+still-tier workflow, MOV/ProRes export, full reconstruction/model quality
+selection, integrated capture/display performance and platform delivery remain
+pending. Earlier
 feature/validation PRs remain open and unchanged.
 
 The #100 experiment used preloaded RAWs decoded from two supplied GPR stills,

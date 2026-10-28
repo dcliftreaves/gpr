@@ -235,6 +235,10 @@ def main():
     parser.add_argument("--tile", type=int, default=256, help="output core size in Bayer-plane pixels")
     parser.add_argument("--halo", type=int, default=64, help="context on each side of the output core")
     parser.add_argument("--recover", action="store_true", help="export only verified complete prefix; report incomplete recording")
+    parser.add_argument("--editable", choices=("dng", "gpr", "both"),
+                        help="export calibrated editable RAWs; GPR copies the original VC-5 payload")
+    parser.add_argument("--metadata-file", type=Path,
+                        help="gpr.raw_metadata.v1 default calibration; per-frame/clip raw_metadata overrides it")
     args = parser.parse_args()
     if args.limit < 0 or args.tile < 8 or args.tile % 8 or args.halo < 0 or args.halo % 8:
         parser.error("invalid frame limit, tile or halo (spatial sizes must be multiples of 8)")
@@ -244,6 +248,15 @@ def main():
         parser.error("restore requires --decoder, --cnn-root and --checkpoint")
     if args.reference_raw and (not args.decoder or args.action == "inspect"):
         parser.error("reference measurements require extraction/restore with --decoder")
+    if args.editable and args.action == "inspect":
+        parser.error("editable exports require extract/restore")
+    if args.editable in ("dng", "both") and not args.decoder:
+        parser.error("editable DNG export requires --decoder")
+    if args.action == "restore" and args.editable in ("gpr", "both"):
+        parser.error("restored GPR requires a new encode; use --editable dng for reconstructed RAW")
+    if args.metadata_file and not args.editable:
+        parser.error("--metadata-file requires --editable")
+    fallback_metadata = decode_metadata(args.metadata_file.read_bytes()) if args.metadata_file else None
     model, model_info = None, None
     if args.action == "restore":
         import torch
@@ -263,9 +276,19 @@ def main():
             if header["version"] == 3:
                 row["metadata"] = record["metadata"]
                 row["metadata_bytes"] = record["metadata_bytes"]
+            calibration = None
+            if args.editable:
+                import raw_media
+                calibration = record["metadata"].get("raw_metadata", header.get("metadata", {}).get("raw_metadata", fallback_metadata))
+                raw_media.validate(calibration, header)
+                row["raw_metadata_sha256"] = hashlib.sha256(json.dumps(calibration, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             if args.action != "inspect" and (not args.limit or index < args.limit):
                 vc5 = args.out_dir / f"{index:06d}.vc5"
                 vc5.write_bytes(payload)
+                if args.editable in ("gpr", "both"):
+                    path = vc5.with_suffix(".gpr")
+                    raw_media.write(path, calibration, payload, "gpr")
+                    row["gpr_sha256"] = sha256(path)
                 if args.decoder:
                     raw = vc5.with_suffix(".raw")
                     subprocess.run([str(args.decoder.resolve()), "--decode", str(vc5), "--output", str(raw),
@@ -280,6 +303,10 @@ def main():
                         path = vc5.with_suffix(".cnn.raw")
                         restored.tofile(path)
                         row.update(cnn_s=elapsed, cnn_sha256=sha256(path))
+                    if args.editable in ("dng", "both"):
+                        path = vc5.with_suffix(".dng")
+                        raw_media.write(path, calibration, restored.astype("<u2").tobytes() if restored is not None else raw.read_bytes())
+                        row["dng_sha256"] = sha256(path)
                     if args.reference_raw:
                         import numpy as np
                         ref_path = args.reference_raw[index % len(args.reference_raw)]

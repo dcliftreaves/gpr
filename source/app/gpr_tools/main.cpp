@@ -137,8 +137,9 @@ int dng_dump(const char*  input_file_path)
     {
         gpr_parameters_print( &params, NULL );
     }
-    
-    return 0;
+    gpr_parameters_destroy(&params, allocator.Free);
+    allocator.Free(input_buffer.buffer);
+    return success ? 0 : -1;
 }
 
 int main(int argc, char *argv [])
