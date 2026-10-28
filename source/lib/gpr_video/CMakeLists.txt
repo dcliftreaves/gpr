@@ -1,0 +1,8 @@
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+add_library(gpr_video STATIC gpr_gvid.c gpr_capture.cpp)
+target_compile_features(gpr_video PRIVATE cxx_std_11)
+target_include_directories(gpr_video PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(gpr_video PRIVATE ../vc5_encoder ../vc5_common ../common/public)
+target_include_directories(gpr_video PRIVATE ${ZLIB_INCLUDE_DIRS})
+target_link_libraries(gpr_video PUBLIC vc5_encoder vc5_common common Threads::Threads ${ZLIB_LIBRARIES})

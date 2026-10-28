@@ -1,5 +1,9 @@
 # GPR Introduction
 
+The broader [stock RAW-media rebuild](docs/stock-raw-media-rebuild.md) is in
+progress. Its first [capture API milestone](docs/stock-capture-api.md) adds
+bounded copy/lease ownership, asynchronous storage and timestamped metadata.
+
 The opt-in [12 MP stock RAW-video experiment](docs/stock-raw-video-12mp.md)
 records unchanged VC-5 payloads, measures paced encoding and storage on Pi 5,
 and supports optional offline 1x Bayer CNN restoration. The linked results

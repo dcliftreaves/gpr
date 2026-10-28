@@ -1,0 +1,28 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
+#include "gpr_capture.h"
+#include <string.h>
+
+static uint32_t slow_crc(uint32_t crc,const uint8_t *p,size_t n) {
+    crc ^= UINT32_MAX;
+    while (n--) {
+        crc ^= *p++;
+        for (unsigned bit=0;bit<8;++bit) crc=(crc>>1) ^ ((crc&1) ? 0xedb88320u : 0);
+    }
+    return crc ^ UINT32_MAX;
+}
+
+int main(void) {
+    gpr_capture *capture=(gpr_capture *)(uintptr_t)1;
+    if (gpr_capture_create(NULL,NULL,&capture)!=GPR_CAPTURE_INVALID || capture!=NULL) return 1;
+    if (gpr_capture_flush(NULL)!=GPR_CAPTURE_INVALID || gpr_capture_finish(NULL)!=GPR_CAPTURE_INVALID) return 2;
+    if (gpr_capture_get_stats(NULL,NULL)!=GPR_CAPTURE_INVALID) return 3;
+    if (gpr_gvid_crc32(0,"123456789",9)!=0xcbf43926u) return 4;
+    uint8_t data[1040];
+    for (size_t i=0;i<sizeof data;++i) data[i]=(uint8_t)(i*13+7);
+    for (unsigned offset=0;offset<8;++offset) for (size_t n=0;n<=1024;++n) {
+        uint32_t seed=(uint32_t)(n*171871u);
+        if (gpr_gvid_crc32(seed,data+offset,n)!=slow_crc(seed,data+offset,n)) return 5;
+    }
+    gpr_capture_cancel(NULL); gpr_capture_destroy(NULL);
+    return 0;
+}

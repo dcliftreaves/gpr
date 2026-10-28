@@ -1,0 +1,39 @@
+name: Stock capture
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stock-capture-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: LinuxRelease, os: ubuntu-latest, type: Release, flags: ''}
+          - {name: LinuxSanitizers, os: ubuntu-latest, type: Debug, flags: '-fsanitize=address,undefined -fno-omit-frame-pointer'}
+          - {name: MacRelease, os: macos-latest, type: Release, flags: ''}
+    env:
+      UBSAN_OPTIONS: halt_on_error=1
+      ASAN_OPTIONS: detect_leaks=1
+    steps:
+      - uses: actions/checkout@v6
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zlib1g-dev
+      - name: Configure native capture
+        run: |
+          cmake -S . -B build-runtime -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
+            -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON -DGPR_BUILD_CAPTURE_APP=ON \
+            -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
+      - name: Build
+        run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app --parallel 4
+      - name: Test
+        run: ctest --test-dir build-runtime --output-on-failure

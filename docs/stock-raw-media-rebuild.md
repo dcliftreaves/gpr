@@ -62,6 +62,21 @@ does not establish parity, quality, performance, or camera deployment.
 
 ## Baseline constraints to preserve in reporting
 
+### First implementation milestone (in progress)
+
+The [stock capture API](stock-capture-api.md) now implements bounded
+copy-before-return and explicit input leases, asynchronous writing,
+flush/finish/cancel/error handling, actual timestamps, opaque clip/frame
+metadata, checksum-protected v3 framing and explicit interrupted-prefix
+recovery. Native C/C++ and independent Python tests exercise these contracts.
+The codec entry point also serializes global codebook state across captures
+and still SDK calls, and skips an unrequested thumbnail allocation.
+
+This is not feature-suite parity. Typed calibrated metadata, the complete
+high-bit-depth/CFA stills workflow, native preview, MOV/ProRes/editable export,
+model/quality selection and platform delivery are still pending. Earlier
+feature/validation PRs remain open and unchanged.
+
 The #100 experiment used preloaded RAWs decoded from two supplied GPR stills,
 not a live sensor sequence. On Pi 5 the 900-frame Q3/Q4 runs averaged about
 30 fps before final flush, but missed 231/900 and 294/900 completion deadlines;

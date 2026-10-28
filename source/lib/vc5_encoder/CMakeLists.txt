@@ -15,6 +15,11 @@ include_directories( "../common/public" )
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
 
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  target_link_libraries(${LIB_NAME} PUBLIC Threads::Threads)
+endif()
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$" AND NEON AND NOT WIN32)
   enable_language(ASM)
   target_sources(${LIB_NAME} PRIVATE stock_unpack_arm64.S)

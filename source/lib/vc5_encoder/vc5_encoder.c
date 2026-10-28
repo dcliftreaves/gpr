@@ -21,6 +21,13 @@
 #include "headers.h"
 
 #include <stdint.h>
+#if defined(_WIN32)
+#include <windows.h>
+static SRWLOCK encoder_process_mutex = SRWLOCK_INIT;
+#else
+#include <pthread.h>
+static pthread_mutex_t encoder_process_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_parameters)
 {
@@ -36,7 +43,7 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->mem_free  = free;
 }
 
-CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
+static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
                                 const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                       gpr_buffer*               vc5_buffer,
                                       gpr_rgb_buffer*           rgb_buffer)             /* rgb output buffer. */
@@ -100,6 +107,7 @@ CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_paramet
     if (error != CODEC_ERROR_OKAY) {
         return error;
     }
+
     
     image.buffer = raw_buffer->buffer;
     
@@ -165,7 +173,9 @@ CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_paramet
     InitRGBImage(&rgb_image);
 
     // Encode the image into the byte stream
-    error = EncodeImage(&image, &bitstream_file, &rgb_image, &parameters);
+    // A thumbnail is optional. Generating one for a NULL recipient both
+    // wastes frame time and leaves its allocation without an owner.
+    error = EncodeImage(&image, &bitstream_file, rgb_buffer ? &rgb_image : NULL, &parameters);
     if (error != CODEC_ERROR_OKAY) {
         return error;
     }
@@ -181,4 +191,26 @@ CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_paramet
     vc5_buffer->size = bitstream_file.byte_count;
     
     return CODEC_ERROR_OKAY;
+}
+
+/* Codebook lookup buffers are process-global in the historical implementation.
+ * Serialize top-level calls from capture AND the still SDK; independent Bayer
+ * channel workers inside each call remain parallel. */
+CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters *parameters,
+                                const gpr_buffer *raw, gpr_buffer *vc5,
+                                gpr_rgb_buffer *rgb)
+{
+    CODEC_ERROR error;
+#if defined(_WIN32)
+    AcquireSRWLockExclusive(&encoder_process_mutex);
+#else
+    pthread_mutex_lock(&encoder_process_mutex);
+#endif
+    error = vc5_encoder_process_unlocked(parameters, raw, vc5, rgb);
+#if defined(_WIN32)
+    ReleaseSRWLockExclusive(&encoder_process_mutex);
+#else
+    pthread_mutex_unlock(&encoder_process_mutex);
+#endif
+    return error;
 }
