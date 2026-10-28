@@ -8,6 +8,40 @@ concurrency:
   group: stock-capture-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  mov:
+    name: MOV-${{ matrix.type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {type: Release, flags: ''}
+          - {type: Debug, flags: '-fsanitize=address,undefined -fno-omit-frame-pointer'}
+    env:
+      UBSAN_OPTIONS: halt_on_error=1
+      ASAN_OPTIONS: detect_leaks=1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Optional FFmpeg transport dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zlib1g-dev pkg-config libavformat-dev libavcodec-dev libavutil-dev ffmpeg
+      - name: Remove unused SDK and image codecs
+        run: rm -rf source/lib/gpr_sdk source/lib/dng_sdk source/lib/xmp_core source/lib/expat_lib source/lib/md5_lib source/lib/tiny_jpeg source/lib/vc5_encoder source/lib/vc5_decoder
+      - name: Configure standalone MOV transport
+        run: |
+          cmake -S . -B build-mov -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
+            -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF \
+            -DGPR_BUILD_ENCODER=OFF -DGPR_BUILD_DECODER=OFF -DGPR_BUILD_MOV_TOOLS=ON \
+            -DGPR_BUILD_MOV_TESTS=ON -DGPR_BUILD_PACKAGE=ON \
+            -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
+      - name: Build and verify opaque transport
+        run: |
+          cmake --build build-mov --parallel 4
+          ctest --test-dir build-mov --output-on-failure
   native:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}

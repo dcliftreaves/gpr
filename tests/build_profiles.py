@@ -86,6 +86,13 @@ def main():
         report = json.loads(inspected.stdout)
         if report['frame_count'] != 2 or not report['complete'] or not report['end_marker_verified']:
             raise RuntimeError('installed Python inspector failed')
+        if (prefix/'bin/gpr_mov').is_file():
+            movie=build/'interchange.mov';returned=build/'interchange.gvid'
+            original=root/'tests/fixtures/stock_preview/container-v3.gvid'
+            for action,source,output in (('wrap',original,movie),('unwrap',movie,returned)):
+                run([sys.executable,tools/'stock_mov.py',action,source,'--bridge',prefix/'bin/gpr_mov',
+                     '--output',output],dest/f'installed-mov-{action}.log')
+            if returned.read_bytes()!=original.read_bytes():raise RuntimeError('installed MOV interchange changed recording bytes')
         if 'sdk' in expected:
             meta = build/'calibration.json'
             run([sys.executable, tools/'raw_media.py', 'metadata', build/'sample.gpr', '--sample-bits', '14', '--output', meta], dest/'python-metadata.log')
@@ -119,7 +126,9 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        (src/'source/app').mkdir(parents=True)
+        shutil.copy2(root/'source/app/gpr_mov.cpp',src/'source/app/gpr_mov.cpp')
         components = ['common', 'vc5_common', 'gpr_video']
         if encoder: components.append('vc5_encoder')
         if decoder: components.append('vc5_decoder')
