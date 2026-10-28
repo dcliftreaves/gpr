@@ -7,6 +7,7 @@ This is an integration check, not an in-tree target-name smoke test.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -27,11 +28,30 @@ def main():
     revision = subprocess.run(['git', '-C', str(root), 'rev-parse', 'HEAD'], capture_output=True, text=True)
     revision = revision.stdout.strip() if not revision.returncode else 'unversioned-source'
     def run(command, log, okay=True):
-        result = subprocess.run([str(x) for x in command], capture_output=True, text=True)
+        command = [str(x) for x in command]
+        environment = os.environ.copy()
+        if platform.system() == 'Windows':
+            # Persistent MSBuild nodes retain a cwd handle, preventing the
+            # producer deletion that makes this relocation check meaningful.
+            environment['MSBUILDDISABLENODEREUSE'] = '1'
+            if command[:2] == ['cmake', '--build']:
+                cache = Path(command[2])/'CMakeCache.txt'
+                if 'CMAKE_GENERATOR:INTERNAL=Visual Studio' in cache.read_text():
+                    command += ['--', '/nodeReuse:false']
+        result = subprocess.run(command, capture_output=True, text=True, env=environment)
         log.write_text(result.stdout+'\n'+result.stderr)
         if (result.returncode == 0) != okay:
             raise RuntimeError(f'command failed: {command}\n{log.read_text()[-6000:]}')
         return result
+    def remove_producer(path):
+        for attempt in range(30):
+            try:
+                shutil.rmtree(path)
+                return
+            except PermissionError as error:
+                if platform.system() != 'Windows' or getattr(error, 'winerror', None) != 32 or attempt == 29:
+                    raise
+                time.sleep(0.1)
     def source_digest(src):
         hashes = {p.relative_to(src).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                   for directory in ('source', 'cmake', 'tools', 'tests') for p in sorted((src/directory).rglob('*'))
@@ -115,7 +135,7 @@ def main():
         archive = next((dest/'archives').glob('*.zip'))
         archive_sha = hashlib.sha256(archive.read_bytes()).hexdigest()
         # Delete producer paths before finding/linking the relocated package.
-        shutil.rmtree(src); shutil.rmtree(build); shutil.rmtree(prefix)
+        remove_producer(src); remove_producer(build); remove_producer(prefix)
         unpacked = dest/'relocated'; unpack(archive, unpacked)
         configs = list(unpacked.rglob('GPRConfig.cmake'))
         if len(configs) != 1: raise RuntimeError('ambiguous/missing package config')
