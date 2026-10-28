@@ -63,6 +63,14 @@ streaming/compact/direct-band flags.
 Local worker-disabled scalar sanitizer checks exercise all fast-path flags
 being requested; separately, parallel checks exercise compact/direct bands.
 
+For implementation `04b93e9`, local macOS Release and ASan/UBSan pass all nine
+runtime tests; worker-disabled/no-NEON sanitizer builds pass both codec tests.
+Pi 5 passes all nine Release tests, both codec tests under ASan/UBSan with leak
+detection, and the 12-format 4096x3072 Q3 check with optimization flags set.
+[The Pi receipt](stock-bayer-pi5.json) records logs, binary hashes, build settings
+and 93 codec/common/test/build file hashes checked against the local sources.
+These are correctness checks, not comparative encoding speed measurements.
+
 ## Remaining integration
 
 These are low-level codec capabilities. The public still SDK's format mapping,
