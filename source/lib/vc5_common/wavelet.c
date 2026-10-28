@@ -490,13 +490,9 @@ void WaveletToRGB( gpr_allocator allocator, PIXEL* GS_src, PIXEL* RG_src, PIXEL*
                 B *= rgb_gain->b_gain_num;
                 B >>= rgb_gain->b_gain_pow2_den;
                 
-                R = sqrtf((float)R);
-                G = sqrtf((float)G);
-                B = sqrtf((float)B);
-                
-                R = clamp_uint8( R );
-                G = clamp_uint8( G );
-                B = clamp_uint8( B );
+                R = R <= 0 ? 0 : (R >= 65025 ? 255 : DecoderGamma8Curve[R]);
+                G = G <= 0 ? 0 : (G >= 65025 ? 255 : DecoderGamma8Curve[G]);
+                B = B <= 0 ? 0 : (B >= 65025 ? 255 : DecoderGamma8Curve[B]);
                 
                 RGB_dst_8bits[3 * (x) + 0 + y * dst_image->pitch] = R;
                 RGB_dst_8bits[3 * (x) + 1 + y * dst_image->pitch] = G;

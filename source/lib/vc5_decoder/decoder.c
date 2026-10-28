@@ -220,14 +220,14 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
         case GPR_RGB_RESOLUTION_QUARTER:
             
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[0]->data[0], decoder.transform[1].wavelet[0]->data[0], decoder.transform[2].wavelet[0]->data[0],
-                         decoder.transform[2].wavelet[0]->width, decoder.transform[2].wavelet[0]->height, decoder.transform[2].wavelet[0]->width,
+                         decoder.transform[2].wavelet[0]->width, decoder.transform[2].wavelet[0]->height, decoder.transform[2].wavelet[0]->pitch / sizeof(PIXEL),
                          rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
             break;
             
         case GPR_RGB_RESOLUTION_EIGHTH:
             
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[1]->data[0], decoder.transform[1].wavelet[1]->data[0], decoder.transform[2].wavelet[1]->data[0],
-                         decoder.transform[2].wavelet[1]->width, decoder.transform[2].wavelet[1]->height, decoder.transform[2].wavelet[1]->width,
+                         decoder.transform[2].wavelet[1]->width, decoder.transform[2].wavelet[1]->height, decoder.transform[2].wavelet[1]->pitch / sizeof(PIXEL),
                          rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
             
             break;
@@ -235,7 +235,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
         case GPR_RGB_RESOLUTION_SIXTEENTH:
 
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[2]->data[0], decoder.transform[1].wavelet[2]->data[0], decoder.transform[2].wavelet[2]->data[0],
-                         decoder.transform[2].wavelet[2]->width, decoder.transform[2].wavelet[2]->height, decoder.transform[2].wavelet[2]->width,
+                         decoder.transform[2].wavelet[2]->width, decoder.transform[2].wavelet[2]->height, decoder.transform[2].wavelet[2]->pitch / sizeof(PIXEL),
                          rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
             break;
             
@@ -323,6 +323,9 @@ CODEC_ERROR DecodingProcess(DECODER *decoder, BITSTREAM *stream, UNPACKED_IMAGE 
     
     // Initialize the decoder with a default allocator
     PrepareDecoder(decoder, parameters);
+    decoder->rgb_channels_only = parameters->rgb_resolution == GPR_RGB_RESOLUTION_QUARTER ||
+        parameters->rgb_resolution == GPR_RGB_RESOLUTION_EIGHTH ||
+        parameters->rgb_resolution == GPR_RGB_RESOLUTION_SIXTEENTH;
     
     // Get the bitstream start marker
     segment = GetSegment(stream);
@@ -590,6 +593,8 @@ CODEC_ERROR AllocDecoderTransforms(DECODER *decoder)
     }
     
     channel_count = decoder->codec.channel_count;
+    if (decoder->rgb_channels_only && channel_count == 4 && decoder->codec.image_format == IMAGE_FORMAT_RAW)
+        channel_count = 3;
     wavelet_count = decoder->wavelet_count;
     
     for (channel_number = 0; channel_number < channel_count; channel_number++)
@@ -657,7 +662,10 @@ CODEC_ERROR ReleaseDecoderTransforms(DECODER *decoder)
         for (wavelet_index = 0; wavelet_index < decoder->wavelet_count; wavelet_index++)
         {
             WAVELET *wavelet = decoder->transform[channel_index].wavelet[wavelet_index];
-            DeleteWavelet(decoder->allocator, wavelet);
+            if (wavelet != NULL) {
+                DeleteWavelet(decoder->allocator, wavelet);
+                decoder->transform[channel_index].wavelet[wavelet_index] = NULL;
+            }
         }
     }
     
@@ -827,7 +835,7 @@ CODEC_ERROR PrepareDecoderTransforms(DECODER *decoder)
         for (wavelet_index = 0; wavelet_index < wavelet_count; wavelet_index++)
         {
             WAVELET *wavelet = decoder->transform[channel_index].wavelet[wavelet_index];
-            wavelet->valid_band_mask = 0;
+            if (wavelet != NULL) wavelet->valid_band_mask = 0;
         }
     }
     
@@ -2019,7 +2027,9 @@ CODEC_ERROR DecodeBandRuns(BITSTREAM *stream, CODEBOOK *codebook, PIXEL *data,
         }
         
         // Check that the run does not extend past the end of the band
-        assert(run.count <= data_count);
+        if (run.count == 0 || run.count > data_count) {
+            return CODEC_ERROR_BAND_END_MARKER;
+        }
         
         // Most runs remain within one row, so handle that without a boundary
         // check for every coefficient.
@@ -2039,6 +2049,7 @@ CODEC_ERROR DecodeBandRuns(BITSTREAM *stream, CODEBOOK *codebook, PIXEL *data,
                 index += run.count;
                 column += run.count;
                 data_count -= run.count;
+                run.count = 0;
             }
             else
             {
@@ -2083,7 +2094,7 @@ CODEC_ERROR DecodeBandRuns(BITSTREAM *stream, CODEBOOK *codebook, PIXEL *data,
     // Check for the special codeword that marks the end of the highpass band
     error = GetRlv(stream, codebook, &run);
     if (error == CODEC_ERROR_OKAY) {
-        if (! (run.count == 0 || run.value == SPECIAL_MARKER_BAND_END)) {
+        if (! (run.count == 0 && run.value == SPECIAL_MARKER_BAND_END)) {
             error = CODEC_ERROR_BAND_END_MARKER;
         }
     }
@@ -2160,6 +2171,10 @@ bool IsHeaderComplete(DECODER *decoder)
 bool IsDecodingComplete(DECODER *decoder)
 {
     int channel_count = decoder->codec.channel_count;
+    /* WaveletToRGB reads GS, RG and BG only. RAW/half/full reconstruction
+     * retains all four channels, including green difference. */
+    if (decoder->rgb_channels_only && channel_count == 4 && decoder->codec.image_format == IMAGE_FORMAT_RAW)
+        channel_count = 3;
     int channel_index;
     
     for (channel_index = 0; channel_index < channel_count; channel_index++)

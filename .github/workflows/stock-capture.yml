@@ -28,12 +28,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y zlib1g-dev
-      - name: Configure native capture
+      - name: Configure native capture and preview
         run: |
           cmake -S . -B build-runtime -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
             -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_VIDEO_TESTS=ON -DGPR_BUILD_CAPTURE_APP=ON \
+            -DGPR_BUILD_PREVIEW_TOOLS=ON -DGPR_BUILD_PREVIEW_TESTS=ON \
             -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
       - name: Build
-        run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app --parallel 4
+        run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app preview_contract_test gpr_preview_app --parallel 4
       - name: Test
         run: ctest --test-dir build-runtime --output-on-failure

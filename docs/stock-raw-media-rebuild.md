@@ -72,8 +72,12 @@ recovery. Native C/C++ and independent Python tests exercise these contracts.
 The codec entry point also serializes global codebook state across captures
 and still SDK calls, and skips an unrequested thumbnail allocation.
 
+The [native preview](stock-preview.md) now renders full-frame reductions from
+the same stock recording, with independent stock RGB fixtures and Pi playback
+measurements. Capture and preview have not yet been measured together.
+
 This is not feature-suite parity. Typed calibrated metadata, the complete
-high-bit-depth/CFA stills workflow, native preview, MOV/ProRes/editable export,
+high-bit-depth/CFA stills workflow, MOV/ProRes/editable export,
 model/quality selection and platform delivery are still pending. Earlier
 feature/validation PRs remain open and unchanged.
 
