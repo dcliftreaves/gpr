@@ -71,6 +71,7 @@ class Transport(unittest.TestCase):
                 root=Path(temp);data=fixture(version);source,movie,receipt=self.wrap(root,data)
                 self.assertEqual(receipt['profile'],'GVS'+str(version));self.assertFalse(receipt['reencoded'])
                 self.assertEqual(receipt['frames'],3);self.assertEqual(receipt['mov_tick_ns'],1)
+                self.assertFalse(receipt['mov_track_timestamps_quantized'])
                 # Interchange is self-contained; publication receipts are not
                 # required input sidecars for recovering calibration or time.
                 movie.with_suffix('.mov.json').unlink()
@@ -97,6 +98,7 @@ class Transport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);_,movie,receipt=self.wrap(root,data)
             self.assertEqual(receipt['mov_tick_ns'],10)
+            self.assertTrue(receipt['mov_track_timestamps_quantized'])
             returned=root/'returned.gvid';stock_mov.convert('unwrap',movie,args.bridge,returned)
             self.assertEqual(returned.read_bytes(),data)
             self.assertEqual(receipt['first_timestamp_ns'],first)

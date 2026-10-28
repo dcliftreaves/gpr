@@ -65,7 +65,8 @@ def convert(action,source,bridge,output,receipt=None):
                     source_sha256=source_sha,output_sha256=stock_still.digest(staged),output_bytes=staged.stat().st_size,
                     gvid_sha256=gvid_sha,movie_sha256=movie_sha,native_binary_sha256=stock_still.digest(bridge),
                     native_libavformat_version=native['libavformat_version'],
-                    mov_tick_ns=native['unit_ns'],original_timestamps_preserved_exactly=True,
+                    mov_tick_ns=native['unit_ns'],mov_track_timestamps_quantized=native['unit_ns']>1,
+                    original_timestamps_preserved_exactly=True,
                     **info,elapsed_before_publication_s=time.perf_counter()-start)
         log=root/'receipt.json';log.write_text(json.dumps(result,indent=2)+'\n')
         stock_still.publish([(staged,output),(log,receipt)])

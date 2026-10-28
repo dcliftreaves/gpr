@@ -87,6 +87,9 @@ def main():
         if report['frame_count'] != 2 or not report['complete'] or not report['end_marker_verified']:
             raise RuntimeError('installed Python inspector failed')
         if (prefix/'bin/gpr_mov').is_file():
+            if not (prefix/'share/gpr/docs/stock-mov.md').is_file():raise RuntimeError('MOV package lacks its interchange guide')
+            if 'Optional MOV tool: ON' not in (prefix/'share/gpr/gpr-build-info.txt').read_text():
+                raise RuntimeError('MOV package does not declare its optional external dependency')
             movie=build/'interchange.mov';returned=build/'interchange.gvid'
             original=root/'tests/fixtures/stock_preview/container-v3.gvid'
             for action,source,output in (('wrap',original,movie),('unwrap',movie,returned)):
