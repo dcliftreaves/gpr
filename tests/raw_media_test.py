@@ -116,6 +116,10 @@ class Media(unittest.TestCase):
             geometry.opcode_list(unknown,1,2,h,w)
         case=copy.deepcopy(meta); case['image'].append(media.record(50715,10,1,struct.pack('<2i',0,1)))
         with self.assertRaisesRegex(ValueError,'delta resampling'): geometry.scaled(case,2)
+        case=copy.deepcopy(meta)
+        case['image']=[t for t in case['image'] if t['code']!=50829]
+        case['image'].append(media.record(50829,5,4,struct.pack('<8I',5,2,4,1,94,1,124,1)))
+        with self.assertRaisesRegex(ValueError,'integral ActiveArea'): geometry.scaled(case,2)
 
     def test_sdk_cli_quality_selection(self):
         def payload(path):

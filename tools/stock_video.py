@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Inspect experimental stock-VC5 GVID, extract frames, or run offline 1x Bayer CNN.
+"""Inspect stock-VC5 GVID, extract frames, or run optional offline 1x/2x Bayer CNN.
 
 This profile is deliberately distinct from the fork's fused-codec GVID v1.
-CNN architecture code and trained weights are supplied explicitly by the caller.
+Legacy BIBO architecture code is bundled; trained weights are caller-selected.
 """
 import argparse
 import hashlib

@@ -109,8 +109,10 @@ python tests/stock_cnn_test.py --sdk build/source/app/gpr_tools/gpr_tools \
 ```
 
 Linux Release CI now includes these CPU/Torch tests. Hosted checks on this
-implementation remain a separate gate. Existing Pi receipts describe their
-recorded revisions and no-CNN paths; this milestone adds no Pi Torch claim.
+implementation remain a separate gate. Pi Release also passes all ten ordinary CTest targets in 2.79 seconds at
+`31274ea`, including the geometry/GainMap checks: [receipt](stock-sr-receipts/pi5-release.json).
+Its 410 source/test/tool/build/fixture files were verified against Git. This
+milestone adds no Pi Torch claim.
 
 ## 2x quality: legacy transfer rejected
 
@@ -139,7 +141,9 @@ Every entry is model PSNR minus bicubic PSNR, using full-scale 16383 and the
 source active area. The baseline pooled PSNR is **44.44 dB**. Pooling uses
 squared error across equal-size/equal-active-area frames before converting to
 dB. All **16 comparisons regress**; no candidate is promoted or recommended.
-Per-site, shadow/highlight and reference-gradient metrics are in the receipts:
+The measurement runtime sources are hash-verified against commit `31274ea`.
+All four references use integral ActiveArea coordinates. Per-site,
+shadow/highlight and reference-gradient metrics are in the receipts:
 [summary](stock-sr-receipts/summary.json), [0001](stock-sr-receipts/z8-0001.json),
 [0067](stock-sr-receipts/z8-0067.json), [5323](stock-sr-receipts/z8-5323.json),
 [6693](stock-sr-receipts/z8-6693.json). Source pixels and weights are not committed.

@@ -4,7 +4,6 @@
   "candidates": 4,
   "comparisons": 16,
   "independent_lossless_reference_verified": true,
-  "source_hashes_match_checkout": true,
   "all_candidates_worse_than_bicubic_on_every_scene": true,
   "bicubic_pooled_psnr_db": 44.439179864315285,
   "quality_approval": false,
@@ -59,5 +58,7 @@
     }
   ],
   "aggregation": "Pooled active-area squared error across equal-size/equal-active-area frames; no dB averaging.",
-  "next_step": "Train/validate a stock-input matched 2x checkpoint with source-disjoint training and evaluation manifests; do not promote these legacy candidates."
+  "next_step": "Train/validate a stock-input matched 2x checkpoint with source-disjoint training and evaluation manifests; do not promote these legacy candidates.",
+  "source_hashes_verified_against_git": true,
+  "measurement_source_revision": "31274ea5c283d640af187d354a18d5ab6768a777"
 }

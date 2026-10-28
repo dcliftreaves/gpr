@@ -93,6 +93,8 @@ def scaled(metadata, factor):
     result['width']=w*factor; result['height']=h*factor
     if result['width']>32768 or result['height']>32768: raise ValueError('reconstructed dimensions exceed DNG frontend limits')
     tags={t['code']:t for t in result['image']}
+    if 50829 in tags and (tags[50829]['type'] not in (3,4) or tags[50829]['count']!=4):
+        raise ValueError('2x reconstruction requires integral ActiveArea coordinates')
     top,left,bottom,right=map(int,media.values(tags[50829])) if 50829 in tags else (0,0,h,w)
     for code in (50715,50716):
         if code in tags: raise ValueError('2x black-level row/column delta resampling is not implemented')
