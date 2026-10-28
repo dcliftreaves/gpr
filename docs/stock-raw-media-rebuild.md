@@ -109,6 +109,12 @@ explicit Q0–Q5 selection and exact typed-calibration packaging around the SDK,
 with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
 approval, broader metadata support and video frontend mappings remain pending.
 
+The [public SDK C API audit](stock-sdk-api.md) repairs two missing published
+symbols, adds an allocator-aware parameter copy with rollback, makes owned
+parameter cleanup repeatable and classifies VC-5 metadata without image decode.
+Real C callers, allocation-failure tests and installed clients exercise the
+contracts; broader geometry/buffer and still concurrency auditing remain open.
+
 The [optional still reconstruction workflow](stock-cnn-quality.md) now produces
 calibrated editable DNG using the existing stock-Q3 1x model. Twenty-four
 lossless-reference comparisons show modest aggregate improvements, including

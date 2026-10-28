@@ -37,8 +37,17 @@ int c_header_probe(void) {
     }
 #endif
 #if HAS_SDK && !NATIVE_CLIENT
-    gpr_parameters p;
+    gpr_parameters p,copy;
+    gpr_allocator allocator={malloc,free};
+    gpr_buffer empty={0};
     gpr_parameters_set_defaults(&p);
+    p.input_width=128;
+    gpr_parameters_construct_copy(&p,&copy);
+    if (copy.input_width!=128) return 0;
+    gpr_parameters_destroy(&copy,free);
+    if (!gpr_parameters_construct_copy_with_allocator(&allocator,&p,&copy)) return 0;
+    gpr_parameters_destroy(&copy,free);
+    if (gpr_check_vc5(&empty,malloc,free)) return 0;
     gpr_parameters_destroy(&p,free);
     return 1;
 #elif HAS_ENCODER

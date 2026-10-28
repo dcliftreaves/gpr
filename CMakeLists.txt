@@ -305,6 +305,10 @@ if(GPR_BUILD_MEDIA_TESTS)
   add_executable(sdk_bayer_probe tests/sdk_bayer_probe.cpp)
   target_compile_features(sdk_bayer_probe PRIVATE cxx_std_11)
   target_link_libraries(sdk_bayer_probe gpr_sdk vc5_encoder)
+  add_executable(sdk_c_api_test tests/sdk_c_api.c)
+  target_link_libraries(sdk_c_api_test gpr_sdk)
+  add_test(NAME sdk_c_api COMMAND sdk_c_api_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
+  set_tests_properties(sdk_c_api PROPERTIES TIMEOUT 60)
   add_test(NAME raw_media COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/raw_media_test.py
     --sdk $<TARGET_FILE:gpr_tools> --decoder $<TARGET_FILE:stock_video> --capture $<TARGET_FILE:gpr_capture_app>
     --sdk-probe $<TARGET_FILE:sdk_bayer_probe>)

@@ -134,6 +134,7 @@ int main(int argc,char **argv) {
         gpr_allocator allocator={std::malloc,std::free}; gpr_buffer coded={payload.data(),payload.size()},gpr={};
         check(gpr_convert_vc5_to_gpr(&allocator,&parameters,&coded,&gpr),"SDK wrap");
         std::unique_ptr<void,decltype(&std::free)> sdk_owner(gpr.buffer,std::free);
+        check(gpr_check_vc5(&gpr,std::malloc,std::free),"SDK public VC-5 classification");
         gpr_buffer extracted={}; check(gpr_convert_gpr_to_vc5(&allocator,&gpr,&extracted),"SDK unwrap");
         std::unique_ptr<void,decltype(&std::free)> extracted_owner(extracted.buffer,std::free);
         check(extracted.size==payload.size() && !std::memcmp(extracted.buffer,payload.data(),payload.size()),"SDK payload changed");

@@ -246,37 +246,54 @@ void gpr_parameters_set_defaults(gpr_parameters* x)
     x->fast_encoding = false;
 }
 
-void gpr_parameters_construct_copy(const gpr_parameters* y, gpr_parameters* x, gpr_malloc mem_alloc)
+bool gpr_parameters_construct_copy_with_allocator(const gpr_allocator* allocator,
+                                                 const gpr_parameters* y, gpr_parameters* x)
 {
+    if (!x || x==y) return false;
     gpr_parameters_set_defaults(x);
-    
-    *x = *y;
-    
-    if( y->gpmf_payload.size > 0 && y->gpmf_payload.buffer != NULL )
-    {
-        x->gpmf_payload.buffer = mem_alloc( y->gpmf_payload.size );
-        memcpy( x->gpmf_payload.buffer, y->gpmf_payload.buffer, y->gpmf_payload.size );
+    if (!y || !allocator || !allocator->Alloc || !allocator->Free ||
+        bool(y->gpmf_payload.size)!=bool(y->gpmf_payload.buffer)) return false;
+    for (unsigned i=0;i<4;++i)
+        if (!y->tuning_info.gain_map.size && y->tuning_info.gain_map.buffers[i]) return false;
+
+    gpr_parameters copy=*y;
+    copy.gpmf_payload.buffer=nullptr;
+    for (auto &buffer:copy.tuning_info.gain_map.buffers) buffer=nullptr;
+    gpr_parameter_cleanup cleanup{&copy,allocator->Free};
+    if (y->gpmf_payload.size) {
+        copy.gpmf_payload.buffer=allocator->Alloc(y->gpmf_payload.size);
+        if (!copy.gpmf_payload.buffer) return false;
+        memcpy(copy.gpmf_payload.buffer,y->gpmf_payload.buffer,y->gpmf_payload.size);
     }
-    
-    if( y->tuning_info.gain_map.size > 0 )
-    {
-        for ( int i = 0; i < 4; i++)
-        {
-            if( y->tuning_info.gain_map.buffers[i] != 0 )
-            {
-                x->tuning_info.gain_map.buffers[i] = (char*)mem_alloc( y->tuning_info.gain_map.size );
-                memcpy( x->tuning_info.gain_map.buffers[i], y->tuning_info.gain_map.buffers[i], y->tuning_info.gain_map.size );
-            }
+    for (unsigned i=0;i<4;++i) {
+        if (y->tuning_info.gain_map.buffers[i]) {
+            auto &buffer=copy.tuning_info.gain_map.buffers[i];
+            buffer=static_cast<char *>(allocator->Alloc(y->tuning_info.gain_map.size));
+            if (!buffer) return false;
+            memcpy(buffer,y->tuning_info.gain_map.buffers[i],y->tuning_info.gain_map.size);
         }
     }
+    *x=copy;
+    // Transfer owned bytes; cleanup must not release the new destination.
+    copy.gpmf_payload.buffer=nullptr;
+    for (auto &buffer:copy.tuning_info.gain_map.buffers) buffer=nullptr;
+    return true;
+}
+
+void gpr_parameters_construct_copy(const gpr_parameters* y, gpr_parameters* x)
+{
+    const gpr_allocator allocator={malloc,free};
+    gpr_parameters_construct_copy_with_allocator(&allocator,y,x);
 }
 
 void gpr_parameters_destroy(gpr_parameters* x, gpr_free mem_free)
 {
+    if (!x || !mem_free) return;
     if( x->gpmf_payload.buffer && x->gpmf_payload.size > 0 )
     {
         mem_free( x->gpmf_payload.buffer );
     }
+    x->gpmf_payload.buffer=nullptr;x->gpmf_payload.size=0;
     
     if( x->tuning_info.gain_map.size > 0 )
     {
@@ -284,8 +301,10 @@ void gpr_parameters_destroy(gpr_parameters* x, gpr_free mem_free)
         {
             if( x->tuning_info.gain_map.buffers[i] )
                 mem_free( x->tuning_info.gain_map.buffers[i] );
+            x->tuning_info.gain_map.buffers[i]=nullptr;
         }
     }
+    x->tuning_info.gain_map.size=0;
 }
 
 
@@ -1874,29 +1893,19 @@ bool gpr_convert_gpr_to_raw(const gpr_allocator*            allocator,
 
 #endif // GPR_READING
 
-bool gpr_check_vc5( const gpr_allocator*        allocator,
-                          gpr_buffer*           inp_dng_buffer)
+bool gpr_check_vc5(gpr_buffer* input, gpr_malloc mem_alloc, gpr_free mem_free)
 {
-    TIMESTAMP("[BEG]", 1)
-    
-    gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
-    gpr_buffer_auto vc5_buffer(allocator->Alloc, allocator->Free);
-    bool is_vc5_format = false;
-    
-    {
-        dng_memory_stream inp_dng_stream( gDefaultDNGMemoryAllocator );
-        inp_dng_stream.Put( inp_dng_buffer->buffer, inp_dng_buffer->size );
-        inp_dng_stream.SetReadPosition(0);
-        
-        if( read_dng( allocator, &inp_dng_stream, &raw_buffer, &vc5_buffer, NULL, &is_vc5_format ) == false )
-        {
-            assert(0); return -1;
-        }
+    if (!input || !input->buffer || input->size<8 || input->size>UINT32_MAX ||
+        !mem_alloc || !mem_free) return false;
+    try {
+        dng_stream stream(input->buffer,uint32(input->size));
+        dng_host host;dng_info info;
+        info.Parse(host,stream);info.PostParse(host);
+        return info.IsValidDNG() && info.fMainIndex>=0 &&
+            info.fIFD[info.fMainIndex]->fCompression==ccVc5;
+    } catch (...) {
+        return false;
     }
-    
-    TIMESTAMP("[END]", 1)
-    
-    return is_vc5_format;
 }
 
 
