@@ -118,7 +118,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--benchmark-dir', type=Path, required=True)
-    parser.add_argument('--cnn-root', type=Path, required=True)
+    parser.add_argument('--cnn-root', type=Path, help='optional external architecture override')
     parser.add_argument('--checkpoint', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--sdk', type=Path, required=True)

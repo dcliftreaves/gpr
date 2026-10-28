@@ -144,7 +144,7 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
     start=time.perf_counter(); source=Path(source).resolve(); sdk=Path(sdk).resolve()
     meta,payload=raw_media.extract(source,bits,with_payload=True)
     if meta['width']<48 or meta['height']<48: raise ValueError('still frontend requires Bayer dimensions at least 48')
-    model=model_info=None
+    model=model_info=None; output_meta=meta; output_scale=1; geometry=None
     if reconstruction is not None:
         if (meta['cfa'],bits)!=('RGGB',14): raise ValueError('current CNN checkpoint adapter requires RGGB14')
         tile,halo=reconstruction['tile'],reconstruction['halo']
@@ -152,8 +152,12 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
             raise ValueError('CNN tile/halo must be multiples of eight; tile must be positive')
         import torch
         from stock_video import load_cnn, restore
+        from stock_cnn_metadata import scaled
+        output_scale=reconstruction.get('scale',1)
+        output_meta,geometry=scaled(meta,output_scale)
         device=torch.device(reconstruction['device'])
-        model,model_info=load_cnn(Path(reconstruction['root']),Path(reconstruction['checkpoint']),device)
+        model,model_info=load_cnn(reconstruction.get('root'),Path(reconstruction['checkpoint']),device)
+        if model_info.get('output_scale',1)!=output_scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     output,receipt,_=outputs(output,receipt,None)
     with tempfile.TemporaryDirectory(prefix='.stock-still-',dir=output.parent) as temp:
         root=Path(temp); private=root/'carrier.gpr'
@@ -161,18 +165,20 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
         raw=root/'decoded.raw'; decode_s=run(sdk,['-i',private,'-o',raw],os.environ.copy())
         data=raw.read_bytes(); raw_sha=hashlib.sha256(data).hexdigest()
         if model is not None:
-            restored,cnn_s=restore(raw,meta['width'],meta['height'],model,device,tile,halo)
+            restored,cnn_s=restore(raw,meta['width'],meta['height'],model,device,tile,halo,scale=output_scale)
             data=restored.astype('<u2').tobytes()
-        dng=root/'editable.dng'; raw_media.write(dng,meta,data); del data
+        dng=root/'editable.dng'; raw_media.write(dng,output_meta,data); del data
         result=dict(schema='gpr.stock_still.v1',action='restore' if model is not None else 'decode',cnn=model is not None,
-                    width=meta['width'],height=meta['height'],sample_bits=bits,cfa=meta['cfa'],
+                    width=output_meta['width'],height=output_meta['height'],sample_bits=bits,cfa=meta['cfa'],
                     source_sha256=meta['source_sha256'],payload_sha256=hashlib.sha256(payload).hexdigest(),
-                    metadata_sha256=hashlib.sha256(canonical(meta)).hexdigest(),
+                    metadata_sha256=hashlib.sha256(canonical(output_meta)).hexdigest(),
                     raw_sha256=raw_sha,output_sha256=digest(dng),sdk_sha256=digest(sdk),
                     decode_process_s=decode_s,elapsed_before_publication_s=time.perf_counter()-start)
         if model is not None:
             result.update(model=model_info,cnn_s=cnn_s,restored_raw_sha256=hashlib.sha256(restored.astype('<u2').tobytes()).hexdigest(),
-                          tile_plane_pixels=tile,halo_plane_pixels=halo,runtime_raw_norm=16383,output_scale=1,
+                          source_width=meta['width'],source_height=meta['height'],
+                          source_metadata_sha256=hashlib.sha256(canonical(meta)).hexdigest(),geometry=geometry,
+                          tile_plane_pixels=tile,halo_plane_pixels=halo,runtime_raw_norm=16383,output_scale=output_scale,
                           quality_approval=False)
         log=root/'receipt.json'; log.write_text(json.dumps(result,indent=2)+'\n')
         publish([(dng,output),(log,receipt)])
@@ -187,9 +193,11 @@ def main():
     enc.add_argument('--quality',type=int,choices=range(6),required=True); enc.add_argument('--editable',type=Path)
     dec=sub.add_parser('decode'); dec.add_argument('input',type=Path)
     dec.add_argument('--sample-bits',type=int,choices=(12,14,16),required=True)
-    rec=sub.add_parser('restore',help='optional experimental 1x CNN to calibrated editable DNG')
+    rec=sub.add_parser('restore',help='optional experimental 1x/2x CNN to editable DNG')
     rec.add_argument('input',type=Path); rec.add_argument('--sample-bits',type=int,choices=(14,),required=True)
-    rec.add_argument('--cnn-root',type=Path,required=True); rec.add_argument('--checkpoint',type=Path,required=True)
+    rec.add_argument('--cnn-root',type=Path,help='explicit external architecture override; default: bundled BIBO')
+    rec.add_argument('--checkpoint',type=Path,required=True)
+    rec.add_argument('--scale',type=int,choices=(1,2),default=1)
     rec.add_argument('--device',choices=('cpu','mps','cuda'),default='cpu')
     rec.add_argument('--tile',type=int,default=256); rec.add_argument('--halo',type=int,default=64)
     for cmd in (enc,dec,rec):
@@ -203,7 +211,7 @@ def main():
         if args.sample_bits and meta['sample_bits']!=args.sample_bits: p.error('metadata count domain differs')
         result=encode(args.input,meta,args.quality,args.sdk,args.output,args.receipt,args.editable,args.source_type)
     else:
-        settings=dict(root=args.cnn_root,checkpoint=args.checkpoint,device=args.device,tile=args.tile,halo=args.halo) if args.action=='restore' else None
+        settings=dict(root=args.cnn_root,checkpoint=args.checkpoint,device=args.device,tile=args.tile,halo=args.halo,scale=args.scale) if args.action=='restore' else None
         result=decode(args.input,args.sample_bits,args.sdk,args.output,args.receipt,settings)
     print(json.dumps(result,indent=2))
 

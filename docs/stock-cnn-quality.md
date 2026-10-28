@@ -13,23 +13,25 @@ different questions; neither result should silently replace the other.
 
 Encode and decode without Torch using the [stock still workflow](stock-still-quality.md).
 For experimental restored editable DNG, explicitly select the model and its
-architecture directory:
+checkpoint. The legacy BIBO architecture is now bundled; an external
+architecture override remains optional:
 
 ```sh
 python tools/stock_still.py restore source.gpr --sample-bits 14 \
   --sdk build/source/app/gpr_tools/gpr_tools \
-  --cnn-root /path/to/tools/cnn \
   --checkpoint /path/to/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt \
   --device mps --tile 256 --halo 64 --output restored.dng
 ```
 
-This optional action requires Torch and numpy; the architecture and weights
-remain external. CPU/CUDA device selection is also exposed, but the reported
+This optional action requires Torch and numpy; weights remain external.
+Bundled 1x/2x architecture and geometry support are described in
+[portable reconstruction](stock-cnn-portable.md). CPU/CUDA device selection is also exposed, but the reported
 real-model measurements below use MPS. Ordinary encoding/decoding still use
 only the Python standard library and SDK executable. No weights are downloaded.
 
-The current reconstruction adapter accepts RGGB14 and returns same-size,
-four-plane Bayer, normalized by 16383. It rejects other still count/CFA formats,
+The 1x reconstruction adapter accepts RGGB14 and returns same-size,
+four-plane Bayer, normalized by 16383. Explicit 2x support now exists with
+[separate calibration transforms and quality evidence](stock-cnn-portable.md). It rejects other still count/CFA formats,
 nonfinite predictions and wrong-shaped outputs. Output cores do not overlap;
 context halos and replicated edge padding respect the network's multiple of
 eight. Other still formats remain available without reconstruction.
@@ -41,7 +43,8 @@ inference without changing published calibration. Receipts record source,
 payload, decoded/restored counts, output and SDK hashes, model/architecture
 identity, tile/halo, normalization, inference time and lack of quality approval.
 Exclusive output publication refuses overwrites and rolls back owned partials.
-Restored GPR re-encoding and 2x metadata scaling are not implemented here.
+Restored GPR re-encoding remains pending. Explicit 2x calibration scaling
+is covered by the separate portable-reconstruction milestone.
 
 ## Lossless-reference measurements
 
@@ -125,6 +128,7 @@ Detailed receipts: [summary](stock-cnn-receipts/summary.json),
 Each report records tool-source hashes, reference/input/output identity and
 model provenance. Partial evaluations explicitly retain `complete=false`.
 
-Portable model architecture/distribution, compatible 2x selection and calibration,
-clean broader-camera references, training-split audit, temporal tests and actual
-visual approval remain part of the full rebuild goal.
+Bundled architecture/distribution and explicit 2x calibration are now implemented.
+Compatible stock-trained 2x selection, clean broader-camera references,
+training-split audit, temporal tests and actual visual approval remain part of
+the full rebuild goal.

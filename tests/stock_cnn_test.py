@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Optional Torch contract/integration tests; no trained weights are needed."""
 import argparse
+import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -19,6 +21,46 @@ from raw_media_test import metadata
 
 
 class Contract(unittest.TestCase):
+    def test_native_recording_to_portable_two_times_editable_sequence(self):
+        if args.capture is None or args.decoder is None: self.skipTest('native capture/decoder arguments not supplied')
+        import stock_cnn_models
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); source=root/'input.raw'; calibration=root/'metadata.json'
+            y,x=np.indices((48,48),dtype=np.uint32)
+            (((y*123+x*97+x*y*29)&16383).astype('<u2')).tofile(source)
+            calibration.write_text(json.dumps(metadata(width=48,height=48)))
+            clip=root/'input.gvid'
+            subprocess.run([str(args.capture), '--output',str(clip),'--width','48','--height','48',
+                            '--quality','3','--frames','2','--workspace-mib','16','--leased',
+                            '--input',str(source),'--source-metadata',str(calibration)],check=True,capture_output=True)
+            backbone=stock_cnn_models.build('F_ane')
+            for parameter in backbone.parameters(): parameter.data.zero_()
+            checkpoint=root/'identity-2x.pt'
+            torch.save(dict(variant='F_ane',raw_norm=16383.,residual_scale=.01,
+                            backbone_state=backbone.state_dict()),checkpoint)
+            output=root/'sequence'
+            subprocess.run([sys.executable,str(Path(stock_video.__file__)),'restore',str(clip),
+                            '--decoder',str(args.decoder),'--checkpoint',str(checkpoint),'--scale','2',
+                            '--tile','16','--halo','8','--editable','dng','--out-dir',str(output)],check=True,capture_output=True)
+            receipt=json.loads((output/'receipt.json').read_text())
+            self.assertTrue(receipt['complete']); self.assertTrue(receipt['end_marker_verified'])
+            self.assertEqual(receipt['cnn']['architecture_source'],'bundled')
+            self.assertEqual(receipt['cnn']['output_scale'],2)
+            self.assertEqual(len(receipt['frames']),2)
+            for row in receipt['frames']:
+                self.assertEqual((row['output_width'],row['output_height']),(96,96))
+                self.assertEqual(row['geometry']['scale'],2)
+                stem=output/f'{row["index"]:06d}'
+                low=np.fromfile(stem.with_suffix('.raw'),dtype='<u2').reshape(48,48)
+                planes=np.stack([low[0::2,0::2],low[0::2,1::2],low[1::2,0::2],low[1::2,1::2]])
+                tensor=torch.from_numpy(planes.astype(np.float32)/16383)[None]
+                high=torch.nn.functional.interpolate(tensor,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1)[0].numpy()
+                with tifffile.TiffFile(stem.with_suffix('.dng')) as file: pixels=file.asarray()
+                for site in range(4):
+                    expected=np.clip(high[site]*16383+.5,0,16383).astype('<u2')
+                    np.testing.assert_array_equal(pixels[site//2::2,site%2::2],expected)
+                raw_media.validate(raw_media.extract(stem.with_suffix('.dng'),14))
+
     def test_context_halos_match_whole_image(self):
         # A known spatial filter tests seams, four distinct planes and the
         # non-multiple-of-eight image edges against one whole-image inference.
@@ -49,8 +91,45 @@ class Contract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             raw=Path(temp)/'input.raw'; np.zeros((48,48),dtype='<u2').tofile(raw)
             for kind in ('nan','rgb','2x'):
-                with self.subTest(kind=kind),self.assertRaisesRegex(ValueError,'finite same-size'):
+                with self.subTest(kind=kind),self.assertRaisesRegex(ValueError,'finite 4-plane'):
                     stock_video.restore(raw,48,48,Bad(kind),torch.device('cpu'),16,8)
+
+    def test_two_times_tiling_matches_whole_image_bicubic(self):
+        class Upscale(torch.nn.Module):
+            def forward(self,x): return torch.nn.functional.interpolate(x,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1)
+        with tempfile.TemporaryDirectory() as temp:
+            h,w=98,130; raw=Path(temp)/'input.raw'
+            y,x=np.indices((h,w),dtype=np.uint32)
+            image=((y*123+x*97+x*y*29)&16383).astype('<u2'); image.tofile(raw)
+            restored,_=stock_video.restore(raw,w,h,Upscale(),torch.device('cpu'),16,8,scale=2)
+            planes=np.stack([image[0::2,0::2],image[0::2,1::2],image[1::2,0::2],image[1::2,1::2]])
+            tensor=torch.from_numpy(planes.astype(np.float32)/16383)[None]
+            tensor=torch.nn.functional.pad(tensor,(0,7,0,7),mode='replicate')
+            with torch.inference_mode(): expected=Upscale()(tensor)[0,:,:h,:w].numpy()
+            expected=np.clip(expected*16383+.5,0,16383).astype('<u2')
+            self.assertEqual(restored.shape,(h*2,w*2))
+            for site in range(4): np.testing.assert_array_equal(restored[site//2::2,site%2::2],expected[site])
+
+    def test_bundled_checkpoint_loading_and_scale_contract(self):
+        import stock_cnn_models
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for variant,scale in (('F_ane_no_sr',1),('F_ane',2)):
+                checkpoint=root/(variant+'.pt')
+                backbone=stock_cnn_models.build(variant)
+                # A zero residual makes the checkpoint contract independently
+                # predictable, including the 2x clipped bicubic skip path.
+                for parameter in backbone.parameters(): parameter.data.zero_()
+                torch.save(dict(variant=variant,raw_norm=16383.,residual_scale=.01,
+                                width=16,depth=3,backbone_state=backbone.state_dict()),checkpoint)
+                model,info=stock_video.load_cnn(None,checkpoint,torch.device('cpu'))
+                self.assertEqual(info['architecture_source'],'bundled'); self.assertEqual(info['output_scale'],scale)
+                tensor=torch.linspace(0,1,4*16*24).reshape(1,4,16,24)
+                expected=tensor if scale==1 else torch.nn.functional.interpolate(tensor,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1)
+                with torch.inference_mode(): torch.testing.assert_close(model(tensor),expected,rtol=0,atol=0)
+            bad=root/'bad.pt'
+            torch.save(dict(variant='F_ane',raw_norm=65535.,backbone_state={}),bad)
+            with self.assertRaisesRegex(ValueError,'normalized'): stock_video.load_cnn(None,bad,torch.device('cpu'))
 
     def test_still_restoration_preserves_calibration_and_decoded_counts(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -83,11 +162,33 @@ class Contract(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'tile/halo'):
                     stock_still.decode(gpr,14,args.sdk,root/'bad.dng',reconstruction=dict(settings,tile=0))
                 self.assertFalse((root/'bad.dng').exists())
+            class Two(torch.nn.Module):
+                def forward(self,x): return x.repeat_interleave(2,-1).repeat_interleave(2,-2)
+            with patch.object(stock_video,'load_cnn',return_value=(Two(),dict(info,output_scale=2))):
+                with self.assertRaisesRegex(ValueError,'output scale differs'):
+                    stock_still.decode(gpr,14,args.sdk,root/'wrong-scale.dng',reconstruction=settings)
+                high=root/'2x.dng'
+                result=stock_still.decode(gpr,14,args.sdk,high,reconstruction=dict(settings,scale=2))
+                self.assertEqual((result['width'],result['height']),(256,192))
+                self.assertEqual(result['output_scale'],2)
+                high_meta=raw_media.extract(high,14)
+                self.assertEqual((high_meta['width'],high_meta['height']),(256,192))
+                source_tags={t['code']:raw_media.unpack_record(t) for t in meta['image']}
+                high_tags={t['code']:raw_media.unpack_record(t) for t in high_meta['image']}
+                self.assertEqual(source_tags,high_tags)
+                with tifffile.TiffFile(plain) as a,tifffile.TiffFile(high) as b:
+                    low=a.asarray(); pixels=b.asarray()
+                    for site in range(4):
+                        expected=np.repeat(np.repeat(low[site//2::2,site%2::2],2,axis=0),2,axis=1)
+                        np.testing.assert_array_equal(pixels[site//2::2,site%2::2],expected)
 
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sdk',type=Path,required=True)
+    parser.add_argument('--capture',type=Path); parser.add_argument('--decoder',type=Path)
     args=parser.parse_args(); args.sdk=args.sdk.resolve()
+    if args.capture: args.capture=args.capture.resolve()
+    if args.decoder: args.decoder=args.decoder.resolve()
     torch.set_num_threads(1)
     unittest.main(argv=[sys.argv[0]])

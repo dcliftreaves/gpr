@@ -79,6 +79,9 @@ def main():
         run(['cmake', '--build', build, '--config', 'Release', '--parallel', '4'], dest/'client-build.log')
         run(['ctest', '--test-dir', build, '-C', 'Release', '--output-on-failure'], dest/'client-test.log')
         tools = prefix/'share/gpr/tools'
+        run([sys.executable,'-c',
+             "import ast,sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); import stock_cnn_metadata; ast.parse((Path(sys.argv[1])/'stock_cnn_models.py').read_text()); assert 'torch' not in sys.modules",
+             tools],dest/'installed-optional-cnn-contract.log')
         inspected = run([sys.executable, tools/'stock_video.py', 'inspect', root/'tests/fixtures/stock_preview/container-v3.gvid'], dest/'python-inspect.log')
         report = json.loads(inspected.stdout)
         if report['frame_count'] != 2 or not report['complete'] or not report['end_marker_verified']:
@@ -116,7 +119,7 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
         components = ['common', 'vc5_common', 'gpr_video']
         if encoder: components.append('vc5_encoder')
         if decoder: components.append('vc5_decoder')

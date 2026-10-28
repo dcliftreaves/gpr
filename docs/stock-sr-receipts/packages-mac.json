@@ -1,0 +1,88 @@
+{
+  "schema": "gpr.build_profiles.v1",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "profiles": [
+    {
+      "profile": "capture",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": false,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "27b26c0bf7deb66d3ab45d025e94a5414ac244eba4652b6c5377996dfe46e7a0",
+      "source_digest": "ab971c192553842c8042fba616ab5b595e56c0b175c1b083a646411780b485fb",
+      "seconds": 6.469171917000001
+    },
+    {
+      "profile": "preview",
+      "sdk_sources_present": false,
+      "encoder": false,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "761cb9d938932d7acbf05f0a5ba2e37fe698743c733beb98c2ecbce1e34807ec",
+      "source_digest": "e61c79e9b2eaad3fc82f8659163ed3bccf83e8e2e5d881e084ccb84e6f9f131a",
+      "seconds": 5.429843584
+    },
+    {
+      "profile": "camera",
+      "sdk_sources_present": false,
+      "encoder": true,
+      "decoder": true,
+      "producer_removed_before_consumer": true,
+      "archive_sha256": "828e8211b5eb62e4bcd7dcd3c9716d6b02a86a8cada2d9037eefa29661f750ab",
+      "source_digest": "6f6bee54b629385c53f76aff55f38d3a73ba15fae999b4278a7e748e1d5a4c7f",
+      "seconds": 7.055548042
+    },
+    {
+      "profile": "full",
+      "relocated_sdk_consumer": true,
+      "source_digest": "ed8fa084e0a0e441fcac0e6a3e5701ec12918b87dceddecf5e8f8d35f21aa718",
+      "archive_sha256": "d54d0c6982b5126cf538387ff42f4b877bd1a62b3d2796e65b7860f1f8584acb"
+    }
+  ],
+  "all_five_installed_python_tools_match_checkout": true,
+  "scope": "Four stripped/relocated package profiles; optional metadata import without Torch and bundled model source syntax; native C/C++ and full SDK/still clients. Trained inference is tested separately.",
+  "relocated_real_checkpoint": {
+    "schema": "gpr.stock_still.v1",
+    "action": "restore",
+    "cnn": true,
+    "width": 128,
+    "height": 96,
+    "sample_bits": 14,
+    "cfa": "RGGB",
+    "source_sha256": "ba489bf1a2290be78966b06ca680de194c9eb87c402a9e98195d5cad72d16e08",
+    "payload_sha256": "86c101b6ecc079669ab5c8551471ee4e978dc5a110cf03d327c179a193d029de",
+    "metadata_sha256": "5b700c762d6b0fd722b5a4a502058dc99e68dbd54a4e0401e15b41cdffaa827e",
+    "raw_sha256": "193c87c7933189ba34dca118df87de3f00b8103519d59efc8f02fa3f93478732",
+    "output_sha256": "0987223135133c4906cf532c4a77f5da04a3145490ac872a9f47819b4bfb2abd",
+    "sdk_sha256": "31155dccfbccd663f1afb369045eebc2430e5a50c4eede27d1dca77e116167b0",
+    "decode_process_s": 0.007042416022159159,
+    "elapsed_before_publication_s": 0.40572749997954816,
+    "model": {
+      "checkpoint_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd",
+      "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+      "checkpoint_schema": "build",
+      "architecture_source": "bundled",
+      "output_scale": 1,
+      "runtime_raw_norm": 16383,
+      "input_cfa": "RGGB",
+      "device": "cpu",
+      "quality_status": "unvalidated_for_stock_video"
+    },
+    "cnn_s": 0.0032814580481499434,
+    "restored_raw_sha256": "12c8d68d68f0624bbca257df81b4bc7583c187a33289143a0612f062b6b2f579",
+    "source_width": 128,
+    "source_height": 96,
+    "source_metadata_sha256": "5b700c762d6b0fd722b5a4a502058dc99e68dbd54a4e0401e15b41cdffaa827e",
+    "geometry": {
+      "scale": 1,
+      "changed_image_tags": [],
+      "changed_exif_tags": [],
+      "omitted": []
+    },
+    "tile_plane_pixels": 256,
+    "halo_plane_pixels": 64,
+    "runtime_raw_norm": 16383,
+    "output_scale": 1,
+    "quality_approval": false
+  }
+}

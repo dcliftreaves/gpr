@@ -152,14 +152,21 @@ def frames(f, header, recover=False):
 
 def load_cnn(root, checkpoint, device):
     import torch
-    # Local caller-selected model package; no automatic weights download.
+    # Weights are always caller-selected. A caller may override the bundled
+    # legacy BIBO architecture explicitly; nothing is downloaded.
     ckpt = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    output_scale = 1
     if "backbone_state" in ckpt:
-        if ckpt.get("variant") not in ("F_ane_no_sr", "bibo_1x") or ckpt.get("raw_norm") != 16383.0:
-            raise ValueError("requires a 1x BIBO checkpoint normalized by 16383")
-        module_path, entry = root / "model.py", "build"
+        variants = {'F_ane_no_sr':1,'bibo_1x':1,'F_ane':2,'bibo_2x':2}
+        if ckpt.get("variant") not in variants or ckpt.get("raw_norm") != 16383.0:
+            raise ValueError("requires a supported BIBO checkpoint normalized by 16383")
+        if ckpt.get('width',16)!=16 or ckpt.get('depth',3)!=3:
+            raise ValueError('bundled legacy BIBO contract requires width 16 and depth 3')
+        output_scale = variants[ckpt['variant']]
+        module_path, entry = (Path(root)/"model.py" if root is not None else Path(__file__).with_name('stock_cnn_models.py')), "build"
     elif "config" in ckpt and "model" in ckpt:
-        module_path, entry = root / "train_bayer_rgb_target_cleanup.py", "make_model"
+        if root is None: raise ValueError('cleanup checkpoint requires an explicit external architecture directory')
+        module_path, entry = Path(root) / "train_bayer_rgb_target_cleanup.py", "make_model"
     else:
         raise ValueError("unsupported CNN checkpoint schema")
     spec = importlib.util.spec_from_file_location("stock_video_external_cnn", module_path)
@@ -178,7 +185,9 @@ def load_cnn(root, checkpoint, device):
                 self.backbone = backbone
 
             def forward(self, x):
-                return (x + scale * self.backbone(x)).clamp(0, 1)
+                base = x if output_scale==1 else torch.nn.functional.interpolate(
+                    x, scale_factor=output_scale, mode='bicubic', align_corners=False).clamp(0,1)
+                return (base + scale * self.backbone(x)).clamp(0, 1)
 
         model = Residual()
     else:
@@ -186,17 +195,24 @@ def load_cnn(root, checkpoint, device):
         model.load_state_dict(ckpt["model"], strict=True)
     return model.to(device).eval(), dict(
         checkpoint_sha256=sha256(checkpoint), architecture_sha256=sha256(module_path),
-        checkpoint_schema=entry, device=str(device), quality_status="unvalidated_for_stock_video")
+        checkpoint_schema=entry, architecture_source='bundled' if root is None else 'external',
+        output_scale=output_scale, runtime_raw_norm=16383, input_cfa='RGGB',
+        device=str(device), quality_status="unvalidated_for_stock_video")
 
 
-def restore(raw, width, height, model, device, tile, halo):
+def restore(raw, width, height, model, device, tile, halo, scale=1):
     import numpy as np
     import torch
     import torch.nn.functional as functional
+    if (type(scale) is not int or scale not in (1,2) or
+        any(type(v) is not int for v in (width,height,tile,halo)) or
+        width<=0 or height<=0 or width%2 or height%2 or tile<8 or tile%8 or halo<0 or halo%8):
+        raise ValueError('invalid Bayer geometry, output scale or tile/halo')
     image = np.fromfile(raw, dtype="<u2").reshape(height, width)
+    if np.any(image>16383): raise ValueError('CNN input exceeds RGGB14 count domain')
     planes = np.stack([image[0::2, 0::2], image[0::2, 1::2],
                        image[1::2, 0::2], image[1::2, 1::2]])
-    out = np.empty_like(planes)
+    out = np.empty((4,height//2*scale,width//2*scale),dtype='<u2')
     started = time.perf_counter()
     with torch.inference_mode():
         # Nonoverlapping output cores with context halos; padding respects the
@@ -210,11 +226,11 @@ def restore(raw, width, height, model, device, tile, halo):
                 ph, pw = patch.shape[-2:]
                 patch = functional.pad(patch, (0, (-pw) % 8, 0, (-ph) % 8), mode="replicate")
                 pred = model(patch)
-                if pred.shape != patch.shape or not torch.isfinite(pred).all().item():
-                    raise ValueError("CNN must return finite same-size 4-plane Bayer data")
-                core = pred[0, :, y-ya:y1-ya, x-xa:x1-xa].cpu().numpy()
-                out[:, y:y1, x:x1] = np.clip(core * 16383.0 + .5, 0, 16383).astype("<u2")
-    restored = np.empty_like(image)
+                if pred.shape != (1,4,patch.shape[-2]*scale,patch.shape[-1]*scale) or not torch.isfinite(pred).all().item():
+                    raise ValueError("CNN must return finite 4-plane Bayer data at the declared output scale")
+                core = pred[0, :, (y-ya)*scale:(y1-ya)*scale, (x-xa)*scale:(x1-xa)*scale].cpu().numpy()
+                out[:, y*scale:y1*scale, x*scale:x1*scale] = np.clip(core * 16383.0 + .5, 0, 16383).astype("<u2")
+    restored = np.empty((height*scale,width*scale),dtype='<u2')
     restored[0::2, 0::2], restored[0::2, 1::2] = out[0], out[1]
     restored[1::2, 0::2], restored[1::2, 1::2] = out[2], out[3]
     return restored, time.perf_counter() - started
@@ -227,8 +243,9 @@ def main():
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--decoder", type=Path, help="stock_video executable")
     parser.add_argument("--limit", type=int, default=0, help="0 exports all; inspection always validates all")
-    parser.add_argument("--cnn-root", type=Path, help="external fork tools/cnn directory")
+    parser.add_argument("--cnn-root", type=Path, help="external architecture override; default: bundled BIBO")
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument('--scale',type=int,choices=(1,2),default=1,help='explicit reconstruction scale')
     parser.add_argument("--reference-raw", type=Path, action="append",
                         help="optional reference replay RAWs in input order, for distortion measurements")
     parser.add_argument("--device", choices=("cpu", "mps", "cuda"), default="cpu")
@@ -244,8 +261,10 @@ def main():
         parser.error("invalid frame limit, tile or halo (spatial sizes must be multiples of 8)")
     if args.action != "inspect" and args.out_dir is None:
         parser.error("--out-dir is required")
-    if args.action == "restore" and not all((args.decoder, args.cnn_root, args.checkpoint)):
-        parser.error("restore requires --decoder, --cnn-root and --checkpoint")
+    if args.action == "restore" and not all((args.decoder, args.checkpoint)):
+        parser.error("restore requires --decoder and --checkpoint")
+    if args.scale!=1 and args.action!='restore': parser.error('--scale requires restore')
+    if args.scale!=1 and args.reference_raw: parser.error('2x reference comparison requires an explicit high-resolution benchmark')
     if args.reference_raw and (not args.decoder or args.action == "inspect"):
         parser.error("reference measurements require extraction/restore with --decoder")
     if args.editable and args.action == "inspect":
@@ -262,6 +281,7 @@ def main():
         import torch
         device = torch.device(args.device)
         model, model_info = load_cnn(args.cnn_root, args.checkpoint, device)
+        if model_info.get('output_scale',1)!=args.scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     if args.out_dir:
         args.out_dir.mkdir(parents=True, exist_ok=False)
     with args.clip.open("rb") as f:
@@ -299,13 +319,19 @@ def main():
                     restored = None
                     if model is not None:
                         restored, elapsed = restore(raw, header["width"], header["height"],
-                                                    model, device, args.tile, args.halo)
+                                                    model, device, args.tile, args.halo,scale=args.scale)
                         path = vc5.with_suffix(".cnn.raw")
                         restored.tofile(path)
-                        row.update(cnn_s=elapsed, cnn_sha256=sha256(path))
+                        row.update(cnn_s=elapsed, cnn_sha256=sha256(path),output_width=header['width']*args.scale,
+                                   output_height=header['height']*args.scale,output_scale=args.scale)
                     if args.editable in ("dng", "both"):
                         path = vc5.with_suffix(".dng")
-                        raw_media.write(path, calibration, restored.astype("<u2").tobytes() if restored is not None else raw.read_bytes())
+                        output_calibration=calibration
+                        if restored is not None:
+                            from stock_cnn_metadata import scaled
+                            output_calibration,geometry=scaled(calibration,args.scale)
+                            row.update(geometry=geometry,output_metadata_sha256=hashlib.sha256(json.dumps(output_calibration,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+                        raw_media.write(path, output_calibration, restored.astype("<u2").tobytes() if restored is not None else raw.read_bytes())
                         row["dng_sha256"] = sha256(path)
                     if args.reference_raw:
                         import numpy as np

@@ -45,6 +45,12 @@ jobs:
         run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test gpr_capture_app preview_contract_test gpr_preview_app stock_video gpr_tools bayer_formats_test sdk_bayer_probe --parallel 4
       - name: Test
         run: ctest --test-dir build-runtime --output-on-failure
+      - name: Optional portable CNN contracts and stock recording reconstruction
+        if: matrix.name == 'LinuxRelease'
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python tests/stock_cnn_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools \
+            --capture build-runtime/gpr_capture_app --decoder build-runtime/source/app/stock_video/stock_video
       - name: Serial encoder with fast-path requests and sanitizers
         if: matrix.name == 'LinuxSanitizers'
         run: |

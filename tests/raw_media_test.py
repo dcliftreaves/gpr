@@ -40,6 +40,83 @@ def metadata(width=128, height=96, bits=14, cfa='RGGB'):
 
 
 class Media(unittest.TestCase):
+    def test_reconstruction_geometry_and_gain_map_phases(self):
+        import copy
+        import stock_cnn_metadata as geometry
+        meta=metadata()
+        meta['image'] += [media.record(50829,4,4,struct.pack('<4I',2,4,94,124)),
+                          media.record(50719,5,2,struct.pack('<4I',3,2,5,2)),
+                          media.record(50720,4,2,struct.pack('<2I',100,80)),
+                          media.record(50830,4,4,struct.pack('<4I',0,0,2,128)),
+                          media.record(700,1,4,b'XMP!')]
+        meta['exif'] += [media.record(40962,4,1,struct.pack('<I',128)),
+                         media.record(40963,4,1,struct.pack('<I',96))]
+        h,w=92,120
+        def make_list(pitch):
+            records=[]
+            for sy,sx in ([(0,0)] if pitch==1 else [(0,0),(0,1),(1,0),(1,1)]):
+                area=struct.pack('>8I',sy,sx,h,w,0,1,pitch,pitch)
+                grid=struct.pack('>2I4dI4f',2,2,1.,1.,0.,0.,1,1.,2.,3.,4.)
+                body=area+grid
+                records.append(struct.pack('>4I',9,0x01040000,3,len(body))+body)
+            return struct.pack('>I',len(records))+b''.join(records)
+        original=copy.deepcopy(meta)
+        for pitch in (1,2):
+            case=copy.deepcopy(meta)
+            data=make_list(pitch)
+            case['image']=[t for t in case['image'] if t['code']!=51009]+[media.record(51009,7,len(data),data)]
+            high,accounting=geometry.scaled(case,2)
+            self.assertEqual((high['width'],high['height']),(256,192))
+            tags={t['code']:t for t in high['image']}
+            self.assertEqual(media.values(tags[50829]),(4,8,188,248))
+            self.assertEqual(media.values(tags[50719]),(3.,5.))
+            self.assertEqual(media.values(tags[50720]),(200,160))
+            self.assertEqual(media.values(tags[50830]),(0,0,4,256))
+            self.assertNotIn(700,tags)
+            self.assertEqual(accounting['omitted'][0]['code'],700)
+            exif={t['code']:t for t in high['exif']}
+            self.assertEqual(media.values(exif[40962]),(256,)); self.assertEqual(media.values(exif[40963]),(192,))
+            data=media.unpack_record(tags[51009]); count,=struct.unpack_from('>I',data); self.assertEqual(count,4)
+            pos=4; phases=set()
+            for _ in range(count):
+                op,version,flags,size=struct.unpack_from('>4I',data,pos); pos+=16
+                self.assertEqual((op,version,flags),(9,0x01040000,3))
+                body=data[pos:pos+size]; pos+=size
+                t,l,b,r,plane,planes,rp,cp=struct.unpack_from('>8I',body)
+                self.assertEqual((plane,planes,rp,cp),(0,1,2,2))
+                self.assertEqual((b,r),(h*2,w*2)); self.assertIn(t,(0,1)); self.assertIn(l,(0,1))
+                phases.add((t,l))
+                rows,cols,dy,dx,oy,ox,n=struct.unpack_from('>2I4dI',body,32)
+                self.assertEqual((rows,cols,n),(2,2,1))
+                self.assertEqual(body[76:],struct.pack('>4f',1.,2.,3.,4.))
+                # Independent analytic gain plane g(u,v)=1+2u+v at a high
+                # Bayer-site center, mapped through align_corners=False's
+                # deinterleaved-plane coordinate transform.
+                for row,col in ((10+t,14+l),(42+t,66+l)):
+                    low_row=2*((row//2+.5)/2-.5)+t
+                    low_col=2*((col//2+.5)/2-.5)+l
+                    expected=1+2*(low_row+.5)/h+(low_col+.5)/w
+                    actual=1+2*((row+.5)/(h*2)-oy)/dy+((col+.5)/(w*2)-ox)/dx
+                    self.assertAlmostEqual(actual,expected,places=14)
+            self.assertEqual(phases,{(0,0),(0,1),(1,0),(1,1)})
+            self.assertEqual(pos,len(data))
+        self.assertEqual(meta,original)
+        unchanged,accounting=geometry.scaled(meta,1)
+        self.assertEqual(unchanged,meta); self.assertEqual(accounting['omitted'],[])
+        # Normalized lens coefficients are unchanged by a uniform scale.
+        body=struct.pack('>I8d',1,1.,0.,0.,0.,0.,0.,.5,.5)
+        data=struct.pack('>5I',1,1,0x01030000,0,len(body))+body
+        case=copy.deepcopy(meta); case['image'].append(media.record(51022,7,len(data),data))
+        high,_=geometry.scaled(case,2)
+        self.assertEqual(media.unpack_record(next(t for t in high['image'] if t['code']==51022)),data)
+        for bad_data in (b'\0',data[:-1],data+b'\0'):
+            with self.assertRaises(ValueError): geometry.opcode_list(bad_data,3,2,h,w)
+        unknown=struct.pack('>5I',1,5,0x01030000,1,0)
+        with self.assertRaisesRegex(ValueError,'does not support opcode'):
+            geometry.opcode_list(unknown,1,2,h,w)
+        case=copy.deepcopy(meta); case['image'].append(media.record(50715,10,1,struct.pack('<2i',0,1)))
+        with self.assertRaisesRegex(ValueError,'delta resampling'): geometry.scaled(case,2)
+
     def test_sdk_cli_quality_selection(self):
         def payload(path):
             with tifffile.TiffFile(path) as f:
