@@ -111,6 +111,14 @@ and nonstandard white levels, verify identity reconstruction against independent
 read decoded counts, and reject overwrite/invalid tiling. All three tests pass
 locally on CPU. They are separate from the ten ordinary CTest targets.
 
+After this integration, all ten ordinary CTest targets pass on Pi 5 Release
+in 2.78 seconds; [the receipt](stock-cnn-receipts/pi5-release.json) verifies
+407 source/test/tool/build/fixture files against commit `71dbace`. This exercises
+the no-CNN workflow on Pi, not Torch inference. The preceding preset snapshot
+`339b17a` passes all ten Pi ASan/UBSan/leak tests in 1285.46 seconds;
+[its separate receipt](stock-still-quality-receipts/pi5-gates.json) preserves that
+revision boundary.
+
 Detailed receipts: [summary](stock-cnn-receipts/summary.json),
 [0001](stock-cnn-receipts/z8-0001.json), [0067](stock-cnn-receipts/z8-0067.json),
 [5323](stock-cnn-receipts/z8-5323.json), [6693](stock-cnn-receipts/z8-6693.json).

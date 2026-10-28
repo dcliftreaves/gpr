@@ -157,8 +157,11 @@ boundary geometries. All four local package profiles also pass relocated-client
 checks; the full package runs its installed still encode/decode tools and
 checks pixel equality. Unsupported-link and partial-copy tests cover publication
 fallbacks. Local macOS Release and ASan/UBSan and Pi Release pass
-all ten CTest targets. Expanded Pi sanitizer and hosted checks for this
-quality-selection implementation remain separate gates.
+all ten CTest targets. The expanded Pi ASan/UBSan/leak gate also passes all ten
+in 1285.46 seconds: [receipt](stock-still-quality-receipts/pi5-gates.json).
+Its 405 source/test/tool/build/fixture files match commit `339b17a`; it precedes
+the optional still-restoration command and later preview-flag regression.
+Latest hosted checks remain a separate gate.
 
 Selectable stock presets and calibrated still packaging are implemented.
 The [optional 1x restoration workflow](stock-cnn-quality.md) now preserves
