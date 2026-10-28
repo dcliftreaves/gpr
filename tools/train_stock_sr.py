@@ -28,6 +28,15 @@ import stock_still
 PEAK=16383.
 
 
+def psnr(mse):
+    return None if mse==0 else 10*math.log10(PEAK**2/mse)
+
+
+def delta(baseline,mse):
+    if baseline==0 or mse==0: return 0. if baseline==mse else None
+    return 10*math.log10(baseline/mse)
+
+
 def sources(manifest):
     if manifest.get('schema')!='gpr.stock_sr_sources.v1' or not isinstance(manifest.get('sources'),list):
         raise ValueError('requires gpr.stock_sr_sources.v1 sources')
@@ -139,15 +148,24 @@ def train(dataset,output_dir,device='cpu',steps=1000,batch=8,learning_rate=.0003
     dataset=Path(dataset).resolve(); info=json.loads((dataset/'dataset.json').read_text())
     if info.get('schema')!='gpr.stock_sr_dataset.v1' or info.get('complete') is not True:
         raise ValueError('requires a completed audited stock-SR dataset')
+    if tuple(info.get(k) for k in ('cfa','sample_bits','stock_quality','output_scale','dtype'))!=('RGGB',14,3,2,'<u2'):
+        raise ValueError('dataset is outside the stock-Q3 RGGB14 2x contract')
     for name,key in (('inputs.npy','input_sha256'),('targets.npy','target_sha256')):
         if stock_still.digest(dataset/name)!=info[key]:raise ValueError('dataset array hash differs')
     inputs=np.load(dataset/'inputs.npy',mmap_mode='r',allow_pickle=False)
     targets=np.load(dataset/'targets.npy',mmap_mode='r',allow_pickle=False)
     if list(inputs.shape)!=info['input_shape'] or list(targets.shape)!=info['target_shape'] or inputs.dtype!=np.dtype('<u2') or targets.dtype!=np.dtype('<u2'):
         raise ValueError('dataset shape/count format differs')
+    if (inputs.ndim!=4 or inputs.shape[1]!=4 or inputs.shape[-1]!=inputs.shape[-2] or
+        inputs.shape[-1]<64 or inputs.shape[-1]%8 or
+        targets.shape!=(inputs.shape[0],4,inputs.shape[-2]*2,inputs.shape[-1]*2) or
+        inputs.max(initial=0)>PEAK or targets.max(initial=0)>PEAK):
+        raise ValueError('invalid dataset Bayer planes/count domain')
     groups={};train_indices=[];validation_indices=[];seen=set()
     for row in info['sources']:
         group,split=row['group'],row['split']
+        if not isinstance(group,str) or not group or split not in ('train','validation','test'):
+            raise ValueError('invalid dataset source group/split')
         if group in groups and groups[group]!=split:raise ValueError('dataset group leakage')
         groups[group]=split
         if row['sha256'] in seen:raise ValueError('duplicate dataset source')
@@ -157,7 +175,7 @@ def train(dataset,output_dir,device='cpu',steps=1000,batch=8,learning_rate=.0003
             continue
         indices=list(range(row['patch_start'],row['patch_start']+row['patch_count']))
         (train_indices if split=='train' else validation_indices).extend(indices)
-    if not train_indices or not validation_indices or set(train_indices)&set(validation_indices) or sorted(train_indices+validation_indices)!=list(range(len(inputs))):
+    if set(groups.values())!={'train','validation','test'} or not train_indices or not validation_indices or set(train_indices)&set(validation_indices) or sorted(train_indices+validation_indices)!=list(range(len(inputs))):
         raise ValueError('invalid train/validation patch partition')
     root=Path(output_dir).resolve();root.mkdir(parents=True,exist_ok=False)
     torch.manual_seed(seed);rng=np.random.default_rng(seed);torch.set_num_threads(4)
@@ -191,7 +209,7 @@ def train(dataset,output_dir,device='cpu',steps=1000,batch=8,learning_rate=.0003
                 final_test_used_for_training_or_selection=False,steps=steps,batch=batch,learning_rate=learning_rate,
                 loss='normalized MSE * 10000 on central output core; rounded count MSE for checkpoint selection',
                 patch_plane_pixels=patch,core_output_plane_pixels=patch,source_files=tool_hashes(),
-                baseline_validation_mse_counts=baseline,baseline_validation_psnr_db=10*math.log10(PEAK**2/baseline),history=[])
+                baseline_validation_mse_counts=baseline,baseline_validation_psnr_db=psnr(baseline),history=[])
     checkpoint=root/'best.pt';log=root/'training.json'
     def save(step,mse):
         state={k:v.detach().cpu() for k,v in backbone.state_dict().items()}
@@ -212,7 +230,7 @@ def train(dataset,output_dir,device='cpu',steps=1000,batch=8,learning_rate=.0003
             mse=validation()
             if mse<best:best=mse;best_step=step;save(step,mse)
             row=dict(step=step,loss=float(loss.item()),validation_mse_counts=mse,
-                     validation_psnr_db=10*math.log10(PEAK**2/mse),delta_vs_bicubic_db=10*math.log10(baseline/mse),
+                     validation_psnr_db=psnr(mse),delta_vs_bicubic_db=delta(baseline,mse),
                      best_step=best_step,elapsed_s=time.perf_counter()-started)
             report['history'].append(row)
             report.update(best_step=best_step,best_validation_mse_counts=best,best_checkpoint_sha256=stock_still.digest(checkpoint))

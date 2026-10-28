@@ -21,6 +21,57 @@ from raw_media_test import metadata
 
 
 class Contract(unittest.TestCase):
+    def test_training_split_guards_and_checkpoint_roundtrip(self):
+        import copy
+        import train_stock_sr as recipe
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);rows=[]
+            for index,split in enumerate(('train','validation','test')):
+                path=root/f'{split}.source';path.write_bytes(bytes([index]))
+                rows.append(dict(path=str(path),group=split,split=split))
+            manifest=dict(schema='gpr.stock_sr_sources.v1',sources=rows)
+            audited=recipe.sources(manifest)
+            for key,value in (('group','train'),('path',rows[0]['path'])):
+                bad=copy.deepcopy(manifest);bad['sources'][1][key]=value
+                with self.assertRaises(ValueError):recipe.sources(bad)
+            for index,row in enumerate(audited):
+                row.update(patch_start=(0,2,None)[index],patch_count=(2,1,0)[index])
+            pixels=(np.arange(3*4*64*64,dtype=np.uint32).reshape(3,4,64,64)%4000+400).astype('<u2')
+            tensor=torch.from_numpy(pixels.astype(np.float32)/16383)
+            base=torch.nn.functional.interpolate(tensor,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1).numpy()
+            base=np.clip(base*16383+.5,0,16383).astype('<u2')
+            data=root/'data';data.mkdir();np.save(data/'inputs.npy',pixels);np.save(data/'targets.npy',base+9)
+            info=dict(schema='gpr.stock_sr_dataset.v1',complete=True,cfa='RGGB',sample_bits=14,stock_quality=3,
+                      output_scale=2,dtype='<u2',sources=audited,input_shape=list(pixels.shape),target_shape=list(base.shape),
+                      input_sha256=stock_still.digest(data/'inputs.npy'),target_sha256=stock_still.digest(data/'targets.npy'))
+            log=data/'dataset.json';log.write_text(json.dumps(info))
+            receipt=recipe.train(data,root/'fit',steps=1,batch=2,validate_every=1)
+            self.assertTrue(receipt['complete']);self.assertTrue(receipt['fresh_initialization'])
+            self.assertFalse(receipt['pretrained_weights']);self.assertFalse(receipt['quality_approval'])
+            self.assertFalse(receipt['final_test_used_for_training_or_selection'])
+            model,contract=stock_video.load_cnn(None,root/'fit/best.pt',torch.device('cpu'))
+            self.assertEqual(contract['output_scale'],2)
+            self.assertEqual(contract['checkpoint_sha256'],receipt['best_checkpoint_sha256'])
+            with torch.inference_mode(): predicted=model(tensor[2:])[:,:,32:96,32:96].numpy()
+            counts=np.clip(predicted*16383+.5,0,16383).astype('<u2')
+            error=counts.astype(np.float64)-(base[2:,:,32:96,32:96]+9)
+            self.assertEqual(float(np.square(error).mean()),receipt['best_validation_mse_counts'])
+            bad=copy.deepcopy(info);bad['sources'][2]['patch_count']=1
+            log.write_text(json.dumps(bad))
+            with self.assertRaisesRegex(ValueError,'final-test pixels leaked'):
+                recipe.train(data,root/'leak',steps=1)
+            self.assertFalse((root/'leak').exists())
+            # A perfectly represented reference has infinite PSNR: report null,
+            # keep the zero-residual checkpoint and avoid invalid JSON floats.
+            np.save(data/'targets.npy',base);info['target_sha256']=stock_still.digest(data/'targets.npy')
+            log.write_text(json.dumps(info))
+            perfect=recipe.train(data,root/'perfect',steps=1,batch=2,validate_every=1)
+            self.assertIsNone(perfect['baseline_validation_psnr_db']);self.assertEqual(perfect['best_step'],0)
+            self.assertEqual(perfect['best_validation_mse_counts'],0)
+            np.save(data/'inputs.npy',pixels+1)
+            with self.assertRaisesRegex(ValueError,'array hash differs'):
+                recipe.train(data,root/'tampered',steps=1)
+
     def test_native_recording_to_portable_two_times_editable_sequence(self):
         if args.capture is None or args.decoder is None: self.skipTest('native capture/decoder arguments not supplied')
         import stock_cnn_models
