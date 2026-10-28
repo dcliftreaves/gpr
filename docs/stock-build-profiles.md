@@ -37,6 +37,10 @@ The library-only switch is `GPR_ENABLE_PREVIEW`; no frontend is required.
 frontend. Linux and macOS full packages include these tools when selected.
 Windows native packages contain the libraries; those POSIX frontends remain
 unavailable on Windows. Windows channel encoding uses the serial fallback.
+Compact high-pass band allocation requires active memory-stream channel
+workers. Serial and file-stream encoding use full bands, even when callers
+request the compact/streaming optimization flags. Linux sanitizer CI exercises
+the serial configuration with those flags set.
 
 ## Installed C and C++ clients
 
@@ -120,3 +124,12 @@ The release CI jobs create downloadable ZIPs and validation logs. The Windows
 job uses vcpkg zlib and validates native capture/preview packages with MSVC.
 Platform results must be taken from the corresponding completed CI/hardware
 receipts; configuration alone is not evidence of platform support.
+
+For implementation `14c8dce`, [Windows native packaging and Linux Release and
+sanitizer checks](https://github.com/dcliftreaves/gpr/actions/runs/40723187365)
+passed. Windows checked all three stripped native profiles, deleted their
+producer trees and ran external C/C++ clients from relocated archives. The
+macOS job for that revision was still queued when this note was written;
+earlier macOS Release packaging and the committed local macOS/Pi receipts
+provide separate evidence for their recorded source revisions. Windows checks
+do not cover the desktop DNG SDK or POSIX applications.
