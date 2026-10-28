@@ -5,6 +5,13 @@
 #include <cstring>
 #include <map>
 #include <vector>
+#include <array>
+#include <cmath>
+#include <memory>
+#include <mutex>
+#if defined(__aarch64__) && NEON
+#include <arm_neon.h>
+#endif
 
 namespace {
 unsigned be16(const uint8_t *p) { return unsigned(p[0])*256+p[1]; }
@@ -78,6 +85,267 @@ void release(void *p) {
     auto found=active->pointers.find(p);
     if (found!=active->pointers.end()) { std::free(p); active->pointers.erase(found); }
 }
+}
+
+struct gpr_preview_plan {
+    gpr_gvid_config video;
+    uint32_t downsample,orientation,columns,rows,full_width,full_height;
+    gpr_preview_info info;
+    float black[4],matrix[9],camera_white[3],exposure,inverse_range[4],count_scale;
+    unsigned red,green1,green2,blue;
+    bool scalar;
+    std::vector<uint32_t> xs,ys;
+    std::vector<std::array<float,8>> gains;
+};
+namespace {
+bool rectangle(const float *r,const gpr_gvid_config &v) {
+    for (unsigned i=0;i<4;++i) if (!std::isfinite(r[i])) return false;
+    return r[0]>=0 && r[1]>=0 && r[2]>r[0] && r[3]>r[1] && r[2]<=v.width && r[3]<=v.height;
+}
+float map_gain(const gpr_preview_gain_map &m,float x,float y,const float *active) {
+    float gx=((x+.5f-active[0])/(active[2]-active[0])-m.origin_x)/m.spacing_x;
+    float gy=((y+.5f-active[1])/(active[3]-active[1])-m.origin_y)/m.spacing_y;
+    gx=std::max(0.f,std::min(float(m.cols-1),gx)); gy=std::max(0.f,std::min(float(m.rows-1),gy));
+    uint32_t left=uint32_t(gx),top=uint32_t(gy),right=std::min(left+1,m.cols-1),bottom=std::min(top+1,m.rows-1);
+    float dx=gx-left,dy=gy-top;
+    const float *p=m.values;
+    return (1-dy)*((1-dx)*p[size_t(top)*m.cols+left]+dx*p[size_t(top)*m.cols+right])+
+        dy*((1-dx)*p[size_t(bottom)*m.cols+left]+dx*p[size_t(bottom)*m.cols+right]);
+}
+const uint8_t *srgb_table() {
+    static uint8_t table[65536]; static std::once_flag once;
+    std::call_once(once,[]{ for (unsigned i=0;i<65536;++i) {
+        double x=double(i)/65535;
+        double y=x<=.0031308 ? 12.92*x:1.055*std::pow(x,1.0/2.4)-.055;
+        table[i]=uint8_t(std::floor(y*255+.5));
+    }});
+    return table;
+}
+uint8_t srgb(float value,const uint8_t *table) {
+    if (!(value>0)) return 0; if (value>=1) return 255;
+    return table[unsigned(value*65535+.5f)];
+}
+void display_pixel(const gpr_preview_plan *p,uint8_t *rgb,size_t pitch,unsigned x,unsigned y,const uint8_t *color) {
+    uint32_t dx=x,dy=y;
+    switch (p->orientation) {
+        case 2:dx=p->columns-1-x;break;
+        case 3:dx=p->columns-1-x;dy=p->rows-1-y;break;
+        case 4:dy=p->rows-1-y;break;
+        case 5:dx=y;dy=x;break;
+        case 6:dx=p->rows-1-y;dy=x;break;
+        case 7:dx=p->rows-1-y;dy=p->columns-1-x;break;
+        case 8:dx=y;dy=p->columns-1-x;break;
+    }
+    std::memcpy(rgb+size_t(dy)*pitch+size_t(dx)*3,color,3);
+}
+#if defined(__aarch64__) && NEON
+void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
+    // Four independent pixels keep the channel arithmetic in vector registers.
+    // Load the mirrored big-endian word triplets once, then reverse lane order.
+    const uint8_t *start=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x+3]))*6;
+    uint16x4x3_t words=vld3_u16(reinterpret_cast<const uint16_t *>(start));
+    float32x4_t samples[3];
+    for (unsigned c=0;c<3;++c) {
+        uint16x4_t value=vreinterpret_u16_u8(vrev16_u8(vreinterpret_u8_u16(words.val[c])));
+        samples[c]=vmulq_n_f32(vcvtq_f32_u32(vmovl_u16(vrev64_u16(value))),1/p->count_scale);
+    }
+    float32x4_t gains[4],caps[4];
+    if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
+    else {
+        const float *values=p->gains[size_t(y)*p->columns+x].data();
+        float32x4x4_t first=vld4q_f32(values),last=vld4q_f32(values+16);
+        for (unsigned site=0;site<4;++site) {
+            gains[site]=vuzp1q_f32(first.val[site],last.val[site]);
+            caps[site]=vuzp2q_f32(first.val[site],last.val[site]);
+        }
+    }
+    auto corrected=[&](unsigned site,unsigned channel)->float32x4_t {
+        float32x4_t value=vmulq_n_f32(vsubq_f32(samples[channel],vdupq_n_f32(p->black[site])),p->inverse_range[site]);
+        value=vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value));
+        return vminq_f32(caps[site],vmulq_f32(value,gains[site]));
+    };
+    float32x4_t camera[3]={corrected(p->red,0),vmulq_n_f32(vaddq_f32(corrected(p->green1,1),corrected(p->green2,1)),.5f),corrected(p->blue,2)};
+    for (unsigned c=0;c<3;++c) camera[c]=vminq_f32(camera[c],vdupq_n_f32(p->camera_white[c]));
+    uint32_t indices[3][4];
+    for (unsigned c=0;c<3;++c) {
+        float32x4_t value=vmulq_n_f32(camera[0],p->matrix[c*3]);
+        value=vaddq_f32(value,vmulq_n_f32(camera[1],p->matrix[c*3+1]));
+        value=vaddq_f32(value,vmulq_n_f32(camera[2],p->matrix[c*3+2]));
+        value=vmulq_n_f32(vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value)),p->exposure);
+        value=vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value));
+        vst1q_u32(indices[c],vcvtq_u32_f32(vaddq_f32(vmulq_n_f32(value,65535),vdupq_n_f32(.5f))));
+    }
+    for (unsigned lane=0;lane<4;++lane) {
+        uint8_t color[3]={gamma[indices[0][lane]],gamma[indices[1][lane]],gamma[indices[2][lane]]};
+        display_pixel(p,rgb,pitch,x+lane,y,color);
+    }
+}
+#endif
+}
+extern "C" void gpr_preview_calibration_identity(const gpr_gvid_config *v,gpr_preview_calibration *out) {
+    if (!out) return; *out={};
+    if (!v || (v->sample_bits!=12 && v->sample_bits!=14)) return;
+    out->version=1; out->downsample=4; out->orientation=1; out->exposure=1;
+    out->white=float((1u<<v->sample_bits)-1);
+    out->camera_to_srgb[0]=out->camera_to_srgb[4]=out->camera_to_srgb[8]=1;
+    out->camera_white[0]=out->camera_white[1]=out->camera_white[2]=1;
+    out->active[2]=out->crop[2]=float(v->width); out->active[3]=out->crop[3]=float(v->height);
+}
+extern "C" int gpr_preview_plan_create(const gpr_gvid_config *v,const gpr_preview_calibration *c,gpr_preview_plan **out) {
+    if (!out) return GPR_PREVIEW_INVALID; *out=nullptr;
+    gpr_preview_options options={}; gpr_preview_options_default(&options);
+    if (!v || !c || c->version!=1 || v->width<48 || v->height<48) return GPR_PREVIEW_INVALID;
+    options.downsample=c->downsample; gpr_preview_info full={};
+    if (gpr_preview_dimensions(v,&options,&full) || c->orientation<1 || c->orientation>8 ||
+        !rectangle(c->active,*v) || !rectangle(c->crop,*v) ||
+        c->crop[0]<c->active[0] || c->crop[1]<c->active[1] || c->crop[2]>c->active[2] || c->crop[3]>c->active[3] ||
+        !std::isfinite(c->white) || c->white<1 || std::floor(c->white)!=c->white || c->white>((1u<<v->sample_bits)-1) ||
+        !std::isfinite(c->exposure) || c->exposure<1.f/65536 || c->exposure>256 ||
+        c->gain_map_count>32 || (c->gain_map_count && !c->gain_maps)) return GPR_PREVIEW_INVALID;
+    for (float black:c->black) if (!std::isfinite(black) || black<0 || black>=c->white) return GPR_PREVIEW_INVALID;
+    for (float entry:c->camera_to_srgb) if (!std::isfinite(entry) || std::abs(entry)>256) return GPR_PREVIEW_INVALID;
+    for (float entry:c->camera_white) if (!std::isfinite(entry) || entry<=0 || entry>1) return GPR_PREVIEW_INVALID;
+    for (size_t i=0;i<c->gain_map_count;++i) {
+        const auto &m=c->gain_maps[i];
+        if (!m.phase_mask || m.phase_mask>15 || !m.rows || !m.cols || m.rows>256 || m.cols>256 ||
+            !m.values || m.value_count!=size_t(m.rows)*m.cols || !rectangle(m.area,*v) ||
+            !std::isfinite(m.spacing_x) || !std::isfinite(m.spacing_y) || m.spacing_x<1e-12 || m.spacing_y<1e-12 ||
+            !std::isfinite(m.origin_x) || !std::isfinite(m.origin_y) || std::abs(m.origin_x)>1e6 || std::abs(m.origin_y)>1e6)
+            return GPR_PREVIEW_INVALID;
+        for (size_t j=0;j<m.value_count;++j)
+            if (!std::isfinite(m.values[j]) || m.values[j]<=0 || m.values[j]>64) return GPR_PREVIEW_INVALID;
+    }
+    try {
+        std::unique_ptr<gpr_preview_plan> p(new gpr_preview_plan{});
+        p->video=*v; p->downsample=c->downsample; p->orientation=c->orientation;
+        const char *scalar=std::getenv("GPR_PREVIEW_SCALAR");p->scalar=scalar && !std::strcmp(scalar,"1");
+        p->columns=uint32_t(std::ceil((c->crop[2]-c->crop[0])/c->downsample));
+        p->rows=uint32_t(std::ceil((c->crop[3]-c->crop[1])/c->downsample));
+        if (!p->columns || !p->rows) return GPR_PREVIEW_INVALID;
+        p->full_width=full.width; p->full_height=full.height;
+        p->info={p->orientation>=5 ? p->rows:p->columns,p->orientation>=5 ? p->columns:p->rows,0};
+        p->info.row_bytes=size_t(p->info.width)*3;
+        p->count_scale=float(1u<<(16-v->sample_bits));
+        unsigned r=!std::memcmp(v->cfa,"RGGB",4) ? 0:2,b=3-r,g1,g2;
+        // GBRG: R=2, B=1, green sites=0,3. RGGB: R=0, B=3, green=1,2.
+        if (r==2) { g1=0; g2=3; } else { g1=1; g2=2; }
+        p->red=r; p->green1=g1; p->green2=g2; p->blue=b;
+        for (unsigned i=0;i<4;++i) { p->black[i]=c->black[i]; p->inverse_range[i]=1/(c->white-p->black[i]); }
+        for (unsigned i=0;i<9;++i) p->matrix[i]=c->camera_to_srgb[i];
+        for (unsigned i=0;i<3;++i) p->camera_white[i]=c->camera_white[i];
+        p->exposure=c->exposure;
+        p->xs.resize(p->columns); p->ys.resize(p->rows);
+        for (uint32_t x=0;x<p->columns;++x) p->xs[x]=std::min(full.width-1,uint32_t((c->crop[0]+(x+.5f)*(c->crop[2]-c->crop[0])/p->columns)/c->downsample));
+        for (uint32_t y=0;y<p->rows;++y) p->ys[y]=std::min(full.height-1,uint32_t((c->crop[1]+(y+.5f)*(c->crop[3]-c->crop[1])/p->rows)/c->downsample));
+        if (c->gain_map_count) {
+            p->gains.resize(size_t(p->columns)*p->rows);
+            for (uint32_t y=0;y<p->rows;++y) for (uint32_t x=0;x<p->columns;++x) {
+                float sx=c->crop[0]+(x+.5f)*(c->crop[2]-c->crop[0])/p->columns-.5f;
+                float sy=c->crop[1]+(y+.5f)*(c->crop[3]-c->crop[1])/p->rows-.5f;
+                float sites[4]={1,1,1,1},caps[4]={1,1,1,1};
+                for (size_t i=0;i<c->gain_map_count;++i) {
+                    const auto &map=c->gain_maps[i];
+                    if (sx<map.area[0] || sy<map.area[1] || sx>=map.area[2] || sy>=map.area[3]) continue;
+                    float gain=map_gain(map,sx,sy,c->active);
+                    for (unsigned site=0;site<4;++site) if (map.phase_mask&(1u<<site)) {
+                        sites[site]*=gain; caps[site]=std::min(1.f,caps[site]*gain);
+                    }
+                }
+                for (float gain:sites) if (!std::isfinite(gain) || gain>65536) return GPR_PREVIEW_INVALID;
+                p->gains[size_t(y)*p->columns+x]={{sites[0],sites[1],sites[2],sites[3],caps[0],caps[1],caps[2],caps[3]}};
+            }
+        }
+        *out=p.release(); return GPR_PREVIEW_OK;
+    } catch (...) { return GPR_PREVIEW_NOMEM; }
+}
+extern "C" int gpr_preview_plan_info(const gpr_preview_plan *p,gpr_preview_info *out) {
+    if (!p || !out) return GPR_PREVIEW_INVALID; *out=p->info; return GPR_PREVIEW_OK;
+}
+extern "C" int gpr_preview_plan_from_profile(const gpr_gvid_config *v,const uint8_t *data,size_t size,gpr_preview_plan **out) {
+    if (!out) return GPR_PREVIEW_INVALID; *out=nullptr;
+    if (!v || !data || size<144 || size>16*size_t(1024*1024) || std::memcmp(data,"GPRP",4)) return GPR_PREVIEW_INVALID;
+    auto number=[&](size_t at)->uint32_t { return uint32_t(data[at])|uint32_t(data[at+1])<<8|uint32_t(data[at+2])<<16|uint32_t(data[at+3])<<24; };
+    auto real=[&](size_t at)->float { uint32_t bits=number(at); float f; std::memcpy(&f,&bits,4); return f; };
+    if (number(4)!=1 || number(8)!=v->width || number(12)!=v->height || number(16)!=v->sample_bits ||
+        std::memcmp(data+20,v->cfa,4) || number(136)>32 || gpr_gvid_crc32(0,data,size-4)!=number(size-4)) return GPR_PREVIEW_INVALID;
+    try {
+        gpr_preview_calibration c={}; c.version=1; c.downsample=number(24); c.orientation=number(28);
+        for (unsigned i=0;i<4;++i) c.black[i]=real(32+i*4);
+        c.white=real(48);
+        for (unsigned i=0;i<9;++i) c.camera_to_srgb[i]=real(52+i*4);
+        for (unsigned i=0;i<3;++i) c.camera_white[i]=real(88+i*4);
+        c.exposure=real(100);
+        for (unsigned i=0;i<4;++i) { c.active[i]=real(104+i*4); c.crop[i]=real(120+i*4); }
+        size_t position=140,count=number(136);
+        std::vector<gpr_preview_gain_map> maps(count);
+        std::vector<std::vector<float>> grids(count);
+        for (size_t i=0;i<count;++i) {
+            if (position>size-4 || size-4-position<44) return GPR_PREVIEW_INVALID;
+            auto &m=maps[i]; m.phase_mask=number(position); m.rows=number(position+4); m.cols=number(position+8);
+            if (!m.rows || !m.cols || m.rows>256 || m.cols>256) return GPR_PREVIEW_INVALID;
+            m.spacing_y=real(position+12); m.spacing_x=real(position+16); m.origin_y=real(position+20); m.origin_x=real(position+24);
+            for (unsigned j=0;j<4;++j) m.area[j]=real(position+28+j*4);
+            position+=44; m.value_count=size_t(m.rows)*m.cols;
+            if (m.value_count>(size-4-position)/4) return GPR_PREVIEW_INVALID;
+            auto &values=grids[i]; values.resize(m.value_count);
+            for (size_t j=0;j<m.value_count;++j) values[j]=real(position+j*4);
+            position+=m.value_count*4; m.values=values.data();
+        }
+        if (position!=size-4) return GPR_PREVIEW_INVALID;
+        c.gain_maps=maps.data(); c.gain_map_count=count;
+        return gpr_preview_plan_create(v,&c,out);
+    } catch (...) { return GPR_PREVIEW_NOMEM; }
+}
+extern "C" void gpr_preview_plan_destroy(gpr_preview_plan *p) { delete p; }
+extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *payload,size_t size,
+    uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out) {
+    if (!p || !rgb || !out) return GPR_PREVIEW_INVALID;
+    if (pitch<p->info.row_bytes || pitch>SIZE_MAX/p->info.height ||
+        capacity<(p->info.height-1)*pitch+p->info.row_bytes) return GPR_PREVIEW_CAPACITY;
+    if (!stock_payload(p->video,payload,size)) return GPR_PREVIEW_PAYLOAD;
+    try {
+        std::vector<uint8_t> aligned;
+        if (reinterpret_cast<uintptr_t>(payload)%4) { aligned.assign(payload,payload+size); payload=aligned.data(); }
+        Allocations allocation; auto previous=active; active=&allocation;
+        struct Restore { Allocations *old; ~Restore() { active=old; } } restore{previous};
+        vc5_decoder_parameters parameters={}; vc5_decoder_parameters_set_default(&parameters);
+        parameters.mem_alloc=allocate; parameters.mem_free=release;
+        parameters.rgb_resolution=p->downsample==4 ? GPR_RGB_RESOLUTION_QUARTER:
+            (p->downsample==8 ? GPR_RGB_RESOLUTION_EIGHTH:GPR_RGB_RESOLUTION_SIXTEENTH);
+        parameters.rgb_bits=16;
+        gpr_buffer input={const_cast<uint8_t *>(payload),size}; gpr_rgb_buffer decoded={};
+        CODEC_ERROR error=vc5_decoder_process(&parameters,&input,nullptr,&decoded);
+        if (error || !decoded.buffer || decoded.width!=p->full_width || decoded.height!=p->full_height ||
+            decoded.size!=size_t(p->full_width)*p->full_height*6) return GPR_PREVIEW_CODEC;
+        const uint8_t *data=static_cast<const uint8_t *>(decoded.buffer);
+        const uint8_t *gamma=srgb_table();
+        for (uint32_t y=0;y<p->rows;++y) for (uint32_t x=0;x<p->columns;) {
+#if defined(__aarch64__) && NEON
+            if (!p->scalar && x+4<=p->columns && p->xs[x+1]==p->xs[x]+1 && p->xs[x+2]==p->xs[x]+2 && p->xs[x+3]==p->xs[x]+3) {
+                display_neon4(p,data,gamma,rgb,pitch,x,y);x+=4;continue;
+            }
+#endif
+            const uint8_t *pixel=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x]))*6;
+            float camera[3];
+            const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
+            auto corrected=[&](unsigned site,unsigned channel)->float {
+                uint16_t encoded;std::memcpy(&encoded,pixel+channel*2,2);
+                unsigned sample=(encoded>>8)|((encoded&255)<<8);
+                float value=(sample/p->count_scale-p->black[site])*p->inverse_range[site];
+                value=std::max(0.f,std::min(1.f,value));
+                return std::min(gain[site+4],value*gain[site]);
+            };
+            camera[0]=corrected(p->red,0); camera[1]=.5f*(corrected(p->green1,1)+corrected(p->green2,1)); camera[2]=corrected(p->blue,2);
+            for (unsigned c=0;c<3;++c) camera[c]=std::min(camera[c],p->camera_white[c]);
+            uint8_t color[3];
+            for (unsigned c=0;c<3;++c) {
+                float value=p->matrix[c*3]*camera[0]+p->matrix[c*3+1]*camera[1]+p->matrix[c*3+2]*camera[2];
+                color[c]=srgb(std::max(0.f,std::min(1.f,value))*p->exposure,gamma);
+            }
+            display_pixel(p,rgb,pitch,x,y,color);++x;
+        }
+        release(decoded.buffer); *out=p->info; return GPR_PREVIEW_OK;
+    } catch (...) { return GPR_PREVIEW_NOMEM; }
 }
 extern "C" void gpr_preview_options_default(gpr_preview_options *out) {
     if (out) {

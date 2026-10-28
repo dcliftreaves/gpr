@@ -94,6 +94,14 @@ int main(int argc,char **argv) {
         std::vector<uint8_t> rgb(32*24*3);
         check(!gpr_preview_render(&video,&options,payload.data(),payload.size(),rgb.data(),rgb.size(),96,&info),"preview call");
         check(rgb==read(root+"/128x96-q3-s4.rgb"),"stock RGB changed");
+        gpr_preview_calibration calibration={};gpr_preview_calibration_identity(&video,&calibration);
+        calibration.orientation=6;gpr_preview_plan *created_plan=nullptr;
+        check(!gpr_preview_plan_create(&video,&calibration,&created_plan),"installed calibrated plan");
+        std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)> plan(created_plan,gpr_preview_plan_destroy);
+        check(!gpr_preview_plan_info(plan.get(),&info) && info.width==24 && info.height==32,"installed oriented dimensions");
+        size_t pitch=info.row_bytes+7;rgb.assign(pitch*info.height,0xcd);
+        check(!gpr_preview_plan_render(plan.get(),payload.data(),payload.size(),rgb.data(),rgb.size(),pitch,&info),"installed calibrated render");
+        for (size_t y=0;y<info.height;++y) for (size_t x=info.row_bytes;x<pitch;++x) check(rgb[y*pitch+x]==0xcd,"installed calibrated pitch");
 #endif
 #if HAS_SDK && !NATIVE_CLIENT
         gpr_parameters parameters; gpr_parameters_set_defaults(&parameters);

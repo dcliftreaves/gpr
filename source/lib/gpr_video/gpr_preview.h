@@ -22,6 +22,49 @@ int gpr_preview_dimensions(const gpr_gvid_config *video,const gpr_preview_option
  * three-level RAW profile and checks dimensions/framing before decoding. */
 int gpr_preview_render(const gpr_gvid_config *video,const gpr_preview_options *options,
     const uint8_t *payload,size_t payload_size,uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out);
+
+/* Separate calibrated display contract. The legacy API above remains exact.
+ * Coordinates are in the original, unmirrored Bayer image. Matrix is row-major
+ * camera RGB -> linear sRGB, including source white balance/adaptation. Black
+ * values are Bayer-site counts in row-major CFA order; white uses source counts.
+ * Source DNG processing can prepare these small parameters off-camera. The
+ * decoder/preview libraries do not acquire a DNG SDK or JSON dependency. */
+typedef struct {
+    uint32_t phase_mask; /* bits 0..3: original Bayer sites (0,0),(0,1),(1,0),(1,1) */
+    uint32_t rows,cols;
+    float spacing_y,spacing_x,origin_y,origin_x;
+    float area[4]; /* absolute sensor left, top, right, bottom */
+    const float *values; /* row-major, one plane; copied/expanded at plan create */
+    size_t value_count;
+} gpr_preview_gain_map;
+typedef struct {
+    uint32_t version; /* 1 */
+    uint32_t downsample; /* 4, 8, 16 */
+    uint32_t orientation; /* EXIF 1..8, after removing the legacy mirror */
+    float black[4],white;
+    float camera_to_srgb[9];
+    float camera_white[3]; /* DNG normalized camera-white clipping before matrix */
+    float exposure; /* linear multiplier, not EV */
+    float active[4],crop[4]; /* absolute sensor left, top, right, bottom */
+    const gpr_preview_gain_map *gain_maps;
+    size_t gain_map_count; /* 0..32 */
+} gpr_preview_calibration;
+typedef struct gpr_preview_plan gpr_preview_plan;
+/* Synthetic identity transform, full sensor, no gains/maps, no orientation. */
+void gpr_preview_calibration_identity(const gpr_gvid_config *video,gpr_preview_calibration *out);
+/* Immutable plan owns its prepared sampling/gain data; caller inputs can expire
+ * after creation. May render concurrently. No full-resolution RAW intermediate.
+ * Gain maps use bilinear interpolation at reduced sample centers; green sites
+ * are averaged after their gains. This is a wavelet preview approximation,
+ * not full-resolution demosaicing or a complete DNG/lens/tone renderer. */
+int gpr_preview_plan_create(const gpr_gvid_config *video,const gpr_preview_calibration *calibration,gpr_preview_plan **out);
+/* Bounded, CRC-checked little-endian GPRP v1 interchange, produced by the
+ * optional host profile preparer. No retained references to profile bytes. */
+int gpr_preview_plan_from_profile(const gpr_gvid_config *video,const uint8_t *profile,size_t profile_size,gpr_preview_plan **out);
+int gpr_preview_plan_info(const gpr_preview_plan *plan,gpr_preview_info *out);
+int gpr_preview_plan_render(const gpr_preview_plan *plan,const uint8_t *payload,size_t payload_size,
+    uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out);
+void gpr_preview_plan_destroy(gpr_preview_plan *plan);
 #ifdef __cplusplus
 }
 #endif

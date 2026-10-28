@@ -30,6 +30,12 @@ Capture is a separate optional library; preview links the decoder and GVID
 reader without the encoder or capture library. Complete SDK-independent build
 profiles remain part of the feature rebuild.
 
+The optional [prepared calibrated path](stock-calibrated-preview.md) now adds
+source black/white/color/GainMap processing and correct crop/orientation through
+an immutable native plan. It uses reduced linear RGB and preserves this legacy
+API's exact output contract. See that guide for SDK-free camera usage, host
+profile preparation, frame bindings, NEON processing and current Pi measurements.
+
 ## Correctness and decoder changes
 
 Checked-in fixtures were encoded and decoded with an independent stock
@@ -56,8 +62,8 @@ quarter-resolution output exactly (RGB SHA-256
 `3bf5e715fb80f9f20ea4aaa75949f015766beb506389fbad9b4872463bc5f360`).
 The legacy `WaveletToRGB` also mirrors horizontally and does not apply the
 source TIFF Orientation. This API currently preserves that convention;
-metadata-aware display orientation and calibrated preview color remain part
-of the rebuild. Editable DNG export instead preserves the source Orientation
+the separate prepared path corrects orientation and applies source calibration.
+Editable DNG export preserves the source Orientation
 and Bayer layout for the RAW renderer.
 
 ## Pi 5 measurement, 2026-10-28

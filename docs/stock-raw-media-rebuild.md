@@ -75,6 +75,11 @@ and still SDK calls, and skips an unrequested thumbnail allocation.
 The [native preview](stock-preview.md) now renders full-frame reductions from
 the same stock recording, with independent stock RGB fixtures and Pi playback
 measurements. Capture and preview have not yet been measured together.
+The [prepared calibrated preview](stock-calibrated-preview.md) additionally uses
+source matrix/white-point/black/white/GainMap data and crop/orientation, with an
+SDK-independent immutable plan and four-pixel NEON processing. It is a reduced
+wavelet approximation; full look/lens/temporal approval and combined scheduling
+remain pending.
 
 The [metadata and editable RAW workflow](stock-editable-raw.md) now carries
 per-source calibration through recording and exports decoded DNGs or GPRs
@@ -129,7 +134,7 @@ functional checks include 8192x6144 12-bit 4444 output; broader rendered/tempora
 quality approval and audio/timecode integration remain pending.
 
 This is not feature-suite parity. Restored still tiers, MOV audio/timecode extensions, broader rendering validation, full reconstruction/model quality
-selection, calibrated/oriented preview, integrated capture/display performance
+selection, broader preview color/lens validation, integrated capture/display performance
 and remaining platform/release integration remain
 pending. Earlier
 feature/validation PRs remain open and unchanged.

@@ -16,6 +16,18 @@
 #include "gpr_preview.h"
 #endif
 int c_header_probe(void) {
+#if HAS_PREVIEW
+    gpr_gvid_config video={128,96,30,1,3,14,{'R','G','G','B'}};
+    gpr_preview_calibration calibration;
+    gpr_preview_plan *plan=0;
+    gpr_preview_info info;
+    gpr_preview_calibration_identity(&video,&calibration);
+    if (gpr_preview_plan_create(&video,&calibration,&plan)) return 0;
+    if (gpr_preview_plan_info(plan,&info) || info.width!=32 || info.height!=24) {
+        gpr_preview_plan_destroy(plan);return 0;
+    }
+    gpr_preview_plan_destroy(plan);
+#endif
 #if HAS_SDK && !NATIVE_CLIENT
     gpr_parameters p;
     gpr_parameters_set_defaults(&p);

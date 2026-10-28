@@ -9,6 +9,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <cmath>
+#include <limits>
+#include <memory>
 static void check(bool value,const char *why) { if (!value) throw std::runtime_error(why); }
 static std::vector<uint8_t> file(const std::string &path) {
     std::ifstream in(path,std::ios::binary|std::ios::ate); check(bool(in),"fixture missing");
@@ -99,6 +102,132 @@ static void invalid_preview(const std::string &root) {
     check(gpr_preview_dimensions(&cfg,&options,&info)==GPR_PREVIEW_INVALID,"unsafe gain shift accepted");
     check(std::all_of(rgb.begin(),rgb.end(),[](uint8_t p){ return p==0xcd; }),"invalid input modified RGB");
 }
+static uint8_t display(double value) {
+    value=std::max(0.0,std::min(1.0,value));
+    double encoded=value<=.0031308 ? 12.92*value:1.055*std::pow(value,1.0/2.4)-.055;
+    return uint8_t(std::floor(encoded*255+.5));
+}
+static void calibrated_preview(const std::string &root,unsigned width,unsigned scale,unsigned orientation,bool crop,bool maps,bool gbrg,unsigned bits) {
+    std::string name=std::to_string(width)+"x96-q3";
+    auto payload=file(root+"/"+name+".vc5"),linear=file(root+"/"+name+"-s"+std::to_string(scale)+".rgb16be");
+    gpr_gvid_config cfg={width,96,30,1,3,14,{'R','G','G','B'}};
+    cfg.sample_bits=bits; if (gbrg) std::memcpy(cfg.cfa,"GBRG",4);
+    gpr_preview_calibration c={}; gpr_preview_calibration_identity(&cfg,&c);
+    c.downsample=scale; c.orientation=orientation; c.white=15000; c.black[0]=16.5f; c.black[1]=17.5f; c.black[2]=18.5f; c.black[3]=19.5f;
+    if (gbrg) { c.black[0]=100.25f;c.black[1]=300.5f;c.black[2]=500.75f;c.black[3]=700.f; }
+    if (bits==12) { c.white/=4;for (float &black:c.black) black/=4; }
+    const float matrix[9]={1.15f,-.1f,-.05f,-.05f,1.1f,-.05f,-.1f,-.15f,1.25f};
+    std::copy(matrix,matrix+9,c.camera_to_srgb); c.exposure=1.125f;
+    c.camera_white[0]=.75f; c.camera_white[2]=.5f;
+    if (crop) { c.crop[0]=8; c.crop[1]=8; c.crop[2]=float(width-8); c.crop[3]=88; }
+    float gains[4]={1.25f,1.25f,1.25f,1.25f};
+    float attenuation[4]={.5f,.5f,.5f,.5f};
+    gpr_preview_gain_map map={}; map.phase_mask=15; map.rows=map.cols=2; map.spacing_x=map.spacing_y=1;
+    map.area[2]=float(width); map.area[3]=96; map.values=gains; map.value_count=4;
+    gpr_preview_gain_map operations[2]={map,map}; operations[1].values=attenuation;
+    bool sequential=maps && orientation==6;
+    if (sequential) std::fill(gains,gains+4,2.f);
+    if (maps) { c.gain_maps=operations; c.gain_map_count=sequential ? 2:1; }
+    gpr_preview_plan *created=nullptr;
+    check(!gpr_preview_plan_create(&cfg,&c,&created) && created,"calibrated plan creation");
+    std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)> plan(created,gpr_preview_plan_destroy);
+    // A prepared plan cannot retain caller-owned map data.
+    std::fill(gains,gains+4,0.f);
+    gpr_preview_info info={}; check(!gpr_preview_plan_info(plan.get(),&info),"calibrated dimensions");
+    unsigned columns=unsigned(std::ceil((c.crop[2]-c.crop[0])/scale)),rows=unsigned(std::ceil((c.crop[3]-c.crop[1])/scale));
+    check(info.width==(orientation>=5 ? rows:columns) && info.height==(orientation>=5 ? columns:rows),"oriented dimensions");
+    size_t pitch=info.row_bytes+13,needed=(info.height-1)*pitch+info.row_bytes;
+    std::vector<uint8_t> output(pitch*info.height+32,0xcd);
+    check(gpr_preview_plan_render(plan.get(),payload.data(),payload.size(),output.data()+16,needed-1,pitch,&info)==GPR_PREVIEW_CAPACITY,"calibrated capacity");
+    check(std::all_of(output.begin(),output.end(),[](uint8_t p){return p==0xcd;}),"capacity failure modified display");
+    auto unaligned=payload; unaligned.insert(unaligned.begin(),0);
+    check(!gpr_preview_plan_render(plan.get(),unaligned.data()+1,payload.size(),output.data()+16,needed,pitch,&info),"calibrated render");
+    unsigned full_width=(width+scale-1)/scale,full_height=(96+scale-1)/scale;
+    check(linear.size()==size_t(full_width)*full_height*6,"stock linear fixture extent");
+    for (unsigned y=0;y<rows;++y) for (unsigned x=0;x<columns;++x) {
+        unsigned sx=std::min(full_width-1,unsigned((c.crop[0]+(x+.5)*(c.crop[2]-c.crop[0])/columns)/scale));
+        unsigned sy=std::min(full_height-1,unsigned((c.crop[1]+(y+.5)*(c.crop[3]-c.crop[1])/rows)/scale));
+        // Independent stock fixture is mirrored and uses big-endian UInt16.
+        size_t at=(size_t(sy)*full_width+(full_width-1-sx))*6;
+        unsigned r=gbrg ? 2:0,b=3-r,g1=gbrg ? 0:1,g2=gbrg ? 3:2;
+        double camera[3];
+        for (unsigned channel=0;channel<3;++channel) {
+            unsigned sample=unsigned(linear[at+channel*2])*256+linear[at+channel*2+1];
+            auto site_value=[&](unsigned site) {
+                double value=std::max(0.0,std::min(1.0,(sample/double(1u<<(16-bits))-c.black[site])/(c.white-c.black[site])));
+                return sequential ? std::min(1.0,value*2)*.5:std::min(1.0,value*(maps ? 1.25:1));
+            };
+            double value=channel==0 ? site_value(r):(channel==2 ? site_value(b):.5*(site_value(g1)+site_value(g2)));
+            camera[channel]=std::min(double(c.camera_white[channel]),value);
+        }
+        unsigned dx=x,dy=y;
+        if (orientation==2) dx=columns-1-x;
+        if (orientation==3) { dx=columns-1-x;dy=rows-1-y; }
+        if (orientation==4) dy=rows-1-y;
+        if (orientation==5) { dx=y;dy=x; }
+        if (orientation==6) { dx=rows-1-y;dy=x; }
+        if (orientation==7) { dx=rows-1-y;dy=columns-1-x; }
+        if (orientation==8) { dx=y;dy=columns-1-x; }
+        for (unsigned channel=0;channel<3;++channel) {
+            double value=0;
+            for (unsigned i=0;i<3;++i) value+=matrix[channel*3+i]*camera[i];
+            value=std::max(0.0,std::min(1.0,value))*c.exposure;
+            int actual=output[16+size_t(dy)*pitch+dx*3+channel];
+            check(std::abs(actual-int(display(value)))<=1,"calibrated display differs from independent stock linear RGB");
+        }
+    }
+    for (size_t y=0;y<info.height;++y) for (size_t x=info.row_bytes;x<pitch;++x)
+        check(output[16+y*pitch+x]==0xcd,"calibrated row padding");
+    for (size_t i=0;i<16;++i) check(output[i]==0xcd && output[output.size()-1-i]==0xcd,"calibrated display canary");
+}
+static void invalid_calibration() {
+    gpr_gvid_config v={128,96,30,1,3,14,{'R','G','G','B'}};
+    gpr_preview_calibration c={}; gpr_preview_calibration_identity(&v,&c);
+    auto reject=[&](gpr_preview_calibration bad) { gpr_preview_plan *p=reinterpret_cast<gpr_preview_plan *>(uintptr_t(1));
+        check(gpr_preview_plan_create(&v,&bad,&p)==GPR_PREVIEW_INVALID && !p,"invalid calibration accepted"); };
+    auto bad=c;bad.orientation=9;reject(bad);bad=c;bad.white=0;reject(bad);
+    bad=c;bad.black[1]=c.white;reject(bad);bad=c;bad.exposure=std::numeric_limits<float>::infinity();reject(bad);
+    bad=c;bad.camera_to_srgb[2]=std::numeric_limits<float>::quiet_NaN();reject(bad);
+    bad=c;bad.crop[0]=-1;reject(bad);bad=c;bad.gain_map_count=1;reject(bad);
+    bad=c;bad.downsample=2;reject(bad);
+    bad=c;bad.white=.5f;reject(bad);
+    bad=c;bad.crop[2]=std::numeric_limits<float>::denorm_min();reject(bad);
+}
+static void profile_parser_tests() {
+    gpr_gvid_config v={128,96,30,1,3,14,{'R','G','G','B'}};
+    std::vector<uint8_t> bytes(144,0);
+    auto put=[&](size_t offset,uint32_t value) { for (unsigned i=0;i<4;++i) bytes[offset+i]=uint8_t(value>>(i*8)); };
+    auto real=[&](size_t offset,float value) { uint32_t bits; std::memcpy(&bits,&value,4);put(offset,bits); };
+    std::memcpy(bytes.data(),"GPRP",4); put(4,1);put(8,128);put(12,96);put(16,14);std::memcpy(bytes.data()+20,"RGGB",4);put(24,4);put(28,1);
+    real(48,16383); real(52,1);real(68,1);real(84,1);real(88,1);real(92,1);real(96,1);real(100,1);
+    real(112,128);real(116,96);real(128,128);real(132,96);
+    put(140,gpr_gvid_crc32(0,bytes.data(),140));
+    gpr_preview_plan *plan=nullptr;
+    check(!gpr_preview_plan_from_profile(&v,bytes.data(),bytes.size(),&plan),"independent serialized profile");gpr_preview_plan_destroy(plan);
+    for (size_t length=0;length<bytes.size();++length) {
+        plan=reinterpret_cast<gpr_preview_plan *>(uintptr_t(1));
+        check(gpr_preview_plan_from_profile(&v,bytes.data(),length,&plan)==GPR_PREVIEW_INVALID && !plan,"truncated GPRP accepted");
+    }
+    for (size_t offset=0;offset<bytes.size();++offset) {
+        bytes[offset]^=1; plan=reinterpret_cast<gpr_preview_plan *>(uintptr_t(1));
+        check(gpr_preview_plan_from_profile(&v,bytes.data(),bytes.size(),&plan)==GPR_PREVIEW_INVALID && !plan,"corrupt GPRP accepted");bytes[offset]^=1;
+    }
+    real(52,std::numeric_limits<float>::quiet_NaN()); put(140,gpr_gvid_crc32(0,bytes.data(),140));
+    check(gpr_preview_plan_from_profile(&v,bytes.data(),bytes.size(),&plan)==GPR_PREVIEW_INVALID,"CRC-valid nonfinite profile accepted");
+}
+static void shared_calibrated_plan(const std::string &root) {
+    gpr_gvid_config v={128,96,30,1,3,14,{'R','G','G','B'}};
+    gpr_preview_calibration c={};gpr_preview_calibration_identity(&v,&c);gpr_preview_plan *created=nullptr;
+    check(!gpr_preview_plan_create(&v,&c,&created),"shared plan create");
+    std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)> plan(created,gpr_preview_plan_destroy);
+    auto payload=file(root+"/128x96-q3.vc5");std::vector<uint8_t> results[2];int errors[2]={0,0};std::thread workers[2];
+    for (unsigned i=0;i<2;++i) workers[i]=std::thread([&,i]{
+        gpr_preview_info info={};gpr_preview_plan_info(plan.get(),&info);results[i].resize(info.row_bytes*info.height);
+        errors[i]=gpr_preview_plan_render(plan.get(),payload.data(),payload.size(),results[i].data(),results[i].size(),info.row_bytes,&info);
+    });
+    for (auto &worker:workers) worker.join();
+    check(!errors[0] && !errors[1] && results[0]==results[1],"concurrent immutable plan/gamma initialization");
+}
 int main(int argc,char **argv) {
     try {
         check(argc==2,"fixture directory required"); std::string root=argv[1]; reader_tests(root);
@@ -108,6 +237,12 @@ int main(int argc,char **argv) {
         for (auto &t:threads) t.join(); check(okay[0] && okay[1],"concurrent render");
         for (unsigned width:{128u,72u}) for (unsigned scale:{4u,8u,16u}) for (bool unaligned:{false,true}) render(root,width,scale,unaligned);
         invalid_preview(root);
+        shared_calibrated_plan(root);
+        for (unsigned width:{128u,72u}) for (unsigned scale:{4u,8u,16u}) for (unsigned orientation=1;orientation<=8;++orientation)
+            for (bool gbrg:{false,true}) for (unsigned bits:{12u,14u})
+                calibrated_preview(root,width,scale,orientation,orientation%2,orientation%3==0,gbrg,bits);
+        invalid_calibration();
+        profile_parser_tests();
         std::cout<<"PASS: independent stock RGB, full-frame reductions, pitched display, unaligned input, concurrent render, bounded native reader and corruption/EOF rejection\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }
