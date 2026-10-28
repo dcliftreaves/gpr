@@ -191,7 +191,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         params.tuning_info.dgain_saturation_level.level_blue        = saturation_level;
     }
     
-    params.enable_preview=enable_preview;
+    if (!enable_preview) params.enable_preview = false;
     if( gpmf_file_path != NULL && strcmp(gpmf_file_path, "") )
     {
         if( params.gpmf_payload.buffer ) allocator.Free(params.gpmf_payload.buffer);

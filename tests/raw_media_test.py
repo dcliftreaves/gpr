@@ -61,6 +61,18 @@ class Media(unittest.TestCase):
                 self.assertEqual((root/f'q{q}.raw').stat().st_size,128*96*2)
             self.assertEqual(outputs[3],(Path(__file__).parent/'fixtures/stock_preview/128x96-q3.vc5').read_bytes())
             self.assertNotEqual(outputs[0],outputs[5])
+            # JPEG previews are optional; disabling one must not change VC-5.
+            no_preview=root/'without-preview.gpr'
+            run([str(args.sdk),'-i',str(root/'input.dng'),'-o',str(no_preview),'--no-preview'])
+            self.assertEqual(payload(no_preview),outputs[3])
+            def compressions(path):
+                def walk(pages):
+                    for page in pages:
+                        yield int(page.compression)
+                        if page.pages: yield from walk(page.pages)
+                with tifffile.TiffFile(path) as f: return list(walk(f.pages))
+            self.assertIn(7,compressions(root/'dng-q3.gpr'))
+            self.assertNotIn(7,compressions(no_preview))
             for q in ('6','-2'):
                 path=root/f'bad-{q}.gpr'
                 result=subprocess.run([str(args.sdk),'-i',str(root/'input.dng'),'-o',str(path),'-q',q],capture_output=True)

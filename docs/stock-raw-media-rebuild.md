@@ -100,6 +100,12 @@ explicit Q0–Q5 selection and exact typed-calibration packaging around the SDK,
 with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
 approval, broader metadata support and video frontend mappings remain pending.
 
+The [optional still reconstruction workflow](stock-cnn-quality.md) now produces
+calibrated editable DNG using the existing stock-Q3 1x model. Twenty-four
+lossless-reference comparisons show modest aggregate improvements, including
+a Q5 scene regression. This is functional/model-evaluation evidence, not
+restored-tier or 2x quality approval; training-split membership is unknown.
+
 This is not feature-suite parity. Restored still tiers, MOV/ProRes export, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance
 and remaining platform/release integration remain

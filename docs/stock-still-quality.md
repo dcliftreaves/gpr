@@ -65,7 +65,7 @@ happens in a private directory on the output filesystem. Current publication
 uses atomic exclusive links when supported, with exclusive copying for exFAT
 or cross-filesystem destinations. A failed publication removes only names
 created by that operation, including partial copies. Receipts and editable
-outputs can use separate directories. The scripts use the
+outputs can use separate directories. Encoding and decoding use the
 standard library; optional benchmarks need numpy/tifffile and imagecodecs for
 independent lossless-DNG decoding. Exact preservation boundaries and TIFF/DNG
 version limits remain those in [editable RAW](stock-editable-raw.md).
@@ -161,6 +161,10 @@ all ten CTest targets. Expanded Pi sanitizer and hosted checks for this
 quality-selection implementation remain separate gates.
 
 Selectable stock presets and calibrated still packaging are implemented.
+The [optional 1x restoration workflow](stock-cnn-quality.md) now preserves
+calibration and has four lossless-reference, six-preset comparisons; gains
+are modest and one Q5 scene regresses. It requires external Torch/model
+dependencies and remains unapproved.
 Selecting and approving stock-matched 1x/2x CNNs, recreating the old restored
 tiers, and validating their scene/temporal/perceptual behavior remain pending.
 The earlier production and validation PRs remain open and unchanged.
