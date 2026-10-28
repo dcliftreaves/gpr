@@ -100,8 +100,7 @@ explicit Q0–Q5 selection and exact typed-calibration packaging around the SDK,
 with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
 approval, broader metadata support and video frontend mappings remain pending.
 
-This is not feature-suite parity. The complete high-bit-depth/CFA encoding and
-still-tier workflow, MOV/ProRes export, full reconstruction/model quality
+This is not feature-suite parity. Restored still tiers, MOV/ProRes export, full reconstruction/model quality
 selection, calibrated/oriented preview, integrated capture/display performance
 and remaining platform/release integration remain
 pending. Earlier

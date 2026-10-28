@@ -153,7 +153,10 @@ repeat hashes, source identities and validation/assembly-inspection notes.
 The tests cover all six SDK presets against direct stock encodes for all
 fourteen SDK format selections, retained legacy defaults, invalid presets,
 tagged allocator ownership, exact typed calibration, exclusive publication and
-boundary geometries. Local macOS Release and ASan/UBSan and Pi Release pass
+boundary geometries. All four local package profiles also pass relocated-client
+checks; the full package runs its installed still encode/decode tools and
+checks pixel equality. Unsupported-link and partial-copy tests cover publication
+fallbacks. Local macOS Release and ASan/UBSan and Pi Release pass
 all ten CTest targets. Expanded Pi sanitizer and hosted checks for this
 quality-selection implementation remain separate gates.
 

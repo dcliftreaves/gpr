@@ -78,7 +78,7 @@ For exact typed calibration and broader opaque opcode preservation, use the
 [editable RAW tools](stock-editable-raw.md). Those tools carry an explicit
 sample domain and preserve metadata tag bytes. Their video/GPR adapter format
 limits remain separate from this SDK format port. Generic SDK metadata,
-fractional/nonstandard-domain inference and full still-tier selection remain
+fractional/nonstandard-domain inference and restored still-tier approval remain
 accounted for in the feature rebuild; this port does not claim those are done.
 
 ## Validation
