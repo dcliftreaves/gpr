@@ -101,3 +101,8 @@ endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
+
+option(GPR_BUILD_STOCK_VIDEO_EXPERIMENT "Build the stock VC-5 RAW-video experiment" OFF)
+if(GPR_BUILD_STOCK_VIDEO_EXPERIMENT AND UNIX AND TARGET vc5_encoder AND TARGET vc5_decoder)
+  add_subdirectory(source/app/stock_video)
+endif()

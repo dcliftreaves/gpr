@@ -1,5 +1,7 @@
 .DS_Store
 build/
+build-video*/
+__pycache__/
 scripts/*.pyc
 
 # Prerequisites
