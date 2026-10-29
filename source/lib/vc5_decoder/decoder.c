@@ -195,6 +195,9 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
     
     if( error != CODEC_ERROR_OKAY )
     {
+        ReleaseComponentArrays(&parameters->allocator,&unpacked_image,unpacked_image.component_count);
+        ReleaseDecoder(&decoder);
+        ReleaseBitstream(&bitstream);
         return error;
     }
 
@@ -205,10 +208,11 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             SetOutputImageFormat(&decoder, parameters, &packed_width, &packed_height, &packed_format);
 
             // Allocate the image buffer for output of the image packing process
-            AllocImage(decoder.allocator, packed_image, packed_width, packed_height, packed_format);
+            error=AllocImage(decoder.allocator, packed_image, packed_width, packed_height, packed_format);
+            if (error != CODEC_ERROR_OKAY) break;
             
             // Pack the component arrays into the output image
-            ImageRepackingProcess(&unpacked_image, packed_image, parameters);
+            error=ImageRepackingProcess(&unpacked_image, packed_image, parameters);
             break;
 
         case GPR_RGB_RESOLUTION_HALF:
@@ -243,6 +247,8 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             return CODEC_ERROR_UNSUPPORTED_FORMAT;
             break;
     }
+    if (error == CODEC_ERROR_OKAY && parameters->rgb_resolution != GPR_RGB_RESOLUTION_NONE && !rgb_image->buffer)
+        error=CODEC_ERROR_OUTOFMEMORY;
     
     ReleaseComponentArrays( &parameters->allocator, &unpacked_image, unpacked_image.component_count );
     
@@ -252,7 +258,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
     // Release any resources allocated by the bitstream
     ReleaseBitstream(&bitstream);
     
-    return CODEC_ERROR_OKAY;
+    return error;
 }
 
 /*!
@@ -639,6 +645,7 @@ CODEC_ERROR AllocDecoderTransforms(DECODER *decoder)
             wavelet_height /= 2;
             
             wavelet = CreateWavelet(allocator, wavelet_width, wavelet_height);
+            if (wavelet == NULL) return CODEC_ERROR_OUTOFMEMORY;
             decoder->transform[channel_number].wavelet[wavelet_index] = wavelet;
         }
     }
@@ -745,13 +752,14 @@ CODEC_ERROR AllocateChannelWavelets(DECODER *decoder, int channel_number)
                 DeleteWavelet(allocator, wavelet);
                 
                 wavelet = NULL;
+                decoder->transform[channel_number].wavelet[wavelet_index] = NULL;
             }
         }
         
         if (wavelet == NULL)
         {
             wavelet = CreateWavelet(allocator, wavelet_width, wavelet_height);
-            assert(wavelet != NULL);
+            if (wavelet == NULL) return CODEC_ERROR_OUTOFMEMORY;
             
             decoder->transform[channel_number].wavelet[wavelet_index] = wavelet;
         }
@@ -1498,7 +1506,8 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
         !decoder->memory_allocated)
     {
         // Allocate space for the wavelet transforms
-        AllocDecoderTransforms(decoder);
+        error=AllocDecoderTransforms(decoder);
+        if (error != CODEC_ERROR_OKAY) return error;
         
         // Allocate all buffers required for decoding
         AllocDecoderBuffers(decoder);
@@ -1761,7 +1770,8 @@ CODEC_ERROR DecodeChannelSubband(DECODER *decoder, BITSTREAM *input, size_t chun
     (void)chunk_size;
     
     // Allocate the wavelets for this channel if not already allocated
-    AllocateChannelWavelets(decoder, channel_number);
+    error=AllocateChannelWavelets(decoder, channel_number);
+    if (error != CODEC_ERROR_OKAY) return error;
     
     // Is this a highpass band?
     if (subband_number > 0)
@@ -1872,7 +1882,8 @@ CODEC_ERROR ReconstructWaveletBand(DECODER *decoder, int channel, WAVELET *wavel
         assert(BandsAllValid(wavelet));
         
         // Decode the lowpass band in the wavelet one lower level than the input wavelet
-        TransformInverseSpatialQuantLowpass(decoder->allocator, wavelet, lowpass, prescale);
+        CODEC_ERROR error=TransformInverseSpatialQuantLowpass(decoder->allocator, wavelet, lowpass, prescale);
+        if (error != CODEC_ERROR_OKAY) return error;
         
         // Update the band valid flags
         UpdateWaveletValidBandMask(lowpass, 0);
@@ -2254,6 +2265,7 @@ CODEC_ERROR ReconstructUnpackedImage(DECODER *decoder, UNPACKED_IMAGE *image)
         if (error != CODEC_ERROR_OKAY) {
             return error;
         }
+        image->component_count=channel_number+1;
         
         error = TransformInverseSpatialQuantArray(allocator,
                                                   decoder->transform[channel_number].wavelet[0],

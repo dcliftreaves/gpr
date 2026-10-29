@@ -37,6 +37,34 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
 
+    if (!decoding_parameters || !vc5_buffer || !vc5_buffer->buffer ||
+        (!raw_buffer && !rgb_buffer))
+        return CODEC_ERROR_NULLPTR;
+    if (!decoding_parameters->mem_alloc || !decoding_parameters->mem_free ||
+        (raw_buffer && rgb_buffer) ||
+        (const void *)raw_buffer == (const void *)vc5_buffer ||
+        (const void *)raw_buffer == (const void *)rgb_buffer ||
+        (const void *)rgb_buffer == (const void *)vc5_buffer ||
+        (const void *)raw_buffer == (const void *)decoding_parameters ||
+        (const void *)rgb_buffer == (const void *)decoding_parameters ||
+        vc5_buffer->size < 64 || vc5_buffer->size % 4 ||
+        memcmp(vc5_buffer->buffer, "VC-5", 4))
+        return CODEC_ERROR_BAD_ARGUMENT;
+    if (rgb_buffer) {
+        const gpr_rgb_gain *gain = &decoding_parameters->rgb_gain;
+        if (decoding_parameters->rgb_resolution < GPR_RGB_RESOLUTION_SIXTEENTH ||
+            decoding_parameters->rgb_resolution > GPR_RGB_RESOLUTION_HALF ||
+            (decoding_parameters->rgb_bits != 8 && decoding_parameters->rgb_bits != 16) ||
+            (decoding_parameters->rgb_bits == 8 &&
+             (gain->r_gain_num < 1 || gain->r_gain_num > 1024 ||
+              gain->g_gain_num < 1 || gain->g_gain_num > 1024 ||
+              gain->b_gain_num < 1 || gain->b_gain_num > 1024 ||
+              gain->r_gain_pow2_den < 0 || gain->r_gain_pow2_den > 16 ||
+              gain->g_gain_pow2_den < 0 || gain->g_gain_pow2_den > 16 ||
+              gain->b_gain_pow2_den < 0 || gain->b_gain_pow2_den > 16)))
+            return CODEC_ERROR_BAD_ARGUMENT;
+    }
+
     IMAGE output_image;
     // Clear the members of the image data structure
     InitImage(&output_image);

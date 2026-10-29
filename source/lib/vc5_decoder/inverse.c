@@ -415,6 +415,19 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
     lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
     highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
     highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
+    if (!even_lowpass || !even_highpass || !odd_lowpass || !odd_highpass ||
+        !lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line) {
+        if (even_lowpass) allocator->Free(even_lowpass);
+        if (even_highpass) allocator->Free(even_highpass);
+        if (odd_lowpass) allocator->Free(odd_lowpass);
+        if (odd_highpass) allocator->Free(odd_highpass);
+        if (lowhigh_line[0]) allocator->Free(lowhigh_line[0]);
+        if (lowhigh_line[1]) allocator->Free(lowhigh_line[1]);
+        if (lowhigh_line[2]) allocator->Free(lowhigh_line[2]);
+        if (highlow_line) allocator->Free(highlow_line);
+        if (highhigh_line) allocator->Free(highhigh_line);
+        return CODEC_ERROR_OUTOFMEMORY;
+    }
     
     // Convert pitch from bytes to pixels
     lowlow_pitch /= sizeof(PIXEL);
@@ -825,6 +838,19 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
     lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
     highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
     highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
+    if (!even_lowpass || !even_highpass || !odd_lowpass || !odd_highpass ||
+        !lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line) {
+        if (even_lowpass) allocator->Free(even_lowpass);
+        if (even_highpass) allocator->Free(even_highpass);
+        if (odd_lowpass) allocator->Free(odd_lowpass);
+        if (odd_highpass) allocator->Free(odd_highpass);
+        if (lowhigh_line[0]) allocator->Free(lowhigh_line[0]);
+        if (lowhigh_line[1]) allocator->Free(lowhigh_line[1]);
+        if (lowhigh_line[2]) allocator->Free(lowhigh_line[2]);
+        if (highlow_line) allocator->Free(highlow_line);
+        if (highhigh_line) allocator->Free(highhigh_line);
+        return CODEC_ERROR_OUTOFMEMORY;
+    }
     
     // Convert pitch from bytes to pixels
     lowlow_pitch /= sizeof(PIXEL);

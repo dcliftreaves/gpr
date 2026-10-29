@@ -120,7 +120,6 @@ WAVELET *CreateWavelet(gpr_allocator *allocator, DIMENSION width, DIMENSION heig
 	{
 		// Allocate the image data structure for the wavelet
 		WAVELET *wavelet = (WAVELET *)allocator->Alloc(sizeof(WAVELET));
-		assert(wavelet != NULL);
 		if (! (wavelet != NULL)) {
 			return NULL;
 		}
@@ -457,6 +456,7 @@ void WaveletToRGB( gpr_allocator allocator, PIXEL* GS_src, PIXEL* RG_src, PIXEL*
     dst_image->pitch    = src_width * 3;
     dst_image->size     = size;
     dst_image->buffer   = allocator.Alloc( size );
+    if (dst_image->buffer == NULL) return;
     
     const int32_t midpoint  = (1 << (input_precision_bits - 1));
     const int32_t shift     = input_precision_bits - 12;

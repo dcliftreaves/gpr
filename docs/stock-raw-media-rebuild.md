@@ -110,6 +110,10 @@ with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
 approval and broader metadata support remain pending. Video capture, extraction,
 editable RAW packaging and calibrated preview now cover all 12 Bayer/count
 combinations; the optional CNN adapter remains RGGB14-only.
+The [decoder boundary audit](stock-decoder-bounds.md) now checks public arguments
+and every allocator-failure point reached by an independent stock RAW/RGB
+fixture. Arbitrary malformed entropy streams and wider SDK error handling
+remain separate work.
 
 The [public SDK C API audit](stock-sdk-api.md) repairs two missing published
 symbols, adds an allocator-aware parameter copy with rollback, makes owned

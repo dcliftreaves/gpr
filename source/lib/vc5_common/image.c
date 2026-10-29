@@ -214,6 +214,7 @@ CODEC_ERROR ReleaseComponentArrays(gpr_allocator *allocator,
                                    int channel_count )
 {
     int channel;
+    if (!image->component_array_list) return CODEC_ERROR_OKAY;
     
     for (channel = 0; channel < channel_count; channel++)
     {
@@ -283,7 +284,6 @@ CODEC_ERROR AllocateComponentArray(gpr_allocator *allocator,
     size_t pitch = ((width * sizeof(COMPONENT_VALUE) + 63) & ~(size_t)63) + 64;
     size_t size = height * pitch;
     void *buffer = gpr_aligned_alloc(allocator, size + MAX_CHANNEL_COUNT * 64);
-    assert(buffer != NULL);
     if (! (buffer != NULL)) {
         return CODEC_ERROR_OUTOFMEMORY;
     }
