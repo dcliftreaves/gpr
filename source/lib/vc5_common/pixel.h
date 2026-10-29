@@ -88,9 +88,6 @@ extern "C" {
 */
 STATIC_INLINE PIXEL ClampPixel(int32_t value)
 {
-	// Check for values that are outside the range (for debugging)
-	assert(PIXEL_MIN <= value && value <= PIXEL_MAX);
-
 	if (value < PIXEL_MIN)
 		value = PIXEL_MIN;
 	else

@@ -19,6 +19,25 @@ The old suite's approved results describe its old codec/model pairings.
 Historical evidence remains historical. Porting an interface or model loader
 does not establish parity, quality, performance, or camera deployment.
 
+## Current delivery priority (2026-10-29)
+
+Finish a usable end-to-end path before expanding support at every stage.
+RAW stills retain broad Bayer/count-format support. RAW video delivery focuses
+on the Mission 1 workflow: 4096x3072 recording, calibrated preview, editable
+RAW extraction and desktop ProRes, with explicit optional offline 1x/2x
+reconstruction. The existing working stock RGGB14 path is the immediate
+integration target; additional video/render/reconstruction format combinations
+are stretch work, not prerequisites for this delivery.
+
+The earlier Mission 1 handoff specifies a 20 fps floor for 4096x3072 capture
+and 1024x768 preview. Retain that floor separately from the more demanding
+30 fps replay experiments. A host replay and memory preview sink cannot close
+the actual sensor/DMA, rear-display, SD durability or camera thermal gates.
+Prioritize ordinary Release integration, real-sample workflows and reviewable
+local packages. Broader sanitizer/fuzz auditing is deferred from the immediate
+critical path. Work stays local; remote source uploads, pushes and publication
+require separate explicit user approval.
+
 ## Feature accounting at the start
 
 | Previous high-level capability | New foundation | Rebuild work |

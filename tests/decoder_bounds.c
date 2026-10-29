@@ -8,6 +8,17 @@
 static unsigned allocations;
 static void *deny(size_t size) { (void)size; ++allocations; return NULL; }
 static unsigned fail_at,live;
+static const unsigned entropy_positions[100]={
+    1182,1756,1646,6171,3026,12314,11228,5304,4377,10183,
+    3732,10197,841,9778,11417,2850,7312,10716,6703,12101,
+    8596,6351,9171,7544,8481,4650,844,705,6220,7872,
+    5473,6482,7196,8869,2950,9439,3163,4124,4034,646,
+    3151,5583,3100,2495,8614,8615,6149,8673,11306,9429,
+    3235,7557,7049,12288,8863,6223,9979,6052,6185,7559,
+    2896,12609,6807,11973,12357,7815,10986,8945,4350,8284,
+    4828,8416,8461,8700,6054,11097,7705,7809,6003,9557,
+    12148,9391,12114,7736,8228,11051,3890,5575,11717,2976,
+    10354,4649,8116,5327,5225,11826,8517,9466,8738,8568};
 static void *count_alloc(size_t size) {
     void *p;
     ++allocations;if (allocations==fail_at) return NULL;
@@ -84,6 +95,44 @@ int main(int argc,char **argv) {
             REQUIRE(!rgb.buffer && !rgb.size && !live);
         }
         fprintf(stdout,"RGB decoder allocation-failure positions: %u\n",total);
+    }
+    REQUIRE(size==12648);
+    {
+        unsigned i,decoded=0,rejected=0;
+        for (i=0;i<163;++i) {
+            unsigned position=i<63 ? 4+4*i:entropy_positions[i-63];
+            unsigned char mask=i%2 ? 0x80:0xff;
+            CODEC_ERROR error;
+            REQUIRE(position<size);data[position]^=mask;
+            allocations=live=0;fail_at=0;
+            error=vc5_decoder_process(&q,&source,&raw,NULL);
+            if (error==CODEC_ERROR_OKAY) {
+                REQUIRE(raw.buffer && raw.size==128*96*2 && live);
+                count_free(raw.buffer);raw.buffer=NULL;raw.size=0;++decoded;
+            } else {
+                REQUIRE(!raw.buffer && !raw.size);++rejected;
+            }
+            REQUIRE(!live);data[position]^=mask;
+        }
+        fprintf(stdout,"mutated stock payloads: %u decoded, %u rejected\n",decoded,rejected);
+    }
+    {
+        unsigned i,decoded=0,rejected=0;
+        for (i=0;i<163;++i) {
+            unsigned position=i<63 ? 4+4*i:entropy_positions[i-63];
+            unsigned char mask=i%2 ? 0x80:0xff;
+            CODEC_ERROR error;
+            data[position]^=mask;allocations=live=0;fail_at=0;
+            error=vc5_decoder_process(&q,&source,NULL,&rgb);
+            if (error==CODEC_ERROR_OKAY) {
+                REQUIRE(rgb.buffer && rgb.size==32*24*6 && live);
+                count_free(rgb.buffer);rgb.buffer=NULL;rgb.size=0;++decoded;
+            } else {
+                REQUIRE(!rgb.buffer && !rgb.size);++rejected;
+            }
+            REQUIRE(!live);data[position]^=mask;
+        }
+        fprintf(stdout,"mutated RGB payloads: %u decoded, %u rejected\n",decoded,rejected);
     }
     free(data);
     puts("PASS: decoder argument boundary and stock RAW/RGB fixture");return 0;

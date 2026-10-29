@@ -164,6 +164,19 @@ CODEC_ERROR DecodeStream(STREAM *stream, UNPACKED_IMAGE *unpacked_image, const D
 	may be available to the decoder from the media container or an external
 	application.
  */
+static bool RGBWaveletsReady(const DECODER *decoder,int level)
+{
+    int channel;
+    if (decoder->codec.channel_count < 3 || level < 0 || level >= decoder->wavelet_count)
+        return false;
+    for (channel=0;channel<3;++channel) {
+        WAVELET *wavelet=decoder->transform[channel].wavelet[level];
+        if (!wavelet || !wavelet->data[0] || !wavelet->width || !wavelet->height || !wavelet->pitch ||
+            !(wavelet->valid_band_mask & 1)) return false;
+    }
+    return true;
+}
+
 CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_image, DECODER_PARAMETERS *parameters)
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
@@ -216,12 +229,16 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             break;
 
         case GPR_RGB_RESOLUTION_HALF:
+            if (!unpacked_image.component_array_list || unpacked_image.component_count < 3) {
+                error=CODEC_ERROR_BITSTREAM_SYNTAX;break;
+            }
             WaveletToRGB(parameters->allocator, (PIXEL*)unpacked_image.component_array_list[0].data, (PIXEL*)unpacked_image.component_array_list[1].data, (PIXEL*)unpacked_image.component_array_list[2].data,
                          unpacked_image.component_array_list[2].width, unpacked_image.component_array_list[2].height, unpacked_image.component_array_list[2].pitch / 2,
                          rgb_image, 12, parameters->rgb_bits, &parameters->rgb_gain );
             break;
             
         case GPR_RGB_RESOLUTION_QUARTER:
+            if (!RGBWaveletsReady(&decoder,0)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
             
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[0]->data[0], decoder.transform[1].wavelet[0]->data[0], decoder.transform[2].wavelet[0]->data[0],
                          decoder.transform[2].wavelet[0]->width, decoder.transform[2].wavelet[0]->height, decoder.transform[2].wavelet[0]->pitch / sizeof(PIXEL),
@@ -229,6 +246,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             break;
             
         case GPR_RGB_RESOLUTION_EIGHTH:
+            if (!RGBWaveletsReady(&decoder,1)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
             
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[1]->data[0], decoder.transform[1].wavelet[1]->data[0], decoder.transform[2].wavelet[1]->data[0],
                          decoder.transform[2].wavelet[1]->width, decoder.transform[2].wavelet[1]->height, decoder.transform[2].wavelet[1]->pitch / sizeof(PIXEL),
@@ -237,6 +255,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             break;
             
         case GPR_RGB_RESOLUTION_SIXTEENTH:
+            if (!RGBWaveletsReady(&decoder,2)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
 
             WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[2]->data[0], decoder.transform[1].wavelet[2]->data[0], decoder.transform[2].wavelet[2]->data[0],
                          decoder.transform[2].wavelet[2]->width, decoder.transform[2].wavelet[2]->height, decoder.transform[2].wavelet[2]->pitch / sizeof(PIXEL),
@@ -612,7 +631,6 @@ CODEC_ERROR AllocDecoderTransforms(DECODER *decoder)
         result = SetImageChannelParameters(decoder, channel_number);
         if( result != CODEC_ERROR_OKAY )
         {
-            assert(0);
             return result;
         }
         
@@ -1169,7 +1187,7 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
     switch (tag)
     {
         case CODEC_TAG_ChannelCount:		// Number of channels in the transform
-            assert(0 < value && value <= MAX_CHANNEL_COUNT);
+            if (value <= 0 || value > MAX_CHANNEL_COUNT) return CODEC_ERROR_BAD_PARAMETER;
             codec->channel_count = (uint_least8_t)value;
             codec->header = true;
             break;
@@ -1434,7 +1452,6 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
                     chunk_size = 0;
                 }
                 
-                assert(optional);
                 if (!optional)
                 {
                     error = CODEC_ERROR_BITSTREAM_SYNTAX;
@@ -1524,6 +1541,9 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
     if (codec->codeblock)
     {
         const int channel_number = codec->channel_number;
+        if (channel_number < 0 || channel_number >= MAX_CHANNEL_COUNT ||
+            codec->subband_number < 0 || codec->subband_number >= MAX_SUBBAND_COUNT)
+            return CODEC_ERROR_INVALID_BAND;
         
         // Have the channel dimensions been initialized?
         if (!decoder->channel[channel_number].initialized)
@@ -1756,6 +1776,9 @@ CODEC_ERROR DecodeChannelSubband(DECODER *decoder, BITSTREAM *input, size_t chun
     
     const int channel_number = codec->channel_number;
     const int subband_number = codec->subband_number;
+    if (channel_number < 0 || channel_number >= MAX_CHANNEL_COUNT ||
+        subband_number < 0 || subband_number >= MAX_SUBBAND_COUNT)
+        return CODEC_ERROR_INVALID_BAND;
     
     // Get the index to the wavelet corresponding to this subband
     const int index = SubbandWaveletIndex(subband_number);
@@ -1973,15 +1996,13 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     DIMENSION height = wavelet->height;	//codec->band.height;
     
     // Check that the band index is in range
-    assert(0 <= band && band < wavelet->band_count);
+    if (band < 0 || band >= wavelet->band_count) return CODEC_ERROR_INVALID_BAND;
     
     // Encoded coefficients start on a tag boundary
     AlignBitsSegment(stream);
     
     // Decode this subband
     error = DecodeBandRuns(stream, decoder->codebook, wavelet->data[band], width, height, wavelet->pitch);
-    assert(error == CODEC_ERROR_OKAY);
-    
     // Return failure if a problem was encountered while reading the band coefficients
     if (error != CODEC_ERROR_OKAY) {
         return error;
@@ -1994,7 +2015,6 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     // Decode the band trailer
     error = DecodeBandTrailer(stream);
     decoder->error = error;
-    assert(error == CODEC_ERROR_OKAY);
     return error;
 }
 

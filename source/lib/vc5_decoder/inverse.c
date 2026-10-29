@@ -218,7 +218,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
     even += highpass[column];
     
     // Remove any scaling used during encoding
-    even <<= descale_shift;
+    even *= (1 << descale_shift);
     
     // The lowpass result should be a positive number
     //assert(0 <= even && even <= INT16_MAX);
@@ -234,7 +234,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
     odd -= highpass[column];
     
     // Remove any scaling used during encoding
-    odd <<= descale_shift;
+    odd *= (1 << descale_shift);
     
     // The lowpass result should be a positive number
     //assert(0 <= odd && odd <= INT16_MAX);
@@ -262,7 +262,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
         even += highpass[column];
         
         // Remove any scaling used during encoding
-        even <<= descale_shift;
+        even *= (1 << descale_shift);
         
         // The lowpass result should be a positive number
         //assert(0 <= even && even <= INT16_MAX);
@@ -281,7 +281,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
         odd -= highpass[column];
         
         // Remove any scaling used during encoding
-        odd <<= descale_shift;
+        odd *= (1 << descale_shift);
         
         // The lowpass result should be a positive number
         //assert(0 <= odd && odd <= INT16_MAX);
@@ -308,7 +308,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
     even += highpass[column];
     
     // Remove any scaling used during encoding
-    even <<= descale_shift;
+    even *= (1 << descale_shift);
     
     // The lowpass result should be a positive number
     //assert(0 <= even && even <= INT16_MAX);
@@ -329,7 +329,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
         odd -= highpass[column];
         
         // Remove any scaling used during encoding
-        odd <<= descale_shift;
+        odd *= (1 << descale_shift);
         
         // The lowpass result should be a positive number
         //assert(0 <= odd && odd <= INT16_MAX);

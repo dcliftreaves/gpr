@@ -69,18 +69,18 @@ CODEC_ERROR AllocImage(gpr_allocator *allocator, IMAGE *image, DIMENSION width, 
     size_t size = 0;
     DIMENSION pitch = 0;
     
-    assert(image != NULL);
+    if (!image) return CODEC_ERROR_NULLPTR;
     
     // Compute the pitch from the width and format
     pitch = ImagePitch(width, format);
-    assert(pitch > 0);
+    if (pitch <= 0 || height <= 0) return CODEC_ERROR_IMAGE_DIMENSIONS;
     
 #if VC5_ENABLED_PART(VC5_PART_COLOR_SAMPLING)
-    size = height * pitch;
+    size = (size_t)height * (size_t)pitch;
 #else
-    size = height * pitch;
+    size = (size_t)height * (size_t)pitch;
 #endif
-    assert(size > 0);
+    if (!size) return CODEC_ERROR_IMAGE_DIMENSIONS;
     
     // Allocate the image buffer
     image->buffer = allocator->Alloc(size);
