@@ -21,6 +21,65 @@ from raw_media_test import metadata
 
 
 class Contract(unittest.TestCase):
+    def test_reconstructed_gpr_output_and_joint_publication(self):
+        import hashlib
+        import struct
+        import stock_cnn_models
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);meta=metadata()
+            meta['image']=[t for t in meta['image'] if t['code'] not in (50714,50717)]
+            meta['image'] += [raw_media.record(50717,4,1,struct.pack('<I',15000)),
+                              raw_media.record(50714,5,4,struct.pack('<8I',33,2,35,2,37,2,39,2))]
+            raw=root/'input.raw'
+            (np.arange(128*96,dtype=np.uint16)*7%15000).astype('<u2').tofile(raw)
+            source=root/'source.gpr';stock_still.encode(raw,meta,3,args.sdk,source)
+            for scale,variant,quality in ((1,'F_ane_no_sr',0),(2,'F_ane',5)):
+                backbone=stock_cnn_models.build(variant)
+                for parameter in backbone.parameters():parameter.data.zero_()
+                checkpoint=root/f'{scale}.pt'
+                torch.save(dict(variant=variant,raw_norm=16383.,residual_scale=.01,
+                                width=16,depth=3,backbone_state=backbone.state_dict()),checkpoint)
+                settings=dict(checkpoint=checkpoint,device='cpu',tile=16,halo=8,scale=scale)
+                dng=root/f'{scale}.dng';gpr=root/f'{scale}.gpr'
+                if scale==1:
+                    subprocess.run([sys.executable,str(Path(stock_still.__file__)),'restore',str(source),
+                        '--sample-bits','14','--sdk',str(args.sdk),'--checkpoint',str(checkpoint),
+                        '--tile','16','--halo','8','--output',str(dng),'--gpr-output',str(gpr),
+                        '--gpr-quality',str(quality)],check=True,capture_output=True,text=True)
+                    result=json.loads(dng.with_suffix('.dng.json').read_text())
+                else:
+                    result=stock_still.decode(source,14,args.sdk,dng,reconstruction=settings,gpr_output=gpr,gpr_quality=quality)
+                encoded=result['reencoded_gpr'];self.assertTrue(encoded['lossy']);self.assertFalse(encoded['quality_approval'])
+                self.assertEqual(encoded['encode']['quality'],quality)
+                self.assertEqual(encoded['encode']['output_sha256'],stock_still.digest(gpr))
+                self.assertEqual(encoded['encode']['raw_sha256'],result['restored_raw_sha256'])
+                with tifffile.TiffFile(dng) as f:
+                    self.assertEqual(hashlib.sha256(f.asarray().astype('<u2').tobytes()).hexdigest(),result['restored_raw_sha256'])
+                self.assertEqual(stock_still.canonical(raw_media.extract(gpr,14)),stock_still.canonical(raw_media.extract(dng,14)))
+                decoded=stock_still.decode(gpr,14,args.sdk,root/f'{scale}-decoded.dng')
+                self.assertEqual(decoded['raw_sha256'],encoded['decoded_raw_sha256'])
+                with self.assertRaises(FileExistsError):
+                    stock_still.decode(source,14,args.sdk,root/'protected.dng',reconstruction=settings,gpr_output=gpr,gpr_quality=quality)
+                self.assertFalse((root/'protected.dng').exists())
+                with self.assertRaisesRegex(ValueError,'names must differ'):
+                    stock_still.decode(source,14,args.sdk,root/'alias',reconstruction=settings,gpr_output=root/'alias',gpr_quality=quality)
+            for extra in (dict(gpr_output=root/'bad.gpr'),dict(gpr_quality=3),dict(gpr_output=root/'bad.gpr',gpr_quality=True)):
+                with self.assertRaises(ValueError):stock_still.decode(source,14,args.sdk,root/'bad.dng',reconstruction=settings,**extra)
+            with self.assertRaisesRegex(ValueError,'requires reconstruction'):
+                stock_still.decode(source,14,args.sdk,root/'bad.dng',gpr_output=root/'bad.gpr',gpr_quality=3)
+            # A destination appearing after inference must roll back the DNG
+            # while preserving the competing writer's GPR and omitting receipt.
+            dng=root/'raced.dng';gpr=root/'raced.gpr';link=stock_still.os.link
+            def race(src,dest):
+                if Path(dest)==gpr:gpr.write_bytes(b'protected competing output')
+                return link(src,dest)
+            with patch.object(stock_still.os,'link',side_effect=race):
+                with self.assertRaises(FileExistsError):
+                    stock_still.decode(source,14,args.sdk,dng,reconstruction=settings,gpr_output=gpr,gpr_quality=3)
+            self.assertEqual(gpr.read_bytes(),b'protected competing output')
+            self.assertFalse(dng.exists());self.assertFalse(dng.with_suffix('.dng.json').exists())
+            self.assertFalse(list(root.glob('.stock-still-*')))
+
     def test_training_split_guards_and_checkpoint_roundtrip(self):
         import copy
         import train_stock_sr as recipe

@@ -36,8 +36,10 @@ python tools/stock_video.py restore recording.gvid \
 
 No tested legacy 2x checkpoint is recommended for stock input; the commands
 establish functional support for explicit candidates, not quality approval.
-Restored GPR encoding and arbitrary-CFA/count-domain reconstruction remain
-pending. Non-reconstructed stills retain their broader format support.
+[Still restored GPR encoding](stock-cnn-quality.md#optional-reconstructed-gpr)
+now optionally follows 1x/2x reconstruction with an explicit lossy preset.
+Recorded-sequence restored GPR encoding and arbitrary-CFA/count-domain
+reconstruction remain pending. Non-reconstructed stills retain broader formats.
 
 Torch/numpy are optional reconstruction dependencies. The normal inspector,
 encoder, decoder and geometry helpers import without Torch. Both new modules

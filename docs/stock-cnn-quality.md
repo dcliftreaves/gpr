@@ -48,8 +48,53 @@ inference without changing published calibration. Receipts record source,
 payload, decoded/restored counts, output and SDK hashes, model/architecture
 identity, tile/halo, normalization, inference time and lack of quality approval.
 Exclusive output publication refuses overwrites and rolls back owned partials.
-Restored GPR re-encoding remains pending. Explicit 2x calibration scaling
-is covered by the separate portable-reconstruction milestone.
+Optional [reconstructed GPR re-encoding](#optional-reconstructed-gpr) now uses
+an explicit additional preset. Explicit 2x calibration scaling is covered by
+the separate portable-reconstruction milestone.
+
+## Optional reconstructed GPR
+
+Add `--gpr-output restored.gpr --gpr-quality 3` to the restore command to save
+both an exact reconstructed editable DNG and a newly compressed GPR. This
+works for the existing RGGB14 1x/2x reconstruction contracts; it does not expand
+the model's supported formats or approve its quality. `--gpr-quality 0..5` is
+required with the additional output, and is rejected without it. Other restore
+commands retain their previous output and pixel hashes.
+
+```sh
+python tools/stock_still.py restore source.gpr --sample-bits 14 \
+  --sdk /path/to/gpr_tools --checkpoint /path/to/explicit-checkpoint.pt \
+  --device mps --output restored.dng \
+  --gpr-output restored.gpr --gpr-quality 3
+```
+
+Both files and their joint DNG-side JSON receipt use exclusive local creation
+with rollback of owned outputs on failure. Existing names, aliases and races
+are rejected without replacing another writer's output. There is no separate
+GPR-side receipt: the joint receipt's `reencoded_gpr` contains the chosen preset,
+input/output/payload hashes, SDK encoding receipt and a fresh decoded-pixel hash.
+The top-level restored-pixel hash always describes the DNG/model output.
+
+GPR re-encoding is **lossy**. Its decoded pixels are distinct from the exact
+reconstructed DNG, even when the model itself is an identity fallback. The
+joint receipt checks supported calibration and freshly decodes the additional
+GPR through a private full-domain carrier; `decoded_matches_restored` reports
+identity rather than assuming it. No quality tier or default is selected.
+
+Two real-image checks cover a 45.7 MP Nikon 1x output and an 8192x6144
+camera-still-derived 2x output at Q3. Every new payload matches the independent
+historical stock encoder; every decoded pixel matches the independent historical
+decoder; all supported typed calibration agrees across DNG/GPR/redecoded DNG.
+The 1x DNG retains its exact earlier evaluated file and pixel hashes.
+On that one lossless-reference Nikon scene, restored-DNG PSNR is **55.986 dB**,
+but the Q3-recompressed GPR decodes to **55.316 dB**. Thus re-encoding can erase
+the restoration gain; functional output support is not a fidelity improvement.
+The 2x check establishes format/transport, not high-resolution ground truth.
+
+[Real-image receipt](stock-restored-gpr-receipts/real-images.json),
+[eight optional reconstruction contracts](stock-restored-gpr-receipts/contracts.txt)
+and [ordinary still regression checks](stock-restored-gpr-receipts/ordinary-stills.txt)
+record this boundary. Weights and photographs remain external.
 
 ## Lossless-reference measurements
 

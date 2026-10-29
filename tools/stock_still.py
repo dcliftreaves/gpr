@@ -139,11 +139,17 @@ def encode(source, metadata, quality, sdk, output, receipt=None, editable=None, 
         return result
 
 
-def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
+def decode(source, bits, sdk, output, receipt=None, reconstruction=None, gpr_output=None, gpr_quality=None):
     if sys.byteorder!='little': raise ValueError('still frontend requires a little-endian host')
+    if gpr_output is not None:
+        if reconstruction is None: raise ValueError('additional GPR output requires reconstruction')
+        if type(gpr_quality) is not int or not 0<=gpr_quality<=5:
+            raise ValueError('additional GPR output requires an explicit stock preset 0..5')
+    elif gpr_quality is not None: raise ValueError('GPR preset requires an additional GPR output')
     start=time.perf_counter(); source=Path(source).resolve(); sdk=Path(sdk).resolve()
     meta,payload=raw_media.extract(source,bits,with_payload=True)
     if meta['width']<48 or meta['height']<48: raise ValueError('still frontend requires Bayer dimensions at least 48')
+    output,receipt,gpr_output=outputs(output,receipt,gpr_output)
     model=model_info=None; output_meta=meta; output_scale=1; geometry=None
     if reconstruction is not None:
         if (meta['cfa'],bits)!=('RGGB',14): raise ValueError('current CNN checkpoint adapter requires RGGB14')
@@ -158,7 +164,6 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
         device=torch.device(reconstruction['device'])
         model,model_info=load_cnn(reconstruction.get('root'),Path(reconstruction['checkpoint']),device)
         if model_info.get('output_scale',1)!=output_scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
-    output,receipt,_=outputs(output,receipt,None)
     with tempfile.TemporaryDirectory(prefix='.stock-still-',dir=output.parent) as temp:
         root=Path(temp); private=root/'carrier.gpr'
         raw_media.write(private,carrier(meta),payload,'gpr')
@@ -167,7 +172,10 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
         if model is not None:
             restored,cnn_s=restore(raw,meta['width'],meta['height'],model,device,tile,halo,scale=output_scale)
             data=restored.astype('<u2').tobytes()
-        dng=root/'editable.dng'; raw_media.write(dng,output_meta,data); del data
+        dng=root/'editable.dng'; raw_media.write(dng,output_meta,data)
+        if gpr_output is not None:
+            reconstructed=root/'restored.raw'; reconstructed.write_bytes(data)
+        del data
         result=dict(schema='gpr.stock_still.v1',action='restore' if model is not None else 'decode',cnn=model is not None,
                     width=output_meta['width'],height=output_meta['height'],sample_bits=bits,cfa=meta['cfa'],
                     source_sha256=meta['source_sha256'],payload_sha256=hashlib.sha256(payload).hexdigest(),
@@ -180,8 +188,27 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None):
                           source_metadata_sha256=hashlib.sha256(canonical(meta)).hexdigest(),geometry=geometry,
                           tile_plane_pixels=tile,halo_plane_pixels=halo,runtime_raw_norm=16383,output_scale=output_scale,
                           quality_approval=False)
+        files=[(dng,output)]
+        if gpr_output is not None:
+            packaged=root/'restored.gpr'
+            encoded=encode(reconstructed,output_meta,gpr_quality,sdk,packaged)
+            packaged_meta,packaged_payload=raw_media.extract(packaged,bits,with_payload=True)
+            if canonical(packaged_meta)!=canonical(output_meta):
+                raise ValueError('reconstructed GPR calibration differs')
+            encoded_carrier=root/'reencoded-carrier.gpr'
+            raw_media.write(encoded_carrier,carrier(output_meta),packaged_payload,'gpr')
+            decoded=root/'reencoded.raw'
+            verify_s=run(sdk,['-i',encoded_carrier,'-o',decoded],os.environ.copy())
+            if decoded.stat().st_size!=output_meta['width']*output_meta['height']*2:
+                raise ValueError('reconstructed GPR decoded size differs')
+            decoded_sha=digest(decoded)
+            result['reencoded_gpr']=dict(encode=encoded,decoded_raw_sha256=decoded_sha,
+                decoded_matches_restored=decoded_sha==result['restored_raw_sha256'],
+                verification_decode_process_s=verify_s,reencoded=True,lossy=True,quality_approval=False)
+            files.append((packaged,gpr_output))
+        result['elapsed_before_publication_s']=time.perf_counter()-start
         log=root/'receipt.json'; log.write_text(json.dumps(result,indent=2)+'\n')
-        publish([(dng,output),(log,receipt)])
+        publish(files+[(log,receipt)])
         return result
 
 
@@ -193,13 +220,15 @@ def main():
     enc.add_argument('--quality',type=int,choices=range(6),required=True); enc.add_argument('--editable',type=Path)
     dec=sub.add_parser('decode'); dec.add_argument('input',type=Path)
     dec.add_argument('--sample-bits',type=int,choices=(12,14,16),required=True)
-    rec=sub.add_parser('restore',help='optional experimental 1x/2x CNN to editable DNG')
+    rec=sub.add_parser('restore',help='optional experimental 1x/2x CNN to editable DNG and optional re-encoded GPR')
     rec.add_argument('input',type=Path); rec.add_argument('--sample-bits',type=int,choices=(14,),required=True)
     rec.add_argument('--cnn-root',type=Path,help='explicit external architecture override; default: bundled BIBO')
     rec.add_argument('--checkpoint',type=Path,required=True)
     rec.add_argument('--scale',type=int,choices=(1,2),default=1)
     rec.add_argument('--device',choices=('cpu','mps','cuda'),default='cpu')
     rec.add_argument('--tile',type=int,default=256); rec.add_argument('--halo',type=int,default=64)
+    rec.add_argument('--gpr-output',type=Path,help='also save reconstructed counts as a newly compressed GPR')
+    rec.add_argument('--gpr-quality',type=int,choices=range(6),help='required with --gpr-output; lossy stock preset')
     for cmd in (enc,dec,rec):
         cmd.add_argument('--sdk',type=Path,required=True); cmd.add_argument('--output',type=Path,required=True)
         cmd.add_argument('--receipt',type=Path)
@@ -212,7 +241,8 @@ def main():
         result=encode(args.input,meta,args.quality,args.sdk,args.output,args.receipt,args.editable,args.source_type)
     else:
         settings=dict(root=args.cnn_root,checkpoint=args.checkpoint,device=args.device,tile=args.tile,halo=args.halo,scale=args.scale) if args.action=='restore' else None
-        result=decode(args.input,args.sample_bits,args.sdk,args.output,args.receipt,settings)
+        result=decode(args.input,args.sample_bits,args.sdk,args.output,args.receipt,settings,
+                      getattr(args,'gpr_output',None),getattr(args,'gpr_quality',None))
     print(json.dumps(result,indent=2))
 
 
