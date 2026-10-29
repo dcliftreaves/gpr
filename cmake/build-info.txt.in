@@ -13,3 +13,4 @@ Parallel encoder channels requested: @GPR_ENABLE_PARALLEL_CHANNELS@
 Parallel encoder unpack requested: @GPR_ENABLE_PARALLEL_UNPACK@
 Optional MOV tool: @GPR_BUILD_MOV_TOOLS@ (external FFmpeg shared libraries when enabled)
 Optional RAW/ProRes renderer: @GPR_BUILD_RENDER_TOOLS@ (macOS system frameworks when enabled)
+Optional audio/timecode attachment: caller-selected ffmpeg/ffprobe executables; timecode also needs the updated gpr_mov tool

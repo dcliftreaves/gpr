@@ -1,0 +1,45 @@
+{
+  "schema": "gpr.stock_av_gates.v1",
+  "implementation_revision_base": "63a8479944bd3a5b661016a364cef9163c0fa904",
+  "ordinary_release_cases": {
+    "mov": 13,
+    "prores": 11,
+    "ctest_targets_passed": 2,
+    "seconds": 12.03
+  },
+  "installed_profiles": {
+    "capture": {
+      "installed_gvid_and_pcm_roundtrip_passed": true,
+      "timecode": "01:00:00:00",
+      "audio_samples": 512,
+      "log_sha256": "c440993104599df7fc15b488faeba31e7bb43ffea15135044e85d27e88b77798"
+    },
+    "preview": {
+      "installed_gvid_and_pcm_roundtrip_passed": true,
+      "timecode": "01:00:00:00",
+      "audio_samples": 512,
+      "log_sha256": "66f659b85ed30d0b9f6657042c5206ed9cc5df2bb8dbf578773e72acabbcada8"
+    },
+    "camera": {
+      "installed_gvid_and_pcm_roundtrip_passed": true,
+      "timecode": "01:00:00:00",
+      "audio_samples": 512,
+      "log_sha256": "273236024b25830ff2662f305c7479d71a7c11e02587241c89dca7cc3654a380"
+    },
+    "full": {
+      "installed_gvid_and_pcm_roundtrip_passed": true,
+      "timecode": "01:00:00:00",
+      "audio_samples": 512,
+      "log_sha256": "69252a2739d472ef6312d8fb29e4d01e51338812b8758c22564a81f46e533738"
+    }
+  },
+  "full_package_native_and_python_files_exact_real_run": true,
+  "actual_core_frames": 120,
+  "source_audio_samples": 288241,
+  "source_audio_kind": "synthetic caller-synchronized PCM24 stereo",
+  "hosted_latest_validation": false,
+  "pi_auxiliary_profile_refreshed": false,
+  "camera_production_ready": false,
+  "camera_audio_sync_approval": false,
+  "note": "All changes and packages remain local; prior Pi source-upload approval is pending."
+}

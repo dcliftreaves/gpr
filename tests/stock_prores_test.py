@@ -22,6 +22,8 @@ import raw_media as media
 import stock_prores as prores
 import stock_video as video
 from raw_media_test import metadata
+from stock_mov_test import wav
+import stock_mov
 
 
 def replace(meta, code, dtype, count, data):
@@ -292,11 +294,44 @@ class Rendering(unittest.TestCase):
         with self.assertRaises(ValueError):
             prores.clock([0, 1, 6_000_000_007], 30, 1)
 
+    def test_pcm_timecode_and_private_mov_inheritance(self):
+        raw=self.root/'input.raw';raw.write_bytes(self.raw.tobytes())
+        replay=self.root/'replay.gvid'
+        prores.run([args.decoder,'--input',raw,'--output',replay,'--width',512,'--height',384,
+                    '--frames',1,'--quality',3,'--arena-mib',16])
+        with replay.open('rb') as file:
+            header=video.read_header(file);payload=list(video.records(file,header))[0]['payload']
+        clip=self.root/'input.gvid';clip.write_bytes(fixture(payload,[self.meta,self.meta],[0,33410007]))
+        sound=self.root/'audio.wav';expected=wav(sound,bits=24,channels=2)
+        output=self.root/'av-prores.mov'
+        direct=prores.convert(clip,output,args.decoder,args.renderer,args.encoder,args.ffprobe,
+                              audio=sound,timecode='01:02:03;04' if args.mov_bridge else None,
+                              ffmpeg=args.ffmpeg,mov_bridge=args.mov_bridge)
+        self.assertEqual(direct['auxiliary']['audio']['sha256'],expected)
+        if args.mov_bridge:self.assertEqual(direct['auxiliary']['timecode']['text'],'01:02:03;04')
+        self.assertTrue(direct['auxiliary']['video_packets_exact'])
+        prores.run([args.ffmpeg,'-v','error','-i',output,'-f','null','-'])
+        if args.mov_bridge is not None:
+            movie=self.root/'stock.mov'
+            stock_mov.convert('wrap',clip,args.mov_bridge,movie,audio=sound,timecode='01:02:03;04',
+                              ffmpeg=args.ffmpeg,probe=args.ffprobe)
+            inherited=prores.convert(movie,self.root/'inherited.mov',args.decoder,args.renderer,args.encoder,
+                                     args.ffprobe,mov_bridge=args.mov_bridge,ffmpeg=args.ffmpeg)
+            self.assertEqual(inherited['auxiliary']['audio'],direct['auxiliary']['audio'])
+            self.assertEqual(inherited['auxiliary']['timecode'],direct['auxiliary']['timecode'])
+            self.assertEqual([row['tiff_sha256'] for row in inherited['frames']],
+                             [row['tiff_sha256'] for row in direct['frames']])
+            with self.assertRaisesRegex(ValueError,'ffmpeg'):
+                prores.convert(movie,self.root/'missing.mov',args.decoder,args.renderer,args.encoder,
+                               args.ffprobe,mov_bridge=args.mov_bridge)
+            self.assertFalse((self.root/'missing.mov').exists())
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     for name in ('decoder', 'renderer', 'encoder', 'ffprobe', 'ffmpeg'):
         parser.add_argument('--'+name, type=Path, required=True)
+    parser.add_argument('--mov-bridge',type=Path)
     args, remaining = parser.parse_known_args()
-    args = argparse.Namespace(**{k:v.resolve() for k,v in vars(args).items()})
+    args = argparse.Namespace(**{k:v.resolve() if v is not None else None for k,v in vars(args).items()})
     unittest.main(argv=[sys.argv[0]]+remaining)

@@ -70,6 +70,7 @@ foreach(app gpr_tools vc5_encoder_app vc5_decoder_app gpr_capture_app gpr_previe
 endforeach()
 install(FILES tools/stock_video.py tools/raw_media.py tools/stock_still.py tools/stock_mov.py tools/stock_prores.py tools/stock_preview.py
   tools/stock_cnn_models.py tools/stock_cnn_metadata.py DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools)
+install(FILES tools/stock_av.py DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools)
 file(GLOB package_docs "${CMAKE_CURRENT_SOURCE_DIR}/docs/stock-*")
 foreach(doc ${package_docs})
   if(IS_DIRECTORY "${doc}")

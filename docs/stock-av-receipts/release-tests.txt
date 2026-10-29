@@ -1,0 +1,9 @@
+Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/build-runtime
+    Start 1: stock_prores
+1/2 Test #1: stock_prores .....................   Passed    9.60 sec
+    Start 2: stock_mov
+2/2 Test #2: stock_mov ........................   Passed    2.43 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =  12.03 sec

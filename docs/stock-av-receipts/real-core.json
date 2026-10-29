@@ -1,0 +1,68 @@
+{
+  "schema": "gpr.stock_av_validation.v1",
+  "source_revision_base": "63a8479944bd3a5b661016a364cef9163c0fa904",
+  "frames_verified": 120,
+  "video_geometry": [
+    4096,
+    3072
+  ],
+  "source_kind": "two camera-still RAW replays",
+  "audio_kind": "synthetic caller-synchronized PCM24 stereo",
+  "gvid_roundtrip_exact": true,
+  "recovered_wav_samples_exact": true,
+  "video_packets_and_timestamps_exact": true,
+  "all_raw_dng_tiff_pixels_and_calibration_exact": true,
+  "full_ffmpeg_video_pixels_exact": true,
+  "decoded_video_hash": "SHA256=427a37663bc9138feed57377fd031484a0aede694afdf28ac557e4d45a4c0ad7",
+  "auxiliary": {
+    "audio": {
+      "codec": "pcm_s24le",
+      "rate": 48000,
+      "channels": 2,
+      "samples": 288241,
+      "sha256": "8ebd8fb0478e12a4d36f782bb839568140d190e70e50269118beca7f3cfd407a"
+    },
+    "timecode": {
+      "text": "01:00:00:00",
+      "fps_num": 20,
+      "fps_den": 1,
+      "start_frame": 72000,
+      "drop_frame": false
+    },
+    "timecode_clock": {
+      "timescale": 20000,
+      "duration_ticks": 120100,
+      "duration_error_ns": -7875.0
+    }
+  },
+  "source_wav_sha256": "f400705af6b711e9208e25be91999ba831c3efa7d80fe406edd60b8dd3985fb1",
+  "source_gvid_sha256": "d6dfecc9420a442afe9b5b3774f190d352f758beb0d2c0419f84c3b5f80a2adc",
+  "prores_output_bytes": 684275449,
+  "prores_output_sha256": "e13c81ee2f5aadec9fc33748475783051c990e3ee3ee43731fc9780ec6c7f60c",
+  "image_scratch": {
+    "rendered_tiff_files_max": 1,
+    "rendered_tiff_peak_bytes": 100672036,
+    "rendered_tiff_total_bytes": 12080634120,
+    "image_files_peak_bytes": 154709836,
+    "scope": "compressed source copy and growing output movie excluded; frame metadata remains proportional to frame count"
+  },
+  "elapsed_before_publication_s": 60.099506875,
+  "binary_sha256": {
+    "decoder": "24f5d65e281b9f79f853f7519cb3695ef3e000b5caeed2d7b550f5a323bc631b",
+    "renderer": "6ed8dadf4736e7f5478ffc38051965efd6b31f894facda3c0ae1c6457b2c8670",
+    "encoder": "aa50d0b155edd9ec8e883b981bd8299377a7832c6bc95f57d74314ed4d09931d",
+    "ffprobe": "daba6e06838d10260602536a676069cef6d756345e1c6d66268ceb7f2d5e7c39",
+    "mov_bridge": "531b25d5196fde76ea126a2a2bb7c38cf4d801a8d824ad028faf36de8e6ad867",
+    "ffmpeg": "00d01197255300c02122c783dd0126a9e7f47d6c6a19faafae2e6610efd071d3"
+  },
+  "camera_audio_sync_approval": false,
+  "camera_production_ready": false,
+  "code_sha256": {
+    "source/app/gpr_mov.cpp": "352817a5ab2a28d4f3e07431af9b1247859cd5b3626594e08b53f879de59a644",
+    "tools/stock_av.py": "070638bbe47de7da7e89be147e8d68648004ed47e9e7f96d00fa0f4861008fe5",
+    "tools/stock_mov.py": "b0c6fe8a483198ed1a8e38cf161369982193e584b3a0f134abdeb93dfa45d755",
+    "tools/stock_prores.py": "7b4ab5c20e844e5ab9da3d34d4c5ad32dacb8ff4ae167b40ff7364b27fe9177f",
+    "tests/stock_mov_test.py": "1d315d541a8909a72d6796b56b79525c43d2654841b4480857139c1cbd7c0bfc",
+    "tests/stock_prores_test.py": "3d45f4d45ca2bf26320368dc4af5db551ecba2c0b5a3dad384c2c9b5e89e70b9"
+  }
+}

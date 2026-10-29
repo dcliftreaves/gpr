@@ -153,8 +153,35 @@ The local review bundle is at
 `/Users/dcliftreaves/Documents/slop/gpr_check/releases/stock-core-20261029`.
 Its recording alternates two stills; no scene motion or temporal quality is
 established. The bundle is a review candidate for the core host workflow.
-Camera integration, Pi combined-preview performance, model quality approval,
-audio/timecode and broader per-stage format parity remain separate work.
+Camera integration, Pi combined-preview performance, model quality approval
+and broader per-stage format parity remain separate work. Optional desktop
+PCM/timecode transport and ProRes inheritance are now implemented under the
+[explicit auxiliary-track contract](stock-mov.md#optional-pcm-and-timecode).
+
+## Current task and evidence matrix
+
+The delivery priority above narrows the immediate video integration path; it
+does not turn unresolved quality or hardware requirements into completed work.
+Historical platform receipts remain bound to their recorded revisions.
+
+| Task | Current progress and authoritative evidence | Still open |
+|---|---|---|
+| Optimized stock encoder | Streaming/parallel/NEON foundation implemented; [Pi latency evidence](stock-encoder-sub100.md), [fresh exact still payload/pixel comparisons](stock-core-receipts/stills-mac.json), [240 exact replay payloads](stock-core-receipts/mission1-mac.json) | Universal latency guarantees; actual camera execution |
+| Broad RAW still formats | Four CFA phases, 12/14/16-bit words and legacy packed-12 supported; [format/conformance scope](stock-still-formats.md) | Broader real-camera fixtures and metadata cases; stock log precision remains lossy |
+| Still presets/workflow | Six explicit presets, validated source calibration and editable DNG/GPR; [36 fresh pairs on two lossless sources](stock-core-receipts/stills-mac.json) | Restored-tier/model quality selection; no inherited old-tier approval |
+| Calibration/editable RAW | Typed supported calibration, EXIF/GPS/opcodes and per-frame precedence implemented; [contracts](stock-editable-raw.md), [independent core export pixels/calibration](stock-core-receipts/exports-mac.json) | Unsupported metadata/lens operations and broader reader interoperability |
+| Bounded capture API | Ownership, leases, backpressure, cancellation, flush and writer failures implemented; [capture contract](stock-capture-api.md) | Physical sensor/DMA/storage adapter integration |
+| Checked recording/recovery | Actual timestamps, CRC metadata/payloads, END3 and explicit prefix recovery implemented; [recording contract](stock-capture-api.md) | Live sensor/card interruption and durability evidence |
+| Native calibrated preview | Immutable plans, source color/GainMaps/orientation and bounded queue implemented; [preview contract](stock-calibrated-preview.md), [combined path](stock-capture-preview.md) | Rear-display backend and broader lens/look/temporal approval |
+| Mission 1 20-fps host path | 120/120 recorded and previewed at 1024x768 with no late deliveries/overruns; [matched host receipt](stock-core-receipts/mission1-mac.json) | Refreshed combined Pi floor and actual camera proof; source is still replay, sink is memory |
+| Offline 1x reconstruction | Portable inference and editable/sequence export work; [24 lossless-reference comparisons](stock-cnn-quality.md), [seven optional contracts](stock-core-receipts/cnn-contracts.txt) | Source-grouped/model quality approval; an evaluated Q5 scene regresses |
+| Offline 2x/8K reconstruction | Explicit architecture/geometry/calibration paths and fresh training/evaluation implemented; [functional evidence](stock-cnn-portable.md), [frozen candidate](stock-sr-training.md) | Candidate selection/perceptual/temporal approval; current shadow regression |
+| Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
+| PCM/timecode interchange | Optional declared PCM16/24/float32 mono/stereo, independent timecode clocks, exact WAV samples and ProRes inheritance implemented; [120-frame A/V receipt](stock-av-receipts/real-core.json), [24 Release cases](stock-av-receipts/release-tests.txt) | Actual camera audio/synchronization and broader editor compatibility |
+| Calibrated ProRes | Deep HQ/4444, original timing and optional reconstruction implemented; [core decode](stock-core-receipts/exports-mac.json), [one-TIFF scratch](stock-prores-receipts/streaming.json), [A/V pixel/packet identity](stock-av-receipts/real-core.json) | Broader rendered-color/lens/temporal approval and custom grading looks |
+| SDK ABI and selected boundaries | Published C symbols, owned-copy rollback and encoder/decoder boundary fixes implemented; [C API](stock-sdk-api.md), [encoder](stock-encoder-bounds.md), [decoder](stock-decoder-bounds.md) | Broader malformed-input/failure/concurrency audit, deferred from immediate delivery |
+| Independent packages | Four MOV-enabled profiles pass relocated C/C++/SDK and installed PCM/timecode wrap/recovery; [current packages](stock-av-receipts/packages.json), [installed gates](stock-av-receipts/validation.json) | Latest hosted platform/release validation; source uploads require approval |
+| Actual camera production | Integration requirements documented; host/Pi evidence stays explicitly labeled | Sensor/DMA, display presentation, durable SD, thermal and physical A/V synchronization receipts |
 
 ## Feature accounting at the start
 
@@ -283,8 +310,9 @@ gains and shadow regression leave the full quality gate unfinished.
 through private GVS2/GVS3 MOV sample profiles, including original payloads,
 metadata and timestamps. Independent packet checks, Pi SDK pixels/calibration,
 Mac/Pi FFmpeg-version exchange, sanitizer checks and relocated packages validate
-the transport. It is not standard CFHD or rendered ProRes; audio/timecode
-extensions remain pending.
+the transport. It is not standard CFHD or rendered ProRes. Optional declared
+PCM audio and nominal-rate timecode now preserve video bytes/timestamps, with
+sample-exact WAV extraction and independent timecode clocks.
 
 [Calibrated ProRes rendering](stock-prores.md) now processes each actual typed
 DNG through the macOS RAW decoder into a 16-bit Rec.709 intermediate and deep
@@ -293,9 +321,10 @@ Acknowledged frame delivery now reuses one deep TIFF instead of retaining
 the entire rendered sequence; the original batch manifest interface remains.
 Both caller-selected 1x and 2x CNN paths run through this renderer. Real camera
 functional checks include 8192x6144 12-bit 4444 output; broader rendered/temporal
-quality approval and audio/timecode integration remain pending.
+quality approval remain pending. Declared stock-MOV audio/timecode now carry
+through ProRes export; caller-supplied synchronized WAV/labels are also accepted.
 
-This is not feature-suite parity. Restored still tiers, MOV audio/timecode extensions, broader rendering validation, full reconstruction/model quality
+This is not feature-suite parity. Restored still tiers, broader rendering validation, full reconstruction/model quality
 selection, broader preview color/lens validation, integrated capture/display performance
 and remaining platform/release integration remain
 pending. Earlier

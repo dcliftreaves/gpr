@@ -21,11 +21,22 @@ python tools/stock_mov.py wrap recording.gvid --bridge build-mov/gpr_mov \
 python tools/stock_mov.py inspect recording.mov --bridge build-mov/gpr_mov
 python tools/stock_mov.py unwrap recording.mov --bridge build-mov/gpr_mov \
   --output recovered.gvid
+
+# Optional caller-synchronized PCM and nominal-rate timecode, without video re-encoding.
+python tools/stock_mov.py wrap recording.gvid --bridge build-mov/gpr_mov \
+  --audio synchronized.wav --timecode '01:00:00:00' \
+  --ffmpeg /path/to/ffmpeg --ffprobe /path/to/ffprobe --output with-audio.mov
+python tools/stock_mov.py unwrap with-audio.mov --bridge build-mov/gpr_mov \
+  --output recovered.gvid --audio-output recovered.wav \
+  --ffmpeg /path/to/ffmpeg --ffprobe /path/to/ffprobe
 ```
 
 The opt-in POSIX target needs CMake >=3.6, pkg-config, FFmpeg development
 libraries (`libavformat`, `libavcodec`, `libavutil`) and zlib. Tests also need
-Python 3 and `ffprobe`; the wrapper itself uses the Python standard library.
+Python 3, `ffprobe` and `ffmpeg`; the wrapper itself uses the Python standard library.
+Video-only wrapping/recovery still needs only the native bridge. Optional
+audio/timecode attachment or WAV extraction additionally uses the explicitly
+selected FFmpeg/FFprobe executables.
 Default capture/preview/SDK builds have no new FFmpeg dependency. MOV transport
 can build without either image codec or the DNG/XMP SDK.
 
@@ -80,10 +91,65 @@ The final sample uses the rounded nominal frame period, with a one-tick minimum.
 
 The native operational limits are one million frames, the reader's 128 MiB
 payload limit, 64 KiB clip/frame metadata, and a 256 MiB per-allocation FFmpeg
-limit. Only one video track is accepted. Audio/WAV, SMPTE timecode tracks,
-arbitrary edited/remuxed MOV layouts and interrupted-MOV recovery are not
-implemented in this milestone; the previous feature inventory is not treated
-as complete by this transport alone.
+limit. One video track plus at most one declared PCM audio and one `tmcd`
+track is accepted. Arbitrary edited/remuxed layouts, additional tracks and
+interrupted-MOV recovery remain outside this profile.
+
+## Optional PCM and timecode
+
+`gpr.media.aux_profile=pcm_tmcd.v1` identifies the optional tracks separately
+from the stock video profile. WAV input supports little-endian RIFF PCM16,
+PCM24 and float32, mono/stereo, with explicit format/sample-count/hash metadata.
+Audio starts at video time zero. The caller supplies synchronization; samples
+are copied without resampling, trimming, padding or drift correction. Full
+audio can therefore extend beyond the video. `--audio-output` recovers the
+exact PCM samples into a new WAV container, not the original RIFF/BWF metadata
+or original WAV file bytes. Plain GVID recovery preserves the original GVID
+and reports the auxiliary track count/timecode; GVID itself gains no audio track.
+
+Timecode uses the declared nominal recording rate. Supported rates are
+20/24/25/30/50/60 and 24000/1001, 30000/1001, 60000/1001. Twenty-fps non-drop
+labels support the focused handoff replay; broader editor compatibility for
+that nonstandard rate remains unproven. Semicolon drop-frame labels require
+30000/1001 or 60000/1001; nonexistent skipped labels fail instead of being
+silently normalized. The label does not replace original frame timestamps.
+
+The native bridge creates a small timecode carrier by copying one encoded
+video packet, with an independent frame-compatible clock. The final remux
+copies only its timecode track and the original full video/audio. This avoids
+FFmpeg's whole-clip timecode-sample overflow at the nanosecond video clock.
+The timecode duration rounds within half its own tick; receipts report that
+error, while all video packets and nanosecond timestamps remain exact.
+The generated `tmcd` drop flag is explicitly retained when FFmpeg copies the
+track, then its sample description, label, frame counter and duration are
+independently read back. This is a bounded sample-description update, not a
+replacement movie muxer. FFmpeg still writes all packet/sample tables.
+
+Native recovery checks audio codec/rate/channels, continuous sample timestamps,
+total sample count and PCM SHA-256, plus the declared timecode counter/rate/clock.
+Unknown, duplicate, missing-declared or damaged auxiliary tracks fail before
+publishing recovered GVID. Optional wrapping also compares every copied video
+packet's hash, size, PTS/DTS and duration, verifies audio samples and completes
+the ordinary full-GVID inverse check. Output GVID, optional WAV and receipt
+retain exclusive local publication/rollback behavior.
+
+The ordinary Release suites now pass 13 MOV and 11 rendering cases, including
+all six PCM-kind/channel combinations, real WAV sample recovery, invalid drop
+labels, damaged audio/timecode, protected outputs, long independent-clock
+20-fps/drop-frame tracks and automatic ProRes inheritance. The 120-frame core
+recording also round-trips with 288,241 synthetic PCM24 stereo samples at 48 kHz
+and a 20-fps label. Its ProRes export retains every earlier video packet,
+timestamp, decoded pixel and RAW/DNG/TIFF/calibration hash. This tests offline
+desktop interchange, not camera audio delivery or actual A/V synchronization.
+The new auxiliary profile has local FFmpeg 8.1.1 evidence; the earlier Pi/
+FFmpeg-5 cross-version receipts below describe the preceding video-only profile.
+[Full 120-frame A/V verification](stock-av-receipts/real-core.json) and
+[24 ordinary Release cases](stock-av-receipts/release-tests.txt) bind the
+implementation, source/PCM/video hashes and tested binaries. Camera audio
+capture and physical synchronization remain separate hardware work.
+All four MOV-enabled relocated profiles also pass installed auxiliary wrap/
+recovery, C/C++ clients and the applicable SDK workflow: [package receipt](stock-av-receipts/packages.json),
+[installed gates](stock-av-receipts/validation.json).
 
 Strict outer-atom extent checks reject truncation even when libavformat could
 salvage an incomplete final metadata atom. Import checks the declared profile,
@@ -164,5 +230,5 @@ Receipts: [current Pi benchmark](stock-mov-receipts/pi5-current.json),
 [final Pi Release input guards](stock-mov-receipts/pi5-final-guards.json).
 The source recordings remain outside the repository.
 
-Broader rendering validation, audio/timecode integration and integrated capture/display
-performance remain part of the active high-level rebuild.
+Broader rendering validation, actual camera audio/display integration and
+integrated capture/display performance remain part of the active rebuild.

@@ -99,9 +99,9 @@ jobs:
         if: matrix.name == 'MacRelease'
         run: |
           brew install ffmpeg
-          cmake -S . -B build-runtime -DGPR_BUILD_RENDER_TOOLS=ON -DGPR_BUILD_RENDER_TESTS=ON
-          cmake --build build-runtime --target gpr_render gpr_prores --parallel 4
-          ctest --test-dir build-runtime -R '^stock_prores$' --output-on-failure
+          cmake -S . -B build-runtime -DGPR_BUILD_RENDER_TOOLS=ON -DGPR_BUILD_RENDER_TESTS=ON -DGPR_BUILD_MOV_TOOLS=ON -DGPR_BUILD_MOV_TESTS=ON
+          cmake --build build-runtime --target gpr_render gpr_prores gpr_mov --parallel 4
+          ctest --test-dir build-runtime -R '^(stock_prores|stock_mov)$' --output-on-failure
       - name: Stripped builds, relocated packages and public C/C++ clients
         if: matrix.type == 'Release'
         run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime

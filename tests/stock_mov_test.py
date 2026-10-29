@@ -17,6 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 import raw_media
 import stock_mov
+import stock_av
 import stock_video as video
 
 
@@ -33,7 +34,7 @@ def calibration(white):
                        tag(50728,5,'I',(1,2,1,1,2,3)),tag(50778,3,'H',(21,))],exif=[],gps=[])
 
 
-def fixture(version=3,timestamps=None,clip_metadata=None,frame_metadata=None):
+def fixture(version=3,timestamps=None,clip_metadata=None,frame_metadata=None,fps=(30000,1001)):
     payload=(ROOT/'tests/fixtures/stock_preview/128x96-q3.vc5').read_bytes()
     times=timestamps if timestamps is not None else [900000000000,900033410007,900066733344]
     encode=lambda value:value if isinstance(value,bytes) else json.dumps(value,ensure_ascii=False).encode()
@@ -42,7 +43,7 @@ def fixture(version=3,timestamps=None,clip_metadata=None,frame_metadata=None):
         for i in range(len(times)):data+=video.FRAME.pack(b'FRM2',32,i,i*1000000000//30,len(payload))+payload
         return data
     metadata=encode(clip_metadata if clip_metadata is not None else dict(camera='影像',raw_metadata=calibration(15000)))
-    header=bytearray(video.CLIP.pack(b'GVID',3,64,b'VC5\0',128,96,30000,1001,3,b'RGGB',14,48,
+    header=bytearray(video.CLIP.pack(b'GVID',3,64,b'VC5\0',128,96,*fps,3,b'RGGB',14,48,
                                     struct.pack('<III',len(metadata),1,zlib.crc32(metadata))+bytes(8)))
     struct.pack_into('<I',header,56,zlib.crc32(header[:56]));data=bytes(header)+metadata
     for i,pts in enumerate(times):
@@ -51,6 +52,17 @@ def fixture(version=3,timestamps=None,clip_metadata=None,frame_metadata=None):
         struct.pack_into('<I',record,44,zlib.crc32(record[:44]));data+=record+fm+payload
     ending=bytearray(video.RECORD3.pack(b'END3',48,len(times),times[-1] if times else 0,len(times)*len(payload),zlib.crc32(data),0,0,0))
     struct.pack_into('<I',ending,36,zlib.crc32(ending[:36]));return data+ending
+
+
+def wav(path, bits=16, channels=1, samples=5001):
+    kind=3 if bits==32 else 1
+    data=(struct.pack('<'+'f'*(samples*channels),*((i%201-100)/100 for i in range(samples*channels)))
+          if kind==3 else b''.join(((i*7331)%(1<<bits)).to_bytes(bits//8,'little') for i in range(samples*channels)))
+    block=channels*bits//8
+    fmt=struct.pack('<HHIIHH',kind,channels,48000,48000*block,block,bits)
+    body=b'WAVEfmt '+struct.pack('<I',16)+fmt+b'data'+struct.pack('<I',len(data))+data+bytes(len(data)%2)
+    path.write_bytes(b'RIFF'+struct.pack('<I',len(body))+body)
+    return hashlib.sha256(data).hexdigest()
 
 
 def source_records(data):
@@ -180,8 +192,90 @@ class Transport(unittest.TestCase):
             self.assertFalse(out.exists())
 
 
+    def test_pcm_audio_and_timecode_roundtrip_preserves_original_gvid(self):
+        for bits in (16,24,32):
+            for channels in (1,2):
+                with self.subTest(bits=bits,channels=channels),tempfile.TemporaryDirectory() as temp:
+                    root=Path(temp);source=root/'source.gvid';source.write_bytes(fixture())
+                    audio=root/'source.wav';expected=wav(audio,bits,channels)
+                    movie=root/'av.mov'
+                    receipt=stock_mov.convert('wrap',source,args.bridge,movie,audio=audio,timecode='00:01:00;02',
+                        ffmpeg=args.ffmpeg,probe=args.ffprobe)
+                    self.assertTrue(receipt['auxiliary']['video_packets_exact'])
+                    self.assertEqual(receipt['auxiliary']['audio']['sha256'],expected)
+                    self.assertEqual(receipt['timecode'],'00:01:00;02')
+                    recovered=root/'recovered.gvid';sound=root/'recovered.wav'
+                    receipt=stock_mov.convert('unwrap',movie,args.bridge,recovered,audio_output=sound,
+                        ffmpeg=args.ffmpeg,probe=args.ffprobe)
+                    self.assertEqual(recovered.read_bytes(),source.read_bytes());self.assertTrue(receipt['audio_exported'])
+                    self.assertEqual(stock_av.wav_info(sound)['sha256'],expected)
+
+    def test_twenty_fps_and_invalid_drop_frame_labels(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source.gvid';source.write_bytes(fixture(fps=(20,1)))
+            movie=root/'20.mov'
+            result=stock_mov.convert('wrap',source,args.bridge,movie,timecode='01:02:03:04',ffmpeg=args.ffmpeg,probe=args.ffprobe)
+            self.assertEqual(result['timecode'],'01:02:03:04');self.assertEqual(result['audio_tracks'],0)
+            source.write_bytes(fixture())
+            for index,label in enumerate(('00:01:00;00','00:01:00;01','24:00:00:00','00:00:00:30','broken')):
+                output=root/f'bad-{index}.mov'
+                with self.assertRaises(ValueError):
+                    stock_mov.convert('wrap',source,args.bridge,output,timecode=label,ffmpeg=args.ffmpeg,probe=args.ffprobe)
+                self.assertFalse(output.exists())
+
+    def test_damaged_audio_and_timecode_fail_native_inverse_verification(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source.gvid';source.write_bytes(fixture())
+            sound=root/'source.wav';wav(sound);movie=root/'av.mov'
+            stock_mov.convert('wrap',source,args.bridge,movie,audio=sound,timecode='01:02:03;04',
+                              ffmpeg=args.ffmpeg,probe=args.ffprobe)
+            parsed=stock_av.probe_movie(movie,args.ffprobe);data=movie.read_bytes()
+            for kind in ('audio','data'):
+                stream=next(s['index'] for s in parsed['streams'] if s['codec_type']==kind)
+                packet=next(p for p in parsed['packets'] if p['stream_index']==stream)
+                damaged=bytearray(data);damaged[int(packet['pos'])]^=1
+                path=root/(kind+'.mov');path.write_bytes(damaged);output=root/(kind+'.gvid')
+                with self.assertRaises(RuntimeError):stock_mov.convert('unwrap',path,args.bridge,output)
+                self.assertFalse(output.exists());self.assertFalse(output.with_suffix('.gvid.json').exists())
+
+    def test_long_timecode_track_keeps_nanosecond_video_clock(self):
+        for fps,period,label in (((20,1),50000000,'01:00:00:00'),
+                                 ((30000,1001),33366667,'00:01:00;02')):
+            with self.subTest(fps=fps),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'long.gvid'
+                source.write_bytes(fixture(timestamps=[900000000000+i*period for i in range(120)],fps=fps))
+                movie=root/'long.mov'
+                receipt=stock_mov.convert('wrap',source,args.bridge,movie,timecode=label,
+                                         ffmpeg=args.ffmpeg,probe=args.ffprobe)
+                self.assertEqual(receipt['mov_tick_ns'],1)
+                self.assertTrue(receipt['auxiliary']['video_packets_exact'])
+                self.assertLess(receipt['auxiliary']['timecode_clock']['timescale'],1000000000)
+                self.assertEqual(receipt['timecode'],label)
+                returned=root/'long.gvid.copy'
+                stock_mov.convert('unwrap',movie,args.bridge,returned)
+                self.assertEqual(returned.read_bytes(),source.read_bytes())
+
+    def test_invalid_wav_and_protected_audio_output_leave_no_partial_recording(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source.gvid';source.write_bytes(fixture())
+            good=root/'good.wav';wav(good);data=good.read_bytes()
+            for index,content in enumerate((b'not a WAV',data[:-1],data[:8]+b'BAD!'+data[12:])):
+                bad=root/f'bad-{index}.wav';bad.write_bytes(content);movie=root/f'bad-{index}.mov'
+                with self.assertRaises(ValueError):
+                    stock_mov.convert('wrap',source,args.bridge,movie,audio=bad,ffmpeg=args.ffmpeg,probe=args.ffprobe)
+                self.assertFalse(movie.exists());self.assertFalse(movie.with_suffix('.mov.json').exists())
+            movie=root/'good.mov'
+            stock_mov.convert('wrap',source,args.bridge,movie,audio=good,ffmpeg=args.ffmpeg,probe=args.ffprobe)
+            protected=root/'protected.wav';protected.write_bytes(b'keep');recording=root/'returned.gvid'
+            with self.assertRaises(FileExistsError):
+                stock_mov.convert('unwrap',movie,args.bridge,recording,audio_output=protected,
+                                  ffmpeg=args.ffmpeg,probe=args.ffprobe)
+            self.assertEqual(protected.read_bytes(),b'keep');self.assertFalse(recording.exists())
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bridge',type=Path,required=True);parser.add_argument('--ffprobe',type=Path,required=True)
-    args=parser.parse_args();args.bridge=args.bridge.resolve();args.ffprobe=args.ffprobe.resolve()
+    parser.add_argument('--ffmpeg',type=Path,required=True)
+    args=parser.parse_args();args.bridge=args.bridge.resolve();args.ffprobe=args.ffprobe.resolve();args.ffmpeg=args.ffmpeg.resolve()
     unittest.main(argv=[sys.argv[0]])

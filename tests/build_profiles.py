@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 import zipfile
+import wave
 
 
 def main():
@@ -97,6 +98,20 @@ def main():
                 run([sys.executable,tools/'stock_mov.py',action,source,'--bridge',prefix/'bin/gpr_mov',
                      '--output',output],dest/f'installed-mov-{action}.log')
             if returned.read_bytes()!=original.read_bytes():raise RuntimeError('installed MOV interchange changed recording bytes')
+            ffmpeg=shutil.which('ffmpeg');ffprobe=shutil.which('ffprobe')
+            if not ffmpeg or not ffprobe:raise RuntimeError('MOV auxiliary package checks require ffmpeg and ffprobe')
+            sound=build/'audio.wav';pcm=bytes(range(256))*8
+            with wave.open(str(sound),'wb') as file:
+                file.setnchannels(2);file.setsampwidth(2);file.setframerate(48000);file.writeframes(pcm)
+            movie=build/'av.mov';returned=build/'av.gvid';recovered=build/'av.wav'
+            run([sys.executable,tools/'stock_mov.py','wrap',original,'--bridge',prefix/'bin/gpr_mov',
+                 '--output',movie,'--audio',sound,'--timecode','01:00:00:00','--ffmpeg',ffmpeg,'--ffprobe',ffprobe],dest/'installed-mov-av-wrap.log')
+            decoded=run([sys.executable,tools/'stock_mov.py','unwrap',movie,'--bridge',prefix/'bin/gpr_mov',
+                 '--output',returned,'--audio-output',recovered,'--ffmpeg',ffmpeg,'--ffprobe',ffprobe],dest/'installed-mov-av-unwrap.log')
+            receipt=json.loads(decoded.stdout)
+            if (returned.read_bytes()!=original.read_bytes() or receipt['audio_export']['sha256']!=hashlib.sha256(pcm).hexdigest()
+                    or receipt['timecode']!='01:00:00:00'):
+                raise RuntimeError('installed audio/timecode interchange changed samples or recording')
         if (prefix/'bin/gpr_render').is_file():
             if 'Optional RAW/ProRes renderer: ON' not in (prefix/'share/gpr/gpr-build-info.txt').read_text():
                 raise RuntimeError('renderer package does not declare its macOS dependency')
@@ -150,7 +165,7 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_preview.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_preview.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py', 'stock_av.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
         (src/'source/app').mkdir(parents=True)
         shutil.copy2(root/'source/app/gpr_mov.cpp',src/'source/app/gpr_mov.cpp')
         for helper_name in ('gpr_render.m', 'gpr_prores.m'):

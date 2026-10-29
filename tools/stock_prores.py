@@ -20,6 +20,7 @@ from contextlib import contextmanager
 import raw_media
 import stock_still
 import stock_video
+import stock_av
 
 
 def run(command):
@@ -162,7 +163,8 @@ def verify(movie, probe, timing, width, height, profile):
 
 def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             metadata=None, profile='hq', checkpoint=None, cnn_root=None,
-            device='cpu', scale=1, tile=256, halo=64, mov_bridge=None):
+            device='cpu', scale=1, tile=256, halo=64, mov_bridge=None,
+            audio=None, timecode=None, ffmpeg=None):
     started = time.perf_counter()
     source = Path(source).resolve()
     binaries = {k: Path(v).resolve() for k, v in dict(decoder=decoder, renderer=renderer, encoder=encoder, ffprobe=probe).items()}
@@ -178,13 +180,19 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
     with tempfile.TemporaryDirectory(prefix='.stock-prores-', dir=output.parent) as temporary:
         root = Path(temporary)
         gvid = source
+        auxiliary_audio = audio
+        auxiliary_timecode = timecode
         with source.open('rb') as file:
             is_gvid = file.read(4) == b'GVID'
         if not is_gvid:
             if mov_bridge is None or not Path(mov_bridge).is_file():
                 raise ValueError('private MOV input requires --mov-bridge')
             gvid = root/'source.gvid'
-            run([Path(mov_bridge).resolve(), 'demux', source, gvid])
+            recovered = json.loads(run([Path(mov_bridge).resolve(), 'demux', source, gvid]).stdout)
+            if auxiliary_audio is None and recovered.get('audio_tracks'):
+                auxiliary_audio = source
+            if auxiliary_timecode is None:
+                auxiliary_timecode = recovered.get('timecode')
             binaries['mov_bridge'] = Path(mov_bridge).resolve()
         rows = []
         with gvid.open('rb') as file:
@@ -201,6 +209,15 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
                     raise ValueError('rendering frame limit exceeded')
         # Validate the complete container/calibration before model loading or rendering.
         timing = clock([row['pts_ns'] for row in rows], header['fps_num'], header['fps_den'])
+        if auxiliary_audio is not None or auxiliary_timecode is not None:
+            ffmpeg, _ = stock_av.executables(ffmpeg, binaries['ffprobe'])
+            binaries['ffmpeg'] = ffmpeg
+            if audio is not None:
+                stock_av.wav_info(audio)
+            if auxiliary_timecode is not None:
+                stock_av.timecode_info(auxiliary_timecode, header['fps_num'], header['fps_den'])
+                if mov_bridge is None or not Path(mov_bridge).is_file():
+                    raise ValueError('timecode requires the updated native --mov-bridge tool')
         source_sha = stock_still.digest(source)
         gvid_sha = stock_still.digest(gvid)
         model = model_info = None
@@ -261,6 +278,12 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             if stock_still.digest(source) != source_sha or stock_still.digest(gvid) != gvid_sha:
                 raise ValueError('source changed during rendering')
             native = stream.finish()
+        auxiliary = None
+        if auxiliary_audio is not None or auxiliary_timecode is not None:
+            combined = root/'combined.mov'
+            auxiliary = stock_av.attach(movie, combined, binaries['ffmpeg'], binaries['ffprobe'],
+                header['fps_num'], header['fps_den'], auxiliary_audio, auxiliary_timecode, mov_bridge)
+            movie = combined
         verified = verify(movie, binaries['ffprobe'], timing, *dimensions, profile)
         result = dict(schema='gpr.stock_prores.v1', source_sha256=source_sha, gvid_sha256=gvid_sha,
             output_sha256=stock_still.digest(movie), output_bytes=movie.stat().st_size,
@@ -268,6 +291,7 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             intermediate_bits=16, frames=rows, frame_count=len(rows), cnn=model_info,
             cnn_settings=dict(tile=tile, halo=halo, device=str(device), scale=scale) if model is not None else None,
             reconstruction_scale=scale, timing=timing, verification=verified, native=native,
+            auxiliary=auxiliary,
             scratch=dict(rendered_tiff_files_max=1, rendered_tiff_peak_bytes=rendered_tiff_peak_bytes,
                          rendered_tiff_total_bytes=rendered_tiff_total_bytes,
                          image_files_peak_bytes=scratch_image_peak_bytes,
@@ -287,13 +311,14 @@ def main():
     parser.add_argument('input', type=Path)
     for flag in ('output', 'decoder', 'renderer', 'encoder', 'ffprobe'):
         parser.add_argument('--'+flag, type=Path, required=True)
-    for flag in ('receipt', 'metadata-file', 'checkpoint', 'cnn-root', 'mov-bridge'):
+    for flag in ('receipt', 'metadata-file', 'checkpoint', 'cnn-root', 'mov-bridge', 'audio', 'ffmpeg'):
         parser.add_argument('--'+flag, type=Path)
     parser.add_argument('--profile', choices=('hq', '4444'), default='hq')
     parser.add_argument('--device', choices=('cpu', 'mps', 'cuda'), default='cpu')
     parser.add_argument('--scale', type=int, choices=(1, 2), default=1)
     parser.add_argument('--tile', type=int, default=256)
     parser.add_argument('--halo', type=int, default=64)
+    parser.add_argument('--timecode', help='HH:MM:SS:FF or valid drop-frame HH:MM:SS;FF; defaults to private MOV source label')
     args = parser.parse_args()
     options = vars(args).copy()
     source = options.pop('input')

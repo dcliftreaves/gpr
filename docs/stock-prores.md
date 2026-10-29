@@ -14,8 +14,9 @@ quality approval.
 ## Build and use
 
 macOS 12 or newer and CMake 3.16 or newer are required. The native tools link
-Apple system frameworks; FFmpeg is required only for independent probing and
-development decoding. Runtime Python uses the standard library unless a CNN is
+Apple system frameworks; FFprobe validates output. FFmpeg CLI is additionally
+needed for requested/inherited audio/timecode and development decoding.
+Runtime Python uses the standard library unless a CNN is
 explicitly requested.
 
 ```sh
@@ -35,6 +36,16 @@ default `gpr.raw_metadata.v1` calibration: per-frame calibration takes precedenc
 then clip calibration, then this default. Missing or mismatched calibration is
 an error. MOV input additionally requires `--mov-bridge /path/to/gpr_mov`; the
 private transport's full-file identity and framing are checked before rendering.
+
+Private stock MOV input automatically retains declared PCM audio and timecode;
+pass `--ffmpeg /path/to/ffmpeg` for that case. GVID input can instead use
+`--audio synchronized.wav` and/or `--timecode '01:00:00:00'` with `--ffmpeg`.
+Timecode also needs the updated `--mov-bridge` tool to produce its independent
+clock carrier. Explicit audio/timecode override the corresponding inherited
+source values. Samples, drop-frame rules, synchronization scope and the
+separate timecode clock follow [the MOV contract](stock-mov.md#optional-pcm-and-timecode).
+All rendered ProRes video packets are copied unchanged when attaching tracks;
+every packet hash and timestamp is compared before final local publication.
 
 Optional reconstruction adds `--checkpoint /path/to/weights.pt --device mps`
 and explicit `--scale 1` or `--scale 2`. The bundled architecture is the default;
@@ -102,6 +113,9 @@ TIFF bytes and peak image-file bytes. Image scratch is bounded by frame geometry
 the growing output movie, an optional recovered compressed-GVID copy for private
 MOV input, and per-frame metadata are accounted for separately. This does not
 make total disk or metadata memory independent of recording length.
+Optional audio/timecode attachment also stages one additional compressed movie
+and a small one-video-packet timecode carrier. It does not accumulate rendered
+image files.
 
 Limits are 100,000 frames, 128 million rendered pixels per frame,
 32,768 pixels per dimension and 2 GiB per native input image. Apple's decoder can
@@ -132,7 +146,7 @@ protected. This is not group-atomic publication or a durability/fsync claim.
 ## Validation and measured examples
 
 `GPR_BUILD_RENDER_TESTS=ON` adds `stock_prores` to CTest and requires the stock
-video experiment, NumPy, tifffile, FFmpeg and FFprobe. Ten tests check all eight
+video experiment, NumPy, tifffile, FFmpeg and FFprobe. Eleven tests check all eight
 orientations against independent array transforms, white balance/color-matrix
 changes, compensated black/white shifts, crop geometry, an oriented 318-pixel-wide deep-buffer path, stage-two Bayer GainMaps,
 HQ/4444 independent decoding, irregular nanosecond timing, a six-second gap with
@@ -143,6 +157,10 @@ The streaming cases require exact batch/stream ProRes packet hashes and timing
 for HQ and 4444 while reusing/deleting one TIFF path, independently decode the
 movies, observe actual wrapper scratch files and reject incomplete/inconsistent
 streams without publishing an output.
+When MOV tools are enabled, the new audio/timecode test also verifies automatic
+inheritance from a checked private stock MOV and rejects missing auxiliary
+runtime dependencies before rendering. Explicit WAV audio also works without
+the MOV bridge when no timecode is requested.
 
 ### Bounded image scratch, 2026-10-29
 
@@ -181,6 +199,6 @@ ProRes rendering was measured on Pi.
 [Functional run receipts and source/binary hashes](stock-prores-receipts/runs.json),
 [Release/sanitizer checks](stock-prores-receipts/validation.json) and
 [relocated packages](stock-prores-receipts/packages.json) record this milestone. Image data and model weights remain
-outside Git. Audio, SMPTE timecode, custom grading looks, streaming scratch
-reduction, broader format adapters and temporal/rendered quality approval remain
-unfinished.
+outside Git. These initial receipts precede the bounded-scratch and optional
+audio/timecode follow-ups. Current unfinished work includes custom grading
+looks, broader format adapters and temporal/rendered quality approval.
