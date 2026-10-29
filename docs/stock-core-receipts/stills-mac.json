@@ -1,0 +1,117 @@
+{
+  "schema": "gpr.stock_core_stills.v1",
+  "pairs_verified": 36,
+  "cnn": false,
+  "rows": [
+    {
+      "name": "z8",
+      "geometry": [
+        8280,
+        5520
+      ],
+      "sample_bits": 14,
+      "source_sha256": "1458244f1221c2ab0ba863301cb6aba65aa96f021c05fd0c6f1941865e650e6f",
+      "independent_lossless_decode_exact": true,
+      "presets_verified": 6,
+      "repeat_pairs_verified": 18,
+      "historical_payloads_and_pixels_exact": true,
+      "q3_process_ms": 32.60641696397215,
+      "q3_preparation_ms": 96.33162489626557,
+      "q3_gpr_bytes": 4553798,
+      "q3_active_psnr_db": 55.50271282302488,
+      "all_presets": [
+        {
+          "quality": 0,
+          "gpr_bytes": 2912254,
+          "process_ms": 29.48637504596263,
+          "active_psnr_db": 49.92297609798598
+        },
+        {
+          "quality": 1,
+          "gpr_bytes": 3271770,
+          "process_ms": 29.372291057370603,
+          "active_psnr_db": 51.87990550572581
+        },
+        {
+          "quality": 2,
+          "gpr_bytes": 3935150,
+          "process_ms": 33.33387500606477,
+          "active_psnr_db": 54.32436791995365
+        },
+        {
+          "quality": 3,
+          "gpr_bytes": 4553798,
+          "process_ms": 32.60641696397215,
+          "active_psnr_db": 55.50271282302488
+        },
+        {
+          "quality": 4,
+          "gpr_bytes": 5116410,
+          "process_ms": 34.20195903163403,
+          "active_psnr_db": 56.807558015329235
+        },
+        {
+          "quality": 5,
+          "gpr_bytes": 6733782,
+          "process_ms": 36.718124989420176,
+          "active_psnr_db": 58.64096349349832
+        }
+      ]
+    },
+    {
+      "name": "x2d",
+      "geometry": [
+        11664,
+        8750
+      ],
+      "sample_bits": 16,
+      "source_sha256": "47204b60044ca470b59cd6c0298c809f425a5682a214e37798d126897668c4b0",
+      "independent_lossless_decode_exact": true,
+      "presets_verified": 6,
+      "repeat_pairs_verified": 18,
+      "historical_payloads_and_pixels_exact": true,
+      "q3_process_ms": 67.18579202424735,
+      "q3_preparation_ms": 148.9925420610234,
+      "q3_gpr_bytes": 11139216,
+      "q3_active_psnr_db": 50.94605296650846,
+      "all_presets": [
+        {
+          "quality": 0,
+          "gpr_bytes": 4940148,
+          "process_ms": 51.672665984369814,
+          "active_psnr_db": 49.94096642839989
+        },
+        {
+          "quality": 1,
+          "gpr_bytes": 5939136,
+          "process_ms": 53.571042022667825,
+          "active_psnr_db": 50.29551003225909
+        },
+        {
+          "quality": 2,
+          "gpr_bytes": 8043160,
+          "process_ms": 64.00120793841779,
+          "active_psnr_db": 50.60279270041312
+        },
+        {
+          "quality": 3,
+          "gpr_bytes": 11139216,
+          "process_ms": 67.18579202424735,
+          "active_psnr_db": 50.94605296650846
+        },
+        {
+          "quality": 4,
+          "gpr_bytes": 16542800,
+          "process_ms": 89.69100005924702,
+          "active_psnr_db": 51.64286739226519
+        },
+        {
+          "quality": 5,
+          "gpr_bytes": 25029008,
+          "process_ms": 105.73395795654505,
+          "active_psnr_db": 54.8061432959432
+        }
+      ]
+    }
+  ]
+}

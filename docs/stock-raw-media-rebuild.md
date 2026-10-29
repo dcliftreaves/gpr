@@ -38,6 +38,117 @@ local packages. Broader sanitizer/fuzz auditing is deferred from the immediate
 critical path. Work stays local; remote source uploads, pushes and publication
 require separate explicit user approval.
 
+## Core workflow
+
+Build the full desktop workflow on macOS with FFmpeg development libraries,
+Python, NumPy and tifffile available. Capture/preview library profiles remain
+independent of the desktop SDK and Apple renderer.
+
+```sh
+cmake -S . -B build-runtime -DCMAKE_BUILD_TYPE=Release \
+  -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_CAPTURE_APP=ON \
+  -DGPR_BUILD_PREVIEW_TOOLS=ON -DGPR_BUILD_PREVIEW_TESTS=ON \
+  -DGPR_BUILD_STOCK_VIDEO_EXPERIMENT=ON -DGPR_BUILD_MEDIA_TESTS=ON \
+  -DGPR_BUILD_CODEC_TESTS=ON -DGPR_BUILD_VIDEO_TESTS=ON \
+  -DGPR_BUILD_MOV_TOOLS=ON -DGPR_BUILD_MOV_TESTS=ON \
+  -DGPR_BUILD_RENDER_TOOLS=ON -DGPR_BUILD_RENDER_TESTS=ON \
+  -DGPR_BUILD_PACKAGE=ON
+cmake --build build-runtime --parallel 4
+ctest --test-dir build-runtime --output-on-failure
+
+# Calibrated still: declare the source's sample domain, not its storage word size.
+python3 tools/stock_still.py encode source.dng --source-type dng --sample-bits 14 \
+  --quality 3 --sdk build-runtime/source/app/gpr_tools/gpr_tools \
+  --output still.gpr --editable still.dng
+
+# Mission 1-style replay: tightly packed 4096x3072 RGGB14 words and actual calibration.
+build-runtime/gpr_capture_app --input frame.raw --source-metadata calibration.json \
+  --output recording.gvid --quality 3 --fps-num 20 --fps-den 1 \
+  --frames 120 --paced --leased
+python3 tools/stock_preview.py recording.gvid --output-dir preview-profiles \
+  --compiler build-runtime/gpr_preview_profile --downsample 4
+build-runtime/gpr_preview_app --input recording.gvid --profile-dir preview-profiles
+
+# Recover editable RAW and wrap the original compressed recording without image conversion.
+python3 tools/stock_video.py extract recording.gvid --out-dir editable \
+  --decoder build-runtime/source/app/stock_video/stock_video --editable both
+python3 tools/stock_mov.py wrap recording.gvid --bridge build-runtime/gpr_mov \
+  --output stock.mov
+python3 tools/stock_prores.py stock.mov --mov-bridge build-runtime/gpr_mov \
+  --output rendered.mov --decoder build-runtime/source/app/stock_video/stock_video \
+  --renderer build-runtime/gpr_render --encoder build-runtime/gpr_prores \
+  --ffprobe /path/to/ffprobe --profile hq
+```
+
+All output names/directories must be new. These commands write local files;
+"publication" in the tool receipts means exclusive local filesystem creation.
+The preview command above is playback. To exercise recording and calibrated
+preview simultaneously, use the repeatable matched replay:
+
+```sh
+python3 tools/benchmark_mission1.py \
+  --capture build-runtime/gpr_capture_app --compiler build-runtime/gpr_preview_profile \
+  --player build-runtime/gpr_preview_app --reference /path/to/independent/vc5_encoder_app \
+  --input frame.raw --metadata calibration.json --frames 600 --fps 20 \
+  --quality 3 --downsample 4 --out-dir new-mission1-review --require-floor
+```
+
+The reference app must honor `GPR_BENCH_QUALITY`; the historical codec may be
+instrumented at the sample-app boundary without changing its encoder. Repeat
+`--input` and `--metadata` in matching source order for alternating inputs.
+The runner checks every accepted payload against independent stock bytes,
+source calibration and attempt association, END3/accounting, and every
+delivered preview against separately prepared offline playback. It reports
+recording deadlines, preview deadlines and drops independently. Missing the
+requested timing floor is not mistaken for a functional pass; `--require-floor`
+returns status 2 for that case. Other formats are outside this focused runner.
+
+### Local core review, 2026-10-29
+
+The M5 Max replay uses two supplied camera-still-derived RAWs, warm cache and
+a memory CRC preview sink. Both recording-only and combined runs accept/write
+120/120 frames at a requested 20 fps, with zero overruns or late writes. All
+240 payloads match the independent stock encoder. The combined run delivers
+all 120 full-frame 1024x768 previews, with no replacements/discards and every
+delivery within 50 ms of its replay timestamp. Durable recording throughput
+is 20.12 fps; capture-to-preview p95 is 31.93 ms. This six-second host replay
+does not establish sustained Pi or actual camera performance, nor a preview
+speed benefit from the differing single-run encode medians.
+
+Two lossless source stills (45.7 MP Nikon RGGB14 and 102.1 MP X2D RGGB16) pass
+36 fresh encode/decode pairs across six presets/three repeats. Independent
+lossless source decoding, every historical payload/pixel hash and every
+distortion metric agree exactly. Q3 SDK-process/preparation medians are
+32.61/96.33 ms and 67.19/148.99 ms respectively, before final publication/fsync.
+These are scene-specific host workflow timings, not codec-only or camera latency.
+
+All four relocated local package profiles pass. The full installed package's
+capture, preview/compiler and SDK binaries have exactly the hashes used by
+these measurements. The configured local Release suite passes 21/21; seven
+optional CPU/Torch workflow contracts pass without trained weights. Exact
+receipts: [Mission 1 replay](stock-core-receipts/mission1-mac.json),
+[stills](stock-core-receipts/stills-mac.json),
+[packages](stock-core-receipts/packages-mac.json),
+[Release checks](stock-core-receipts/release-tests.txt),
+[optional CNN contracts](stock-core-receipts/cnn-contracts.txt) and
+[source/reference identity](stock-core-receipts/validation.json).
+
+Using that relocated full package, the actual 120-frame recording passes an
+exact GVID/MOV/GVID round trip. Two exported editable DNG/GPR frames retain
+their exact source calibration and agree pixel-for-pixel with the historical
+independent decoder and the SDK. The complete private MOV then renders to
+4096x3072 ProRes HQ: all 120 frames pass timing/color/profile checks and a full
+independent FFmpeg decode. The single functional export takes 61.22 s before
+publication and produces 682,542,583 bytes; this is offline processing, not
+real-time ProRes. [Export receipt](stock-core-receipts/exports-mac.json).
+
+The local review bundle is at
+`/Users/dcliftreaves/Documents/slop/gpr_check/releases/stock-core-20261029`.
+Its recording alternates two stills; no scene motion or temporal quality is
+established. The bundle is a review candidate for the core host workflow.
+Camera integration, Pi combined-preview performance, model quality approval,
+audio/timecode and broader per-stage format parity remain separate work.
+
 ## Feature accounting at the start
 
 | Previous high-level capability | New foundation | Rebuild work |

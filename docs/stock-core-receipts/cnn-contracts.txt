@@ -1,0 +1,7 @@
+.....{"step": 1, "loss": 0.0030211389530450106, "validation_mse_counts": 56.52288818359375, "validation_psnr_db": 66.76562517363783, "delta_vs_bicubic_db": 1.5626067373202048, "best_step": 1, "elapsed_s": 0.11616079194936901}
+{"step": 1, "loss": 3.2836023819982074e-06, "validation_mse_counts": 1.0623779296875, "validation_psnr_db": 84.0250782261984, "delta_vs_bicubic_db": null, "best_step": 0, "elapsed_s": 0.05735516606364399}
+..
+----------------------------------------------------------------------
+Ran 7 tests in 2.400s
+
+OK
