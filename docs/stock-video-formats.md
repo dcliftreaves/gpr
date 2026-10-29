@@ -24,6 +24,16 @@ DNG/GPR metadata and calibrated profile playback. It verifies that declared
 format and exported metadata agree; it does not claim lossless pixel identity.
 Existing preview, capture and v2 compatibility tests protect older paths.
 
+On the 2026-10-29 worktree, the full Mac Release suite passed 20/20 tests,
+the full Pi 5 Release suite passed 18/18, and the revised matrix with samples
+above the 14-bit ceiling passed separately on both machines. All four
+relocated package profiles passed their independent build/client checks.
+The Pi 5 ASan/UBSan/leak-detection matrix passed in 219.60 seconds with the
+longer test timeout, and a separate instrumented BGGR16 run passed using the
+revised high-range fixture. The original 180-second Pi sanitizer timeout was
+insufficient for twelve SDK/compiler subprocess sequences; it produced no
+assertion or sanitizer diagnostic before timing out.
+
 The added profiles require a reader that understands the expanded v3 labels;
 older strict v3 readers may reject them. Physical sensor/display integration,
 12 MP speed for the non-RGGB14 modes and CNN quality for those modes remain
