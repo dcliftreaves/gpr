@@ -1,0 +1,20 @@
+{
+  "schema": "gpr.stock_cleanup_protocol.v1",
+  "scale": 1,
+  "quality": 3,
+  "cfa": "RGGB",
+  "bits": 14,
+  "seed": 20261029,
+  "patch": 128,
+  "train_patches_per_source": 64,
+  "validation_patches_per_source": 32,
+  "steps": 3000,
+  "batch": 8,
+  "learning_rate": 0.0003,
+  "shadow_weight": 3,
+  "validate_every": 100,
+  "guard_regions": true,
+  "selection": "minimum validation rounded MSE subject to pooled and each validation group overall/shadow/highlight/detail MSE <= identity; step-zero identity fallback",
+  "final_evaluation": "freeze checkpoint SHA before evaluating Q3 on four declared test images once; no subsequent tuning from final results",
+  "limitations": "Declared scene groups and exact source/RAW hashes do not exclude perceptual near-duplicates. Test references have been used in historical studies. No temporal or visual approval."
+}

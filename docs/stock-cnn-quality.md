@@ -4,6 +4,11 @@ The existing stock-Q3 BIBO1x model provides a modest RAW distortion improvement
 on four lossless Nikon references. It does not establish the earlier fused
 codec's restored tiers or 2x/8K quality approval. Restoration remains opt-in.
 
+A separate [fresh source-grouped Q3 cleanup experiment](stock-cleanup-training.md)
+now supplies an audited 1x training path. All 30 evaluated trained checkpoints
+failed its validation region guard, so it retained the identity fallback.
+It does not replace or approve the legacy model measured below.
+
 The earlier camera-GPR replay experiment showed worse PSNR after reconstruction,
 but its reference had already undergone camera compression. This new experiment
 uses independently decompressed lossless DNG counts as the reference. Those are

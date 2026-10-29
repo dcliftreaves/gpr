@@ -1,0 +1,1008 @@
+{
+  "schema": "gpr.stock_sr_training.v1",
+  "complete": true,
+  "quality_approval": false,
+  "fresh_initialization": true,
+  "pretrained_weights": false,
+  "seed": 20261029,
+  "torch": "2.12.0",
+  "host": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "device": "mps",
+  "dataset_sha256": "e4cadab719f85dbb74961fed03ea75d54cfd99f08d9e1bc641bbcee18377449c",
+  "dataset_input_sha256": "8c00456a6a3e3cdc5dbfaeae83ff49ea30b07757a45f0c87aa84f52dfaeff223",
+  "dataset_target_sha256": "1580b10b0c8fc29461ff8e8ea797618c4994281f31dcc2d460070e7b460dc70d",
+  "groups": {
+    "20250727_BarnAndSky": "train",
+    "20250729_05__FieldAndSky": "train",
+    "118NCZ_8": "train",
+    "2026-01-18": "train",
+    "20250727_ForestFire": "validation",
+    "LRT_20250730_05__ColoradoSky": "validation",
+    "nikon_gate_0001": "test",
+    "nikon_gate_0067": "test",
+    "nikon_gate_5323": "test",
+    "nikon_gate_6693": "test"
+  },
+  "train_patches": 512,
+  "validation_patches": 128,
+  "final_test_used_for_training_or_selection": false,
+  "steps": 3000,
+  "batch": 8,
+  "learning_rate": 0.0003,
+  "output_scale": 1,
+  "variant": "F_ane_no_sr",
+  "shadow_weight": 3,
+  "guard_regions": true,
+  "loss": "normalized MSE * (1 + shadow_weight * exp(-target_counts/(0.05*16383))) * 10000 on central output core",
+  "selection": "lowest rounded validation count MSE; identity/bicubic step-zero fallback; optional pooled and per-group overall/shadow/detail/highlight nonregression",
+  "region_masks": "per-patch reference-only 10/90 percentiles; top-decile same-site absolute gradient",
+  "baseline_validation_regions_mse": {
+    "pooled": {
+      "overall": 1447.5734210014343,
+      "shadow": 1023.930948590094,
+      "highlight": 2459.275557238491,
+      "detail": 2811.6553105084713
+    },
+    "group:20250727_ForestFire": {
+      "overall": 2333.977114677429,
+      "shadow": 1806.7054523330369,
+      "highlight": 3305.2111550774866,
+      "detail": 3899.9614860903607
+    },
+    "group:LRT_20250730_05__ColoradoSky": {
+      "overall": 561.1697273254395,
+      "shadow": 279.6737656188815,
+      "highlight": 1630.0514612628792,
+      "detail": 1740.9555319881295
+    }
+  },
+  "patch_plane_pixels": 128,
+  "core_output_plane_pixels": 64,
+  "source_files": {
+    "train_stock_sr.py": "4bf8845844c19c637ce97f2b2894be559662f9176362f956a5b954734fe19cea",
+    "benchmark_stock_sr.py": "c528c9b77ab2f35ff50913b0d3cec5c7c9c5ccdc284a18fe0d4cd19cffb52704",
+    "stock_still.py": "b58a71887502dcd002a1e286deeadc8267e9c9fba4e28520acd0a450189446d3",
+    "stock_video.py": "b86ddc30a6bd96a09dde015c2f12d811ffbe530979eb83d4c2f512377d87a406",
+    "raw_media.py": "452a1a4badf0f923264c618426f3ae4f98a1b86422abaae9fdd5f230405599e4",
+    "stock_cnn_metadata.py": "8f4afc596189877b9514b32595bf2cab89a4e773610fcfe664538579829e3e90",
+    "stock_cnn_models.py": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26"
+  },
+  "baseline_validation_mse_counts": 1447.5734210014343,
+  "baseline_validation_psnr_db": 52.68146262112923,
+  "history": [
+    {
+      "step": 100,
+      "loss": 0.050690967589616776,
+      "validation_mse_counts": 1355.915090084076,
+      "validation_psnr_db": 52.96554368453216,
+      "delta_vs_bicubic_db": 0.2840810634029342,
+      "delta_vs_baseline_db": 0.2840810634029342,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1355.915090084076,
+          "shadow": 999.7348436808562,
+          "highlight": 2375.9275402969447,
+          "detail": 2817.907009242803
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2163.5402269363403,
+          "shadow": 1711.5982870782047,
+          "highlight": 3165.863366355334,
+          "detail": 3863.9738638727613
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 548.2899532318115,
+          "shadow": 322.899460681357,
+          "highlight": 1601.5969376891958,
+          "detail": 1788.763212488255
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 1.9698813329450786
+    },
+    {
+      "step": 200,
+      "loss": 0.07754526287317276,
+      "validation_mse_counts": 1301.2766046524048,
+      "validation_psnr_db": 53.14417240732939,
+      "delta_vs_bicubic_db": 0.4627097862001594,
+      "delta_vs_baseline_db": 0.4627097862001594,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1301.2766046524048,
+          "shadow": 990.8973444221917,
+          "highlight": 2275.5155577994688,
+          "detail": 2809.369683981486
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2083.3590936660767,
+          "shadow": 1717.15117704872,
+          "highlight": 3047.902445013174,
+          "detail": 3898.975575391947
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 519.1941156387329,
+          "shadow": 300.37966786515256,
+          "highlight": 1518.387213834091,
+          "detail": 1737.3912161722158
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 3.32984470797237
+    },
+    {
+      "step": 300,
+      "loss": 0.05354004725813866,
+      "validation_mse_counts": 1287.3292407989502,
+      "validation_psnr_db": 53.19097228445366,
+      "delta_vs_bicubic_db": 0.5095096633244302,
+      "delta_vs_baseline_db": 0.5095096633244302,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1287.3292407989502,
+          "shadow": 990.8024261059585,
+          "highlight": 2214.353766969595,
+          "detail": 2770.004806632684
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2065.0810976028442,
+          "shadow": 1712.4088454158282,
+          "highlight": 2998.4472041477397,
+          "detail": 3859.6393517030087
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 509.57738399505615,
+          "shadow": 304.70348154213093,
+          "highlight": 1445.750136544995,
+          "detail": 1697.9981487166606
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 4.709615457919426
+    },
+    {
+      "step": 400,
+      "loss": 0.02030130848288536,
+      "validation_mse_counts": 1275.730080127716,
+      "validation_psnr_db": 53.230280667392634,
+      "delta_vs_bicubic_db": 0.5488180462634061,
+      "delta_vs_baseline_db": 0.5488180462634061,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1275.730080127716,
+          "shadow": 970.5008736353724,
+          "highlight": 2201.35027487939,
+          "detail": 2757.5150177962646
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2052.984931945801,
+          "shadow": 1679.7776945757475,
+          "highlight": 3000.0680807260433,
+          "detail": 3840.8495092384214
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 498.47522830963135,
+          "shadow": 296.1248353565199,
+          "highlight": 1418.4111809522046,
+          "detail": 1691.7064925157918
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 6.0904453749535605
+    },
+    {
+      "step": 500,
+      "loss": 0.061416145414114,
+      "validation_mse_counts": 1269.2326383590698,
+      "validation_psnr_db": 53.25245631041547,
+      "delta_vs_bicubic_db": 0.5709936892862418,
+      "delta_vs_baseline_db": 0.5709936892862418,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1269.2326383590698,
+          "shadow": 1026.9278828826773,
+          "highlight": 2162.4454214817306,
+          "detail": 2773.5968477868387
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2032.249599456787,
+          "shadow": 1776.6277156362614,
+          "highlight": 2930.474166344002,
+          "detail": 3890.905053236757
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 506.21567726135254,
+          "shadow": 314.1178936314122,
+          "highlight": 1409.5891245382927,
+          "detail": 1674.364228368359
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 7.449178415932693
+    },
+    {
+      "step": 600,
+      "loss": 0.06718440353870392,
+      "validation_mse_counts": 1254.4094529151917,
+      "validation_psnr_db": 53.303475444233676,
+      "delta_vs_bicubic_db": 0.6220128231044421,
+      "delta_vs_baseline_db": 0.6220128231044421,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1254.4094529151917,
+          "shadow": 1002.2635185379495,
+          "highlight": 2182.5286052208385,
+          "detail": 2808.5264224115695
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2015.5578508377075,
+          "shadow": 1752.1453081855198,
+          "highlight": 2962.994447015271,
+          "detail": 3942.0876373470505
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 493.2610549926758,
+          "shadow": 289.28052579117866,
+          "highlight": 1417.4809068439129,
+          "detail": 1693.303731405766
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 8.8033944159979
+    },
+    {
+      "step": 700,
+      "loss": 0.029712077230215073,
+      "validation_mse_counts": 1257.2419595718384,
+      "validation_psnr_db": 53.293679956481476,
+      "delta_vs_bicubic_db": 0.6122173353522495,
+      "delta_vs_baseline_db": 0.6122173353522495,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1257.2419595718384,
+          "shadow": 1043.2229982801016,
+          "highlight": 2154.9124125808744,
+          "detail": 2826.4219285617146
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2020.5578298568726,
+          "shadow": 1821.3182009641034,
+          "highlight": 2915.8663978316918,
+          "detail": 3961.110965069879
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 493.9260892868042,
+          "shadow": 303.41486597130756,
+          "highlight": 1408.9911130037121,
+          "detail": 1710.0896616523867
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 10.15935470792465
+    },
+    {
+      "step": 800,
+      "loss": 0.05953136831521988,
+      "validation_mse_counts": 1261.1293687820435,
+      "validation_psnr_db": 53.280272229901925,
+      "delta_vs_bicubic_db": 0.5988096087726918,
+      "delta_vs_baseline_db": 0.5988096087726918,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1261.1293687820435,
+          "shadow": 1003.1788876774073,
+          "highlight": 2137.401805415311,
+          "detail": 2793.89696924224
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2029.5401258468628,
+          "shadow": 1744.858482706978,
+          "highlight": 2893.1778466129626,
+          "detail": 3908.190262306863
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 492.7186117172241,
+          "shadow": 297.9944911181517,
+          "highlight": 1396.5561593364375,
+          "detail": 1697.6304875666322
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 11.51594945800025
+    },
+    {
+      "step": 900,
+      "loss": 0.02753935381770134,
+      "validation_mse_counts": 1266.4524083137512,
+      "validation_psnr_db": 53.26197988316787,
+      "delta_vs_bicubic_db": 0.5805172620386425,
+      "delta_vs_baseline_db": 0.5805172620386425,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1266.4524083137512,
+          "shadow": 1030.344887522297,
+          "highlight": 2167.243763790718,
+          "detail": 2802.5996004633125
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2035.8157148361206,
+          "shadow": 1780.777413768896,
+          "highlight": 2940.568850399947,
+          "detail": 3917.9775043969967
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 497.08910179138184,
+          "shadow": 316.8382578049909,
+          "highlight": 1409.195754607815,
+          "detail": 1705.2660545337835
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 12.876695665996522
+    },
+    {
+      "step": 1000,
+      "loss": 0.03712516650557518,
+      "validation_mse_counts": 1249.8395414352417,
+      "validation_psnr_db": 53.31932602096223,
+      "delta_vs_bicubic_db": 0.6378633998330034,
+      "delta_vs_baseline_db": 0.6378633998330034,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1249.8395414352417,
+          "shadow": 1025.0503697553365,
+          "highlight": 2189.25625958338,
+          "detail": 2836.2876148316273
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2011.886194229126,
+          "shadow": 1801.422296064024,
+          "highlight": 2968.8268375374214,
+          "detail": 3975.663625016548
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 487.7928886413574,
+          "shadow": 286.88071802356626,
+          "highlight": 1425.0861390629773,
+          "detail": 1715.3441991571544
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 14.246666582999751
+    },
+    {
+      "step": 1100,
+      "loss": 0.05205638334155083,
+      "validation_mse_counts": 1253.907232284546,
+      "validation_psnr_db": 53.305214552000955,
+      "delta_vs_bicubic_db": 0.6237519308717263,
+      "delta_vs_baseline_db": 0.6237519308717263,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1253.907232284546,
+          "shadow": 994.9131702243167,
+          "highlight": 2191.3543139234826,
+          "detail": 2869.130149544894
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2015.2304954528809,
+          "shadow": 1767.2188234192915,
+          "highlight": 2975.7213402714165,
+          "detail": 4034.0358189761146
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 492.58396911621094,
+          "shadow": 260.60970595564413,
+          "highlight": 1422.4824990974143,
+          "detail": 1723.0700882848184
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 15.60597287490964
+    },
+    {
+      "step": 1200,
+      "loss": 0.03837199881672859,
+      "validation_mse_counts": 1247.3325090408325,
+      "validation_psnr_db": 53.32804621066994,
+      "delta_vs_bicubic_db": 0.6465835895407102,
+      "delta_vs_baseline_db": 0.6465835895407102,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1247.3325090408325,
+          "shadow": 983.3994452529437,
+          "highlight": 2166.8191499308127,
+          "detail": 2838.157376188176
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2007.3238697052002,
+          "shadow": 1739.0869658819674,
+          "highlight": 2942.310948257137,
+          "detail": 3986.2976814115777
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 487.34114837646484,
+          "shadow": 264.89639920259157,
+          "highlight": 1406.6472325338123,
+          "detail": 1708.5914524666723
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 16.961726290988736
+    },
+    {
+      "step": 1300,
+      "loss": 0.043533485382795334,
+      "validation_mse_counts": 1244.7675313949585,
+      "validation_psnr_db": 53.3369861088529,
+      "delta_vs_bicubic_db": 0.6555234877236666,
+      "delta_vs_baseline_db": 0.6555234877236666,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1244.7675313949585,
+          "shadow": 1054.380161405846,
+          "highlight": 2153.6355978159245,
+          "detail": 2860.1540748521666
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2005.3503408432007,
+          "shadow": 1848.2507698787851,
+          "highlight": 2952.7516739226926,
+          "detail": 4054.0685931501407
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 484.1847219467163,
+          "shadow": 299.57287031433555,
+          "highlight": 1370.3061014783889,
+          "detail": 1685.55446401161
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 18.348981332965195
+    },
+    {
+      "step": 1400,
+      "loss": 0.0398092120885849,
+      "validation_mse_counts": 1266.2969102859497,
+      "validation_psnr_db": 53.26251315296295,
+      "delta_vs_bicubic_db": 0.5810505318337222,
+      "delta_vs_baseline_db": 0.5810505318337222,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1266.2969102859497,
+          "shadow": 981.2428341370171,
+          "highlight": 2152.3801983993417,
+          "detail": 2804.3163420821866
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2045.989676475525,
+          "shadow": 1736.0289231057238,
+          "highlight": 2929.792518580778,
+          "detail": 3919.645223821321
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 486.6041440963745,
+          "shadow": 263.59686376419495,
+          "highlight": 1390.3256991566611,
+          "detail": 1707.0310252760644
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 19.706656790920533
+    },
+    {
+      "step": 1500,
+      "loss": 0.043500591069459915,
+      "validation_mse_counts": 1256.9001641273499,
+      "validation_psnr_db": 53.294860795663126,
+      "delta_vs_bicubic_db": 0.6133981745339032,
+      "delta_vs_baseline_db": 0.6133981745339032,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1256.9001641273499,
+          "shadow": 1026.283737608292,
+          "highlight": 2148.141703130259,
+          "detail": 2844.773173831285
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2028.210708618164,
+          "shadow": 1804.9559507651986,
+          "highlight": 2929.9240053263325,
+          "detail": 3994.846549539497
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 485.58961963653564,
+          "shadow": 285.92698729130325,
+          "highlight": 1381.8035510956,
+          "detail": 1713.3054524480665
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 21.069421082967892
+    },
+    {
+      "step": 1600,
+      "loss": 0.025304878130555153,
+      "validation_mse_counts": 1251.936357498169,
+      "validation_psnr_db": 53.31204610544851,
+      "delta_vs_bicubic_db": 0.6305834843192824,
+      "delta_vs_baseline_db": 0.6305834843192824,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1251.936357498169,
+          "shadow": 1061.5713484094363,
+          "highlight": 2205.778516399267,
+          "detail": 2852.79329603699
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2019.1540575027466,
+          "shadow": 1840.4816118313288,
+          "highlight": 3032.9783546921776,
+          "detail": 4017.969410140515
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 484.7186574935913,
+          "shadow": 320.98826136484996,
+          "highlight": 1394.9200540625607,
+          "detail": 1706.4671653037872
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 22.43678224994801
+    },
+    {
+      "step": 1700,
+      "loss": 0.02051129750907421,
+      "validation_mse_counts": 1254.0949368476868,
+      "validation_psnr_db": 53.30456448034507,
+      "delta_vs_bicubic_db": 0.6231018592158429,
+      "delta_vs_baseline_db": 0.6231018592158429,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1254.0949368476868,
+          "shadow": 1022.2155666768552,
+          "highlight": 2170.14659766633,
+          "detail": 2849.374368689829
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2024.2388696670532,
+          "shadow": 1805.4938643702906,
+          "highlight": 2951.0850513273335,
+          "detail": 4005.0332186016603
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 483.9510040283203,
+          "shadow": 277.47937951657116,
+          "highlight": 1404.6356238949113,
+          "detail": 1712.4115337742924
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 23.810503749991767
+    },
+    {
+      "step": 1800,
+      "loss": 0.020200973376631737,
+      "validation_mse_counts": 1258.8038339614868,
+      "validation_psnr_db": 53.28828805528697,
+      "delta_vs_bicubic_db": 0.6068254341577395,
+      "delta_vs_baseline_db": 0.6068254341577395,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1258.8038339614868,
+          "shadow": 1008.5534605541084,
+          "highlight": 2194.3158915815848,
+          "detail": 2824.0823833395075
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2031.886281967163,
+          "shadow": 1763.8226143117893,
+          "highlight": 2999.003796428335,
+          "detail": 3968.0602530400743
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 485.72138595581055,
+          "shadow": 290.448195151472,
+          "highlight": 1405.5246382714793,
+          "detail": 1698.6115561013276
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 25.22104612493422
+    },
+    {
+      "step": 1900,
+      "loss": 0.025415832176804543,
+      "validation_mse_counts": 1261.5508699417114,
+      "validation_psnr_db": 53.278820951006935,
+      "delta_vs_bicubic_db": 0.597358329877704,
+      "delta_vs_baseline_db": 0.597358329877704,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1261.5508699417114,
+          "shadow": 1034.061067796842,
+          "highlight": 2196.18019559445,
+          "detail": 2851.7007413937827
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2036.0876750946045,
+          "shadow": 1809.6248046052324,
+          "highlight": 2990.339090934847,
+          "detail": 4000.37198592961
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 487.01406478881836,
+          "shadow": 296.65983767042826,
+          "highlight": 1417.709950658656,
+          "detail": 1721.6124677886003
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 26.592194041004404
+    },
+    {
+      "step": 2000,
+      "loss": 0.0416949987411499,
+      "validation_mse_counts": 1268.4587516784668,
+      "validation_psnr_db": 53.25510513309535,
+      "delta_vs_bicubic_db": 0.5736425119661197,
+      "delta_vs_baseline_db": 0.5736425119661197,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1268.4587516784668,
+          "shadow": 1031.522557128454,
+          "highlight": 2174.3295888028724,
+          "detail": 2829.772067133418
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2051.9220600128174,
+          "shadow": 1795.4207984274817,
+          "highlight": 2969.3096355617677,
+          "detail": 3955.754014032566
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 484.9954433441162,
+          "shadow": 305.21280837278846,
+          "highlight": 1395.0544143376874,
+          "detail": 1722.006028299517
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 27.974462374928407
+    },
+    {
+      "step": 2100,
+      "loss": 0.033163174986839294,
+      "validation_mse_counts": 1265.3294014930725,
+      "validation_psnr_db": 53.26583262984183,
+      "delta_vs_bicubic_db": 0.5843700087126034,
+      "delta_vs_baseline_db": 0.5843700087126034,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1265.3294014930725,
+          "shadow": 1027.6260110675687,
+          "highlight": 2174.5836839447998,
+          "detail": 2845.7476166135984
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2044.2298402786255,
+          "shadow": 1799.019628398933,
+          "highlight": 2964.590750691762,
+          "detail": 3985.3290939349813
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 486.42896270751953,
+          "shadow": 294.18970488768645,
+          "highlight": 1400.1832480119974,
+          "detail": 1724.6020578084153
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 29.348387457896024
+    },
+    {
+      "step": 2200,
+      "loss": 0.05835939943790436,
+      "validation_mse_counts": 1268.225862979889,
+      "validation_psnr_db": 53.255902569847166,
+      "delta_vs_bicubic_db": 0.5744399487179312,
+      "delta_vs_baseline_db": 0.5744399487179312,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1268.225862979889,
+          "shadow": 1089.6018823078573,
+          "highlight": 2186.373695725345,
+          "detail": 2881.65056014856
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2047.833963394165,
+          "shadow": 1903.969944306641,
+          "highlight": 2968.2121561257545,
+          "detail": 4041.2554796981676
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 488.6177625656128,
+          "shadow": 315.30573849275567,
+          "highlight": 1419.9804948946057,
+          "detail": 1740.8054943112575
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 30.721274999901652
+    },
+    {
+      "step": 2300,
+      "loss": 0.03412498161196709,
+      "validation_mse_counts": 1276.1377816200256,
+      "validation_psnr_db": 53.22889295831463,
+      "delta_vs_bicubic_db": 0.5474303371854055,
+      "delta_vs_baseline_db": 0.5474303371854055,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1276.1377816200256,
+          "shadow": 1031.3424194453441,
+          "highlight": 2177.4131325030853,
+          "detail": 2842.077454782482
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2063.1837816238403,
+          "shadow": 1812.0331726494126,
+          "highlight": 2974.907714682356,
+          "detail": 3993.9063676078445
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 489.09178161621094,
+          "shadow": 289.06645366843475,
+          "highlight": 1395.673097395925,
+          "detail": 1708.8825970063167
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 32.10039433289785
+    },
+    {
+      "step": 2400,
+      "loss": 0.05575179308652878,
+      "validation_mse_counts": 1273.3898644447327,
+      "validation_psnr_db": 53.238254737387074,
+      "delta_vs_bicubic_db": 0.5567921162578465,
+      "delta_vs_baseline_db": 0.5567921162578465,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1273.3898644447327,
+          "shadow": 1058.4823242806765,
+          "highlight": 2149.7440302554323,
+          "detail": 2877.6788888003116
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2056.0544967651367,
+          "shadow": 1855.1328403613047,
+          "highlight": 2939.1828046350424,
+          "detail": 4051.3589935132477
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 490.7252321243286,
+          "shadow": 301.0319141362002,
+          "highlight": 1375.90066004462,
+          "detail": 1722.9863432967727
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 33.48317724990193
+    },
+    {
+      "step": 2500,
+      "loss": 0.03517267107963562,
+      "validation_mse_counts": 1274.6931891441345,
+      "validation_psnr_db": 53.23381197188425,
+      "delta_vs_bicubic_db": 0.5523493507550244,
+      "delta_vs_baseline_db": 0.5523493507550244,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1274.6931891441345,
+          "shadow": 1047.4959967883065,
+          "highlight": 2173.582178652904,
+          "detail": 2837.7129572748972
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2057.119059562683,
+          "shadow": 1823.1546028923105,
+          "highlight": 2964.9381333282968,
+          "detail": 3964.285105055128
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 492.26731872558594,
+          "shadow": 310.0045655192054,
+          "highlight": 1397.8595021430622,
+          "detail": 1729.3662657103253
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 34.877403707941994
+    },
+    {
+      "step": 2600,
+      "loss": 0.0294643547385931,
+      "validation_mse_counts": 1280.4006175994873,
+      "validation_psnr_db": 53.214409875569174,
+      "delta_vs_bicubic_db": 0.5329472544399405,
+      "delta_vs_baseline_db": 0.5329472544399405,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1280.4006175994873,
+          "shadow": 1032.1217250078696,
+          "highlight": 2177.021934253338,
+          "detail": 2843.547501254414
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2070.508462905884,
+          "shadow": 1800.0839799691112,
+          "highlight": 2966.405962847888,
+          "detail": 3972.378623976398
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 490.2927722930908,
+          "shadow": 301.94793706169236,
+          "highlight": 1403.2322283217463,
+          "detail": 1732.978379987534
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 36.26246691599954
+    },
+    {
+      "step": 2700,
+      "loss": 0.021119575947523117,
+      "validation_mse_counts": 1273.5068264007568,
+      "validation_psnr_db": 53.23785585248285,
+      "delta_vs_bicubic_db": 0.5563932313536243,
+      "delta_vs_baseline_db": 0.5563932313536243,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1273.5068264007568,
+          "shadow": 1065.1558538132017,
+          "highlight": 2203.4680943565577,
+          "detail": 2869.081004656572
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2057.339867591858,
+          "shadow": 1862.4295128001124,
+          "highlight": 2997.7180538110665,
+          "detail": 4022.1924844450327
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 489.67378520965576,
+          "shadow": 307.11296322665623,
+          "highlight": 1424.9085842829768,
+          "detail": 1734.624329026076
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 37.655990040977485
+    },
+    {
+      "step": 2800,
+      "loss": 0.026065507903695107,
+      "validation_mse_counts": 1290.9099202156067,
+      "validation_psnr_db": 53.178909242859746,
+      "delta_vs_bicubic_db": 0.49744662173051224,
+      "delta_vs_baseline_db": 0.49744662173051224,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1290.9099202156067,
+          "shadow": 1065.767019922536,
+          "highlight": 2232.4876538015633,
+          "detail": 2909.2203641786286
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2087.7149019241333,
+          "shadow": 1885.1722001216829,
+          "highlight": 3028.111843534267,
+          "detail": 4069.0834956597387
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 494.1049385070801,
+          "shadow": 286.68161510804174,
+          "highlight": 1452.5810614406191,
+          "detail": 1768.121263710195
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 39.03679275000468
+    },
+    {
+      "step": 2900,
+      "loss": 0.015679674223065376,
+      "validation_mse_counts": 1285.6525144577026,
+      "validation_psnr_db": 53.19663258965605,
+      "delta_vs_bicubic_db": 0.5151699685268152,
+      "delta_vs_baseline_db": 0.5151699685268152,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1285.6525144577026,
+          "shadow": 1028.2212555714214,
+          "highlight": 2240.625771345226,
+          "detail": 2863.375963085061
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2081.583903312683,
+          "shadow": 1811.888248233257,
+          "highlight": 3031.6810150251677,
+          "detail": 3989.8189666584717
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 489.72112560272217,
+          "shadow": 283.1154996262148,
+          "highlight": 1465.1978652694334,
+          "detail": 1755.156326458467
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 40.415059624938294
+    },
+    {
+      "step": 3000,
+      "loss": 0.0323198139667511,
+      "validation_mse_counts": 1278.71608543396,
+      "validation_psnr_db": 53.22012734151257,
+      "delta_vs_bicubic_db": 0.5386647203833443,
+      "delta_vs_baseline_db": 0.5386647203833443,
+      "validation_regions_mse": {
+        "pooled": {
+          "overall": 1278.71608543396,
+          "shadow": 1050.9501138235119,
+          "highlight": 2197.050282359101,
+          "detail": 2884.606967507163
+        },
+        "group:20250727_ForestFire": {
+          "overall": 2066.10910987854,
+          "shadow": 1855.719988767726,
+          "highlight": 2993.057616938492,
+          "detail": 4047.738213211793
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 491.3230609893799,
+          "shadow": 285.7798672172582,
+          "highlight": 1416.7681141979024,
+          "detail": 1740.2926237057297
+        }
+      },
+      "selection_eligible": false,
+      "best_step": 0,
+      "elapsed_s": 41.79103708290495
+    }
+  ],
+  "best_step": 0,
+  "best_validation_mse_counts": 1447.5734210014343,
+  "best_checkpoint_sha256": "a4dcde2496477ff50b6b8473d98ab286a11ecea484eca12d30047deb3a46bcd5",
+  "elapsed_s": 41.79249237489421
+}

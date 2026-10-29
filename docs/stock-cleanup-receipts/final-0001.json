@@ -1,0 +1,180 @@
+{
+  "schema": "gpr.stock_cnn_benchmark.v1",
+  "complete": true,
+  "quality_approval": false,
+  "reference_kind": "lossless_sensor_dng",
+  "independent_source_decode_verified": true,
+  "source_sha256": "1458244f1221c2ab0ba863301cb6aba65aa96f021c05fd0c6f1941865e650e6f",
+  "raw_sha256": "f18ca274ab12cc436fbaf83232727754d7269df91c8e613fa86d48175d1fd57a",
+  "benchmark_sha256": "90fe61e4e89d548d538861c8eb3eedc934a029dfccc512941a27138b1e978da1",
+  "metadata_sha256": "6c1356c773c91685f9d53c8cc43bacca9ad6c2a07a2aa211ee08f9e493cf5efe",
+  "sdk_sha256": "e92a54207c98167ae775517f9378fa592c3077f2036c0658d0bd54c6af4175b7",
+  "width": 8280,
+  "height": 5520,
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "output_scale": 1,
+  "tile_plane_pixels": 256,
+  "halo_plane_pixels": 64,
+  "runtime_raw_norm": 16383,
+  "model": {
+    "checkpoint_sha256": "a4dcde2496477ff50b6b8473d98ab286a11ecea484eca12d30047deb3a46bcd5",
+    "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "checkpoint_schema": "build",
+    "architecture_source": "bundled",
+    "output_scale": 1,
+    "runtime_raw_norm": 16383,
+    "input_cfa": "RGGB",
+    "device": "mps",
+    "quality_status": "unvalidated_for_stock_video"
+  },
+  "torch": "2.12.0",
+  "host": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "rows": [
+    {
+      "quality": 3,
+      "gpr_bytes": 4553798,
+      "input_raw_sha256": "ced18772e3d0ec40e7482f80d88bed216f631f82dda24638c04629f657a45348",
+      "restored_raw_sha256": "ced18772e3d0ec40e7482f80d88bed216f631f82dda24638c04629f657a45348",
+      "editable_dng_sha256": "8ffce113ef201f4879178010b61038fcfcfaac35eb820e4157a7375a2b0f3ef2",
+      "inference_s": 1.174694790970534,
+      "inference_and_editable_validation_s": 2.5900055419187993,
+      "changed_samples": 0,
+      "stock": {
+        "full_frame": {
+          "rmse_counts": 27.495257423394364,
+          "psnr_db": 55.50271282302488
+        },
+        "active": {
+          "rmse_counts": 27.495257423394364,
+          "psnr_db": 55.50271282302488
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 9.0,
+          "p90": 39.0,
+          "p99": 107.0,
+          "p99_9": 203.0
+        },
+        "active_max_abs_error": 1061,
+        "active_bias_counts": -3.594426700448085,
+        "detail_gradient_threshold_counts": 230.0,
+        "detail_top_decile": {
+          "rmse_counts": 62.13792576702003,
+          "psnr_db": 48.420733586529494
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 6.931637616916755,
+          "psnr_db": 67.47115162703406
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 59.090764782646644,
+          "psnr_db": 48.857476407594426
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 25.625262762846283,
+            "psnr_db": 56.114502077783726
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 27.96084453798173,
+            "psnr_db": 55.356862928376586
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 27.747067041375484,
+            "psnr_db": 55.42352695525612
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 28.558607717712835,
+            "psnr_db": 55.17312800507563
+          }
+        ]
+      },
+      "restored": {
+        "full_frame": {
+          "rmse_counts": 27.495257423394364,
+          "psnr_db": 55.50271282302488
+        },
+        "active": {
+          "rmse_counts": 27.495257423394364,
+          "psnr_db": 55.50271282302488
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 9.0,
+          "p90": 39.0,
+          "p99": 107.0,
+          "p99_9": 203.0
+        },
+        "active_max_abs_error": 1061,
+        "active_bias_counts": -3.594426700448085,
+        "detail_gradient_threshold_counts": 230.0,
+        "detail_top_decile": {
+          "rmse_counts": 62.13792576702003,
+          "psnr_db": 48.420733586529494
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 6.931637616916755,
+          "psnr_db": 67.47115162703406
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 59.090764782646644,
+          "psnr_db": 48.857476407594426
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 25.625262762846283,
+            "psnr_db": 56.114502077783726
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 27.96084453798173,
+            "psnr_db": 55.356862928376586
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 27.747067041375484,
+            "psnr_db": 55.42352695525612
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 28.558607717712835,
+            "psnr_db": 55.17312800507563
+          }
+        ]
+      },
+      "active_psnr_delta_db": 0.0
+    }
+  ],
+  "source_files": {
+    "benchmark_stock_cnn.py": "18f2a6bdee43cffad4cc135667102d0071286c7fc38a4bd0b0ca6cf78709a599",
+    "benchmark_stills.py": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6",
+    "stock_video.py": "b86ddc30a6bd96a09dde015c2f12d811ffbe530979eb83d4c2f512377d87a406",
+    "raw_media.py": "452a1a4badf0f923264c618426f3ae4f98a1b86422abaae9fdd5f230405599e4",
+    "stock_still.py": "b58a71887502dcd002a1e286deeadc8267e9c9fba4e28520acd0a450189446d3"
+  },
+  "limitations": "Training-split membership is unknown. No temporal reference, rendered color gate, or model promotion. Full count-domain RAW distortion; shadows/highlights/detail use reference-only masks. Inference includes tile transfer and synchronization; first invocation is not warmed up."
+}

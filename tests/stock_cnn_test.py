@@ -68,6 +68,21 @@ class Contract(unittest.TestCase):
             perfect=recipe.train(data,root/'perfect',steps=1,batch=2,validate_every=1)
             self.assertIsNone(perfect['baseline_validation_psnr_db']);self.assertEqual(perfect['best_step'],0)
             self.assertEqual(perfect['best_validation_mse_counts'],0)
+            # The 1x recipe must produce a runtime-loadable cleanup checkpoint
+            # and preserve an exact identity when no improvement is possible.
+            np.save(data/'targets.npy',pixels)
+            info.update(output_scale=1,target_shape=list(pixels.shape),target_sha256=stock_still.digest(data/'targets.npy'))
+            log.write_text(json.dumps(info))
+            cleanup=recipe.train(data,root/'cleanup',steps=1,batch=2,validate_every=1,shadow_weight=3,guard_regions=True)
+            model,contract=stock_video.load_cnn(None,root/'cleanup/best.pt',torch.device('cpu'))
+            self.assertEqual(contract['output_scale'],1);self.assertEqual(cleanup['best_step'],0)
+            self.assertEqual(cleanup['core_output_plane_pixels'],32)
+            with torch.inference_mode():restored=model(tensor).numpy()
+            np.testing.assert_array_equal(np.clip(restored*16383+.5,0,16383).astype('<u2'),pixels)
+            regions=cleanup['baseline_validation_regions_mse']
+            self.assertTrue(recipe.region_guard(regions,regions))
+            worse=copy.deepcopy(regions);worse['group:validation']['shadow']=1.
+            self.assertFalse(recipe.region_guard(worse,regions))
             np.save(data/'inputs.npy',pixels+1)
             with self.assertRaisesRegex(ValueError,'array hash differs'):
                 recipe.train(data,root/'tampered',steps=1)
