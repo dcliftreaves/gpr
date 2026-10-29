@@ -1,0 +1,47 @@
+Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/build-runtime
+      Start  1: stock_prores
+ 1/21 Test  #1: stock_prores .....................   Passed    9.91 sec
+      Start  2: stock_mov
+ 2/21 Test  #2: stock_mov ........................   Passed    2.43 sec
+      Start  3: preview_contract
+ 3/21 Test  #3: preview_contract .................   Passed    0.16 sec
+      Start  4: preview_queue
+ 4/21 Test  #4: preview_queue ....................   Passed    0.08 sec
+      Start  5: preview_scalar_contract
+ 5/21 Test  #5: preview_scalar_contract ..........   Passed    0.04 sec
+      Start  6: preview_cli
+ 6/21 Test  #6: preview_cli ......................   Passed    0.17 sec
+      Start  7: stock_preview_profiles
+ 7/21 Test  #7: stock_preview_profiles ...........   Passed    0.23 sec
+      Start  8: capture_preview
+ 8/21 Test  #8: capture_preview ..................   Passed    1.28 sec
+      Start  9: capture_lifecycle
+ 9/21 Test  #9: capture_lifecycle ................   Passed    0.13 sec
+      Start 10: capture_c_api
+10/21 Test #10: capture_c_api ....................   Passed    0.12 sec
+      Start 11: gvid3_conformance
+11/21 Test #11: gvid3_conformance ................   Passed    0.07 sec
+      Start 12: gvid2_compatibility
+12/21 Test #12: gvid2_compatibility ..............   Passed    0.04 sec
+      Start 13: video_format_matrix
+13/21 Test #13: video_format_matrix ..............   Passed    1.25 sec
+      Start 14: sdk_c_api
+14/21 Test #14: sdk_c_api ........................   Passed    0.18 sec
+      Start 15: raw_media
+15/21 Test #15: raw_media ........................   Passed    1.29 sec
+      Start 16: stock_still
+16/21 Test #16: stock_still ......................   Passed    0.42 sec
+      Start 17: decoder_bounds
+17/21 Test #17: decoder_bounds ...................   Passed    0.17 sec
+      Start 18: encoder_bounds
+18/21 Test #18: encoder_bounds ...................   Passed    0.27 sec
+      Start 19: encoder_bounds_fast
+19/21 Test #19: encoder_bounds_fast ..............   Passed    0.16 sec
+      Start 20: bayer_formats
+20/21 Test #20: bayer_formats ....................   Passed    0.22 sec
+      Start 21: bayer_formats_fast
+21/21 Test #21: bayer_formats_fast ...............   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) =  18.73 sec

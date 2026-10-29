@@ -96,6 +96,14 @@ The 2x check establishes format/transport, not high-resolution ground truth.
 and [ordinary still regression checks](stock-restored-gpr-receipts/ordinary-stills.txt)
 record this boundary. Weights and photographs remain external.
 
+The full [Release suite passes 21/21 targets](stock-restored-gpr-receipts/release-tests.txt).
+All [four relocated package profiles](stock-restored-gpr-receipts/packages.json)
+pass C/C++/SDK and installed PCM/timecode checks. The installed full package
+reproduces both real-image DNG/GPR files and decoded pixels exactly. Its capture,
+preview compiler and player binaries also match the hashes from the preceding
+60-second Mission 1 measurement; see the
+[installed validation receipt](stock-restored-gpr-receipts/installed-validation.json).
+
 ## Lossless-reference measurements
 
 Four Nikon Z8 DNGs (`Z8Z_0001`, `0067`, `5323`, `6693`), each 8280x5520,

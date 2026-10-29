@@ -1,0 +1,30 @@
+{
+  "complete": true,
+  "installed_tool_sha256": "ae8209504a0fdf4a304c441c377ae4907817bac8987d30b08f9804c39c968f0a",
+  "sdk_sha256": "2194aaab2c1c7e459e85ad414ca7a5ef8884b68b6af50de6722b260c391287ac",
+  "cases": [
+    {
+      "case": "nikon-1x",
+      "exact_prior_dng": true,
+      "exact_prior_gpr": true,
+      "exact_independent_decoded_pixels": true,
+      "receipt_sha256": "5e0555d134c76e2cabb223c927073fb55dac593484612bff3bfc0ca35b077e28"
+    },
+    {
+      "case": "mission1-2x",
+      "exact_prior_dng": true,
+      "exact_prior_gpr": true,
+      "exact_independent_decoded_pixels": true,
+      "receipt_sha256": "fe6b63c761ca674386d4d4b412d456818235b6db1f813c0a82948091a0aea9e8"
+    }
+  ],
+  "package_source": "5256d6f",
+  "quality_approval": false,
+  "mission1_binaries_exact_prior_60_second_measurement": {
+    "gpr_capture_app": "8f20bb58ad28307c9f19d17cac18c00ae47d87519730337bd0895593d2908404",
+    "gpr_preview_profile": "1ee380f916a441519a58fc023b0e7407ce2fa2170be0411f51c9d0622cc3bc9b",
+    "gpr_preview_app": "73917a1f9e3e044026f4eec7ad9583679a27571112d0e73270cd5824ff55388d"
+  },
+  "release_targets_passed": 21,
+  "optional_reconstruction_contracts_passed": 8
+}
