@@ -90,7 +90,7 @@ per-source calibration through recording and exports decoded DNGs or GPRs
 without re-encoding their stock payloads. Independent TIFF reads and SDK
 decodes verify calibration, EXIF/GPS, compressed bytes and Bayer values.
 Standalone uncompressed DNG packaging supports four CFA phases and 12/14/16-bit
-counts; this does not extend the encoder's accepted formats.
+counts. The video frontend now maps these domains to the stock encoder.
 
 The [independent build profiles](stock-build-profiles.md) now separate the
 capture, preview and desktop SDK dependencies, export installed CMake targets
@@ -107,7 +107,9 @@ format mapping, spatial black-level handling, source matrices/illuminants and
 supported GainMaps. The [still preset workflow](stock-still-quality.md) adds
 explicit Q0–Q5 selection and exact typed-calibration packaging around the SDK,
 with lossless-DNG and Pi replay measurements. Restored still-tier/model quality
-approval, broader metadata support and video frontend mappings remain pending.
+approval and broader metadata support remain pending. Video capture, extraction,
+editable RAW packaging and calibrated preview now cover all 12 Bayer/count
+combinations; the optional CNN adapter remains RGGB14-only.
 
 The [public SDK C API audit](stock-sdk-api.md) repairs two missing published
 symbols, adds an allocator-aware parameter copy with rollback, makes owned

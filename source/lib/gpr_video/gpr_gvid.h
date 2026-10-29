@@ -13,7 +13,8 @@ extern "C" {
  * responsible for its schema; the container does not interpret camera data.
  *
  * Clip 64: GVID, u16 version=3, u16 bytes=64, VC5\0, u32 w,h,fps_num,
- * fps_den,quality, CFA[4], u32 sample_bits,frame_header_bytes=48,
+ * fps_den,quality, CFA[4] (RGGB/GBRG/GRBG/BGGR),
+ * u32 sample_bits (12/14/16),frame_header_bytes=48,
  * metadata_bytes,flags=1,metadata_crc32,header_crc32(first 56 bytes),reserved;
  * then metadata.
  * Frame 48: FRM3,u32 bytes=48,u64 index,timestamp_ns,payload_bytes,

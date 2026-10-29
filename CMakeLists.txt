@@ -302,6 +302,12 @@ if(GPR_BUILD_MEDIA_TESTS)
   endif()
   enable_testing()
   find_package(PythonInterp 3 REQUIRED)
+  if(GPR_BUILD_PREVIEW_TESTS AND TARGET gpr_preview_profile AND TARGET gpr_preview_app)
+    add_test(NAME video_format_matrix COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/video_format_matrix_test.py
+      --capture $<TARGET_FILE:gpr_capture_app> --decoder $<TARGET_FILE:stock_video>
+      --compiler $<TARGET_FILE:gpr_preview_profile> --player $<TARGET_FILE:gpr_preview_app>)
+    set_tests_properties(video_format_matrix PROPERTIES TIMEOUT 600)
+  endif()
   add_executable(sdk_bayer_probe tests/sdk_bayer_probe.cpp)
   target_compile_features(sdk_bayer_probe PRIVATE cxx_std_11)
   target_link_libraries(sdk_bayer_probe gpr_sdk vc5_encoder)

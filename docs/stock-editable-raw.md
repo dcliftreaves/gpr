@@ -35,9 +35,10 @@ active/crop bounds, duplicate/structural tags and decompression limits. It does
 not infer whether a user-selected source is the correct calibration for an
 unrelated frame, nor interpret all optional DNG opcodes. The caller must supply
 the matching source. Editable DNG packaging supports all four Bayer phases and
-12/14/16-bit counts in 16-bit words. This does not extend the stock encoder's
-supported input formats. GPR wrapping accepts its matching four-channel RAW
-header, RGGB/GBRG and 12/14-bit domains; it does not validate every entropy code.
+12/14/16-bit counts in 16-bit words. Video capture now maps these 12 format
+combinations to the stock encoder. GPR wrapping accepts the matching
+four-channel RAW header for all four phases and three count domains; it does
+not validate every entropy code.
 
 ## Capture and sequence export
 
@@ -67,8 +68,9 @@ An unsuccessful command can leave earlier frame files; a successful receipt
 with `complete: true` certifies the complete recording.
 
 `--editable gpr` needs no decoder and preserves original compressed bytes.
-`--editable dng` needs the decoder; `both` writes both forms. Current video
-decoding is RGGB14. The existing optional `restore --editable dng` packages
+`--editable dng` needs the decoder; `both` writes both forms. Video decoding
+accepts all four Bayer phases at 12/14/16 bits. The existing optional
+RGGB14-only CNN `restore --editable dng` packages
 the reconstructed counts, preserving source calibration and recording model
 identity in the receipt. Reconstructed GPR export is rejected because it needs
 a new encode. Source noise calibration is not a measured post-CNN noise model;

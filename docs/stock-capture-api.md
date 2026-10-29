@@ -21,7 +21,7 @@ python3 tools/stock_video.py inspect clip.gvid > inspection.json
 
 The replay app requires POSIX. The library has a C ABI and uses C++11 threads
 plus zlib; independent build profiles and Windows verification remain part
-of the larger rebuild. The app preloads unpacked RGGB14 fixtures and validates
+of the larger rebuild. The app preloads unpacked Bayer fixtures and validates
 their sample range before timing. No sensor or camera firmware is attached.
 
 ## Input ownership and backpressure
@@ -62,8 +62,9 @@ source attempt. Accepted frame indices stay contiguous, while per-frame
 that policy. Replay input leases use stable preloaded fixtures and a no-op
 release callback; native lifecycle tests exercise real release ownership.
 
-The current public configurations are RGGB12, RGGB14 and GBRG12 with stock
-qualities 0–5. GBRG14/16-bit and the other CFA layouts are not yet ported.
+The current public configurations are RGGB, GBRG, GRBG and BGGR at 12, 14 or
+16 bits per sample with stock qualities 0–5. The replay app selects these with
+`--cfa` and `--sample-bits`; its default remains RGGB14.
 Input samples must fit the configured bit depth; per-pixel checking is an
 application responsibility, not an extra hot-path scan in the library.
 
@@ -154,8 +155,8 @@ python3 tools/stock_video.py extract interrupted.gvid --recover --out-dir recove
 Recovery reports `complete=false`, a reason and the verified prefix only;
 it does not turn an interrupted recording into a successful capture receipt.
 Clip-header/calibration corruption cannot be recovered by guessing. The
-existing RAW decode/CNN adapter currently requires RGGB14; other profiles
-allow payload-only extraction until those adapters are ported.
+native RAW decoding and calibrated editable export now accept all 12 video
+formats. The optional CNN reconstruction adapter still requires RGGB14.
 
 ## Validation boundary
 

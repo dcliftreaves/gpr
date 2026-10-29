@@ -120,9 +120,16 @@ struct gpr_capture {
             vc5_encoder_parameters_set_default(&p);
             p.input_width=cfg.video.width; p.input_height=cfg.video.height; p.input_pitch=cfg.video.width*2;
             p.quality_setting=static_cast<VC5_ENCODER_QUALITY_SETTING>(cfg.video.quality);
-            bool gbrg = !std::memcmp(cfg.video.cfa,"GBRG",4);
-            p.pixel_format = gbrg ? VC5_ENCODER_PIXEL_FORMAT_GBRG_12 :
-                (cfg.video.sample_bits == 14 ? VC5_ENCODER_PIXEL_FORMAT_RGGB_14 : VC5_ENCODER_PIXEL_FORMAT_RGGB_12);
+            static const VC5_ENCODER_PIXEL_FORMAT formats[4][3] = {
+                {VC5_ENCODER_PIXEL_FORMAT_RGGB_12,VC5_ENCODER_PIXEL_FORMAT_RGGB_14,VC5_ENCODER_PIXEL_FORMAT_RGGB_16},
+                {VC5_ENCODER_PIXEL_FORMAT_GBRG_12,VC5_ENCODER_PIXEL_FORMAT_GBRG_14,VC5_ENCODER_PIXEL_FORMAT_GBRG_16},
+                {VC5_ENCODER_PIXEL_FORMAT_GRBG_12,VC5_ENCODER_PIXEL_FORMAT_GRBG_14,VC5_ENCODER_PIXEL_FORMAT_GRBG_16},
+                {VC5_ENCODER_PIXEL_FORMAT_BGGR_12,VC5_ENCODER_PIXEL_FORMAT_BGGR_14,VC5_ENCODER_PIXEL_FORMAT_BGGR_16}};
+            unsigned phase=0;
+            if (!std::memcmp(cfg.video.cfa,"GBRG",4)) phase=1;
+            else if (!std::memcmp(cfg.video.cfa,"GRBG",4)) phase=2;
+            else if (!std::memcmp(cfg.video.cfa,"BGGR",4)) phase=3;
+            p.pixel_format=formats[phase][(cfg.video.sample_bits-12)/2];
             p.mem_alloc=cfg.workspace_bytes ? workspace_alloc : std::malloc;
             p.mem_free=cfg.workspace_bytes ? workspace_free : std::free;
             for (;;) {
@@ -261,7 +268,6 @@ extern "C" int gpr_capture_create(const gpr_capture_config *cfg,
         cfg->video.width<48 || cfg->video.height<48 ||
         cfg->stride_bytes<size_t(cfg->video.width)*2 || cfg->stride_bytes>INT32_MAX ||
         cfg->workspace_bytes>size_t(2048)*1024*1024 ||
-        (!std::memcmp(cfg->video.cfa,"GBRG",4) && cfg->video.sample_bits!=12) ||
         gpr_gvid_write_header(header,&cfg->video,cfg->metadata,cfg->metadata_size)) return GPR_CAPTURE_INVALID;
     try {
         std::unique_ptr<gpr_capture> capture(new gpr_capture(*cfg,*cb));

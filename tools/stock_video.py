@@ -47,7 +47,7 @@ def read_header(f):
                   frame_header_bytes=fs)
     if version == 3:
         meta_size, flags, checksum, header_crc, zeros = struct.unpack("<IIIII", reserved)
-        if (bayer not in (b"RGGB", b"GBRG") or bits not in (12, 14) or fs != 48
+        if (bayer not in (b"RGGB", b"GBRG", b"GRBG", b"BGGR") or bits not in (12, 14, 16) or fs != 48
                 or meta_size > 65536 or flags != 1 or zeros or header_crc != zlib.crc32(data[:56])):
             raise ValueError("unsupported GVID v3 fields")
         metadata = f.read(meta_size)
@@ -286,8 +286,8 @@ def main():
         args.out_dir.mkdir(parents=True, exist_ok=False)
     with args.clip.open("rb") as f:
         header = read_header(f)
-        if args.decoder and (header["bayer"], header["sample_bits"]) != ("RGGB", 14):
-            raise ValueError("this decoder/CNN adapter currently requires RGGB14; use payload-only extraction for other profiles")
+        if model is not None and (header["bayer"], header["sample_bits"]) != ("RGGB", 14):
+            raise ValueError("the current CNN checkpoint adapter requires RGGB14")
         report = dict(schema="gpr.stock_video.inspect.v1", clip_sha256=sha256(args.clip),
                       header={k: v for k, v in header.items() if not k.startswith("_")}, frames=[], cnn=model_info)
         for record in records(f, header, args.recover):
@@ -312,7 +312,8 @@ def main():
                 if args.decoder:
                     raw = vc5.with_suffix(".raw")
                     subprocess.run([str(args.decoder.resolve()), "--decode", str(vc5), "--output", str(raw),
-                                    "--width", str(header["width"]), "--height", str(header["height"])], check=True)
+                                    "--width", str(header["width"]), "--height", str(header["height"]),
+                                    "--cfa", header["bayer"], "--sample-bits", str(header["sample_bits"])], check=True)
                     if raw.stat().st_size != header["width"] * header["height"] * 2:
                         raise ValueError("decoded RAW size mismatch")
                     row["raw_sha256"] = sha256(raw)
@@ -339,7 +340,8 @@ def main():
                         ref = np.fromfile(ref_path, dtype="<u2").reshape(header["height"], header["width"]).astype(np.float64)
                         def psnr(image):
                             mse = float(np.mean((image.astype(np.float64) - ref) ** 2))
-                            return float(10 * np.log10(16383.0 ** 2 / mse)) if mse else None
+                            peak=(1 << header["sample_bits"])-1
+                            return float(10 * np.log10(float(peak ** 2) / mse)) if mse else None
                         row.update(reference_sha256=sha256(ref_path),
                                    stock_psnr_db=psnr(np.fromfile(raw, dtype="<u2").reshape(ref.shape)))
                         if restored is not None:

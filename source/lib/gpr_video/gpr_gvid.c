@@ -69,8 +69,9 @@ int gpr_gvid_write_header(uint8_t out[64], const gpr_gvid_config *cfg,
         cfg->width > 8192 || cfg->height > 6144 || cfg->width % 8 || cfg->height % 8 ||
         !cfg->fps_num || !cfg->fps_den || cfg->fps_num > 240000 || cfg->fps_den > 10000 ||
         (uint64_t)cfg->fps_num > 240ULL * cfg->fps_den || cfg->quality > 5 ||
-        (cfg->sample_bits != 12 && cfg->sample_bits != 14) ||
-        (memcmp(cfg->cfa, "RGGB", 4) && memcmp(cfg->cfa, "GBRG", 4))) return -1;
+        (cfg->sample_bits != 12 && cfg->sample_bits != 14 && cfg->sample_bits != 16) ||
+        (memcmp(cfg->cfa, "RGGB", 4) && memcmp(cfg->cfa, "GBRG", 4) &&
+         memcmp(cfg->cfa, "GRBG", 4) && memcmp(cfg->cfa, "BGGR", 4))) return -1;
     memset(out, 0, 64);
     memcpy(out, "GVID", 4); put(out+4, 3, 2); put(out+6, 64, 2);
     memcpy(out+8, "VC5\0", 4); put(out+12, cfg->width, 4); put(out+16, cfg->height, 4);

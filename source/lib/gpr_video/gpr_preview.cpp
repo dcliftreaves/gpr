@@ -15,6 +15,18 @@
 #endif
 
 namespace {
+VC5_DECODER_PIXEL_FORMAT decoder_format(const gpr_gvid_config &v) {
+    static const VC5_DECODER_PIXEL_FORMAT formats[4][3] = {
+        {VC5_DECODER_PIXEL_FORMAT_RGGB_12,VC5_DECODER_PIXEL_FORMAT_RGGB_14,VC5_DECODER_PIXEL_FORMAT_RGGB_16},
+        {VC5_DECODER_PIXEL_FORMAT_GBRG_12,VC5_DECODER_PIXEL_FORMAT_GBRG_14,VC5_DECODER_PIXEL_FORMAT_GBRG_16},
+        {VC5_DECODER_PIXEL_FORMAT_GRBG_12,VC5_DECODER_PIXEL_FORMAT_GRBG_14,VC5_DECODER_PIXEL_FORMAT_GRBG_16},
+        {VC5_DECODER_PIXEL_FORMAT_BGGR_12,VC5_DECODER_PIXEL_FORMAT_BGGR_14,VC5_DECODER_PIXEL_FORMAT_BGGR_16}};
+    unsigned phase=0;
+    if (!std::memcmp(v.cfa,"GBRG",4)) phase=1;
+    else if (!std::memcmp(v.cfa,"GRBG",4)) phase=2;
+    else if (!std::memcmp(v.cfa,"BGGR",4)) phase=3;
+    return formats[phase][(v.sample_bits-12)/2];
+}
 unsigned be16(const uint8_t *p) { return unsigned(p[0])*256+p[1]; }
 bool stock_payload(const gpr_gvid_config &v,const uint8_t *p,size_t size) {
     if (!p || size<64 || size%4 || size>size_t(v.width)*v.height*3+1024*1024 || std::memcmp(p,"VC-5",4)) return false;
@@ -186,7 +198,7 @@ void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *
 }
 extern "C" void gpr_preview_calibration_identity(const gpr_gvid_config *v,gpr_preview_calibration *out) {
     if (!out) return; *out={};
-    if (!v || (v->sample_bits!=12 && v->sample_bits!=14)) return;
+    if (!v || (v->sample_bits!=12 && v->sample_bits!=14 && v->sample_bits!=16)) return;
     out->version=1; out->downsample=4; out->orientation=1; out->exposure=1;
     out->white=float((1u<<v->sample_bits)-1);
     out->camera_to_srgb[0]=out->camera_to_srgb[4]=out->camera_to_srgb[8]=1;
@@ -228,10 +240,13 @@ extern "C" int gpr_preview_plan_create(const gpr_gvid_config *v,const gpr_previe
         p->info={p->orientation>=5 ? p->rows:p->columns,p->orientation>=5 ? p->columns:p->rows,0};
         p->info.row_bytes=size_t(p->info.width)*3;
         p->count_scale=float(1u<<(16-v->sample_bits));
-        unsigned r=!std::memcmp(v->cfa,"RGGB",4) ? 0:2,b=3-r,g1,g2;
-        // GBRG: R=2, B=1, green sites=0,3. RGGB: R=0, B=3, green=1,2.
-        if (r==2) { g1=0; g2=3; } else { g1=1; g2=2; }
-        p->red=r; p->green1=g1; p->green2=g2; p->blue=b;
+        unsigned r=0,b=3;
+        if (!std::memcmp(v->cfa,"GBRG",4)) { r=2; b=1; }
+        else if (!std::memcmp(v->cfa,"GRBG",4)) { r=1; b=2; }
+        else if (!std::memcmp(v->cfa,"BGGR",4)) { r=3; b=0; }
+        unsigned green[2]={},count=0;
+        for (unsigned i=0;i<4;++i) if (i!=r && i!=b) green[count++]=i;
+        p->red=r; p->green1=green[0]; p->green2=green[1]; p->blue=b;
         for (unsigned i=0;i<4;++i) { p->black[i]=c->black[i]; p->inverse_range[i]=1/(c->white-p->black[i]); }
         for (unsigned i=0;i<9;++i) p->matrix[i]=c->camera_to_srgb[i];
         for (unsigned i=0;i<3;++i) p->camera_white[i]=c->camera_white[i];
@@ -315,6 +330,7 @@ extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *
         struct Restore { Allocations *old; ~Restore() { active=old; } } restore{previous};
         vc5_decoder_parameters parameters={}; vc5_decoder_parameters_set_default(&parameters);
         parameters.mem_alloc=allocate; parameters.mem_free=release;
+        parameters.pixel_format=decoder_format(p->video);
         parameters.rgb_resolution=p->downsample==4 ? GPR_RGB_RESOLUTION_QUARTER:
             (p->downsample==8 ? GPR_RGB_RESOLUTION_EIGHTH:GPR_RGB_RESOLUTION_SIXTEENTH);
         parameters.rgb_bits=16;
@@ -384,9 +400,7 @@ extern "C" int gpr_preview_render(const gpr_gvid_config *v,const gpr_preview_opt
         struct Restore { Allocations *old; ~Restore() { active=old; } } restore{previous};
         vc5_decoder_parameters parameters={}; vc5_decoder_parameters_set_default(&parameters);
         parameters.mem_alloc=allocate; parameters.mem_free=release;
-        bool gbrg=!std::memcmp(v->cfa,"GBRG",4);
-        parameters.pixel_format=gbrg ? (v->sample_bits==14 ? VC5_DECODER_PIXEL_FORMAT_GBRG_14:VC5_DECODER_PIXEL_FORMAT_GBRG_12)
-            : (v->sample_bits==14 ? VC5_DECODER_PIXEL_FORMAT_RGGB_14:VC5_DECODER_PIXEL_FORMAT_RGGB_12);
+        parameters.pixel_format=decoder_format(*v);
         parameters.rgb_resolution=o->downsample==4 ? GPR_RGB_RESOLUTION_QUARTER:
             (o->downsample==8 ? GPR_RGB_RESOLUTION_EIGHTH:GPR_RGB_RESOLUTION_SIXTEENTH);
         parameters.rgb_bits=8;

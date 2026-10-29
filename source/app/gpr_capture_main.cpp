@@ -34,13 +34,13 @@ static uint64_t integer(const std::string &s) {
 static uint64_t get(const uint8_t *p,unsigned n) {
     uint64_t v=0; for (unsigned i=0;i<n;++i) v|=uint64_t(p[i])<<(i*8); return v;
 }
-static std::vector<uint8_t> read_file(const std::string &path,size_t expected) {
+static std::vector<uint8_t> read_file(const std::string &path,size_t expected,uint32_t sample_bits) {
     std::ifstream f(path,std::ios::binary|std::ios::ate);
     if (!f || f.tellg()!=std::streamoff(expected)) throw std::runtime_error("input RAW size mismatch: "+path);
     std::vector<uint8_t> out(expected); f.seekg(0);
     if (!f.read(reinterpret_cast<char *>(out.data()),out.size())) throw std::runtime_error("short RAW input");
     for (size_t i=0;i<expected;i+=2)
-        if (get(out.data()+i,2)>16383) throw std::runtime_error("input must be 14-bit RGGB in little-endian 16-bit words");
+        if (get(out.data()+i,2)>((1u<<sample_bits)-1)) throw std::runtime_error("RAW sample exceeds declared bit depth");
     return out;
 }
 struct Completion { gpr_capture_completion frame; uint64_t done_ns; };
@@ -166,7 +166,7 @@ int main(int argc,char **argv) {
             std::string k=argv[a];
             if (k=="--help") {
                 std::cout<<"gpr_capture_app --input frame.raw [--input another.raw] --output clip.gvid\n"
-                    "  [--width 4096 --height 3072 --quality 4 --frames 900 --fps-num 30 --fps-den 1]\n"
+                    "  [--width 4096 --height 3072 --cfa RGGB --sample-bits 14 --quality 4 --frames 900 --fps-num 30 --fps-den 1]\n"
                     "  [--queue 4 --workspace-mib 192 --submit-timeout-ms 0] [--paced] [--fsync-each] [--leased]\n"
                     "  [--source-metadata calibration.json] (one per input, in input order; trusted JSON)\n";
 #if GPR_CAPTURE_HAS_PREVIEW
@@ -187,9 +187,14 @@ int main(int argc,char **argv) {
             else if (k=="--source-metadata") metadata_paths.push_back(v);
             else if (k=="--preview-profile") preview_profiles.push_back(v);
             else if (k=="--output") path=v;
+            else if (k=="--cfa") {
+                if (v.size()!=4) throw std::runtime_error("CFA must have four letters");
+                std::memcpy(cfg.video.cfa,v.data(),4);
+            }
             else {
                 uint64_t n=integer(v);
                 if (k=="--width") cfg.video.width=uint32_t(n);
+                else if (k=="--sample-bits") cfg.video.sample_bits=uint32_t(n);
                 else if (k=="--height") cfg.video.height=uint32_t(n);
                 else if (k=="--quality") cfg.video.quality=uint32_t(n);
                 else if (k=="--fps-num") cfg.video.fps_num=uint32_t(n);
@@ -245,7 +250,7 @@ int main(int argc,char **argv) {
         if (!preview_profiles.empty() || preview_option) throw std::runtime_error("this capture build has no preview component");
 #endif
         std::vector<std::vector<uint8_t>> raw;
-        for (const auto &input:inputs) raw.push_back(read_file(input,size_t(cfg.stride_bytes)*cfg.video.height));
+        for (const auto &input:inputs) raw.push_back(read_file(input,size_t(cfg.stride_bytes)*cfg.video.height,cfg.video.sample_bits));
         for (const char *flag:{"GPR_STREAM_UNPACK","GPR_BAND_STREAM","GPR_CHANNEL_ASM",
                  "GPR_PIN_CHANNELS","GPR_DIRECT_BANDS","GPR_COMPACT_BANDS"}) setenv(flag,"1",1);
         output.completions.reserve(attempts);

@@ -28,8 +28,8 @@ BINDING = struct.Struct('<4sIQQQIIII')
 
 def parameters(metadata, color, downsample=4):
     image, _, _ = media.validate(metadata)
-    if downsample not in (4, 8, 16) or metadata['cfa'] not in ('RGGB', 'GBRG') or metadata['sample_bits'] not in (12, 14):
-        raise ValueError('native preview requires stock RGGB/GBRG 12/14 and reduction 4/8/16')
+    if downsample not in (4, 8, 16) or metadata['cfa'] not in ('RGGB', 'GBRG', 'GRBG', 'BGGR') or metadata['sample_bits'] not in (12, 14, 16):
+        raise ValueError('native preview requires stock four-phase Bayer 12/14/16 and reduction 4/8/16')
     if (color.get('schema'), color.get('width'), color.get('height')) != ('gpr.preview_color.v1', metadata['width'], metadata['height']):
         raise ValueError('color compiler and source metadata disagree')
     if any(code in image for code in (50712, 50715, 50716)):
