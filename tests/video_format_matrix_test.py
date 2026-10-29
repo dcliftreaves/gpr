@@ -25,17 +25,26 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ('capture', 'decoder', 'compiler', 'player'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--only', help='run one CFA and bit-depth pair, for instrumented debugging')
     args = parser.parse_args()
+    if args.only and args.only not in {f'{cfa}{bits}' for cfa in ('RGGB', 'GBRG', 'GRBG', 'BGGR') for bits in (12, 14, 16)}:
+        parser.error('invalid --only format')
     with tempfile.TemporaryDirectory(prefix='gpr-video-format-matrix-') as temporary:
         root = Path(temporary)
         for cfa in ('RGGB', 'GBRG', 'GRBG', 'BGGR'):
             for bits in (12, 14, 16):
                 stem = f'{cfa}{bits}'
+                if args.only and stem != args.only:
+                    continue
                 source, clip = root / f'{stem}.raw', root / f'{stem}.gvid'
                 meta_file = root / f'{stem}.json'
                 extracted, profiles = root / f'{stem}-out', root / f'{stem}-profiles'
-                samples = [((x * 13 + y * 29 + (x % 2) * 281 + (y % 2) * 127) % (1 << bits))
+                samples = [((x * 719 + y * 1877 + (x % 2) * 3001 + (y % 2) * 1307) % (1 << bits))
                            for y in range(48) for x in range(48)]
+                if bits == 16:
+                    assert max(samples) > 16383
+                elif bits == 14:
+                    assert max(samples) > 4095
                 source.write_bytes(struct.pack('<' + str(len(samples)) + 'H', *samples))
                 meta_file.write_text(json.dumps(metadata(48, 48, bits, cfa)))
                 run(args.capture, '--input', source, '--output', clip, '--width', 48, '--height', 48,
@@ -58,7 +67,7 @@ def main():
                                                            '--profile-dir', profiles).splitlines()]
                 assert events[0]['event'] == 'preview' and events[0]['calibrated']
                 assert events[-1]['event'] == 'summary' and events[-1]['end_marker_verified']
-    print('PASS: 12 stock Bayer video formats through capture, decode, editable RAW and calibrated preview')
+    print('PASS: stock Bayer video formats through capture, decode, editable RAW and calibrated preview')
 
 
 if __name__ == '__main__':
