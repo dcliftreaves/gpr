@@ -232,3 +232,19 @@ The source recordings remain outside the repository.
 
 Broader rendering validation, actual camera audio/display integration and
 integrated capture/display performance remain part of the active rebuild.
+
+## Local large-file boundary check
+
+The current installed macOS bridge also passes a **1300-frame / 4,422,645,224-byte**
+GVID round trip through a 4,422,672,510-byte MOV. All recovered GVID bytes and
+all 1300 independently referenced stock payloads match. Atom inspection confirms
+an extended-size `mdat` and **37 `co64` chunk offsets above UINT32_MAX**, with
+the largest at 4,419,481,925 bytes. This exercises the actual 64-bit file-offset
+path rather than a small file with large timestamps.
+
+[Round-trip receipt](stock-core-receipts/large-mov-mac.json) and
+[independent payload/atom validation](stock-core-receipts/large-mov-validation.json)
+record the check. Capture was unpaced, with backpressure and actual timestamps;
+its completion times are not evidence for a 20 fps deadline or thermal gate.
+This particular large-file check is video-only; the separate 120-frame auxiliary
+receipts establish PCM/timecode behavior at their measured size and version.

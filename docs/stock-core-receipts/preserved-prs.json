@@ -1,0 +1,47 @@
+{
+  "checked_utc": "2026-10-29T12:21:04Z",
+  "read_only": true,
+  "remote_writes": false,
+  "pull_requests": [
+    {
+      "repository": "dcliftreaves/gpr",
+      "baseRefName": "master",
+      "headRefName": "review/product-runtime",
+      "number": 95,
+      "state": "OPEN",
+      "url": "https://github.com/dcliftreaves/gpr/pull/95"
+    },
+    {
+      "repository": "dcliftreaves/gpr",
+      "baseRefName": "review/product-runtime",
+      "headRefName": "review/product-validation",
+      "number": 96,
+      "state": "OPEN",
+      "url": "https://github.com/dcliftreaves/gpr/pull/96"
+    },
+    {
+      "repository": "dcliftreaves/gpr",
+      "baseRefName": "experiment/stock-encoder-architecture",
+      "headRefName": "experiment/stock-raw-video-12mp",
+      "number": 100,
+      "state": "OPEN",
+      "url": "https://github.com/dcliftreaves/gpr/pull/100"
+    },
+    {
+      "repository": "gopro/gpr",
+      "baseRefName": "master",
+      "headRefName": "review/product-runtime",
+      "number": 71,
+      "state": "OPEN",
+      "url": "https://github.com/gopro/gpr/pull/71"
+    },
+    {
+      "repository": "gopro/gpr",
+      "baseRefName": "master",
+      "headRefName": "review/product-validation",
+      "number": 72,
+      "state": "OPEN",
+      "url": "https://github.com/gopro/gpr/pull/72"
+    }
+  ]
+}

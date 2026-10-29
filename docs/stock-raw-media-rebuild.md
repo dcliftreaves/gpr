@@ -160,6 +160,30 @@ PCM/timecode transport and ProRes inheritance are now implemented under the
 
 ## Current task and evidence matrix
 
+### Extended Mission 1 host replay
+
+A later matched run uses the existing relocated A/V package for **1200
+attempts per run (60 seconds each)** at 20 fps, still alternating the two
+camera-still-derived RAWs. Recording-only and combined recording/preview each
+write 1200/1200 frames without overruns or late writes; all **2400 payloads**
+match independent stock bytes. The combined run delivers all 1200 full-frame
+1024x768 previews with no drops, replacements or late deliveries. Durable
+throughput is **20.0098 fps**, capture-to-preview p95 **30.8781 ms**. Encoder
+workspace peaks at 97,936,896 bytes with zero fallback allocation in both runs;
+combined process peak RSS is 585,891,840 bytes. These are measured replay
+figures, not a camera memory budget or a sustained thermal qualification.
+
+[Full receipt](stock-core-receipts/mission1-minute-mac.json) and
+[package/source validation](stock-core-receipts/mission1-minute-validation.json)
+bind the results to installed binaries. This extends the six-second evidence
+without replacing the actual camera, Pi, display, SD or temporal gates. The
+different encode medians between these single runs are not evidence that
+enabling preview accelerates encoding.
+
+Read-only [PR status checks](stock-core-receipts/preserved-prs.json) confirm
+fork #95/#96/#100 and upstream #71/#72 remain open on their original bases.
+No remote PR mutation, source upload or publication was performed.
+
 The delivery priority above narrows the immediate video integration path; it
 does not turn unresolved quality or hardware requirements into completed work.
 Historical platform receipts remain bound to their recorded revisions.
@@ -173,10 +197,10 @@ Historical platform receipts remain bound to their recorded revisions.
 | Bounded capture API | Ownership, leases, backpressure, cancellation, flush and writer failures implemented; [capture contract](stock-capture-api.md) | Physical sensor/DMA/storage adapter integration |
 | Checked recording/recovery | Actual timestamps, CRC metadata/payloads, END3 and explicit prefix recovery implemented; [recording contract](stock-capture-api.md) | Live sensor/card interruption and durability evidence |
 | Native calibrated preview | Immutable plans, source color/GainMaps/orientation and bounded queue implemented; [preview contract](stock-calibrated-preview.md), [combined path](stock-capture-preview.md) | Rear-display backend and broader lens/look/temporal approval |
-| Mission 1 20-fps host path | 120/120 recorded and previewed at 1024x768 with no late deliveries/overruns; [matched host receipt](stock-core-receipts/mission1-mac.json) | Refreshed combined Pi floor and actual camera proof; source is still replay, sink is memory |
+| Mission 1 20-fps host path | 1200/1200 recorded and previewed at 1024x768 over 60 seconds, no late deliveries/overruns; all 2400 matched-run payloads exact; [extended host receipt](stock-core-receipts/mission1-minute-mac.json) | Refreshed combined Pi floor and actual camera proof; source is still replay, sink is memory |
 | Offline 1x reconstruction | Portable inference and editable/sequence export work; [24 legacy comparisons](stock-cnn-quality.md), [fresh source-grouped Q3 experiment and seven contracts](stock-cleanup-training.md); all 30 trained checkpoints rejected by validation region guard | Model quality approval; identity fallback is not a quality improvement; legacy Q5 scene regression remains |
 | Offline 2x/8K reconstruction | Explicit architecture/geometry/calibration paths and fresh training/evaluation implemented; [functional evidence](stock-cnn-portable.md), [frozen candidate](stock-sr-training.md) | Candidate selection/perceptual/temporal approval; current shadow regression |
-| Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
+| Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
 | PCM/timecode interchange | Optional declared PCM16/24/float32 mono/stereo, independent timecode clocks, exact WAV samples and ProRes inheritance implemented; [120-frame A/V receipt](stock-av-receipts/real-core.json), [24 Release cases](stock-av-receipts/release-tests.txt) | Actual camera audio/synchronization and broader editor compatibility |
 | Calibrated ProRes | Deep HQ/4444, original timing and optional reconstruction implemented; [core decode](stock-core-receipts/exports-mac.json), [one-TIFF scratch](stock-prores-receipts/streaming.json), [A/V pixel/packet identity](stock-av-receipts/real-core.json) | Broader rendered-color/lens/temporal approval and custom grading looks |
 | SDK ABI and selected boundaries | Published C symbols, owned-copy rollback and encoder/decoder boundary fixes implemented; [C API](stock-sdk-api.md), [encoder](stock-encoder-bounds.md), [decoder](stock-decoder-bounds.md) | Broader malformed-input/failure/concurrency audit, deferred from immediate delivery |
