@@ -90,18 +90,36 @@ The movie and track timescales agree, avoiding a default 600-tick movie edit.
 
 The complete input, checksums and calibration are validated before loading a
 model. A second pass checks frame identity, and input file hashes are checked
-again before encoding. The current decoder/CNN adapter requires **RGGB14**.
+again before authorizing encoder finalization. The current decoder/CNN adapter requires **RGGB14**.
 There is no recovery mode for incomplete recordings. First export a deliberately
 recovered clip if that is required.
 
-The wrapper stages all rendered TIFFs in a private directory beside the output;
-scratch disk use grows with the recording. RAW/DNG scratch files are reused one
-frame at a time. Limits are 100,000 frames, 128 million rendered pixels per frame,
+The wrapper reuses one rendered TIFF in a private directory beside the output.
+The native encoder acknowledges consumption before that TIFF is deleted and
+the next frame is rendered. RAW/DNG/compressed-frame scratch files are also
+reused one frame at a time. Receipts report peak TIFF bytes, cumulative rendered
+TIFF bytes and peak image-file bytes. Image scratch is bounded by frame geometry;
+the growing output movie, an optional recovered compressed-GVID copy for private
+MOV input, and per-frame metadata are accounted for separately. This does not
+make total disk or metadata memory independent of recording length.
+
+Limits are 100,000 frames, 128 million rendered pixels per frame,
 32,768 pixels per dimension and 2 GiB per native input image. Apple's decoder can
 reject smaller or otherwise unsupported DNGs; no preview fallback is allowed.
-Native frame buffers remain bounded by frame geometry, but this is not a
-bounded-storage streaming transcoder. Rendering very large frames requires
-corresponding host memory. Native writer readiness/finalization waits are bounded.
+Rendering very large frames still requires corresponding host memory.
+Native stream input has a 180-second per-record deadline; writer readiness and
+finalization retain their 60-/120-second deadlines. A truncated/failed producer,
+inconsistent duration or missing finish record cancels the private output.
+Wrapper failures terminate and join the child before removing scratch files.
+
+The native `gpr_prores frames.json output.mov` interface remains available.
+The wrapper now uses `gpr_prores --stream output.mov`: a bounded JSON-line
+header (`gpr.prores_stream.v1`, profile, timescale, end_pts, frame_count), then
+one absolute TIFF path/pts/next_pts record per frame and an explicit
+`{"event":"finish"}` record. Ready/consumed replies on stdout provide ownership
+handoff; only the final `gpr.prores_encode.v1` reply signals a completed movie.
+Both protocol peers must come from the same updated package. No protocol
+handling is required from ordinary `stock_prores.py` callers.
 
 The wrapper verifies every output packet's PTS/DTS, duration and sync flag, track
 duration, dimensions, component format, codec/profile and Rec.709 tags through
@@ -114,13 +132,34 @@ protected. This is not group-atomic publication or a durability/fsync claim.
 ## Validation and measured examples
 
 `GPR_BUILD_RENDER_TESTS=ON` adds `stock_prores` to CTest and requires the stock
-video experiment, NumPy, tifffile, FFmpeg and FFprobe. Eight tests check all eight
+video experiment, NumPy, tifffile, FFmpeg and FFprobe. Ten tests check all eight
 orientations against independent array transforms, white balance/color-matrix
 changes, compensated black/white shifts, crop geometry, an oriented 318-pixel-wide deep-buffer path, stage-two Bayer GainMaps,
 HQ/4444 independent decoding, irregular nanosecond timing, a six-second gap with
 an adaptive clock, changing per-frame calibration, uint64 absolute timestamps,
 truncated input, malformed native timestamps and exclusive publication. Tests
 use synthetic 512x384 Bayer data; real 12 MP runs provide additional evidence.
+The streaming cases require exact batch/stream ProRes packet hashes and timing
+for HQ and 4444 while reusing/deleting one TIFF path, independently decode the
+movies, observe actual wrapper scratch files and reject incomplete/inconsistent
+streams without publishing an output.
+
+### Bounded image scratch, 2026-10-29
+
+The full 120-frame, 4096x3072 Mission 1-style replay now renders **12.08 GB of
+cumulative TIFF data while retaining only one TIFF**, peaking at **100.67 MB**.
+Peak compressed-frame/RAW/DNG/TIFF scratch together is **154.71 MB**, independently
+observed by a 50 ms filesystem sampler with inode deduplication. All private
+scratch directories are removed after completion. The recovered compressed
+GVID copy and growing output movie are excluded from those image-scratch totals.
+
+All 120 frames retain the earlier RAW, DNG, TIFF and calibration hashes, the
+exact earlier ProRes packet hashes and timestamps, and identical full-video
+decoded pixels through FFmpeg. The final movie remains 682,542,583 bytes.
+This single functional run takes 57.70 s before publication; it is not a
+repeat-based speed comparison with the earlier 61.22 s batch run. The ten
+ordinary Release rendering tests pass in 8.26 s; no new sanitizer campaign
+was part of this change. [Receipt](stock-prores-receipts/streaming.json).
 
 Initial M5 Max functional runs (single runs, not repeat-based benchmarks):
 

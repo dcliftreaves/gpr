@@ -3,16 +3,19 @@
 
 Requires the optional gpr_render/gpr_prores tools, stock_video decoder and
 ffprobe. Torch and caller-selected weights are needed only for reconstruction.
-This offline workflow stages deep TIFFs; scratch storage grows with the clip.
+This offline workflow reuses one deep TIFF after native consumption is acknowledged.
 """
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import selectors
 import subprocess
 import tempfile
 import time
 from fractions import Fraction
+from contextlib import contextmanager
 
 import raw_media
 import stock_still
@@ -24,6 +27,87 @@ def run(command):
     if result.returncode:
         raise RuntimeError(f'{Path(command[0]).name} failed: {result.stderr[-8000:]}')
     return result
+
+
+class EncoderStream:
+    """Bounded frame/ack exchange with the native deep ProRes writer."""
+    def __init__(self, process, errors):
+        self.process, self.errors = process, errors
+        self.selector = selectors.DefaultSelector()
+        self.selector.register(process.stdout, selectors.EVENT_READ)
+        self.pending = b''
+        self.index = 0
+
+    def failure(self, message):
+        self.errors.seek(0)
+        return RuntimeError(f'gpr_prores {message}: {self.errors.read()[-8000:].decode(errors="replace")}')
+
+    def send(self, record):
+        data = memoryview((json.dumps(record, separators=(',', ':'))+'\n').encode())
+        if len(data) > 65536:
+            raise ValueError('ProRes stream record exceeds 64 KiB')
+        try:
+            while data:
+                count = self.process.stdin.write(data)
+                if not count:
+                    raise self.failure('stream input closed')
+                data = data[count:]
+        except BrokenPipeError as error:
+            raise self.failure('stream input closed') from error
+
+    def reply(self):
+        deadline = time.monotonic()+180
+        while b'\n' not in self.pending:
+            remaining = deadline-time.monotonic()
+            if remaining <= 0 or not self.selector.select(remaining):
+                raise self.failure('stream reply timed out')
+            chunk = os.read(self.process.stdout.fileno(), 4096)
+            if not chunk:
+                raise self.failure('stream ended before its reply')
+            self.pending += chunk
+            if len(self.pending) > 65536:
+                raise self.failure('stream reply exceeds 64 KiB')
+        line, self.pending = self.pending.split(b'\n', 1)
+        return stock_video.decode_metadata(line)
+
+    def append(self, path, pts, next_pts):
+        self.send(dict(path=str(path), pts=pts, next_pts=next_pts))
+        reply = self.reply()
+        if reply != dict(schema='gpr.prores_stream.consumed.v1', index=self.index):
+            raise self.failure('returned an invalid frame acknowledgment')
+        self.index += 1
+
+    def finish(self):
+        self.send(dict(event='finish'))
+        self.process.stdin.close()
+        result = self.reply()
+        if self.process.wait(timeout=180) or result.get('schema') != 'gpr.prores_encode.v1':
+            raise self.failure('stream finalization failed')
+        return result
+
+
+@contextmanager
+def encoder_stream(encoder, output, header, log):
+    with log.open('w+b') as errors:
+        process = subprocess.Popen([str(encoder), '--stream', str(output)], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=errors, bufsize=0)
+        stream = EncoderStream(process, errors)
+        try:
+            stream.send(header)
+            if stream.reply() != dict(schema='gpr.prores_stream.ready.v1'):
+                raise stream.failure('does not support the streaming protocol')
+            yield stream
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
+            stream.selector.close()
+            process.stdin.close()
+            process.stdout.close()
 
 
 def clock(timestamps, fps_num, fps_den):
@@ -126,53 +210,57 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             model, model_info = stock_video.load_cnn(cnn_root, checkpoint, device)
             if model_info.get('output_scale', 1) != scale:
                 raise ValueError('checkpoint output scale differs from requested scale')
-        manifest = dict(schema='gpr.prores_frames.v1', profile=profile, timescale=timing['timescale'],
-                        end_pts=timing['end_pts'], frames=[])
+        manifest = dict(schema='gpr.prores_stream.v1', profile=profile, timescale=timing['timescale'],
+                        end_pts=timing['end_pts'], frame_count=len(rows))
         dimensions = None
-        with gvid.open('rb') as file:
-            current = stock_video.read_header(file)
-            for record, row, pts in zip(stock_video.records(file, current), rows, timing['pts']):
-                calibration = record['metadata'].get('raw_metadata', current.get('metadata', {}).get('raw_metadata', metadata))
-                raw_media.validate(calibration, current)
-                if (record['index'] != row['index'] or record['pts_ns'] != row['pts_ns'] or
-                    hashlib.sha256(record['payload']).hexdigest() != row['payload_sha256'] or
-                    hashlib.sha256(stock_still.canonical(calibration)).hexdigest() != row['calibration_sha256']):
-                    raise ValueError('recording changed during rendering')
-                vc5, raw, dng = (root/name for name in ('frame.vc5', 'frame.raw', 'frame.dng'))
-                vc5.write_bytes(record['payload'])
-                run([binaries['decoder'], '--decode', vc5, '--output', raw, '--width', header['width'], '--height', header['height']])
-                payload = raw.read_bytes()
-                if len(payload) != header['width']*header['height']*2:
-                    raise ValueError('decoded RAW extent differs')
-                row['raw_sha256'] = hashlib.sha256(payload).hexdigest()
-                if model is not None:
-                    from stock_cnn_metadata import scaled
-                    restored, elapsed = stock_video.restore(raw, header['width'], header['height'], model, device, tile, halo, scale)
-                    calibration, geometry = scaled(calibration, scale)
-                    payload = restored.astype('<u2').tobytes()
-                    row.update(cnn_s=elapsed, geometry=geometry)
-                row['rendered_raw_sha256'] = hashlib.sha256(payload).hexdigest()
-                row['render_calibration_sha256'] = hashlib.sha256(stock_still.canonical(calibration)).hexdigest()
-                raw_media.write(dng, calibration, payload)
-                row['dng_sha256'] = stock_still.digest(dng)
-                tiff = root/f'{row["index"]:06}.tiff'
-                rendered = json.loads(run([binaries['renderer'], dng, tiff]).stdout)
-                if rendered.get('schema') != 'gpr.raw_render.v1' or rendered.get('bits_per_component') != 16 or rendered.get('color_space') != 'ITU-R BT.709':
-                    raise ValueError('unexpected renderer output contract')
-                size = (rendered['width'], rendered['height'])
-                if dimensions is not None and size != dimensions:
-                    raise ValueError('rendered crop/orientation changes output dimensions; split the clip')
-                dimensions = size
-                row.update(render=rendered, tiff_sha256=stock_still.digest(tiff), mov_pts=pts)
-                manifest['frames'].append(dict(path=str(tiff), pts=pts))
-                for path in (vc5, raw, dng):
-                    path.unlink()
-        if stock_still.digest(source) != source_sha or stock_still.digest(gvid) != gvid_sha:
-            raise ValueError('source changed during rendering')
-        control = root/'frames.json'
-        control.write_text(json.dumps(manifest))
+        scratch_image_peak_bytes = rendered_tiff_peak_bytes = rendered_tiff_total_bytes = 0
         movie = root/'output.mov'
-        native = json.loads(run([binaries['encoder'], control, movie]).stdout)
+        with encoder_stream(binaries['encoder'], movie, manifest, root/'encoder.stderr') as stream:
+            with gvid.open('rb') as file:
+                current = stock_video.read_header(file)
+                for record, row, pts in zip(stock_video.records(file, current), rows, timing['pts']):
+                    calibration = record['metadata'].get('raw_metadata', current.get('metadata', {}).get('raw_metadata', metadata))
+                    raw_media.validate(calibration, current)
+                    if (record['index'] != row['index'] or record['pts_ns'] != row['pts_ns'] or
+                        hashlib.sha256(record['payload']).hexdigest() != row['payload_sha256'] or
+                        hashlib.sha256(stock_still.canonical(calibration)).hexdigest() != row['calibration_sha256']):
+                        raise ValueError('recording changed during rendering')
+                    vc5, raw, dng = (root/name for name in ('frame.vc5', 'frame.raw', 'frame.dng'))
+                    vc5.write_bytes(record['payload'])
+                    run([binaries['decoder'], '--decode', vc5, '--output', raw, '--width', header['width'], '--height', header['height']])
+                    payload = raw.read_bytes()
+                    if len(payload) != header['width']*header['height']*2:
+                        raise ValueError('decoded RAW extent differs')
+                    row['raw_sha256'] = hashlib.sha256(payload).hexdigest()
+                    if model is not None:
+                        from stock_cnn_metadata import scaled
+                        restored, elapsed = stock_video.restore(raw, header['width'], header['height'], model, device, tile, halo, scale)
+                        calibration, geometry = scaled(calibration, scale)
+                        payload = restored.astype('<u2').tobytes()
+                        row.update(cnn_s=elapsed, geometry=geometry)
+                    row['rendered_raw_sha256'] = hashlib.sha256(payload).hexdigest()
+                    row['render_calibration_sha256'] = hashlib.sha256(stock_still.canonical(calibration)).hexdigest()
+                    raw_media.write(dng, calibration, payload)
+                    row['dng_sha256'] = stock_still.digest(dng)
+                    tiff = root/'frame.tiff'
+                    rendered = json.loads(run([binaries['renderer'], dng, tiff]).stdout)
+                    if rendered.get('schema') != 'gpr.raw_render.v1' or rendered.get('bits_per_component') != 16 or rendered.get('color_space') != 'ITU-R BT.709':
+                        raise ValueError('unexpected renderer output contract')
+                    size = (rendered['width'], rendered['height'])
+                    if dimensions is not None and size != dimensions:
+                        raise ValueError('rendered crop/orientation changes output dimensions; split the clip')
+                    dimensions = size
+                    row.update(render=rendered, tiff_sha256=stock_still.digest(tiff), mov_pts=pts)
+                    rendered_tiff_peak_bytes = max(rendered_tiff_peak_bytes, tiff.stat().st_size)
+                    rendered_tiff_total_bytes += tiff.stat().st_size
+                    scratch_image_peak_bytes = max(scratch_image_peak_bytes, sum(path.stat().st_size for path in (vc5, raw, dng, tiff)))
+                    next_pts = timing['pts'][row['index']+1] if row['index']+1 < len(rows) else timing['end_pts']
+                    stream.append(tiff, pts, next_pts)
+                    for path in (vc5, raw, dng, tiff):
+                        path.unlink()
+            if stock_still.digest(source) != source_sha or stock_still.digest(gvid) != gvid_sha:
+                raise ValueError('source changed during rendering')
+            native = stream.finish()
         verified = verify(movie, binaries['ffprobe'], timing, *dimensions, profile)
         result = dict(schema='gpr.stock_prores.v1', source_sha256=source_sha, gvid_sha256=gvid_sha,
             output_sha256=stock_still.digest(movie), output_bytes=movie.stat().st_size,
@@ -180,6 +268,10 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             intermediate_bits=16, frames=rows, frame_count=len(rows), cnn=model_info,
             cnn_settings=dict(tile=tile, halo=halo, device=str(device), scale=scale) if model is not None else None,
             reconstruction_scale=scale, timing=timing, verification=verified, native=native,
+            scratch=dict(rendered_tiff_files_max=1, rendered_tiff_peak_bytes=rendered_tiff_peak_bytes,
+                         rendered_tiff_total_bytes=rendered_tiff_total_bytes,
+                         image_files_peak_bytes=scratch_image_peak_bytes,
+                         scope='compressed source copy and growing output movie excluded; frame metadata remains proportional to frame count'),
             complete=header['_complete'], end_marker_verified=header['_end_marker_verified'],
             binary_sha256={k: stock_still.digest(v) for k, v in binaries.items()},
             ffprobe_version=run([binaries['ffprobe'], '-version']).stdout.splitlines()[0],

@@ -6,6 +6,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
+#include <poll.h>
+#include <signal.h>
+#include <errno.h>
 
 static void require(BOOL condition, NSString *message) {
     if (!condition) @throw [NSException exceptionWithName:@"gpr_prores" reason:message userInfo:nil];
@@ -17,24 +20,62 @@ static int64_t integer(id value) {
     return [value longLongValue];
 }
 
+// One bounded line per frame lets the producer reuse its TIFF after the
+// encoder acknowledges consumption. A stalled or truncated producer fails.
+static NSDictionary *stream_record(void) {
+    NSMutableData *data = [NSMutableData data];
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:180];
+    for (;;) {
+        int remaining = (int)(deadline.timeIntervalSinceNow*1000);
+        require(remaining > 0, @"stream input timed out");
+        struct pollfd descriptor = {STDIN_FILENO, POLLIN, 0};
+        int status = poll(&descriptor, 1, remaining);
+        if (status < 0 && errno == EINTR) continue;
+        require(status > 0, @"stream input timed out or failed");
+        unsigned char byte;
+        ssize_t count = read(STDIN_FILENO, &byte, 1);
+        if (count < 0 && errno == EINTR) continue;
+        require(count == 1, @"stream ended before the declared frames and finish record");
+        if (byte == '\n') break;
+        require(data.length < 65536, @"stream record exceeds 64 KiB");
+        [data appendBytes:&byte length:1];
+    }
+    id record = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
+    require([record isKindOfClass:NSDictionary.class], @"invalid stream JSON record");
+    return record;
+}
+
+static void stream_reply(NSString *line) {
+    require(fprintf(stdout, "%s\n", line.UTF8String) > 0 && !fflush(stdout), @"stream reply failed");
+}
+
 int main(int argc, const char **argv) {
     @autoreleasepool {
         if (argc == 2 && !strcmp(argv[1], "--version")) {
-            puts("gpr_prores 1; AVFoundation; 16-bit ARGB input; ProRes 422 HQ/4444");
+            puts("gpr_prores 2; AVFoundation; 16-bit ARGB input; ProRes 422 HQ/4444; streaming");
             return 0;
         }
-        if (argc != 3) { fprintf(stderr, "usage: gpr_prores frames.json output.mov\n"); return 1; }
+        if (argc != 3) { fprintf(stderr, "usage: gpr_prores frames.json|--stream output.mov\n"); return 1; }
+        BOOL streaming = !strcmp(argv[1], "--stream");
+        signal(SIGPIPE, SIG_IGN);
         NSString *temporary = nil;
         AVAssetWriter *writer = nil;
         CGColorSpaceRef space = NULL;
         @try {
             struct stat st;
-            require(!stat(argv[1], &st) && S_ISREG(st.st_mode) && st.st_size > 0 && st.st_size <= 16*1024*1024, @"manifest must be a regular file of at most 16 MiB");
-            NSData *data = [NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];
-            NSDictionary *manifest = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
-            require([manifest isKindOfClass:NSDictionary.class] && [manifest[@"schema"] isEqual:@"gpr.prores_frames.v1"], @"invalid manifest schema");
+            NSDictionary *manifest;
+            if (streaming) manifest = stream_record();
+            else {
+                require(!stat(argv[1], &st) && S_ISREG(st.st_mode) && st.st_size > 0 && st.st_size <= 16*1024*1024, @"manifest must be a regular file of at most 16 MiB");
+                NSData *data = [NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];
+                manifest = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
+            }
+            require([manifest isKindOfClass:NSDictionary.class] && [manifest[@"schema"] isEqual:
+                    (streaming ? @"gpr.prores_stream.v1" : @"gpr.prores_frames.v1")], @"invalid manifest schema");
             NSArray *frames = manifest[@"frames"];
-            require([frames isKindOfClass:NSArray.class] && frames.count && frames.count <= 100000, @"requires 1..100000 frames");
+            require(streaming || [frames isKindOfClass:NSArray.class], @"invalid frames array");
+            int64_t frameCount = streaming ? integer(manifest[@"frame_count"]) : frames.count;
+            require(frameCount > 0 && frameCount <= 100000, @"requires 1..100000 frames");
             int64_t timescale = integer(manifest[@"timescale"]);
             int64_t end = integer(manifest[@"end_pts"]);
             require(timescale > 0 && timescale <= INT_MAX && end > 0, @"invalid track clock");
@@ -58,15 +99,21 @@ int main(int argc, const char **argv) {
             AVAssetWriterInput *input = nil;
             AVAssetWriterInputPixelBufferAdaptor *adaptor = nil;
             int64_t previous = -1;
+            int64_t previousNext = 0;
             size_t width = 0, height = 0;
             NSUInteger index = 0;
-            for (id item in frames) @autoreleasepool {
+            if (streaming) stream_reply(@"{\"schema\":\"gpr.prores_stream.ready.v1\"}");
+            while (index < (NSUInteger)frameCount) {
+              @autoreleasepool {
+                id item = streaming ? stream_record() : frames[index];
                 require([item isKindOfClass:NSDictionary.class], @"invalid frame record");
                 int64_t pts = integer(item[@"pts"]);
                 require(pts > previous && pts < end && (previous != -1 || pts == 0), @"non-increasing or out-of-range timestamp");
-                require(index+1 == frames.count || [frames[index+1] isKindOfClass:NSDictionary.class], @"invalid next frame record");
-                int64_t next = index+1 < frames.count ? integer(frames[index+1][@"pts"]) : end;
+                require(streaming || index+1 == frames.count || [frames[index+1] isKindOfClass:NSDictionary.class], @"invalid next frame record");
+                int64_t next = streaming ? integer(item[@"next_pts"]) :
+                    (index+1 < frames.count ? integer(frames[index+1][@"pts"]) : end);
                 require(next > pts && next <= end, @"invalid next-frame duration");
+                require(!streaming || (pts == previousNext && (index+1 != (NSUInteger)frameCount || next == end)), @"stream frame durations disagree");
                 NSString *path = item[@"path"];
                 require([path isKindOfClass:NSString.class] && path.isAbsolutePath &&
                         !stat(path.fileSystemRepresentation, &st) && S_ISREG(st.st_mode) &&
@@ -145,8 +192,12 @@ int main(int argc, const char **argv) {
                 CVPixelBufferRelease(buffer);
                 require(appended, writer.error.localizedDescription ?: @"frame append failed");
                 previous = pts;
+                previousNext = next;
                 ++index;
+              }
+              if (streaming) stream_reply([NSString stringWithFormat:@"{\"schema\":\"gpr.prores_stream.consumed.v1\",\"index\":%lu}", (unsigned long)index-1]);
             }
+            if (streaming) require([stream_record()[@"event"] isEqual:@"finish"], @"stream requires explicit finish record");
             [writer endSessionAtSourceTime:CMTimeMake(end, (int32_t)timescale)];
             [input markAsFinished];
             dispatch_semaphore_t done = dispatch_semaphore_create(0);

@@ -142,6 +142,13 @@ independent FFmpeg decode. The single functional export takes 61.22 s before
 publication and produces 682,542,583 bytes; this is offline processing, not
 real-time ProRes. [Export receipt](stock-core-receipts/exports-mac.json).
 
+The subsequent [streaming ProRes follow-up](stock-prores.md#bounded-image-scratch-2026-10-29)
+removes the accumulated TIFF pool. The same 120-frame clip now peaks at
+100.67 MB of TIFF storage / 154.71 MB of image scratch, with exact prior
+ProRes packets, decoded pixels and timestamps. Ten Release rendering tests
+pass. This closes the frame-image scratch growth gap without broadening the
+focused RGGB14 video format scope.
+
 The local review bundle is at
 `/Users/dcliftreaves/Documents/slop/gpr_check/releases/stock-core-20261029`.
 Its recording alternates two stills; no scene motion or temporal quality is
@@ -282,6 +289,8 @@ extensions remain pending.
 [Calibrated ProRes rendering](stock-prores.md) now processes each actual typed
 DNG through the macOS RAW decoder into a 16-bit Rec.709 intermediate and deep
 ProRes HQ/4444, with explicit frame durations and independent packet/color checks.
+Acknowledged frame delivery now reuses one deep TIFF instead of retaining
+the entire rendered sequence; the original batch manifest interface remains.
 Both caller-selected 1x and 2x CNN paths run through this renderer. Real camera
 functional checks include 8192x6144 12-bit 4444 output; broader rendered/temporal
 quality approval and audio/timecode integration remain pending.

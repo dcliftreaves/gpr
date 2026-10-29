@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zlib
 
 import numpy as np
@@ -177,7 +178,20 @@ class Rendering(unittest.TestCase):
         clip = self.root/'input.gvid'
         clip.write_bytes(fixture(payload, [self.meta, changed, self.meta], [2**64-200000000, 2**64-166666667, 2**64-116666661]))
         output = self.root/'output.mov'
-        result = prores.convert(clip, output, args.decoder, args.renderer, args.encoder, args.ffprobe)
+        render_scratch = []
+        original_run = prores.run
+        def observe(command):
+            result = original_run(command)
+            if Path(command[0]) == args.renderer:
+                images = list(Path(command[-1]).parent.glob('*.tiff'))
+                render_scratch.append((len(images), sum(path.stat().st_size for path in images)))
+            return result
+        with patch.object(prores, 'run', side_effect=observe):
+            result = prores.convert(clip, output, args.decoder, args.renderer, args.encoder, args.ffprobe)
+        self.assertEqual(len(render_scratch), 3)
+        self.assertTrue(all(count == 1 for count, size in render_scratch))
+        self.assertEqual(result['scratch']['rendered_tiff_peak_bytes'], max(size for count, size in render_scratch))
+        self.assertEqual(result['scratch']['rendered_tiff_total_bytes'], sum(size for count, size in render_scratch))
         self.assertEqual(result['frame_count'], 3)
         self.assertTrue(result['end_marker_verified'])
         self.assertEqual(result['timing']['maximum_timestamp_error_ns'], 0)
@@ -196,6 +210,57 @@ class Rendering(unittest.TestCase):
             prores.convert(bad, self.root/'geometry.mov', args.decoder, args.renderer, args.encoder, args.ffprobe)
         self.assertFalse((self.root/'geometry.mov').exists())
         self.assertFalse(list(self.root.glob('.stock-prores-*')))
+
+    def test_stream_reuses_tiff_with_exact_batch_packets_and_timing(self):
+        first, _, _ = self.render('first')
+        second, _, _ = self.render('second', raw=self.raw+700)
+        timing = prores.clock([0, 33333333, 83333339], 30000, 1001)
+        ends = timing['pts'][1:]+[timing['end_pts']]
+        for profile in ('hq', '4444'):
+            with self.subTest(profile=profile):
+                batch = self.root/(profile+'-batch.mov')
+                stream_movie = self.root/(profile+'-stream.mov')
+                control = self.root/(profile+'.json')
+                paths = [first, second, first]
+                control.write_text(json.dumps(dict(schema='gpr.prores_frames.v1', profile=profile,
+                    timescale=timing['timescale'], end_pts=timing['end_pts'],
+                    frames=[dict(path=str(path), pts=pts) for path, pts in zip(paths, timing['pts'])])))
+                prores.run([args.encoder, control, batch])
+                header = dict(schema='gpr.prores_stream.v1', profile=profile,
+                    timescale=timing['timescale'], end_pts=timing['end_pts'], frame_count=len(paths))
+                with prores.encoder_stream(args.encoder, stream_movie, header, self.root/'stream.stderr') as stream:
+                    for path, pts, end in zip(paths, timing['pts'], ends):
+                        reused = self.root/'reused.tiff'
+                        reused.write_bytes(path.read_bytes())
+                        stream.append(reused, pts, end)
+                        reused.unlink()
+                    stream.finish()
+                prores.verify(stream_movie, args.ffprobe, timing, 512, 384, profile)
+                def packets(movie):
+                    data = json.loads(prores.run([args.ffprobe, '-v', 'error', '-select_streams', 'v',
+                        '-show_packets', '-show_data_hash', 'sha256', '-of', 'json', movie]).stdout)
+                    return [(p['pts'], p['dts'], p['duration'], p['data_hash']) for p in data['packets']]
+                self.assertEqual(packets(batch), packets(stream_movie))
+                prores.run([args.ffmpeg, '-v', 'error', '-i', stream_movie, '-f', 'null', '-'])
+
+    def test_truncated_or_inconsistent_stream_never_publishes(self):
+        image, _, _ = self.render('frame')
+        header = dict(schema='gpr.prores_stream.v1', profile='hq', timescale=1000000000,
+                      end_pts=100000000, frame_count=2)
+        first = dict(path=str(image), pts=0, next_pts=50000000)
+        cases = ([header], [header, first],
+                 [header, first, dict(path=str(image), pts=50000001, next_pts=100000000)],
+                 [header, first, dict(path=str(image), pts=50000000, next_pts=100000000)],
+                 [header, first, dict(path=str(image), pts=50000000, next_pts=100000000), dict(event='wrong')])
+        for index, records in enumerate(cases):
+            with self.subTest(case=index):
+                movie = self.root/f'incomplete-{index}.mov'
+                result = subprocess.run([str(args.encoder), '--stream', str(movie)],
+                    input=''.join(json.dumps(record)+'\n' for record in records),
+                    text=True, capture_output=True, timeout=30)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(movie.exists())
+                self.assertFalse(list(self.root.glob(movie.name+'.tmp.*')))
 
     def test_native_rejection_and_exclusive_publication(self):
         bad = self.root/'bad.dng'; bad.write_bytes(b'not a RAW')
