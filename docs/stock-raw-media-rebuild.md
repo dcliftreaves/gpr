@@ -35,8 +35,9 @@ and 1024x768 preview. Retain that floor separately from the more demanding
 the actual sensor/DMA, rear-display, SD durability or camera thermal gates.
 Prioritize ordinary Release integration, real-sample workflows and reviewable
 local packages. Broader sanitizer/fuzz auditing is deferred from the immediate
-critical path. Work stays local; remote source uploads, pushes and publication
-require separate explicit user approval.
+critical path. The user authorized source uploads and pushes to their Git fork
+on 2026-10-30; the replacement draft is fork PR #101. Existing feature and
+validation PRs stay open.
 
 ## Core workflow
 

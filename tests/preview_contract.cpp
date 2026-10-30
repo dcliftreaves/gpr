@@ -12,6 +12,14 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <cstdlib>
+static void serial_decoder(bool enabled) {
+#ifdef _WIN32
+    _putenv_s("GPR_PREVIEW_SERIAL_DECODER",enabled ? "1":"0");
+#else
+    setenv("GPR_PREVIEW_SERIAL_DECODER",enabled ? "1":"0",1);
+#endif
+}
 static void check(bool value,const char *why) { if (!value) throw std::runtime_error(why); }
 static std::vector<uint8_t> file(const std::string &path) {
     std::ifstream in(path,std::ios::binary|std::ios::ate); check(bool(in),"fixture missing");
@@ -150,6 +158,14 @@ static void calibrated_preview(const std::string &root,unsigned width,unsigned s
     check(std::all_of(output.begin(),output.end(),[](uint8_t p){return p==0xcd;}),"capacity failure modified display");
     auto unaligned=payload; unaligned.insert(unaligned.begin(),0);
     check(!gpr_preview_plan_render(plan.get(),unaligned.data()+1,payload.size(),output.data()+16,needed,pitch,&info),"calibrated render");
+    // Compare both decoder architectures before allowing RGB8 rounding in the
+    // separate floating-point reference below. Include padding and canaries.
+    std::vector<uint8_t> serial_output(output.size(),0xcd);
+    serial_decoder(true);
+    int serial_error=gpr_preview_plan_render(plan.get(),unaligned.data()+1,payload.size(),serial_output.data()+16,needed,pitch,&info);
+    serial_decoder(false);
+    check(!serial_error,"serial calibrated render");
+    check(serial_output==output,"parallel/fused preview differs from serial decoder");
     unsigned full_width=(width+scale-1)/scale,full_height=(96+scale-1)/scale;
     check(linear.size()==size_t(full_width)*full_height*6,"stock linear fixture extent");
     for (unsigned y=0;y<rows;++y) for (unsigned x=0;x<columns;++x) {
