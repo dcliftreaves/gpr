@@ -123,6 +123,9 @@ typedef struct _encoder_parameters
     GPR_RGB_RESOLUTION  rgb_resolution;
 
     gpr_rgb_gain        rgb_gain;
+    /* Internal experiment: retained upper bands, borrowed only during callback. */
+    void (*preview_observer)(void *user, const TRANSFORM *transforms);
+    void *preview_user;
     
 } ENCODER_PARAMETERS;
 

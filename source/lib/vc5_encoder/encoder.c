@@ -411,6 +411,9 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 		return error;
 	}
     
+    if (parameters->preview_observer)
+        parameters->preview_observer(parameters->preview_user,encoder.transform);
+
     if( rgb_image != NULL && parameters->rgb_resolution == GPR_RGB_RESOLUTION_SIXTEENTH )
     { // Thumbnail
         SetupDecoderLogCurve();
@@ -579,6 +582,7 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
     encoder->compact_bands = false;
 #endif
 
+    encoder->retain_preview_bands=parameters->preview_observer!=NULL;
 	// Allocate the wavelet transforms
 	error = AllocEncoderTransforms(encoder);
     if (error != CODEC_ERROR_OKAY) return error;
@@ -1337,7 +1341,9 @@ static void TransformVertical(RECURSIVE_TRANSFORM_DATA *data, int row, int mode)
     if (encoder && encoder->row_stream[stage][1]) {
         PIXEL *output[MAX_BAND_COUNT];
         output[0] = (PIXEL *)((uint8_t *)data->output_ptr[0] + (size_t)(row/2) * data->output_pitch);
-        for (int band=1; band<MAX_BAND_COUNT; band++) output[band] = data->output_ptr[band];
+        for (int band=1; band<MAX_BAND_COUNT; band++)
+            output[band] = (PIXEL *)((uint8_t *)data->output_ptr[band] +
+                (encoder->retain_preview_bands && stage>0 ? (size_t)(row/2)*data->output_pitch:0));
         FilterVerticalDirect(data->lowpass_buffer, data->highpass_buffer, output,
             data->output_width, data->midpoints, data->multipliers, mode);
         for (int band=1; band<MAX_BAND_COUNT; band++) {
@@ -2388,7 +2394,7 @@ CODEC_ERROR AllocEncoderTransforms(ENCODER *encoder)
 			//assert((wavelet_width % 2) == 0);
 
 			// Allocate the wavelet
-            if (encoder->compact_bands) {
+            if (encoder->compact_bands && !(encoder->retain_preview_bands && wavelet_index>0)) {
                 wavelet = allocator->Alloc(sizeof(WAVELET));
                 if (!wavelet) return CODEC_ERROR_OUTOFMEMORY;
                 InitWavelet(wavelet,wavelet_width,wavelet_height);

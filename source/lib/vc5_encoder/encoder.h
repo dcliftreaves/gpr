@@ -87,6 +87,7 @@ typedef struct _encoder
 
 	//! Number of color channels in the input and encoded images
 	uint_fast8_t channel_count;
+    bool retain_preview_bands;
 
 	//! Number of wavelet transforms in each channel
 	uint_fast8_t wavelet_count;

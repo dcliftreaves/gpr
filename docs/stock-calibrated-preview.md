@@ -137,6 +137,28 @@ is exact reduced planes/display pixels against independently decoded stock
 payloads at every quality, while preserving payload bytes and measuring total
 capture latency, memory and recording deadlines on Pi 5. That producer is not
 implemented by the public plane-rendering entry point.
+
+An internal architecture proof now implements this retention/reconstruction in
+`tests/encoder_preview_probe.c`. Its optional private encoder observer retains
+the two upper highpass levels, while the largest level stays compact. After
+encoding, the proof reproduces the codebook's cubic companding and performs two
+decoder inverse transforms. At all six qualities, the resulting GS/RG/BG planes
+match ordinary compressed decoding exactly and the payload matches the encoder
+without observation byte for byte. Mac and Pi tests exercise both ordinary and
+compact/direct-band modes. On Pi, both existing real 4096x3072 RGGB14 replay
+sources (`GP017517.raw`, `GP017348.raw`, identified by hashes in the Mission 1
+receipts) also pass at all six qualities with compact/direct-band flags.
+
+Reproduce the focused small-fixture tests with
+`ctest --test-dir build-runtime --output-on-failure -R '^encoder_preview_probe'`.
+For a tightly packed 4096x3072 RGGB14 source, run
+`GPR_STREAM_UNPACK=1 GPR_BAND_STREAM=1 GPR_COMPACT_BANDS=1 GPR_DIRECT_BANDS=1 GPR_CHANNEL_ASM=1 GPR_PIN_CHANNELS=1 build-runtime/encoder_preview_probe source.raw`.
+The proof's observer is internal; the public encoder ABI and capture pipeline
+remain unchanged. It allocates reconstruction scratch and retains upper bands
+for all four channels. A capture producer still needs bounded reusable scratch,
+failure/ownership handling and a measured combined replay before this can be
+claimed as a preview latency improvement. No timing gate is closed by this
+functional proof.
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,
