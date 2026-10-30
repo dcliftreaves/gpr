@@ -1,0 +1,12 @@
+{
+  "parent_revision": "a7fa861cba9087c3b3a7decd85f674f33f3e2318",
+  "prototype_retained": false,
+  "source_sha256": {
+    "source/lib/gpr_video/gpr_preview_queue.cpp": "3d3f61faa7a9ff1bb3747092be2b7194dc037649070a3a8093364da7dd66092f",
+    "source/lib/gpr_video/gpr_preview_queue.h": "d8f059ec1e2364134e7b824be0a9fe9d64e49110604afd32294d692b8cf74487",
+    "source/app/gpr_capture_main.cpp": "7cac937004391269123960ff6052a64209aff8e0dc3bfa1b4b4fc7aa844e7bd7",
+    "tests/preview_queue_test.cpp": "b313650c0befe98611c08b0f4a60f8fd45d2f7df16d8fc78a64337626c9ecd05",
+    "tests/capture_preview_test.py": "714e7383d1f47befbd46b923d3c49bc1d89a048ada4004c44010b8518e68c5d6",
+    "tests/package_consumer/headers.c": "4a753429808a0c0e76cb5ad7f3e05e8c498a8e7c46fb2763bb34f80839876ef3"
+  }
+}

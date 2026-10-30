@@ -1,0 +1,4 @@
+/Users/dcliftreaves/Documents/slop/gpr_check/analysis/stock-preview-plane-leases-20261030/prototype/source/app/gpr_capture_main.cpp:168:13: error: no member named 'preview_lease_releases' in 'Output'
+  168 |         out.preview_lease_releases.fetch_add(1,std::memory_order_relaxed);
+      |         ~~~ ^
+1 error generated.

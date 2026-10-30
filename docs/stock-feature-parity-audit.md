@@ -103,3 +103,10 @@ quality guards, so no new 2x weights are promoted. A current-binary
 and preview but still misses deadlines with competing processes paused.
 All seven hosted jobs pass at source/model revision `c47fdf1`; these new reports
 and receipts do not change production source or model weights.
+
+A [borrowed preview-plane handoff](stock-preview-plane-leases.md) removes the
+queue's three-plane copy and passes ownership/output checks, but both matched
+Pi lease runs have slower rendering and higher preview p95 than copying
+controls. All 2,400 recordings/previews remain exact; the strict timing gate
+still fails. The prototype is discarded, all six files are restored, fresh
+26 Mac/23 Pi tests pass and the prior Pi executable is reproduced byte for byte.

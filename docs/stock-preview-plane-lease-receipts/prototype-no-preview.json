@@ -1,0 +1,32 @@
+{
+  "schema": "gpr.preview_plane_lease_build_limit.v1",
+  "preview_disabled_frontend_compiles": false,
+  "checked_by": "syntax-only compile of exact archived source with preview disabled",
+  "command": [
+    "c++",
+    "-std=c++11",
+    "-DGPR_CAPTURE_HAS_PREVIEW=0",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/gpr_video",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/vc5_encoder",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/vc5_common",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/common/public",
+    "-fsyntax-only",
+    "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/stock-preview-plane-leases-20261030/prototype/source/app/gpr_capture_main.cpp"
+  ],
+  "exit_code": 1,
+  "log_sha256": "3ccb2ca7f85c692fb8787bc0edefbb2ba309d2d91a831f0ac06c9645a05497c8",
+  "disposition": "prototype discarded; original frontend restored; this failure does not apply to production source",
+  "restored_command": [
+    "c++",
+    "-std=c++11",
+    "-DGPR_CAPTURE_HAS_PREVIEW=0",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/gpr_video",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/vc5_encoder",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/vc5_common",
+    "-I/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/lib/common/public",
+    "-fsyntax-only",
+    "/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/source/app/gpr_capture_main.cpp"
+  ],
+  "restored_exit_code": 0,
+  "restored_preview_disabled_frontend_compiles": true
+}

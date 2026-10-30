@@ -1,0 +1,483 @@
+diff --git a/source/app/gpr_capture_main.cpp b/source/app/gpr_capture_main.cpp
+index 6b55d92..b172275 100644
+--- a/source/app/gpr_capture_main.cpp
++++ b/source/app/gpr_capture_main.cpp
+@@ -99,7 +99,8 @@ struct Output {
+     uint64_t preview_setup_ns=0;
+     int preview_offer_error=0;
+     bool preview_from_encoder=false;
+-    bool preview_sync_stages=false;
++    bool preview_sync_stages=false,preview_lease_planes=false;
++    std::atomic<uint64_t> preview_lease_releases{0};
+     uint64_t preview_flush_ns=0;
+     gpr_rgb_buffer reconstructed[3]={};
+     ReconstructionArena reconstruction[3];
+@@ -162,6 +163,10 @@ struct Output {
+         }
+         return 0;
+     }
++    static void release_preview(void *user,uint64_t index) {
++        auto &out=*static_cast<Output *>(user);(void)index;
++        out.preview_lease_releases.fetch_add(1,std::memory_order_relaxed);
++    }
+     static void encoded(void *user,const gpr_capture_encoded_frame *frame) {
+ #if GPR_CAPTURE_HAS_PREVIEW
+         Output &out=*static_cast<Output *>(user);
+@@ -171,8 +176,12 @@ struct Output {
+         if (out.preview_from_encoder) {
+             gpr_preview_wavelet_planes planes={};planes.width=out.reconstructed[0].width;planes.height=out.reconstructed[0].height;
+             for (unsigned c=0;c<3;++c) {planes.samples[c]=static_cast<const int16_t *>(out.reconstructed[c].buffer);planes.sample_count[c]=out.reconstructed[c].size/2;}
+-            out.preview_offer_error=gpr_preview_queue_offer_wavelets(out.preview.get(),out.plans[source].get(),frame->index,
+-                frame->timestamp_ns,&planes,gpr_gvid_crc32(0,frame->payload,frame->payload_size));
++            uint32_t crc=gpr_gvid_crc32(0,frame->payload,frame->payload_size);
++            if (out.preview_lease_planes)
++                out.preview_offer_error=gpr_preview_queue_offer_wavelets_lease(out.preview.get(),out.plans[source].get(),frame->index,
++                    frame->timestamp_ns,&planes,crc,Output::release_preview,&out);
++            else out.preview_offer_error=gpr_preview_queue_offer_wavelets(out.preview.get(),out.plans[source].get(),frame->index,
++                frame->timestamp_ns,&planes,crc);
+             out.release_planes();
+         } else out.preview_offer_error=gpr_preview_queue_offer(out.preview.get(),out.plans[source].get(),frame->index,
+             frame->timestamp_ns,frame->payload,frame->payload_size);
+@@ -240,7 +249,7 @@ int main(int argc,char **argv) {
+         cfg.metadata="{\"source_kind\":\"raw_fixture_replay\",\"calibration\":\"external_required\"}";
+         cfg.metadata_size=std::strlen(static_cast<const char *>(cfg.metadata));
+         uint32_t attempts=120,timeout=0;
+-        bool paced=false,leased=false,preview_from_encoder=false,preview_sync_stages=false; Output output;
++        bool paced=false,leased=false,preview_from_encoder=false,preview_sync_stages=false,preview_lease_planes=false; Output output;
+         std::string path; std::vector<std::string> inputs,metadata_paths,source_metadata;
+         std::vector<std::string> preview_profiles;uint32_t preview_every=3,preview_delay=0,preview_fail_after=0;bool preview_option=false,preview_background=true;
+         for (int a=1;a<argc;++a) {
+@@ -258,6 +267,7 @@ int main(int argc,char **argv) {
+                     "  [--preview-foreground] (default is best-effort background priority)\n";
+                 std::cout<<"  [--preview-from-encoder] (quarter-scale retained-band preview)\n";
+                 std::cout<<"  [--preview-sync-stages] (wait for display before the next encode; same pixels)\n";
++                std::cout<<"  [--preview-lease-planes] (borrow encoder planes; requires from-encoder and sync-stages)\n";
+ #endif
+                 return 0;
+             }
+@@ -267,6 +277,7 @@ int main(int argc,char **argv) {
+             if (k=="--preview-foreground") {preview_background=false;preview_option=true;continue;}
+             if (k=="--preview-from-encoder") {preview_from_encoder=true;preview_option=true;continue;}
+             if (k=="--preview-sync-stages") {preview_sync_stages=true;preview_option=true;continue;}
++            if (k=="--preview-lease-planes") {preview_lease_planes=true;preview_option=true;continue;}
+             if (++a==argc) throw std::runtime_error("missing argument: "+k);
+             std::string v=argv[a];
+             if (k=="--input") inputs.push_back(v);
+@@ -310,6 +321,8 @@ int main(int argc,char **argv) {
+                 else throw std::runtime_error("unknown option: "+k);
+             }
+         }
++        if (preview_lease_planes && (!preview_from_encoder || !preview_sync_stages))
++            throw std::runtime_error("plane leases require preview-from-encoder and preview-sync-stages");
+         if (output.sync_each && output.writeback_bytes) throw std::runtime_error("choose fsync-each or asynchronous writeback");
+         if (!metadata_paths.empty()) {
+             if (metadata_paths.size()!=inputs.size()) throw std::runtime_error("supply one calibration per RAW input");
+@@ -341,7 +354,7 @@ int main(int argc,char **argv) {
+             }
+             output.preview_every=preview_every;output.preview_delay_ms=preview_delay;output.preview_fail_after=preview_fail_after;output.source_count=attempts;
+             output.preview_from_encoder=preview_from_encoder;
+-            output.preview_sync_stages=preview_sync_stages;
++            output.preview_sync_stages=preview_sync_stages;output.preview_lease_planes=preview_lease_planes;
+             if (preview_from_encoder) {
+                 size_t pixels=size_t((cfg.video.width+3)/4)*((cfg.video.height+3)/4);
+                 if (pixels>(size_t(64)*1024*1024-1024*1024)/16) throw std::runtime_error("encoder preview scratch exceeds per-channel 64 MiB limit");
+@@ -443,6 +456,8 @@ int main(int argc,char **argv) {
+                 <<",\"inflight_high_water\":"<<state.inflight_high_water<<",\"payload_peak_bytes\":"<<state.payload_peak_bytes
+                 <<",\"render_median_ms\":"<<percentile(render_ms,.5)<<",\"capture_to_sink_p95_ms\":"<<percentile(display_latency,.95)
+                 <<",\"sync_compute_stages\":"<<(output.preview_sync_stages ? "true":"false")
++                <<",\"leased_planes\":"<<(output.preview_lease_planes ? "true":"false")
++                <<",\"plane_lease_releases\":"<<output.preview_lease_releases.load(std::memory_order_relaxed)
+                 <<",\"producer_flush_wait_s\":"<<output.preview_flush_ns*1e-9
+                 <<",\"before_capture_finish\":"<<before_finish<<",\"with_capture_inflight\":"<<with_inflight
+                 <<",\"drain_after_durability_s\":"<<(display_finish-durable)*1e-9
+diff --git a/source/lib/gpr_video/gpr_preview_queue.cpp b/source/lib/gpr_video/gpr_preview_queue.cpp
+index ef56894..371a3ce 100644
+--- a/source/lib/gpr_video/gpr_preview_queue.cpp
++++ b/source/lib/gpr_video/gpr_preview_queue.cpp
+@@ -47,8 +47,17 @@ bool background_priority() {
+ }
+ }
+ struct gpr_preview_queue {
++    struct Lease {
++        gpr_preview_wavelet_planes planes={};
++        gpr_preview_wavelet_release_fn callback=nullptr;
++        void *user=nullptr;
++        uint64_t index=0;
++    };
++    struct Retired {const gpr_preview_plan *plan=nullptr;Lease lease;};
+     struct Item {
+         std::vector<uint8_t> payload;
++        Lease lease;
++        size_t bytes=0;
+         const gpr_preview_plan *plan=nullptr;
+         uint64_t index=0,timestamp=0,offered=0;
+         uint32_t wavelet_width=0,wavelet_height=0,payload_crc=0;
+@@ -64,10 +73,37 @@ struct gpr_preview_queue {
+     uint64_t last_index=0,last_timestamp=0;
+     size_t active_bytes=0;
+ 
+-    const gpr_preview_plan *discard_locked() {
+-        if (!pending) return nullptr;
+-        Item &item=slots[pending_slot];const auto *plan=item.plan;item.plan=nullptr;item.payload.clear();
+-        pending=false;++stats.discarded;--stats.inflight;return plan;
++    size_t releasing=0;
++    Retired detach_locked(Item &item) {
++        Retired result;result.plan=item.plan;result.lease=item.lease;
++        if (result.lease.callback) ++releasing;
++        item.plan=nullptr;item.lease=Lease{};item.bytes=0;
++        return result;
++    }
++    Retired discard_locked() {
++        if (!pending) return Retired{};
++        auto result=detach_locked(slots[pending_slot]);slots[pending_slot].payload.clear();
++        pending=false;++stats.discarded;--stats.inflight;return result;
++    }
++    void retire(Retired item) noexcept {
++        if (!item.plan && !item.lease.callback) return;
++        bool failed=false;
++        if (item.lease.callback) {
++            try {item.lease.callback(item.lease.user,item.lease.index);}
++            catch (...) {failed=true;}
++        }
++        release(item.plan);
++        Retired discarded;
++        {
++            std::lock_guard<std::mutex> lock(mutex);
++            if (item.lease.callback) --releasing;
++            if (failed) {
++                if (!stats.error) stats.error=GPR_PREVIEW_CALLBACK;
++                closing=true;discarded=discard_locked();
++            }
++            changed.notify_all();
++        }
++        retire(discarded);
+     }
+     void run() noexcept {
+         if (config.background) {
+@@ -79,7 +115,7 @@ struct gpr_preview_queue {
+                 std::unique_lock<std::mutex> lock(mutex);
+                 changed.wait(lock,[&]{return pending || closing;});
+                 if (!pending) { done=true;changed.notify_all();return; }
+-                slot=pending_slot;pending_slot^=1;pending=false;active=true;active_bytes=slots[slot].payload.size();
++                slot=pending_slot;pending_slot^=1;pending=false;active=true;active_bytes=slots[slot].bytes;
+             }
+             Item &item=slots[slot];gpr_preview_frame_view view={};int error=0;bool displayed=false;
+             uint64_t start=now_ns(),render_time=0,callback_time=0;
+@@ -90,7 +126,8 @@ struct gpr_preview_queue {
+                     if (item.wavelet_width) {
+                         gpr_preview_wavelet_planes planes={};planes.width=item.wavelet_width;planes.height=item.wavelet_height;
+                         size_t count=size_t(planes.width)*planes.height;
+-                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data())+c*count;planes.sample_count[c]=count;}
++                        if (item.lease.callback) planes=item.lease.planes;
++                        else for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data())+c*count;planes.sample_count[c]=count;}
+                         view.payload_crc32=item.payload_crc;
+                         error=gpr_preview_plan_render_wavelets(item.plan,&planes,rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
+                     } else {
+@@ -112,15 +149,16 @@ struct gpr_preview_queue {
+                     }
+                 }
+             } catch (...) { error=GPR_PREVIEW_NOMEM; }
+-            const gpr_preview_plan *discard=nullptr,*processed=item.plan;item.plan=nullptr;
++            Retired discard,processed;
+             {
+                 std::lock_guard<std::mutex> lock(mutex);
++                processed=detach_locked(item);
+                 active=false;active_bytes=0;--stats.inflight;stats.render_ns+=render_time;stats.callback_ns+=callback_time;
+                 if (displayed) ++stats.rendered;else ++stats.discarded;
+                 if (error) { if (!stats.error) stats.error=error;closing=true;discard=discard_locked(); }
+                 changed.notify_all();
+             }
+-            release(processed);release(discard);
++            retire(processed);retire(discard);
+         }
+     }
+ };
+@@ -138,23 +176,29 @@ extern "C" int gpr_preview_queue_create(const gpr_preview_queue_config *c,gpr_pr
+ }
+ static int offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+     uint64_t index,uint64_t timestamp,const uint8_t *payload,size_t bytes,
+-    const gpr_preview_wavelet_planes *planes,uint32_t crc) {
++    const gpr_preview_wavelet_planes *planes,uint32_t crc,
++    gpr_preview_wavelet_release_fn callback=nullptr,void *user=nullptr) {
+     if (!q || !plan || (!payload && !planes) || !bytes || bytes>q->config.max_payload_bytes) return GPR_PREVIEW_INVALID;
+     gpr_preview_info info={};
+     if (gpr_preview_plan_info(plan,&info) || !info.height || info.row_bytes>q->config.max_rgb_bytes/info.height) return GPR_PREVIEW_CAPACITY;
+-    const gpr_preview_plan *old=nullptr;
++    gpr_preview_queue::Retired old;
+     {
+         std::lock_guard<std::mutex> lock(q->mutex);
+         if (q->stats.error) return q->stats.error;
+         if (q->closing) return GPR_PREVIEW_CLOSED;
+         if (q->stats.offered && (index<=q->last_index || timestamp<=q->last_timestamp)) return GPR_PREVIEW_INVALID;
+         auto &item=q->slots[q->pending_slot];
+-        item.payload.resize(bytes);
++        old=q->detach_locked(item);
++        item.bytes=bytes;
++        if (!callback) item.payload.resize(bytes);
++        else {item.lease.planes=*planes;item.lease.callback=callback;item.lease.user=user;item.lease.index=index;}
+         item.wavelet_width=planes ? planes->width:0;item.wavelet_height=planes ? planes->height:0;item.payload_crc=crc;
+-        if (planes) for (unsigned c=0;c<3;++c)
+-            std::memcpy(item.payload.data()+c*(bytes/3),planes->samples[c],bytes/3);
+-        else std::memcpy(item.payload.data(),payload,bytes);
+-        gpr_preview_plan_retain(plan);old=item.plan;item.plan=plan;
++        if (!callback) {
++            if (planes) for (unsigned c=0;c<3;++c)
++                std::memcpy(item.payload.data()+c*(bytes/3),planes->samples[c],bytes/3);
++            else std::memcpy(item.payload.data(),payload,bytes);
++        }
++        gpr_preview_plan_retain(plan);item.plan=plan;
+         item.index=index;item.timestamp=timestamp;item.offered=now_ns();
+         if (q->pending) { ++q->stats.replaced;++q->stats.discarded; } else { ++q->stats.inflight;q->pending=true; }
+         ++q->stats.offered;q->last_index=index;q->last_timestamp=timestamp;
+@@ -162,7 +206,7 @@ static int offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+         q->stats.payload_peak_bytes=std::max(q->stats.payload_peak_bytes,uint64_t(q->active_bytes+bytes));
+         q->changed.notify_all();
+     }
+-    release(old);return 0;
++    q->retire(old);return 0;
+ }
+ extern "C" int gpr_preview_queue_offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+     uint64_t index,uint64_t timestamp,const uint8_t *payload,size_t bytes) {
+@@ -177,24 +221,34 @@ extern "C" int gpr_preview_queue_offer_wavelets(gpr_preview_queue *q,const gpr_p
+         reinterpret_cast<uintptr_t>(planes->samples[c])%alignof(int16_t)) return GPR_PREVIEW_INVALID;
+     return offer(q,plan,index,timestamp,nullptr,count*6,planes,crc);
+ }
++extern "C" int gpr_preview_queue_offer_wavelets_lease(gpr_preview_queue *q,const gpr_preview_plan *plan,
++    uint64_t index,uint64_t timestamp,const gpr_preview_wavelet_planes *planes,uint32_t crc,
++    gpr_preview_wavelet_release_fn callback,void *user) {
++    if (!callback || !planes || !planes->width || !planes->height || size_t(planes->width)>SIZE_MAX/planes->height/6)
++        return GPR_PREVIEW_INVALID;
++    size_t count=size_t(planes->width)*planes->height;
++    for (unsigned c=0;c<3;++c) if (!planes->samples[c] || planes->sample_count[c]<count ||
++        reinterpret_cast<uintptr_t>(planes->samples[c])%alignof(int16_t)) return GPR_PREVIEW_INVALID;
++    return offer(q,plan,index,timestamp,nullptr,count*6,planes,crc,callback,user);
++}
+ extern "C" int gpr_preview_queue_get_stats(gpr_preview_queue *q,gpr_preview_queue_stats *out) {
+     if (!q || !out) return GPR_PREVIEW_INVALID;
+     std::lock_guard<std::mutex> lock(q->mutex);*out=q->stats;return 0;
+ }
+ extern "C" void gpr_preview_queue_cancel(gpr_preview_queue *q) {
+-    if (!q) return;const gpr_preview_plan *discard;
++    if (!q) return;gpr_preview_queue::Retired discard;
+     { std::lock_guard<std::mutex> lock(q->mutex);q->closing=q->cancelled=true;discard=q->discard_locked();q->changed.notify_all(); }
+-    release(discard);
++    q->retire(discard);
+ }
+ extern "C" int gpr_preview_queue_flush(gpr_preview_queue *q) {
+     if (!q) return GPR_PREVIEW_INVALID;
+     std::unique_lock<std::mutex> lock(q->mutex);
+-    q->changed.wait(lock,[&]{return !q->stats.inflight;});
++    q->changed.wait(lock,[&]{return !q->stats.inflight && !q->releasing;});
+     return q->stats.error;
+ }
+ extern "C" int gpr_preview_queue_finish(gpr_preview_queue *q) {
+     if (!q) return GPR_PREVIEW_INVALID;
+-    std::unique_lock<std::mutex> lock(q->mutex);q->closing=true;q->changed.notify_all();q->changed.wait(lock,[&]{return q->done;});return q->stats.error;
++    std::unique_lock<std::mutex> lock(q->mutex);q->closing=true;q->changed.notify_all();q->changed.wait(lock,[&]{return q->done && !q->releasing;});return q->stats.error;
+ }
+ extern "C" void gpr_preview_queue_destroy(gpr_preview_queue *q) {
+     if (!q) return;gpr_preview_queue_cancel(q);gpr_preview_queue_finish(q);q->worker.join();delete q;
+diff --git a/source/lib/gpr_video/gpr_preview_queue.h b/source/lib/gpr_video/gpr_preview_queue.h
+index daa0966..2f84cf3 100644
+--- a/source/lib/gpr_video/gpr_preview_queue.h
++++ b/source/lib/gpr_video/gpr_preview_queue.h
+@@ -46,6 +46,20 @@ int gpr_preview_queue_offer(gpr_preview_queue *queue,const gpr_preview_plan *pla
+  * processing only; producer reconstruction precedes offer. */
+ int gpr_preview_queue_offer_wavelets(gpr_preview_queue *queue,const gpr_preview_plan *plan,
+     uint64_t index,uint64_t timestamp_ns,const gpr_preview_wavelet_planes *planes,uint32_t payload_crc32);
++/* The three immutable plane buffers remain borrowed until release(user,index),
++ * exactly once after successful admission, including replacement/cancellation,
++ * render/sink failure and shutdown. A failed offer retains nothing and does not
++ * call release. The descriptor is copied; the samples are not. The same byte
++ * limit and latest-pending policy apply. release runs without queue locks on
++ * a producer, worker or cancelling thread, possibly before offer returns.
++ * It may query stats but must not offer/flush/finish/destroy this queue.
++ * flush/finish wait for all admitted leases' release callbacks to return.
++ * Callback context must remain alive through finish/destroy; callbacks must
++ * return cooperatively. A thrown release callback latches callback failure. */
++typedef void (*gpr_preview_wavelet_release_fn)(void *user,uint64_t index);
++int gpr_preview_queue_offer_wavelets_lease(gpr_preview_queue *queue,const gpr_preview_plan *plan,
++    uint64_t index,uint64_t timestamp_ns,const gpr_preview_wavelet_planes *planes,uint32_t payload_crc32,
++    gpr_preview_wavelet_release_fn release,void *user);
+ int gpr_preview_queue_get_stats(gpr_preview_queue *queue,gpr_preview_queue_stats *out);
+ /* Wait for an empty queue without closing it. Concurrent offers can extend the
+  * wait and retain normal latest-pending replacement semantics. Cancellation
+diff --git a/tests/capture_preview_test.py b/tests/capture_preview_test.py
+index 15e0b80..9e049ed 100644
+--- a/tests/capture_preview_test.py
++++ b/tests/capture_preview_test.py
+@@ -125,19 +125,27 @@ class Combined(unittest.TestCase):
+     def test_serialized_compute_stages_preserve_frames_and_isolate_failure(self):
+         self.downsample=4;self.profiles=self.root/'sync-quarter-profiles'
+         stock_preview.prepare(self.base,self.profiles,args.compiler,4)
+-        for failed in (False,True):
+-            output=self.root/f'sync-stages-{failed}.gvid'
+-            options=['--frames','24','--preview-every','1','--preview-from-encoder','--preview-sync-stages']
+-            if failed:options+=['--preview-fail-after','1']
+-            events=self.capture(output,*options,preview=True,okay=not failed)
+-            final,summary,previews=self.verify(output,events,1,failed=failed)
+-            self.assertEqual(final['written'],24);self.assertTrue(summary['sync_compute_stages'])
+-            self.assertGreater(summary['producer_flush_wait_s'],0)
+-            self.assertEqual(summary['replaced'],0)
+-            self.assertEqual(len(previews),1 if failed else 24)
++        for leased_planes in (False,True):
++            for failed in (False,True):
++                output=self.root/f'sync-stages-{leased_planes}-{failed}.gvid'
++                options=['--frames','24','--preview-every','1','--preview-from-encoder','--preview-sync-stages']
++                if leased_planes:options+=['--preview-lease-planes']
++                if failed:options+=['--preview-fail-after','1']
++                events=self.capture(output,*options,preview=True,okay=not failed)
++                final,summary,previews=self.verify(output,events,1,failed=failed)
++                self.assertEqual(final['written'],24);self.assertTrue(summary['sync_compute_stages'])
++                self.assertEqual(summary['leased_planes'],leased_planes)
++                self.assertEqual(summary['plane_lease_releases'],summary['offered'] if leased_planes else 0)
++                self.assertGreater(summary['producer_flush_wait_s'],0)
++                self.assertEqual(summary['replaced'],0)
++                self.assertEqual(len(previews),1 if failed else 24)
+         output=self.root/'sync-without-preview.gvid'
+         self.capture(output,'--preview-sync-stages',okay=False)
+         self.assertFalse(output.exists())
++        for index,extra in enumerate([[],['--preview-from-encoder'],['--preview-sync-stages']]):
++            output=self.root/f'invalid-plane-lease-{index}.gvid'
++            self.capture(output,'--preview-lease-planes',*extra,preview=True,okay=False)
++            self.assertFalse(output.exists())
+ 
+     def test_writeback_policy_and_unchanged_recording(self):
+         for options in (['--writeback-mib','1025'],['--writeback-mib','1','--fsync-each']):
+diff --git a/tests/package_consumer/headers.c b/tests/package_consumer/headers.c
+index 80e1637..8ec655a 100644
+--- a/tests/package_consumer/headers.c
++++ b/tests/package_consumer/headers.c
+@@ -36,6 +36,7 @@ int c_header_probe(void) {
+     gpr_preview_calibration_identity(&video,&calibration);
+     if (gpr_preview_validate_payload(0,0,0)!=GPR_PREVIEW_INVALID) return 0;
+     if (gpr_preview_queue_offer_wavelets(0,0,0,0,0,0)!=GPR_PREVIEW_INVALID) return 0;
++    if (gpr_preview_queue_offer_wavelets_lease(0,0,0,0,0,0,0,0)!=GPR_PREVIEW_INVALID) return 0;
+     if (gpr_preview_plan_create(&video,&calibration,&plan)) return 0;
+     if (gpr_preview_plan_info(plan,&info) || info.width!=32 || info.height!=24) {
+         gpr_preview_plan_destroy(plan);return 0;
+diff --git a/tests/preview_queue_test.cpp b/tests/preview_queue_test.cpp
+index 0784547..226d125 100644
+--- a/tests/preview_queue_test.cpp
++++ b/tests/preview_queue_test.cpp
+@@ -108,12 +108,119 @@ static void reusable_flush(const std::vector<uint8_t> &payload) {
+     check(!gpr_preview_queue_finish(q.get()) && !gpr_preview_queue_flush(q.get()),"flush after finish");
+     check(sink.indices==std::vector<uint64_t>({0,1,2}),"flush lost/reordered delivery");
+ }
++struct PlaneLease {
++    gpr_preview_queue *queue=nullptr;
++    std::vector<int16_t> samples[3];
++    std::mutex mutex;std::condition_variable changed;
++    bool block=false,entered=false,allow=false,fail=false;
++    std::vector<uint64_t> released;
++    explicit PlaneLease(int value=0) {
++        for (unsigned c=0;c<3;++c) samples[c].resize(32*24,int16_t((c ? 8192:10000)+value));
++    }
++    gpr_preview_wavelet_planes planes() const {
++        gpr_preview_wavelet_planes p={};p.width=32;p.height=24;
++        for (unsigned c=0;c<3;++c) {p.samples[c]=samples[c].data();p.sample_count[c]=samples[c].size();}
++        return p;
++    }
++    static void release(void *user,uint64_t index) {
++        auto &s=*static_cast<PlaneLease *>(user);gpr_preview_queue_stats stats={};
++        check(!gpr_preview_queue_get_stats(s.queue,&stats),"lease callback outside locks");
++        std::unique_lock<std::mutex> lock(s.mutex);s.released.push_back(index);s.entered=true;s.changed.notify_all();
++        if (s.block) s.changed.wait(lock,[&]{return s.allow;});
++        for (auto &plane:s.samples) std::vector<int16_t>().swap(plane);
++        if (s.fail) throw std::runtime_error("release failure");
++    }
++    void wait() {std::unique_lock<std::mutex> lock(mutex);check(changed.wait_for(lock,std::chrono::seconds(5),[&]{return entered;}),"lease release timeout");}
++    void unblock() {std::lock_guard<std::mutex> lock(mutex);allow=true;changed.notify_all();}
++};
++static uint32_t plane_crc(const gpr_preview_plan *p,const PlaneLease &lease) {
++    auto planes=lease.planes();std::vector<uint8_t> rgb(32*24*3);gpr_preview_info info={};
++    check(!gpr_preview_plan_render_wavelets(p,&planes,rgb.data(),rgb.size(),96,&info),"direct wavelet render");
++    return gpr_gvid_crc32(0,rgb.data(),rgb.size());
++}
++static int offer_lease(gpr_preview_queue *q,const gpr_preview_plan *p,PlaneLease &lease,uint64_t index) {
++    lease.queue=q;auto planes=lease.planes();
++    int result=gpr_preview_queue_offer_wavelets_lease(q,p,index,1000+index,&planes,1234,PlaneLease::release,&lease);
++    planes={}; // Only the descriptor expires; admitted samples remain immutable.
++    return result;
++}
++static void leased_latest(const std::vector<uint8_t> &payload) {
++    auto p=plan();Sink sink;sink.block=true;const size_t bytes=32*24*6;
++    auto q=queue(sink,std::max(bytes,payload.size()));PlaneLease first(0),replaced(1),last(2),rejected(3);
++    uint32_t first_crc=plane_crc(p.get(),first),last_crc=plane_crc(p.get(),last);
++    check(!offer_lease(q.get(),p.get(),first,0),"first plane lease");sink.wait();
++    check(!offer_lease(q.get(),p.get(),replaced,1),"pending plane lease");
++    check(!gpr_preview_queue_offer(q.get(),p.get(),2,1002,payload.data(),payload.size()),"copy replaces lease");
++    check(replaced.released==std::vector<uint64_t>({1}) && replaced.samples[0].empty(),"replacement releases exactly once");
++    check(!offer_lease(q.get(),p.get(),last,3),"lease replaces copy");
++    check(offer_lease(q.get(),p.get(),rejected,3)==GPR_PREVIEW_INVALID && rejected.released.empty(),"failed offer retains nothing");
++    p.reset();sink.unblock();check(!gpr_preview_queue_finish(q.get()),"lease finish");
++    check(first.released==std::vector<uint64_t>({0}) && last.released==std::vector<uint64_t>({3}),"processed leases released once");
++    check(sink.indices==std::vector<uint64_t>({0,3}) && sink.pixels==std::vector<uint32_t>({first_crc,last_crc}),"leased RGB changed");
++    gpr_preview_queue_stats stats={};gpr_preview_queue_get_stats(q.get(),&stats);
++    check(stats.offered==4 && stats.rendered==2 && stats.discarded==2 && stats.replaced==2 && !stats.inflight,"lease accounting");
++    check(stats.payload_peak_bytes==bytes+std::max(bytes,payload.size()),"lease byte bound");
++}
++static void leased_release_wait() {
++    auto p=plan();Sink sink;auto q=queue(sink,32*24*6);PlaneLease lease;lease.block=true;
++    check(!offer_lease(q.get(),p.get(),lease,0),"blocking release offer");lease.wait();
++    gpr_preview_queue_stats stats={};gpr_preview_queue_get_stats(q.get(),&stats);check(!stats.inflight,"release follows render completion");
++    auto flushing=std::async(std::launch::async,[&]{return gpr_preview_queue_flush(q.get());});
++    auto finishing=std::async(std::launch::async,[&]{return gpr_preview_queue_finish(q.get());});
++    bool flush_waited=flushing.wait_for(std::chrono::milliseconds(10))==std::future_status::timeout;
++    bool finish_waited=finishing.wait_for(std::chrono::milliseconds(10))==std::future_status::timeout;
++    lease.unblock();check(!flushing.get() && !finishing.get() && flush_waited && finish_waited,"flush/finish wait for lease release");
++    check(lease.released==std::vector<uint64_t>({0}),"waited release once");
++}
++static void leased_cancel_and_failures() {
++    auto p=plan();
++    {
++        Sink sink;sink.block=true;auto q=queue(sink,32*24*6);PlaneLease first,pending;
++        check(!offer_lease(q.get(),p.get(),first,0),"cancel leased active");sink.wait();
++        check(!offer_lease(q.get(),p.get(),pending,1),"cancel leased pending");gpr_preview_queue_cancel(q.get());
++        check(pending.released==std::vector<uint64_t>({1}),"cancel releases pending");
++        sink.unblock();check(!gpr_preview_queue_finish(q.get()),"cancel leased finish");
++        check(first.released==std::vector<uint64_t>({0}),"cancel releases active after sink");
++    }
++    {
++        Sink sink;sink.block=true;auto q=queue(sink,32*24*6);PlaneLease first,pending;pending.block=true;
++        check(!offer_lease(q.get(),p.get(),first,0),"cancel-wait active lease");sink.wait();
++        check(!offer_lease(q.get(),p.get(),pending,1),"cancel-wait pending lease");
++        auto cancelling=std::async(std::launch::async,[&]{gpr_preview_queue_cancel(q.get());});pending.wait();
++        sink.unblock();first.wait();
++        auto finishing=std::async(std::launch::async,[&]{return gpr_preview_queue_finish(q.get());});
++        bool waited=finishing.wait_for(std::chrono::milliseconds(10))==std::future_status::timeout;
++        pending.unblock();cancelling.get();check(!finishing.get() && waited,"finish waits for cancelling thread release");
++        check(first.released==std::vector<uint64_t>({0}) && pending.released==std::vector<uint64_t>({1}),"cancel-wait releases once");
++    }
++    {
++        Sink sink;sink.block=true;auto q=queue(sink,32*24*6);PlaneLease first,pending;first.fail=true;
++        check(!offer_lease(q.get(),p.get(),first,0),"release-error active");sink.wait();
++        check(!offer_lease(q.get(),p.get(),pending,1),"release-error pending");sink.unblock();
++        check(gpr_preview_queue_finish(q.get())==GPR_PREVIEW_CALLBACK,"release-error finish");
++        check(first.released==std::vector<uint64_t>({0}) && pending.released==std::vector<uint64_t>({1}),"release-error discards and releases pending");
++        check(sink.indices==std::vector<uint64_t>({0}),"release-error delivered discarded pending");
++    }
++    for (unsigned mode=0;mode<3;++mode) {
++        Sink sink;sink.fail=mode==0;auto q=queue(sink,32*24*6);PlaneLease lease;lease.queue=q.get();lease.fail=mode==2;
++        auto planes=lease.planes();if (mode==1) planes.width=16;
++        check(!gpr_preview_queue_offer_wavelets_lease(q.get(),p.get(),0,1000,&planes,1234,PlaneLease::release,&lease),"failing leased offer");
++        check(gpr_preview_queue_finish(q.get())==(mode==1 ? GPR_PREVIEW_INVALID:GPR_PREVIEW_CALLBACK),"leased failure latches");
++        check(lease.released==std::vector<uint64_t>({0}),"failure releases admitted lease once");
++    }
++    Sink sink;auto q=queue(sink,32*24*6);PlaneLease rejected;rejected.queue=q.get();auto planes=rejected.planes();
++    check(gpr_preview_queue_offer_wavelets_lease(q.get(),p.get(),0,1000,&planes,0,nullptr,&rejected)==GPR_PREVIEW_INVALID,"null release rejected");
++    planes.sample_count[1]=0;
++    check(gpr_preview_queue_offer_wavelets_lease(q.get(),p.get(),0,1000,&planes,0,PlaneLease::release,&rejected)==GPR_PREVIEW_INVALID,"short plane rejected");
++    check(!gpr_preview_queue_finish(q.get()) && rejected.released.empty(),"invalid plane not retained");
++}
+ int main(int argc,char **argv) {
+     try {
+         check(argc==2,"fixture required");std::ifstream in(argv[1],std::ios::binary|std::ios::ate);check(bool(in),"fixture open");
+         std::vector<uint8_t> payload(size_t(in.tellg()));in.seekg(0);check(bool(in.read(reinterpret_cast<char *>(payload.data()),payload.size())),"fixture read");
+         latest(payload);cancellation(payload);failures(payload);reusable_flush(payload);
+-        std::cout<<"PASS: bounded latest-frame queue, copied payloads, retained plans, callback/stats, concurrent finish, cancellation and failures\n";
++        leased_latest(payload);leased_release_wait();leased_cancel_and_failures();
++        std::cout<<"PASS: bounded copied/leased preview queue, exactly-once release, release-aware flush/finish, callback/stats, cancellation and failures\n";
+         return 0;
+     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n';return 1; }
+ }

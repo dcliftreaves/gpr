@@ -500,3 +500,10 @@ and discarded: paired 64-bit unpack loads preserve scalar results but are
 slightly slower, and a precombined small-code pair table preserves byte streams
 but is slower on its intended synthetic workload. Neither changes production
 source or closes the strict Pi timing gate.
+
+A [borrowed preview-plane handoff](stock-preview-plane-leases.md) removes the
+queue's three-plane copy and passes ownership/output checks, but both matched
+Pi lease runs have slower rendering and higher preview p95 than copying
+controls. All 2,400 recordings/previews remain exact; the strict timing gate
+still fails. The prototype is discarded, all six files are restored, fresh
+26 Mac/23 Pi tests pass and the prior Pi executable is reproduced byte for byte.
