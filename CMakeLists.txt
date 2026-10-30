@@ -329,6 +329,11 @@ if(GPR_BUILD_MEDIA_TESTS)
   add_test(NAME stock_still COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_still_test.py
     --sdk $<TARGET_FILE:gpr_tools>)
   set_tests_properties(stock_still PROPERTIES TIMEOUT 600)
+  if(TARGET gpr_mov)
+    add_test(NAME stock_sequence COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_sequence_test.py
+      --sdk $<TARGET_FILE:gpr_tools> --bridge $<TARGET_FILE:gpr_mov>)
+    set_tests_properties(stock_sequence PROPERTIES TIMEOUT 600)
+  endif()
 endif()
 
 include(cmake/GPRInstall.cmake)

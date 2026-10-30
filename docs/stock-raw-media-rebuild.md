@@ -212,8 +212,11 @@ thermal behavior. Exact receipts: [current parallel/fused 1024x768](stock-core-r
 
 The [original eight-group parity audit](stock-feature-parity-audit.md) maps the
 frozen #95/#96 adoption groups to this implementation. It explicitly identifies
-native CoreML/Metal inference and original UPRESABLE command orchestration as
-remaining gaps; portable inference is not treated as a complete substitute.
+native CoreML/Metal inference as a remaining gap; portable inference is not
+treated as a complete substitute. [Stock UPRESABLE](stock-upres-workflow.md)
+now provides timelapse/regression/both command orchestration, exact final-GPR
+sequence packing and optional DNG/deep ProRes exports. Mac and Pi synthetic
+functional tests pass; real-source workflow quality/performance remains open.
 The optional [stock FFmpeg decoder](stock-ffmpeg-decoder.md) now replaces the
 old fused adapter with explicit stock GVS2/GVS3 packet decoding.
 
@@ -257,13 +260,14 @@ Historical platform receipts remain bound to their recorded revisions.
 | Mission 1 20-fps path | Mac: 1200/1200 recorded and previewed over 60 seconds, no late deliveries/overruns; [host receipt](stock-core-receipts/mission1-minute-mac.json). Pi encoder-derived preview: 600/600 exact recorded frames and 1024x768 previews, no drops, 20.01 buffered fps, 46.07 ms end-to-end p95; [current Pi receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json) | Four late previews/five late writes in sustained replay; final fsync lowers durable average to 19.34 fps; actual sensor/display/card/thermal proof remains open |
 | Offline 1x reconstruction | Portable inference, editable/sequence export and [explicit still GPR re-encoding](stock-cnn-quality.md#optional-reconstructed-gpr) work; eight optional contracts; [fresh source-grouped Q3 experiment](stock-cleanup-training.md) rejects all 30 trained checkpoints | Model quality approval; identity fallback is not a quality improvement; re-encoding can erase the legacy gain; legacy Q5 scene regression remains |
 | Offline 2x/8K reconstruction | Explicit architecture/geometry/calibration paths and fresh training/evaluation implemented; [functional evidence](stock-cnn-portable.md), [frozen candidate](stock-sr-training.md) | Candidate selection/perceptual/temporal approval; current shadow regression |
+| UPRESABLE orchestration | Timelapse/regression/both, explicit presets/checkpoint, half-capture simulation, full stock GPR, exact GVID/MOV and optional DNG/ProRes implemented; [contract](stock-upres-workflow.md), [Mac receipt](stock-upres-receipts/mac.json), [Pi receipt](stock-upres-receipts/pi5.json) | Real-source combined-workflow quality/performance, original native acceleration; no model approval |
 | Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
 | PCM/timecode interchange | Optional declared PCM16/24/float32 mono/stereo, independent timecode clocks, exact WAV samples and ProRes inheritance implemented; [120-frame A/V receipt](stock-av-receipts/real-core.json), [24 Release cases](stock-av-receipts/release-tests.txt) | Actual camera audio/synchronization and broader editor compatibility |
 | Calibrated ProRes | Deep HQ/4444, original timing and optional reconstruction implemented; [core decode](stock-core-receipts/exports-mac.json), [one-TIFF scratch](stock-prores-receipts/streaming.json), [A/V pixel/packet identity](stock-av-receipts/real-core.json) | Broader rendered-color/lens/temporal approval and custom grading looks |
 | SDK ABI and selected boundaries | Published C symbols, owned-copy rollback and encoder/decoder boundary fixes implemented; [C API](stock-sdk-api.md), [encoder](stock-encoder-bounds.md), [decoder](stock-decoder-bounds.md) | Broader malformed-input/failure/concurrency audit, deferred from immediate delivery |
 | Independent packages | Four current MOV-enabled profiles pass relocated C/C++/SDK and installed PCM/timecode wrap/recovery; [current packages](stock-restored-gpr-receipts/packages.json), [installed 1x/2x reconstructed GPR/DNG and Mission 1 binary identity](stock-restored-gpr-receipts/installed-validation.json) | Latest hosted platform/release validation; source uploads require approval |
 | Actual camera production | Integration requirements documented; host/Pi evidence stays explicitly labeled | Sensor/DMA, display presentation, durable SD, thermal and physical A/V synchronization receipts |
-| Optional FFmpeg decoder | Stock GVS2/GVS3 adapter for pinned FFmpeg n8.0; exact twelve-format Bayer matrix, frozen fixtures, corruption rejection and PNG/ProRes pass on Mac and Pi; [contract/receipts](stock-ffmpeg-decoder.md) | Latest hosted x86 gate; patched build required; older MOVs without configuration need unwrap/rewrap; no calibrated color claim |
+| Optional FFmpeg decoder | Stock GVS2/GVS3 adapter for pinned FFmpeg n8.0; exact twelve-format Bayer matrix, frozen fixtures, corruption rejection and PNG/ProRes pass on Mac and Pi; hosted x86 gate passes at `eaeaefa`; [contract/receipts](stock-ffmpeg-decoder.md) | Patched build required; older MOVs without configuration need unwrap/rewrap; no calibrated color claim |
 
 ## Feature accounting at the start
 

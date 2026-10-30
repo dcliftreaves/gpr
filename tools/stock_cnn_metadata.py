@@ -7,8 +7,44 @@ Unsupported spatial operations fail rather than carrying stale coordinates.
 import copy
 import math
 import struct
+from fractions import Fraction
 
 import raw_media as media
+
+
+def simulated_half(source):
+    """Calibration for same-site 2x2 averaged sensor simulation, not a crop."""
+    media.validate(source)
+    if source['width']%4 or source['height']%4:
+        raise ValueError('simulation requires dimensions divisible by four')
+    def half(tag):
+        dtype=tag['type'];fmt={3:'H',4:'I',5:'I',10:'i'}.get(dtype)
+        if fmt is None: raise ValueError('unsupported simulation spatial tag type')
+        values=struct.unpack('<'+fmt*(tag['count']*(2 if dtype in (5,10) else 1)),media.unpack_record(tag))
+        data=[]
+        if dtype in (5,10):
+            for a,b in zip(values[::2],values[1::2]):
+                value=Fraction(a,b)/2;data.extend((value.numerator,value.denominator))
+        else:
+            if any(value%2 for value in values): raise ValueError('simulation requires even integral spatial calibration')
+            data=[value//2 for value in values]
+        return media.record(tag['code'],dtype,tag['count'],struct.pack('<'+fmt*len(data),*data))
+    result=copy.deepcopy(source);result['width']//=2;result['height']//=2
+    omitted=[];image=[]
+    for tag in result['image']:
+        code=tag['code']
+        if code==700:
+            omitted.append(dict(code=code,reason='opaque XMP may contain stale simulation geometry'));continue
+        if code in (50715,50716): raise ValueError('simulation does not resample black-level delta arrays')
+        if code in (50719,50720,50829,50830):tag=half(tag)
+        if code in (51008,51009) and media.unpack_record(tag)!=bytes(4):
+            raise ValueError('simulation requires empty stage-1/2 opcode lists')
+        if code==51022:opcode_list(media.unpack_record(tag),3,1,source['height'],source['width'])
+        image.append(tag)
+    result['image']=image
+    result['exif']=[half(tag) if tag['code'] in (40962,40963,41486,41487,37390,37391) else tag for tag in result['exif']]
+    media.validate(result)
+    return result,omitted
 
 
 def multiply(tag, factor):
