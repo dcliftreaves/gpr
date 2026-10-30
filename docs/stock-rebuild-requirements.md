@@ -1,6 +1,6 @@
 # Stock rebuild requirement ledger
 
-Audit date: 2026-10-30. Published source/model inspected: `c47fdf1`.
+Audit date: 2026-10-30. Published source/model inspected: `8e1c2b6`.
 Runtime source remains the restored `f1e08c8` implementation.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
 (`821420d`), their PR bodies and adoption/validation files cited in the
@@ -35,8 +35,8 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 ## Remaining work
 
 1. Keep hosted validation current as the branch advances. All seven checks for
-   published source/model `c47fdf1` passed in
-   [run 41101827130](https://github.com/dcliftreaves/gpr/actions/runs/41101827130),
+   published source/model `8e1c2b6` passed in
+   [run 41110455418](https://github.com/dcliftreaves/gpr/actions/runs/41110455418),
    including native Core ML/MPSGraph/Metal and relocated packages on Mac.
    Current runtime restoration passes 26 Mac/23 Pi Release targets. These
    results precede this documentation/evidence-only update.
@@ -98,3 +98,9 @@ validation stage, with nine optional CNN tests passing on both Mac and Pi.
 Forty complete validation-image inferences reject all ten patch-qualified
 candidates before further final evaluation. This closes the missing selection
 mechanism, not the 2x model-quality gate.
+
+Two [encoder-kernel proposals](stock-encoder-rejected-kernels.md) are tested
+and discarded: paired 64-bit unpack loads preserve scalar results but are
+slightly slower, and a precombined small-code pair table preserves byte streams
+but is slower on its intended synthetic workload. Neither changes production
+source or closes the strict Pi timing gate.

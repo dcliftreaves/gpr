@@ -494,3 +494,9 @@ candidate/data/code protocol before validation and requires per-image regional
 nonregression plus pooled active improvement. SDK-backed tests pass on Mac/Pi;
 all ten real patch-qualified candidates fail, so final testing is skipped.
 The camera codec/runtime and selected 1x weights are unchanged.
+
+Two [encoder-kernel proposals](stock-encoder-rejected-kernels.md) are tested
+and discarded: paired 64-bit unpack loads preserve scalar results but are
+slightly slower, and a precombined small-code pair table preserves byte streams
+but is slower on its intended synthetic workload. Neither changes production
+source or closes the strict Pi timing gate.

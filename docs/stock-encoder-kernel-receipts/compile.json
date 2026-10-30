@@ -1,0 +1,40 @@
+{
+  "wide": {
+    "cwd": "/mnt/ssd/gpr_work/pi-unpack-wide-load-20261030",
+    "compile": [
+      "cc",
+      "-O3",
+      "-std=c11",
+      "kernel.c",
+      "baseline.S",
+      "wide.S",
+      "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/vc5_common/libvc5_common.a",
+      "-lm",
+      "-pthread",
+      "-o",
+      "kernel"
+    ]
+  },
+  "pair": {
+    "cwd": "/mnt/ssd/gpr_work/pi-small-pair-20261030",
+    "compile": [
+      "cc",
+      "-O3",
+      "-std=c11",
+      "-DNDEBUG",
+      "-DNEON=1",
+      "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/vc5_encoder",
+      "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/vc5_common",
+      "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/common/public",
+      "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/common/private",
+      "test.c",
+      "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/vc5_encoder/libvc5_encoder.a",
+      "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/vc5_common/libvc5_common.a",
+      "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/common/libcommon.a",
+      "-lm",
+      "-pthread",
+      "-o",
+      "test-long"
+    ]
+  }
+}

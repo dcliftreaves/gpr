@@ -1,0 +1,39 @@
+{
+  "schema": "gpr.rejected_encoder_kernel.v1",
+  "host": "Linux-6.6.51+rpt-rpi-2712-aarch64-with-glibc2.36",
+  "compiler": "cc (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "source_and_binary_sha256": {
+    "baseline.S": "4f76df3808e22ac3de51aea6dcde7fa3793819b1c7f8cf0920971688c052e2cf",
+    "wide.S": "1c53c45fc975ffc34bddf512c9ce776d1729d17547ecab47d746ed71bd3ffc46",
+    "candidate-original-symbols.S": "948c686df8f30bd5e818423a93f3bd4d7b2b20945b9fadda621d397734d35743",
+    "kernel.c": "27d867c2d2b2b91ef34ed56fa0e73fa603387a3a848ee823294107bcf20c7fc0",
+    "kernel": "68c4c51535bd560e4ebb7c3ab7e16cbd06d057923307da9685eace29d9da8e8e"
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/mnt/ssd/gpr_work/pi-unpack-wide-load-20261030/kernel",
+    "8",
+    "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+    "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw"
+  ],
+  "process_cpu_affinity": "CPU 2 via taskset; no persistent affinity/policy changes",
+  "capture_binary_sha256": "9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c",
+  "codec_source_sha256": {
+    "stock_unpack_arm64.S": "c0ed64d5a84a2e58aae5f53ffdbc2110cf876478af8da8b50db0c87c49dd95fc",
+    "encoder.c": "f8913176171651668446a56f0a1462aad680dcc1cc77eba75e5e728b7ebc40a4",
+    "codebooks.c": "39c08b9c73da2beb4c9c28b39bd57f69534e9b6c076d47d69bf31c4c81fc1aab"
+  },
+  "common_library_sha256": "f16c13536637eeb72d3517eebd9674e1bf4aaeecc2e6346ef6858162ad3daffd",
+  "post_experiment_temperature_millidegrees": 54000,
+  "post_experiment_frequency_khz": 2400000,
+  "post_experiment_governor": "performance",
+  "capture_deadlines_evaluated": false,
+  "prototype_retained_in_production": false,
+  "quality_approval": false,
+  "input_sha256": {
+    "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw": "e75aea542a2da413ff097bd1f1825b20e8723e56b1cda257ea4da4b8ed1121d9",
+    "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw": "6b286a10e816887c044640f220667173e7c0ccf31bb268ebb2b494e06ccb87c4"
+  }
+}
