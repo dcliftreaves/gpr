@@ -1,0 +1,11 @@
+{
+  "schema": "gpr.stock_sr_relative_loss_audit.v1",
+  "training_patch": 0,
+  "reference_masks_match_existing_recipe": true,
+  "direct_region_ratio_loss": 1.034856666803589,
+  "weighted_pixel_loss": 1.0348566787290856,
+  "absolute_difference": 1.1925496590237117e-08,
+  "tolerance": 1e-06,
+  "passed": true,
+  "no_validation_or_final_pixels": true
+}

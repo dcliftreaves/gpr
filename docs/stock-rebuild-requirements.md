@@ -87,3 +87,8 @@ fail shadow/highlight guards and supply no new weights. The current-binary
 [background workload control](stock-background-control.md) preserves all 600
 recordings/previews per run, but pausing competing work still leaves late
 deliveries. None of these results closes broader quality or strict Pi timing.
+
+The [region-balanced 2x follow-up](stock-sr-relative.md) also fails final guards.
+Its full-frame validation diagnostic fails three of four held-out validation
+sources despite patch-level success. This exposes a validation-coverage gap;
+full-frame guards should precede subsequent final-reference evaluations.

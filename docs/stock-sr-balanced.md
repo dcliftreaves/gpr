@@ -70,3 +70,9 @@ The [original-model selector](stock-sr-balanced-receipts/run-unweighted-selectio
 installation and external data/model paths. Training uses the existing recipe
 with the protocol parameters; final evaluation is skipped if validation has
 no eligible nonzero candidate.
+
+The subsequent [region-balanced loss study](stock-sr-relative.md) improves
+shadows/highlights on all historical final references but regresses overall
+and detail error on two, so it also remains unapproved. Full-frame diagnostics
+on its four validation sources fail three guards despite passing patch guards;
+future selection needs full-frame validation before final testing.

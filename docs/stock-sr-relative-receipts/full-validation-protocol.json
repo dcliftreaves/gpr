@@ -1,0 +1,42 @@
+{
+  "schema": "gpr.stock_sr_full_validation_protocol.v1",
+  "created_utc": "2026-10-30T18:39:24.397806+00:00",
+  "checkpoint_sha256": "a350ecc8e5c95c692f21daff6049a19920525af615ca1c154fe81d903365f6b2",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "sources": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+      "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b",
+      "group": "20250727_ForestFire",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+      "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081",
+      "group": "20250727_ForestFire",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+      "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+      "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation"
+    }
+  ],
+  "purpose": "diagnose sparse-patch vs full-frame validation; candidate already failed final guard; no reselection or weight change",
+  "final_sources_evaluated": false,
+  "regions": [
+    "active",
+    "shadow_bottom_decile",
+    "highlight_top_decile",
+    "detail_top_decile"
+  ],
+  "driver_sha256": "62480ba26b5fbf60dda39ed568c24c605893485a236ec3dff4be46fc218cc4f8",
+  "evaluator_sha256": "c528c9b77ab2f35ff50913b0d3cec5c7c9c5ccdc284a18fe0d4cd19cffb52704"
+}

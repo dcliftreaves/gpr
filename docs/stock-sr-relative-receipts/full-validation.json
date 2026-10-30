@@ -1,0 +1,69 @@
+{
+  "schema": "gpr.stock_sr_full_validation.v1",
+  "complete": true,
+  "quality_approval": false,
+  "protocol_sha256": "46dae85a7108f13511c1cec7258a703e40f5c9bc831857f8868f89128b777860",
+  "checkpoint_sha256": "a350ecc8e5c95c692f21daff6049a19920525af615ca1c154fe81d903365f6b2",
+  "rows": [
+    {
+      "source": "20250727_ForestFire_001.dng",
+      "group": "20250727_ForestFire",
+      "receipt_sha256": "407e2d8a1679839dfcd5638bfffdeb177ffb59ef198877b7c485cfb06b9892a3",
+      "region_delta_db": {
+        "active": 0.07905031122513151,
+        "shadow_bottom_decile": 0.0177196414136489,
+        "highlight_top_decile": 0.175035724274764,
+        "detail_top_decile": 0.11758551028881925
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "20250727_ForestFire_010.dng",
+      "group": "20250727_ForestFire",
+      "receipt_sha256": "7351d29ab9d9fd234cd0045df5971369ae65f0ca5e6567b2793c8551b8ada58c",
+      "region_delta_db": {
+        "active": -0.007134567742753006,
+        "shadow_bottom_decile": -0.14356706316689127,
+        "highlight_top_decile": 0.2875535716519906,
+        "detail_top_decile": 0.08691083058548799
+      },
+      "regressions": [
+        "active",
+        "shadow_bottom_decile"
+      ],
+      "passed_numeric_guard": false
+    },
+    {
+      "source": "LRT_20250730_05__ColoradoSky_001.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "receipt_sha256": "f80914ae221e9bb4cd4916858c6cc9565baea33d96bcab9134c7bc2b97d80e7b",
+      "region_delta_db": {
+        "active": 0.19945049396090297,
+        "shadow_bottom_decile": -0.4539606849939517,
+        "highlight_top_decile": 0.2781971662845848,
+        "detail_top_decile": 0.23713341902885077
+      },
+      "regressions": [
+        "shadow_bottom_decile"
+      ],
+      "passed_numeric_guard": false
+    },
+    {
+      "source": "LRT_20250730_05__ColoradoSky_010.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "receipt_sha256": "11ee6a79db5c1371967a048746009c6990769ad568a413a22389ef0d7e3f3f52",
+      "region_delta_db": {
+        "active": 0.28573191877617177,
+        "shadow_bottom_decile": -0.7289843818566055,
+        "highlight_top_decile": 0.32611144018902394,
+        "detail_top_decile": 0.30627456927197017
+      },
+      "regressions": [
+        "shadow_bottom_decile"
+      ],
+      "passed_numeric_guard": false
+    }
+  ],
+  "all_full_validation_guards_pass": false
+}

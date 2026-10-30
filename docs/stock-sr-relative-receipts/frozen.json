@@ -1,0 +1,13 @@
+{
+  "schema": "gpr.stock_sr_region_relative_freeze.v1",
+  "created_utc": "2026-10-30T18:38:14.852068+00:00",
+  "checkpoint_sha256": "a350ecc8e5c95c692f21daff6049a19920525af615ca1c154fe81d903365f6b2",
+  "protocol_sha256": "b7c478df39750c7bde901f1c21b8fa6a89530e9b80374077d570067fbff0a78c",
+  "selection_sha256": "afd665e9f5ebe1e8f4eb7d0640b82e039045fbc9f86dc73b158a020f0e085fe7",
+  "training_binding_sha256": "f69f5f6f6f9ebfe529cc5a473361c687c14f62ec2c78f5664eea61a476da5ee6",
+  "final_evaluation_started": false,
+  "quality_approval": false,
+  "evaluator_sha256": "c528c9b77ab2f35ff50913b0d3cec5c7c9c5ccdc284a18fe0d4cd19cffb52704",
+  "final_driver_sha256": "36710c8c54b38f857b5e3e3d18f71a5d2e75c6fadd09e7136d370b3406c14748",
+  "sdk_sha256": "e9405aeeb27e97720a38870d99ae828d62a0136ba3fa44cae15f7de87e60638e"
+}

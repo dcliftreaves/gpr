@@ -161,3 +161,9 @@ training yields a validation-qualified 1/16-strength candidate, frozen before
 full-reference evaluation, but it regresses one reference's shadows and
 another's highlights. No new 2x weights are supplied or promoted. These failures
 preserve the original strict guard; the separate 1x candidate is unchanged.
+
+The subsequent [region-balanced loss study](stock-sr-relative.md) improves
+shadows/highlights on all historical final references but regresses overall
+and detail error on two, so it also remains unapproved. Full-frame diagnostics
+on its four validation sources fail three guards despite passing patch guards;
+future selection needs full-frame validation before final testing.

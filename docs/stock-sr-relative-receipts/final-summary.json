@@ -1,0 +1,69 @@
+{
+  "schema": "gpr.stock_sr_region_relative_final.v1",
+  "complete": true,
+  "quality_approval": false,
+  "checkpoint_sha256": "a350ecc8e5c95c692f21daff6049a19920525af615ca1c154fe81d903365f6b2",
+  "freeze_sha256": "1cf1a92098de47da8af47eef96eca8e5b42cf644ac4b9ef4f1857f69eb74ef27",
+  "final_pixels_used_for_selection": false,
+  "results": [
+    {
+      "source": "0001",
+      "receipt_sha256": "881ed57046110e52bd1538e80cca32da189e71a6ba8775a2cfc78774b7d43ee3",
+      "active_psnr_delta_db": 0.0819034313322149,
+      "region_delta_db": {
+        "active": 0.0819034313322149,
+        "shadow_bottom_decile": 0.27485270237933435,
+        "highlight_top_decile": 0.413279788009433,
+        "detail_top_decile": 0.2656574191173604
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "0067",
+      "receipt_sha256": "78b5f055524d042b853ce445f4fc53012e02c155415aa2ab6d3d3a2969a0caaa",
+      "active_psnr_delta_db": 0.2093982185406844,
+      "region_delta_db": {
+        "active": 0.2093982185406844,
+        "shadow_bottom_decile": 0.7251220526210176,
+        "highlight_top_decile": 0.2287089142444998,
+        "detail_top_decile": 0.2206452991792034
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "5323",
+      "receipt_sha256": "9c6aa98e5bc662a0c694f06819d9ed9dde90b8e5e5504f7edd7ecdc28e9cb3ba",
+      "active_psnr_delta_db": -0.08400694688883448,
+      "region_delta_db": {
+        "active": -0.08400694688883448,
+        "shadow_bottom_decile": 0.5174104087744169,
+        "highlight_top_decile": 0.03565011762278658,
+        "detail_top_decile": -0.008532321899835438
+      },
+      "regressions": [
+        "active",
+        "detail_top_decile"
+      ],
+      "passed_numeric_guard": false
+    },
+    {
+      "source": "6693",
+      "receipt_sha256": "60460faf40b78e69dca7f8826912c8ea70b6bc6b3455cf73d7189df2bd86e93b",
+      "active_psnr_delta_db": -0.07304086904625251,
+      "region_delta_db": {
+        "active": -0.07304086904625251,
+        "shadow_bottom_decile": 0.2712736193902927,
+        "highlight_top_decile": 0.26044277194611,
+        "detail_top_decile": -0.006748000855452574
+      },
+      "regressions": [
+        "active",
+        "detail_top_decile"
+      ],
+      "passed_numeric_guard": false
+    }
+  ],
+  "all_scenes_pass_numeric_guard": false
+}
