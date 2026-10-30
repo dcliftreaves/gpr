@@ -1,0 +1,40 @@
+{
+  "schema": "gpr.canonical_preview_assembly.v1",
+  "functions": [
+    {
+      "kind": "previous",
+      "binary_sha256": "4e3ac288362c88f91c5bff693c9854da56bf820dde559ec53b6687e6a6efa671",
+      "symbol": "0000000000013500 000000000000091c t (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)",
+      "function_bytes": 2332,
+      "stack_adjustments": [],
+      "vector_pair_stores": [
+        "   136c0:\tad081fe6 \tstp\tq6, q7, [sp, #256]",
+        "   139f8:\tad001d26 \tstp\tq6, q7, [x9]",
+        "   13a0c:\tad001d26 \tstp\tq6, q7, [x9]",
+        "   13b5c:\tad000120 \tstp\tq0, q0, [x9]",
+        "   13b60:\tad010120 \tstp\tq0, q0, [x9, #32]",
+        "   13b64:\tad0054b4 \tstp\tq20, q21, [x5]",
+        "   13b68:\tad015cb6 \tstp\tq22, q23, [x5, #32]",
+        "   13d04:\tad0483f4 \tstp\tq20, q0, [sp, #144]",
+        "   13de0:\tad0000a5 \tstp\tq5, q0, [x5]",
+        "   13de8:\tad001d21 \tstp\tq1, q7, [x9]",
+        "   13df8:\tad010125 \tstp\tq5, q0, [x9, #32]",
+        "   13e08:\tad0000a0 \tstp\tq0, q0, [x5]",
+        "   13e0c:\tad000120 \tstp\tq0, q0, [x9]",
+        "   13e10:\tad0100a0 \tstp\tq0, q0, [x5, #32]",
+        "   13e14:\tad010120 \tstp\tq0, q0, [x9, #32]"
+      ]
+    },
+    {
+      "kind": "canonical",
+      "binary_sha256": "c6334464ce0ca4477aea33909e52474c0b30df4e8a777b02f60cc24ad912056b",
+      "symbol": "0000000000013470 0000000000000884 t (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)",
+      "function_bytes": 2180,
+      "stack_adjustments": [],
+      "vector_pair_stores": [
+        "   13928:\tad051be0 \tstp\tq0, q6, [sp, #160]",
+        "   13c38:\tad0507e2 \tstp\tq2, q1, [sp, #160]"
+      ]
+    }
+  ]
+}

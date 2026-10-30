@@ -1,0 +1,52 @@
+{
+  "schema": "gpr.preview_register_experiment_validation.v1",
+  "base_revision": "a7e59f6a0c45f1820dd459eddeefa2e3b2e7e072",
+  "production_sources": {
+    "source/lib/gpr_video/gpr_preview.cpp": "080b5798a02082af06e5b20f9825763dbd07b109e8384a1e44c07e01cb8c5d7e",
+    "tests/preview_contract.cpp": "903f935b9193bccce0759f61f1909957ab32a70011b42e592a87974141c90411",
+    "CMakeLists.txt": "44e77c4726079067236d5452b9c49d872a109c313f0f9685d2e361464a7ac623"
+  },
+  "production_runtime_unchanged": true,
+  "production_capture_binary_sha256": "4e3ac288362c88f91c5bff693c9854da56bf820dde559ec53b6687e6a6efa671",
+  "rejected_sources_reconstructed": true,
+  "rejected_sources": {
+    "source/lib/gpr_video/gpr_preview.cpp": "75660b2f41b4179e4fc60f1284571e1957421d09384c986066bd52f35daeb2f1",
+    "tests/preview_contract.cpp": "34f4c51c5cafcd2667d49e6012a61291ed6775ba8acd06f9b3b7d5be6a7d5634"
+  },
+  "receipts": {
+    "assembly.json": "17da7e7147ad5725063c2a3fdf98f615d0d1c848a520c0adb58ab7e5752944ff",
+    "canonical.asm": "f1f8064b5f6b81fd666f2532884c4b5621e3159a946da3767faba9e11cb48a74",
+    "hosted-run.json": "fc1980b4f2c16ca68e462dd4da5a43fc01589a8bb3141fe6b7198b2e96896ae9",
+    "kernel.json": "9c1a5179544c559e95222060582a3e0b1e223f9cdea36fc5c60ce8b2a2d8fd17",
+    "kernel_bench.cpp": "6d62ce4fa9ad748ff0e0c9c6833cfcb38cc0d51b8e2713e62ff7e328f1a8c9b7",
+    "mac-capacity-annotations.json": "b7e56bb87605a47e6036fc2c79b0ad249853b4d3fde092ab24645591787cdc62",
+    "mac-release.txt": "a9a59a6055a015b7d3603e97149d60a19e36419704b543ed2aaf6963b499de50",
+    "pi-release.txt": "2972f47e418c494500574f3aad03b247b38b8d0835ebdd5ddf077e81b9dfc337",
+    "previous.asm": "91d68b36d8cce1d4576bc2849ee403aa4d0e81ae9ec18c6adaf87d59d5f69f36",
+    "rejected-abba.json": "c28a6f7a8f34c4cb5994f1e889945972a1e459d6ed6ab23edeebcd897350e586",
+    "rejected-canonical.patch": "76d318112a57b66e2bdd7f76d93e222b631f20ec93d55d928e6618d096990550",
+    "rejected-packages-mac.json": "f0f731bea14d1d1e670735631ba3c497f641016123d74c4523ac7bf30464561d",
+    "rejected-sources.json": "710c0e106a45281e78ee04a5e8cbcc47d39843dbfe20f73fa37766ea124e325b"
+  },
+  "independent_calibrated_configurations": 576,
+  "cfa_phases": [
+    "RGGB",
+    "GBRG",
+    "GRBG",
+    "BGGR"
+  ],
+  "count_domains": [
+    12,
+    14,
+    16
+  ],
+  "release_tests_passed": {
+    "mac": 24,
+    "pi": 21
+  },
+  "isolated_renderer_regression_observed": true,
+  "runtime_prototype_retained": false,
+  "strict_floor_passed": false,
+  "model_quality_approved": false,
+  "preceding_hosted_mac_state": "not acquired: hosted ARM64 runner capacity; no test execution"
+}

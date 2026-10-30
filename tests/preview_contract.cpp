@@ -124,15 +124,17 @@ static uint8_t display(double value) {
     double encoded=value<=.0031308 ? 12.92*value:1.055*std::pow(value,1.0/2.4)-.055;
     return uint8_t(std::floor(encoded*255+.5));
 }
-static void calibrated_preview(const std::string &root,unsigned width,unsigned scale,unsigned orientation,bool crop,bool maps,bool gbrg,unsigned bits) {
+static void calibrated_preview(const std::string &root,unsigned width,unsigned scale,unsigned orientation,bool crop,bool maps,unsigned phase,unsigned bits) {
     std::string name=std::to_string(width)+"x96-q3";
     auto payload=file(root+"/"+name+".vc5"),linear=file(root+"/"+name+"-s"+std::to_string(scale)+".rgb16be");
     gpr_gvid_config cfg={width,96,30,1,3,14,{'R','G','G','B'}};
-    cfg.sample_bits=bits; if (gbrg) std::memcpy(cfg.cfa,"GBRG",4);
+    static const char *phases[]={"RGGB","GBRG","GRBG","BGGR"};
+    check(phase<4,"invalid test CFA phase");cfg.sample_bits=bits;std::memcpy(cfg.cfa,phases[phase],4);
     gpr_preview_calibration c={}; gpr_preview_calibration_identity(&cfg,&c);
     c.downsample=scale; c.orientation=orientation; c.white=15000; c.black[0]=16.5f; c.black[1]=17.5f; c.black[2]=18.5f; c.black[3]=19.5f;
-    if (gbrg) { c.black[0]=100.25f;c.black[1]=300.5f;c.black[2]=500.75f;c.black[3]=700.f; }
+    if (phase) { c.black[0]=100.25f;c.black[1]=300.5f;c.black[2]=500.75f;c.black[3]=700.f; }
     if (bits==12) { c.white/=4;for (float &black:c.black) black/=4; }
+    if (bits==16) { c.white*=4;for (float &black:c.black) black*=4; }
     const float matrix[9]={1.15f,-.1f,-.05f,-.05f,1.1f,-.05f,-.1f,-.15f,1.25f};
     std::copy(matrix,matrix+9,c.camera_to_srgb); c.exposure=1.125f;
     c.camera_white[0]=.75f; c.camera_white[2]=.5f;
@@ -199,7 +201,11 @@ static void calibrated_preview(const std::string &root,unsigned width,unsigned s
         unsigned sy=std::min(full_height-1,unsigned((c.crop[1]+(y+.5)*(c.crop[3]-c.crop[1])/rows)/scale));
         // Independent stock fixture is mirrored and uses big-endian UInt16.
         size_t at=(size_t(sy)*full_width+(full_width-1-sx))*6;
-        unsigned r=gbrg ? 2:0,b=3-r,g1=gbrg ? 0:1,g2=gbrg ? 3:2;
+        // Independent fixture-side Bayer-site mapping for all four layouts.
+        unsigned r=0,b=3,g1=1,g2=2;
+        if (phase==1) {r=2;b=1;g1=0;g2=3;}
+        else if (phase==2) {r=1;b=2;g1=0;g2=3;}
+        else if (phase==3) {r=3;b=0;g1=1;g2=2;}
         double camera[3];
         for (unsigned channel=0;channel<3;++channel) {
             unsigned sample=unsigned(linear[at+channel*2])*256+linear[at+channel*2+1];
@@ -336,11 +342,11 @@ int main(int argc,char **argv) {
         shared_calibrated_plan(root);
         large_wavelet_rows();
         for (unsigned width:{128u,72u}) for (unsigned scale:{4u,8u,16u}) for (unsigned orientation=1;orientation<=8;++orientation)
-            for (bool gbrg:{false,true}) for (unsigned bits:{12u,14u})
-                calibrated_preview(root,width,scale,orientation,orientation%2,orientation%3==0,gbrg,bits);
+            for (unsigned phase=0;phase<4;++phase) for (unsigned bits:{12u,14u,16u})
+                calibrated_preview(root,width,scale,orientation,orientation%2,orientation%3==0,phase,bits);
         invalid_calibration();
         profile_parser_tests();
-        std::cout<<"PASS: independent stock RGB, full-frame reductions, pitched display, unaligned input, concurrent render, serial/parallel large previews, bounded native reader and corruption/EOF rejection\n";
+        std::cout<<"PASS: independent stock RGB across all twelve CFA/depth combinations, full-frame reductions, pitched display, unaligned input, concurrent render, serial/parallel large previews, bounded native reader and corruption/EOF rejection\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }
 }

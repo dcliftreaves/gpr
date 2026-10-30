@@ -68,3 +68,8 @@ compaction and large-frame serial/parallel coverage. Persistent-worker reuse was
 tested and discarded for lack of consistent benefit. Latest sustained repeats
 still overrun, including a control with the orphaned background benchmark paused;
 the strict timing gate remains unmet.
+
+The next [register experiment](stock-preview-register-experiment.md) was also
+discarded after a slower isolated renderer and no consistent sustained benefit.
+The retained validation now covers all twelve CFA/depth combinations and 576
+calibrated configurations, with runtime behavior unchanged.

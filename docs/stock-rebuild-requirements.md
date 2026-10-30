@@ -51,6 +51,9 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    The subsequent [preview-layout comparison](stock-preview-gain-layout.md)
    reduces retained unity-cap gain storage and measured rendering medians, but
    sustained repeats still overrun. A persistent-worker prototype was discarded.
+   A subsequent CFA canonicalization prototype was likewise rejected after
+   measurement; [retained independent preview coverage](stock-preview-register-experiment.md)
+   now includes all four phases at 12/14/16 bits.
 4. Keep sensor/DMA, rear-display, actual SD, thermal and physical A/V work
    explicitly unverified. The original PR did not establish those either.
 
