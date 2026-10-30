@@ -456,3 +456,12 @@ all 600 attempted frames/previews each, with durable fps 19.9417–19.9988 and
 used scratch approximately 11.10 MB versus 30.57 MB. Hundreds of late deliveries
 still prevent strict floor approval. The independent retained-band matrix now
 also covers all twelve CFA/depth formats, six presets and odd packed row pitches.
+
+Two further [kernel experiments](stock-preview-rejected-kernels.md) are rejected
+after measured comparison: an exact bounded-token NEON dequantizer gives no
+consistent workflow improvement, and per-row output addressing is slower in
+isolation. Neither remains in production. Runtime source is restored to
+`f1e08c8`, the Pi executable matches its prior SHA-256 byte for byte, and fresh
+26-target Mac/23-target Pi Release runs pass. A hosted Mac allocation failure
+is recorded separately from code validation and retried only after it became
+terminal; six other hosted jobs passed for that implementation.

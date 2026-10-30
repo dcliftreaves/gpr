@@ -62,6 +62,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    removes a measured copy and unused bands. Both matched serial runs preserve
    all 600 attempts at 19.9752/19.9988 durable fps and use 11.10 MB scratch,
    but hundreds of deliveries remain late. The gate is still unmet.
+   Two [subsequent kernel proposals](stock-preview-rejected-kernels.md) were
+   tested and discarded: bounded-token NEON dequantization lacks a consistent
+   end-to-end win, and per-row addressing is slower in isolation. Runtime
+   source is restored; their experimental test counts do not replace current
+   validation or close the timing gate.
 4. Keep sensor/DMA, rear-display, actual SD, thermal and physical A/V work
    explicitly unverified. The original PR did not establish those either.
 

@@ -1,0 +1,9 @@
+{
+  "base_commit": "f1e08c8660df556507df71e33ac1292e4aaba2b3",
+  "source_sha256": {
+    "CMakeLists.txt": "92525602bbd459ffe054e939bf80f93412be957afe639dfa3a51b56c94591e92",
+    "source/lib/vc5_decoder/dequantize.c": "4df6fdc6bb5148d73af4572ee664bf7019f5659e7bc766c3e10f39baa35ede2a",
+    "tests/dequantize_equivalence.c": "d50ec2efb26af3e1cd8e488e43e4e42c8b4ed9b4ded7f7319b8ba9f5bf3e879a"
+  },
+  "patch_reconstruction_verified": true
+}

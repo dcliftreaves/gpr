@@ -1,0 +1,16 @@
+{
+  "runtime_commit": "f1e08c8660df556507df71e33ac1292e4aaba2b3",
+  "source_sha256": {
+    "CMakeLists.txt": "4a91a9d017a14c9dda688efd0b2607288bbaddda0c81c70622a00b1969b3d4e2",
+    "source/lib/vc5_decoder/dequantize.c": "a25fa4a20a431cba49e48c4d1d7ac8e2bc7283627f13884dda245961a1784e85",
+    "source/lib/gpr_video/gpr_preview.cpp": "080b5798a02082af06e5b20f9825763dbd07b109e8384a1e44c07e01cb8c5d7e",
+    "source/lib/vc5_decoder/vc5_decoder.c": "c5281e5f27afc22ec8ee0952721bddb165be7dc0561a8aec6316eb61879ca771"
+  },
+  "pi_matches_local": true,
+  "pi_capture_binary_sha256": "9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c",
+  "pi_binary_exact_previous": true,
+  "mac_release_targets": 26,
+  "pi_release_targets": 23,
+  "mac_log_sha256": "565c5292d904cf012a15aec23e1c23befb8c7c3cacf453bf27b653cc2583abd3",
+  "pi_log_sha256": "87292afc5a22d140eb6dd12b6f1324acb37a471efc74cd387aa392ff3f529fb3"
+}

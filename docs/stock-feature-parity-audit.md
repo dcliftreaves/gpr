@@ -84,3 +84,8 @@ The [direct final-plane follow-up](stock-preview-direct-output.md) removes a
 profiled reconstruction copy and unused final bands. Both matched serial runs
 retain all 600 frames/previews at 19.9752/19.9988 durable fps, with exact output
 and lower used scratch. Late writes/previews remain; this is not gate closure.
+
+Later [dequantization and row-address proposals](stock-preview-rejected-kernels.md)
+pass their numeric checks but fail to establish a consistent workflow gain;
+isolated row addressing is slower. Both are discarded and their sources,
+measurements and restoration identities are retained separately.

@@ -101,3 +101,9 @@ compressed-byte comparisons remain exact.
 on Mac, 23 on Pi and four stripped/relocated profiles. The
 [validation binding](stock-direct-plane-receipts/validation.json) records source
 hashes and Pi validation. No CNN or sanitizer expansion is part of this change.
+
+The [subsequent kernel experiments](stock-preview-rejected-kernels.md) test
+bounded-token NEON dequantization and per-row destination addressing. Neither
+provides a consistent end-to-end benefit, and isolated row-address rendering
+is slower. Both were discarded; their correctness, timing and patches remain
+archived separately. The direct-output runtime remains intact.
