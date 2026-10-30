@@ -1,0 +1,17 @@
+Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-packed-gamma-prototype/build-packed
+    Start 1: preview_contract
+1/6 Test #1: preview_contract .................   Passed    0.35 sec
+    Start 2: preview_srgb
+2/6 Test #2: preview_srgb .....................   Passed    0.15 sec
+    Start 3: preview_wavelet_queue
+3/6 Test #3: preview_wavelet_queue ............   Passed    0.11 sec
+    Start 4: preview_queue
+4/6 Test #4: preview_queue ....................   Passed    0.12 sec
+    Start 5: preview_scalar_contract
+5/6 Test #5: preview_scalar_contract ..........   Passed    0.15 sec
+    Start 6: preview_cli
+6/6 Test #6: preview_cli ......................   Passed    0.25 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =   1.13 sec

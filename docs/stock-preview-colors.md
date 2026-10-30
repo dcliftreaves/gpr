@@ -145,7 +145,10 @@ skipped. This is a workflow integration omission, not a passing hosted result.
 
 The corrected list includes the executable and preserves CTest logs in the
 Release artifacts. The exact corrected build command and new test pass locally;
-the corrected hosted revision still needs its own results.
+all seven hosted jobs pass at corrected revision `40aa476` in
+[run 41139092733](https://github.com/dcliftreaves/gpr/actions/runs/41139092733).
+The [successful receipt](stock-preview-color-receipts/ci-integration/passed-40aa476.json)
+records that exact head.
 [Failure receipt](stock-preview-color-receipts/ci-integration/failed-f332e07.json),
 [excerpts](stock-preview-color-receipts/ci-integration/missing-target-excerpts.txt)
 and [local target check](stock-preview-color-receipts/ci-integration/local-target-check.txt)

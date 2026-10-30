@@ -1,0 +1,11 @@
+{
+  "scope": "exploratory representation proof for the existing scalar sRGB formula; native implementation and runtime performance not yet tested",
+  "inputs": 65536,
+  "buckets": 4096,
+  "packed_bytes": 8192,
+  "legacy_bytes": 65536,
+  "max_bucket_span": 1,
+  "legacy_sha256": "02387f3d0fb18f89bd923d54abccebc15685f8587ac91b4f4e2ddd8b3e953b83",
+  "packed_le_sha256": "56560edeeb5dfc253873e06898d3e00f33b9c3c164dd28f94dda0e3b0e37b991",
+  "all_indices_exact": true
+}

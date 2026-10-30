@@ -1,0 +1,134 @@
+[
+  {
+    "mode": "unrestricted",
+    "median_join_tail_ms": 0.014944999999998848,
+    "sources": [
+      {
+        "source": 0,
+        "frames": 60,
+        "channels": [
+          {
+            "channel": 0,
+            "median_cpu_ms": 29.4044435,
+            "median_wall_ms": 30.743427,
+            "last_finish_count": 60
+          },
+          {
+            "channel": 1,
+            "median_cpu_ms": 24.604630000000004,
+            "median_wall_ms": 24.751905499999996,
+            "last_finish_count": 0
+          },
+          {
+            "channel": 2,
+            "median_cpu_ms": 24.711008,
+            "median_wall_ms": 24.9074615,
+            "last_finish_count": 0
+          },
+          {
+            "channel": 3,
+            "median_cpu_ms": 24.693490999999998,
+            "median_wall_ms": 24.814526,
+            "last_finish_count": 0
+          }
+        ]
+      },
+      {
+        "source": 1,
+        "frames": 60,
+        "channels": [
+          {
+            "channel": 0,
+            "median_cpu_ms": 25.571983,
+            "median_wall_ms": 26.8902365,
+            "last_finish_count": 39
+          },
+          {
+            "channel": 1,
+            "median_cpu_ms": 22.764565,
+            "median_wall_ms": 22.883361,
+            "last_finish_count": 7
+          },
+          {
+            "channel": 2,
+            "median_cpu_ms": 22.841490999999998,
+            "median_wall_ms": 22.938649499999997,
+            "last_finish_count": 13
+          },
+          {
+            "channel": 3,
+            "median_cpu_ms": 20.819834000000004,
+            "median_wall_ms": 20.9424095,
+            "last_finish_count": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "pinned",
+    "median_join_tail_ms": 0.018823999999998883,
+    "sources": [
+      {
+        "source": 0,
+        "frames": 60,
+        "channels": [
+          {
+            "channel": 0,
+            "median_cpu_ms": 29.361954,
+            "median_wall_ms": 29.385294,
+            "last_finish_count": 57
+          },
+          {
+            "channel": 1,
+            "median_cpu_ms": 24.9906485,
+            "median_wall_ms": 25.0940825,
+            "last_finish_count": 0
+          },
+          {
+            "channel": 2,
+            "median_cpu_ms": 25.146963500000002,
+            "median_wall_ms": 25.283213,
+            "last_finish_count": 1
+          },
+          {
+            "channel": 3,
+            "median_cpu_ms": 24.833692,
+            "median_wall_ms": 26.626781500000003,
+            "last_finish_count": 2
+          }
+        ]
+      },
+      {
+        "source": 1,
+        "frames": 60,
+        "channels": [
+          {
+            "channel": 0,
+            "median_cpu_ms": 22.497083500000002,
+            "median_wall_ms": 22.556109999999997,
+            "last_finish_count": 5
+          },
+          {
+            "channel": 1,
+            "median_cpu_ms": 22.9508425,
+            "median_wall_ms": 23.054131499999997,
+            "last_finish_count": 28
+          },
+          {
+            "channel": 2,
+            "median_cpu_ms": 22.946,
+            "median_wall_ms": 23.049306499999997,
+            "last_finish_count": 21
+          },
+          {
+            "channel": 3,
+            "median_cpu_ms": 21.2117575,
+            "median_wall_ms": 22.707398,
+            "last_finish_count": 6
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,238 @@
+{
+  "complete": true,
+  "protocol_sha256": "03cb48f1ab286a7ebbbc92e89b693140a1859a6a0ac8544fe987ef92b545106e",
+  "rows": [
+    {
+      "index": 0,
+      "mode": "dense",
+      "source": 0,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 99449468,
+        "cycles:u": 17984909743,
+        "instructions:u": 25042716981
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 0,
+      "mode": "dense",
+      "source": 1,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 75880954,
+        "cycles:u": 17813360499,
+        "instructions:u": 24946582967
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 1,
+      "mode": "packed",
+      "source": 0,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 69416642,
+        "cycles:u": 17583993274,
+        "instructions:u": 27698378859
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 1,
+      "mode": "packed",
+      "source": 1,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 67646654,
+        "cycles:u": 17625578140,
+        "instructions:u": 27602241988
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 2,
+      "mode": "packed",
+      "source": 0,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 69391469,
+        "cycles:u": 17714726938,
+        "instructions:u": 27698369078
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 2,
+      "mode": "packed",
+      "source": 1,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 67441651,
+        "cycles:u": 17578340320,
+        "instructions:u": 27602233167
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 3,
+      "mode": "dense",
+      "source": 0,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 99563466,
+        "cycles:u": 17876036017,
+        "instructions:u": 25042717217
+      },
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 3,
+      "mode": "dense",
+      "source": 1,
+      "command": [
+        "perf",
+        "stat",
+        "-x",
+        ",",
+        "-e",
+        "l1d_cache_refill:u",
+        "-e",
+        "cycles:u",
+        "-e",
+        "instructions:u",
+        "--",
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "301"
+      ],
+      "counters": {
+        "l1d_cache_refill:u": 75666988,
+        "cycles:u": 17538149018,
+        "instructions:u": 24946589469
+      },
+      "all_pixels_exact_offline": true
+    }
+  ]
+}

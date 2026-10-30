@@ -142,3 +142,17 @@ The retained [bounded preview-plane spacing](stock-preview-colors.md) changes
 internal placement, with exact pixels/payloads, existing memory limits and dense
 fallback preserved. Final source passes 27 Mac/24 Pi tests and four relocated
 profiles. Lower measured cache refills do not close the strict deadline gate.
+
+The [exact packed gamma-table experiment](stock-packed-gamma.md) reduces the
+lookup storage from 64 KiB to 8 KiB and passes exhaustive Mac/Pi comparisons.
+It reduces cache refills but adds instructions; both full-capture render
+medians are slower than both dense controls, and every strict timing gate
+still fails. All 2,400 payloads and previews remain exact. The proposal is
+rejected; production runtime is unchanged.
+
+The [channel-balance diagnostic](stock-channel-balance.md) verifies three
+120-frame instrumented replays and finds channel 0 usually finishes last in
+the unrestricted case. Dispatch/join delays are small; sampled entropy coding
+is the largest process-wide hot symbol. This supplies direction for finer
+work-distribution investigation, not a production scheduling change or a
+closed timing gate.

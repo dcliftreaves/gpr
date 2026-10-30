@@ -1,0 +1,212 @@
+ Percent |	Source code & Disassembly of gpr_capture_app for cycles:u (412 samples, percent: local period)
+--------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     0000000000028bf0 <EncodeHighpassIncremental.constprop.1>:
+    0.00 :   28bf0:  stp     x29, x30, [sp, #-64]!
+    0.00 :   28bf4:  mov     w4, #0x20                       // #32
+    0.00 :   28bf8:  and     w3, w3, #0xffff
+    0.00 :   28bfc:  mov     x29, sp
+    0.00 :   28c00:  ldr     x15, [x0, #8]
+    0.24 :   28c04:  stp     x19, x20, [sp, #16]
+    0.00 :   28c08:  ldr     w11, [x0, #16]
+    0.00 :   28c0c:  stp     x21, x22, [sp, #32]
+    0.00 :   28c10:  mov     w7, #0x0                        // #0
+    0.00 :   28c14:  stp     x23, x24, [sp, #48]
+    0.00 :   28c18:  ldr     x13, [x1, #32]
+    0.00 :   28c1c:  ldrb    w6, [x0, #20]
+    0.00 :   28c20:  ldr     x14, [x15, #8]
+    0.22 :   28c24:  sub     w4, w4, w6
+    0.00 :   28c28:  ldr     x16, [x15, #88]
+    0.00 :   28c2c:  lsr     x11, x11, x4
+    0.00 :   28c30:  ldr     w17, [x13]
+    0.00 :   28c34:  add     x14, x14, x16
+    0.00 :   28c38:  cbz     x5, 28c40 <EncodeHighpassIncremental.constprop.1+0x50>
+    0.00 :   28c3c:  ldr     w7, [x5]
+    0.00 :   28c40:  add     x10, x2, w3, uxth #1
+    0.00 :   28c44:  mov     x12, x14
+    0.00 :   28c48:  mov     w9, #0x0                        // #0
+    0.70 :   28c4c:  ubfiz   x4, x9, #1, #32
+    0.00 :   28c50:  add     x30, x2, x4
+    0.00 :   28c54:  cbnz    w7, 28d28 <EncodeHighpassIncremental.constprop.1+0x138>
+    2.17 :   28c58:  add     w18, w9, #0x4
+    0.22 :   28c5c:  cmp     w18, w3
+    0.20 :   28c60:  b.hi    28d28 <EncodeHighpassIncremental.constprop.1+0x138>  // b.pmore
+    0.91 :   28c64:  add     w8, w9, #0x3
+    0.00 :   28c68:  ldrsh   w8, [x2, x8, lsl #1]
+    6.75 :   28c6c:  cbz     w8, 28d28 <EncodeHighpassIncremental.constprop.1+0x138>
+    0.67 :   28c70:  add     w19, w9, #0x1
+    1.71 :   28c74:  add     w9, w9, #0x2
+    0.00 :   28c78:  ldr     x20, [x1, #40]
+    3.57 :   28c7c:  and     x8, x8, #0xffff
+    0.00 :   28c80:  ldrh    w4, [x2, x4]
+    0.00 :   28c84:  ldrh    w21, [x2, x19, lsl #1]
+    0.00 :   28c88:  ldrh    w19, [x2, x9, lsl #1]
+    0.64 :   28c8c:  ldr     x30, [x20, x8, lsl #3]
+    0.92 :   28c90:  ldr     x21, [x20, x21, lsl #3]
+    1.60 :   28c94:  and     x9, x30, #0xffffffff
+    0.00 :   28c98:  ldr     x8, [x20, x4, lsl #3]
+    1.25 :   28c9c:  lsr     x30, x30, #32
+    0.00 :   28ca0:  ldr     x19, [x20, x19, lsl #3]
+    1.10 :   28ca4:  lsr     x23, x21, #32
+    0.00 :   28ca8:  lsr     x4, x8, #32
+    0.00 :   28cac:  and     x21, x21, #0xffffffff
+    0.22 :   28cb0:  add     w22, w30, w4
+    0.00 :   28cb4:  and     x8, x8, #0xffffffff
+    0.00 :   28cb8:  lsr     x20, x19, #32
+    0.00 :   28cbc:  and     x19, x19, #0xffffffff
+    0.00 :   28cc0:  add     w24, w20, w23
+    1.13 :   28cc4:  add     w22, w22, w24
+    0.00 :   28cc8:  cmp     w22, #0x20
+    0.00 :   28ccc:  b.hi    28db0 <EncodeHighpassIncremental.constprop.1+0x1c0>  // b.pmore
+    5.90 :   28cd0:  add     w20, w30, w20
+    0.24 :   28cd4:  lsl     x4, x8, x23
+    0.00 :   28cd8:  orr     x4, x4, x21
+    0.00 :   28cdc:  lsl     x11, x11, x22
+    0.00 :   28ce0:  lsl     x19, x19, x30
+    0.00 :   28ce4:  add     w6, w6, w22
+    0.00 :   28ce8:  orr     x19, x19, x9
+    0.00 :   28cec:  lsl     x4, x4, x20
+    0.68 :   28cf0:  orr     x4, x4, x11
+    0.00 :   28cf4:  orr     x11, x19, x4
+    0.00 :   28cf8:  cmp     w6, #0x1f
+    0.00 :   28cfc:  b.ls    28d10 <EncodeHighpassIncremental.constprop.1+0x120>  // b.plast
+    0.90 :   28d00:  sub     w6, w6, #0x20
+    1.86 :   28d04:  lsr     x4, x11, x6
+    0.00 :   28d08:  rev     w4, w4
+    0.00 :   28d0c:  str     w4, [x12], #4
+    2.47 :   28d10:  cmp     w18, w3
+    0.21 :   28d14:  b.eq    28d70 <EncodeHighpassIncremental.constprop.1+0x180>  // b.none
+    2.16 :   28d18:  mov     w9, w18
+    1.25 :   28d1c:  ubfiz   x4, x9, #1, #32
+    0.90 :   28d20:  add     x30, x2, x4
+    0.00 :   28d24:  cbz     w7, 28c58 <EncodeHighpassIncremental.constprop.1+0x68>
+    1.53 :   28d28:  mov     x4, x30
+    2.90 :   28d2c:  cmp     x10, x30
+    0.00 :   28d30:  b.ne    28d44 <EncodeHighpassIncremental.constprop.1+0x154>  // b.any
+    0.00 :   28d34:  b       28d4c <EncodeHighpassIncremental.constprop.1+0x15c>
+    7.37 :   28d38:  add     x4, x4, #0x2
+    1.33 :   28d3c:  cmp     x10, x4
+    0.01 :   28d40:  b.eq    28d4c <EncodeHighpassIncremental.constprop.1+0x15c>  // b.none
+    8.57 :   28d44:  ldrsh   w8, [x4]
+    5.26 :   28d48:  cbz     w8, 28d38 <EncodeHighpassIncremental.constprop.1+0x148>
+    1.35 :   28d4c:  sub     x4, x4, x30
+    4.08 :   28d50:  asr     x4, x4, #1
+    0.00 :   28d54:  add     w9, w9, w4
+    0.00 :   28d58:  add     w7, w7, w4
+    0.00 :   28d5c:  cmp     w9, w3
+    0.43 :   28d60:  b.cc    28e34 <EncodeHighpassIncremental.constprop.1+0x244>  // b.lo, b.ul, b.last
+    0.21 :   28d64:  cmp     w9, w3
+    0.00 :   28d68:  b.ne    28c4c <EncodeHighpassIncremental.constprop.1+0x5c>  // b.any
+    0.00 :   28d6c:  nop
+    0.00 :   28d70:  mov     w1, #0x20                       // #32
+    0.00 :   28d74:  sub     w1, w1, w6
+    0.00 :   28d78:  sub     x12, x12, x14
+    0.00 :   28d7c:  strb    w6, [x0, #20]
+    0.00 :   28d80:  lsl     x1, x11, x1
+    0.00 :   28d84:  str     w1, [x0, #16]
+    0.00 :   28d88:  add     x12, x12, x16
+    0.00 :   28d8c:  str     x12, [x15, #88]
+    0.00 :   28d90:  cbz     x5, 28d98 <EncodeHighpassIncremental.constprop.1+0x1a8>
+    0.00 :   28d94:  str     w7, [x5]
+    0.00 :   28d98:  ldp     x19, x20, [sp, #16]
+    0.00 :   28d9c:  mov     w0, #0x0                        // #0
+    0.00 :   28da0:  ldp     x21, x22, [sp, #32]
+    0.69 :   28da4:  ldp     x23, x24, [sp, #48]
+    0.22 :   28da8:  ldp     x29, x30, [sp], #64
+    0.00 :   28dac:  ret
+    0.67 :   28db0:  add     w6, w6, w4
+    0.69 :   28db4:  lsl     x4, x11, x4
+    0.00 :   28db8:  orr     x4, x4, x8
+    0.00 :   28dbc:  cmp     w6, #0x1f
+    0.00 :   28dc0:  b.ls    28dd4 <EncodeHighpassIncremental.constprop.1+0x1e4>  // b.plast
+    0.00 :   28dc4:  sub     w6, w6, #0x20
+    0.00 :   28dc8:  lsr     x8, x4, x6
+    0.00 :   28dcc:  rev     w8, w8
+    0.00 :   28dd0:  str     w8, [x12], #4
+    0.23 :   28dd4:  add     w6, w6, w23
+    0.00 :   28dd8:  lsl     x4, x4, x23
+    0.00 :   28ddc:  orr     x4, x4, x21
+    0.00 :   28de0:  cmp     w6, #0x1f
+    0.00 :   28de4:  b.ls    28df8 <EncodeHighpassIncremental.constprop.1+0x208>  // b.plast
+    0.00 :   28de8:  sub     w6, w6, #0x20
+    0.23 :   28dec:  lsr     x8, x4, x6
+    0.00 :   28df0:  rev     w8, w8
+    0.00 :   28df4:  str     w8, [x12], #4
+    0.23 :   28df8:  add     w6, w6, w20
+    0.00 :   28dfc:  lsl     x4, x4, x20
+    0.00 :   28e00:  orr     x4, x4, x19
+    0.00 :   28e04:  cmp     w6, #0x1f
+    0.00 :   28e08:  b.ls    28e1c <EncodeHighpassIncremental.constprop.1+0x22c>  // b.plast
+    0.00 :   28e0c:  sub     w6, w6, #0x20
+    0.00 :   28e10:  lsr     x8, x4, x6
+    0.00 :   28e14:  rev     w8, w8
+    0.00 :   28e18:  str     w8, [x12], #4
+    0.22 :   28e1c:  add     w6, w6, w30
+    0.00 :   28e20:  lsl     x4, x4, x30
+    0.00 :   28e24:  orr     x11, x4, x9
+    0.00 :   28e28:  cmp     w6, #0x1f
+    0.00 :   28e2c:  b.ls    28d10 <EncodeHighpassIncremental.constprop.1+0x120>  // b.plast
+    0.23 :   28e30:  b       28d00 <EncodeHighpassIncremental.constprop.1+0x110>
+    4.79 :   28e34:  cbz     w7, 28e9c <EncodeHighpassIncremental.constprop.1+0x2ac>
+    0.23 :   28e38:  cmp     w7, #0xb
+    0.00 :   28e3c:  b.ls    28e9c <EncodeHighpassIncremental.constprop.1+0x2ac>  // b.plast
+    0.00 :   28e40:  sub     w18, w17, #0x1
+    0.00 :   28e44:  mov     w20, #0xc                       // #12
+    0.00 :   28e48:  mov     x19, #0x4                       // #4
+    0.00 :   28e4c:  b       28e58 <EncodeHighpassIncremental.constprop.1+0x268>
+    0.00 :   28e50:  cmp     w7, #0xb
+    0.00 :   28e54:  b.ls    28e9c <EncodeHighpassIncremental.constprop.1+0x2ac>  // b.plast
+    0.24 :   28e58:  cmp     w7, w18
+    0.00 :   28e5c:  csel    w4, w7, w18, le
+    0.00 :   28e60:  umaddl  x4, w4, w20, x19
+    0.00 :   28e64:  add     x8, x13, x4
+    0.00 :   28e68:  ldrb    w4, [x13, x4]
+    2.15 :   28e6c:  ldp     w8, w30, [x8, #4]
+    0.24 :   28e70:  add     w6, w6, w4
+    0.00 :   28e74:  lsl     x4, x11, x4
+    0.00 :   28e78:  orr     x11, x30, x4
+    0.00 :   28e7c:  cmp     w6, #0x1f
+    0.00 :   28e80:  b.ls    28e94 <EncodeHighpassIncremental.constprop.1+0x2a4>  // b.plast
+    0.00 :   28e84:  sub     w6, w6, #0x20
+    0.23 :   28e88:  lsr     x4, x11, x6
+    0.00 :   28e8c:  rev     w4, w4
+    0.00 :   28e90:  str     w4, [x12], #4
+    0.01 :   28e94:  subs    w7, w7, w8
+    0.00 :   28e98:  b.ne    28e50 <EncodeHighpassIncremental.constprop.1+0x260>  // b.any
+    0.88 :   28e9c:  ldr     x4, [x1, #40]
+    2.55 :   28ea0:  add     w18, w9, #0x1
+    0.00 :   28ea4:  ldrh    w8, [x2, w9, uxtw #1]
+    2.96 :   28ea8:  ldr     x8, [x4, x8, lsl #3]
+    1.77 :   28eac:  lsr     x9, x8, #32
+    0.00 :   28eb0:  add     w4, w7, w9
+    0.00 :   28eb4:  cmp     w4, #0x20
+    0.00 :   28eb8:  b.ls    28ee0 <EncodeHighpassIncremental.constprop.1+0x2f0>  // b.plast
+    0.00 :   28ebc:  add     w6, w6, w7
+    0.00 :   28ec0:  mov     w4, w9
+    0.00 :   28ec4:  lsl     x11, x11, x7
+    0.00 :   28ec8:  cmp     w6, #0x1f
+    0.00 :   28ecc:  b.ls    28ee0 <EncodeHighpassIncremental.constprop.1+0x2f0>  // b.plast
+    0.00 :   28ed0:  sub     w6, w6, #0x20
+    0.00 :   28ed4:  lsr     x7, x11, x6
+    0.00 :   28ed8:  rev     w7, w7
+    0.00 :   28edc:  str     w7, [x12], #4
+    4.14 :   28ee0:  and     x8, x8, #0xffffffff
+    0.00 :   28ee4:  add     w6, w6, w4
+    0.00 :   28ee8:  lsl     x4, x11, x4
+    0.00 :   28eec:  orr     x11, x8, x4
+    0.00 :   28ef0:  cmp     w6, #0x1f
+    0.00 :   28ef4:  b.ls    28f14 <EncodeHighpassIncremental.constprop.1+0x324>  // b.plast
+    0.00 :   28ef8:  sub     w6, w6, #0x20
+    0.86 :   28efc:  mov     w9, w18
+    0.00 :   28f00:  mov     w7, #0x0                        // #0
+    0.20 :   28f04:  lsr     x4, x11, x6
+    0.00 :   28f08:  rev     w4, w4
+    0.00 :   28f0c:  str     w4, [x12], #4
+    0.62 :   28f10:  b       28d64 <EncodeHighpassIncremental.constprop.1+0x174>
+    0.90 :   28f14:  mov     w9, w18
+    0.00 :   28f18:  mov     w7, #0x0                        // #0
+    0.00 :   28f1c:  b       28d64 <EncodeHighpassIncremental.constprop.1+0x174>

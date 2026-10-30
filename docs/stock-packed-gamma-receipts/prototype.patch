@@ -1,0 +1,133 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e304c73..b11e7aa 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -244,6 +244,11 @@ if(GPR_BUILD_PREVIEW_TESTS)
+   target_link_libraries(preview_contract_test gpr_preview)
+   add_test(NAME preview_contract COMMAND preview_contract_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+   set_tests_properties(preview_contract PROPERTIES TIMEOUT 60)
++  add_executable(preview_srgb_test tests/preview_srgb_test.cpp)
++  target_compile_features(preview_srgb_test PRIVATE cxx_std_11)
++  target_include_directories(preview_srgb_test PRIVATE source/lib/gpr_video)
++  target_link_libraries(preview_srgb_test gpr_preview)
++  add_test(NAME preview_srgb COMMAND preview_srgb_test)
+   add_executable(preview_wavelet_queue_test tests/preview_wavelet_queue_test.cpp)
+   target_compile_features(preview_wavelet_queue_test PRIVATE cxx_std_11)
+   target_link_libraries(preview_wavelet_queue_test gpr_preview)
+@@ -385,3 +390,9 @@ if(GPR_BUILD_CODEC_TESTS)
+   set_tests_properties(bayer_formats_fast PROPERTIES ENVIRONMENT
+     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1")
+ endif()
++
++if(TARGET gpr_preview)
++  add_executable(preview_color_benchmark tests/preview_color_benchmark.cpp)
++  target_compile_features(preview_color_benchmark PRIVATE cxx_std_11)
++  target_link_libraries(preview_color_benchmark gpr_preview)
++endif()
+diff --git a/source/lib/gpr_video/gpr_preview.cpp b/source/lib/gpr_video/gpr_preview.cpp
+index 5885bd0..d3657f8 100644
+--- a/source/lib/gpr_video/gpr_preview.cpp
++++ b/source/lib/gpr_video/gpr_preview.cpp
+@@ -13,6 +13,9 @@
+ #include <mutex>
+ #include <atomic>
+ #include <future>
++#if GPR_PACKED_GAMMA
++#include "gpr_preview_srgb.hpp"
++#endif
+ #if defined(__aarch64__) && NEON
+ #include <arm_neon.h>
+ #endif
+@@ -137,6 +140,12 @@ float map_gain(const gpr_preview_gain_map &m,float x,float y,const float *active
+     return (1-dy)*((1-dx)*p[size_t(top)*m.cols+left]+dx*p[size_t(top)*m.cols+right])+
+         dy*((1-dx)*p[size_t(bottom)*m.cols+left]+dx*p[size_t(bottom)*m.cols+right]);
+ }
++#if GPR_PACKED_GAMMA
++using GammaEntry=gpr_preview_detail::srgb_entry;
++const GammaEntry *srgb_table(){return gpr_preview_detail::srgb_table();}
++inline uint8_t gamma_value(const GammaEntry *table,unsigned i){return gpr_preview_detail::srgb_lookup(table,i);}
++#else
++using GammaEntry=uint8_t;
+ const uint8_t *srgb_table() {
+     static uint8_t table[65536]; static std::once_flag once;
+     std::call_once(once,[]{ for (unsigned i=0;i<65536;++i) {
+@@ -146,9 +155,11 @@ const uint8_t *srgb_table() {
+     }});
+     return table;
+ }
+-uint8_t srgb(float value,const uint8_t *table) {
++inline uint8_t gamma_value(const GammaEntry *table,unsigned i){return table[i];}
++#endif
++uint8_t srgb(float value,const GammaEntry *table) {
+     if (!(value>0)) return 0; if (value>=1) return 255;
+-    return table[unsigned(value*65535+.5f)];
++    return gamma_value(table,unsigned(value*65535+.5f));
+ }
+ void display_pixel(const gpr_preview_plan *p,uint8_t *rgb,size_t pitch,unsigned x,unsigned y,const uint8_t *color) {
+     uint32_t dx=x,dy=y;
+@@ -164,7 +175,7 @@ void display_pixel(const gpr_preview_plan *p,uint8_t *rgb,size_t pitch,unsigned
+     std::memcpy(rgb+size_t(dy)*pitch+size_t(dx)*3,color,3);
+ }
+ #if defined(__aarch64__) && NEON
+-void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
++void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const GammaEntry *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
+     // Four independent pixels keep the channel arithmetic in vector registers.
+     // Load the mirrored big-endian word triplets once, then reverse lane order.
+     const uint8_t *start=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x+3]))*6;
+@@ -205,12 +216,12 @@ void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *
+         vst1q_u32(indices[c],vcvtq_u32_f32(vaddq_f32(vmulq_n_f32(value,65535),vdupq_n_f32(.5f))));
+     }
+     for (unsigned lane=0;lane<4;++lane) {
+-        uint8_t color[3]={gamma[indices[0][lane]],gamma[indices[1][lane]],gamma[indices[2][lane]]};
++        uint8_t color[3]={gamma_value(gamma,indices[0][lane]),gamma_value(gamma,indices[1][lane]),gamma_value(gamma,indices[2][lane])};
+         display_pixel(p,rgb,pitch,x+lane,y,color);
+     }
+ }
+ void display_wavelet_neon4(const gpr_preview_plan *p,const gpr_rgb_buffer *planes,
+-    const uint8_t *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
++    const GammaEntry *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
+     int32x4_t gs=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[0].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+     int32x4_t rg=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[1].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+     int32x4_t bg=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[2].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+@@ -257,12 +268,12 @@ void display_wavelet_neon4(const gpr_preview_plan *p,const gpr_rgb_buffer *plane
+         vst1q_u32(output[c],vcvtq_u32_f32(vaddq_f32(vmulq_n_f32(value,65535),vdupq_n_f32(.5f))));
+     }
+     for (unsigned lane=0;lane<4;++lane) {
+-        uint8_t color[3]={gamma[output[0][lane]],gamma[output[1][lane]],gamma[output[2][lane]]};
++        uint8_t color[3]={gamma_value(gamma,output[0][lane]),gamma_value(gamma,output[1][lane]),gamma_value(gamma,output[2][lane])};
+         display_pixel(p,rgb,pitch,x+lane,y,color);
+     }
+ }
+ #endif
+-void display_rows(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *gamma,
++void display_rows(const gpr_preview_plan *p,const uint8_t *data,const GammaEntry *gamma,
+     uint8_t *rgb,size_t pitch,uint32_t first,uint32_t last) {
+     for (uint32_t y=first;y<last;++y) for (uint32_t x=0;x<p->columns;) {
+ #if defined(__aarch64__) && NEON
+@@ -291,7 +302,7 @@ void display_rows(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *g
+     }
+ }
+ void display_wavelet_rows(const gpr_preview_plan *p,const gpr_rgb_buffer *planes,
+-    const uint8_t *gamma,uint8_t *rgb,size_t pitch,uint32_t first,uint32_t last) {
++    const GammaEntry *gamma,uint8_t *rgb,size_t pitch,uint32_t first,uint32_t last) {
+     const auto *gs=static_cast<const int16_t *>(planes[0].buffer);
+     const auto *rg=static_cast<const int16_t *>(planes[1].buffer);
+     const auto *bg=static_cast<const int16_t *>(planes[2].buffer);
+@@ -473,7 +484,7 @@ extern "C" int gpr_preview_plan_render_wavelets(const gpr_preview_plan *p,
+     }
+     try {
+         SetupDecoderLogCurve();
+-        const uint8_t *gamma=srgb_table();
++        const GammaEntry *gamma=srgb_table();
+         if (size_t(p->columns)*p->rows>=500000) {
+             constexpr uint32_t workers=4;
+             std::future<void> done[workers-1];
+@@ -543,7 +554,7 @@ extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *
+             return gpr_preview_plan_render_wavelets(p,&input,rgb,capacity,pitch,out);
+         }
+         const uint8_t *data=static_cast<const uint8_t *>(decoded.buffer);
+-        const uint8_t *gamma=srgb_table();
++        const GammaEntry *gamma=srgb_table();
+         if (size_t(p->columns)*p->rows>=500000) {
+             constexpr uint32_t workers=4;
+             std::future<void> workers_done[workers-1];

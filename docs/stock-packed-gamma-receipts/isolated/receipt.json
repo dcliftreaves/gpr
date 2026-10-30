@@ -1,0 +1,126 @@
+{
+  "complete": true,
+  "protocol_sha256": "628c2615a586b9ebed29c29c44acf13ca3311594cf203287e7e8ff7de0db8209",
+  "rows": [
+    {
+      "index": 0,
+      "mode": "dense",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "61"
+      ],
+      "median_render_ms": 5.7411845,
+      "median_cycle_ms": 7.262865,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 0,
+      "mode": "dense",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "61"
+      ],
+      "median_render_ms": 5.740342,
+      "median_cycle_ms": 7.284412,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 1,
+      "mode": "packed",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "61"
+      ],
+      "median_render_ms": 6.154917,
+      "median_cycle_ms": 7.715811,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 1,
+      "mode": "packed",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "61"
+      ],
+      "median_render_ms": 5.503406,
+      "median_cycle_ms": 7.021846,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 2,
+      "mode": "packed",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "61"
+      ],
+      "median_render_ms": 5.4597855,
+      "median_cycle_ms": 6.9884575,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 2,
+      "mode": "packed",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-packed/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "61"
+      ],
+      "median_render_ms": 5.985204,
+      "median_cycle_ms": 7.532181,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 3,
+      "mode": "dense",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "1896117749",
+        "61"
+      ],
+      "median_render_ms": 5.5510355,
+      "median_cycle_ms": 7.0840035,
+      "all_pixels_exact_offline": true
+    },
+    {
+      "index": 3,
+      "mode": "dense",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-packed-gamma-prototype-20261030/build-dense/preview_color_benchmark",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "2347339991",
+        "61"
+      ],
+      "median_render_ms": 5.8071015,
+      "median_cycle_ms": 7.3490785,
+      "all_pixels_exact_offline": true
+    }
+  ]
+}

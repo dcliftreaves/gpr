@@ -36,12 +36,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 ## Remaining work
 
 1. Keep hosted validation current as the branch advances. All seven checks for
-   published revision `7f9215e` passed in
-   [run 41131634398](https://github.com/dcliftreaves/gpr/actions/runs/41131634398),
-   including native Core ML/MPSGraph/Metal and relocated packages on Mac.
-   The current [preview-spacing source](stock-preview-colors.md) separately passes
-   27 Mac/24 Pi Release targets and all four relocated package profiles. Hosted
-   results above precede this source change; the new head requires its own run.
+   revision `40aa476` passed in
+   [run 41139092733](https://github.com/dcliftreaves/gpr/actions/runs/41139092733),
+   including the corrected explicit wavelet-queue test target, native backends,
+   FFmpeg and packages. The [preview-spacing source](stock-preview-colors.md)
+   separately passes 27 Mac/24 Pi Release targets and four relocated profiles.
 2. The [selected 1x candidate](stock-cleanup-strength.md) now passes the declared
    patch-validation and four-reference numeric nonregression guards, with an
    explicit repository checkpoint and Pi execution evidence. The later
@@ -155,5 +154,20 @@ controls, but every run still fails the strict deadline gate. New source passes
 Hosted `f332e07` initially fails native CTest because the explicit CI build
 list omits the newly registered wavelet-queue executable. The [workflow
 integration correction](stock-preview-colors.md#ci-target-integration) adds it
-and retains failure logs; hosted validation of that correction remains pending.
+and retains failure logs; all seven hosted checks pass at correction `40aa476`
+([receipt](stock-preview-color-receipts/ci-integration/passed-40aa476.json)).
 The local 27 Mac/24 Pi source checks and package evidence are unchanged.
+
+The [exact packed gamma-table experiment](stock-packed-gamma.md) reduces the
+lookup storage from 64 KiB to 8 KiB and passes exhaustive Mac/Pi comparisons.
+It reduces cache refills but adds instructions; both full-capture render
+medians are slower than both dense controls, and every strict timing gate
+still fails. All 2,400 payloads and previews remain exact. The proposal is
+rejected; production runtime is unchanged.
+
+The [channel-balance diagnostic](stock-channel-balance.md) verifies three
+120-frame instrumented replays and finds channel 0 usually finishes last in
+the unrestricted case. Dispatch/join delays are small; sampled entropy coding
+is the largest process-wide hot symbol. This supplies direction for finer
+work-distribution investigation, not a production scheduling change or a
+closed timing gate.
