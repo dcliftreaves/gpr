@@ -540,6 +540,12 @@ extern "C" void gpr_preview_options_default(gpr_preview_options *out) {
         out->gain_num[2]=gain.b_gain_num; out->gain_pow2_den[2]=gain.b_gain_pow2_den;
     }
 }
+extern "C" int gpr_preview_validate_payload(const gpr_gvid_config *video,const uint8_t *payload,size_t size) {
+    uint8_t header[64];
+    if (!video || video->width<48 || video->height<48 || gpr_gvid_write_header(header,video,nullptr,0))
+        return GPR_PREVIEW_INVALID;
+    return stock_payload(*video,payload,size) ? GPR_PREVIEW_OK:GPR_PREVIEW_PAYLOAD;
+}
 extern "C" int gpr_preview_dimensions(const gpr_gvid_config *v,const gpr_preview_options *o,gpr_preview_info *out) {
     uint8_t check[64];
     if (!v || !o || !out || v->width<48 || v->height<48 || gpr_gvid_write_header(check,v,nullptr,0) ||

@@ -8,6 +8,43 @@ concurrency:
   group: stock-capture-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  ffmpeg-stock:
+    name: FFmpegStockDecoder
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm pkg-config zlib1g-dev libavformat-dev libavcodec-dev libavutil-dev
+          python -m pip install numpy tifffile
+      - name: Build and install stock capture, decoder and MOV bridge
+        run: |
+          cmake -S . -B build-ffmpeg -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DGPR_ENABLE_IPO=OFF \
+            -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF \
+            -DGPR_ENABLE_VIDEO=ON -DGPR_BUILD_CAPTURE_APP=ON -DGPR_BUILD_PREVIEW_TOOLS=ON \
+            -DGPR_BUILD_STOCK_VIDEO_EXPERIMENT=ON -DGPR_BUILD_MOV_TOOLS=ON -DGPR_BUILD_PACKAGE=ON
+          cmake --build build-ffmpeg --parallel 4
+          cmake --install build-ffmpeg --prefix "$RUNNER_TEMP/gpr-stock-prefix"
+      - name: Build pinned FFmpeg adapter and verify exact Bayer output
+        run: |
+          git clone --depth 1 --branch n8.0 https://github.com/FFmpeg/FFmpeg.git "$RUNNER_TEMP/stock-ffmpeg-source"
+          python tools/ffmpeg_stock/build.py build --ffmpeg-source "$RUNNER_TEMP/stock-ffmpeg-source" \
+            --gpr-prefix "$RUNNER_TEMP/gpr-stock-prefix" --jobs 4
+          python tests/stock_ffmpeg_test.py --ffmpeg "$RUNNER_TEMP/stock-ffmpeg-source/ffmpeg" \
+            --ffprobe "$RUNNER_TEMP/stock-ffmpeg-source/ffprobe" --bridge build-ffmpeg/gpr_mov \
+            --capture build-ffmpeg/gpr_capture_app --decoder build-ffmpeg/source/app/stock_video/stock_video \
+            --receipt stock-ffmpeg-receipt.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: stock-ffmpeg-receipt
+          path: stock-ffmpeg-receipt.json
+          if-no-files-found: warn
   mov:
     name: MOV-${{ matrix.type }}
     runs-on: ubuntu-latest

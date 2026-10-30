@@ -212,9 +212,10 @@ thermal behavior. Exact receipts: [current parallel/fused 1024x768](stock-core-r
 
 The [original eight-group parity audit](stock-feature-parity-audit.md) maps the
 frozen #95/#96 adoption groups to this implementation. It explicitly identifies
-the optional patched FFmpeg decoder, native CoreML/Metal inference and original
-UPRESABLE command orchestration as remaining gaps; transport/portable inference
-are not treated as complete substitutes.
+native CoreML/Metal inference and original UPRESABLE command orchestration as
+remaining gaps; portable inference is not treated as a complete substitute.
+The optional [stock FFmpeg decoder](stock-ffmpeg-decoder.md) now replaces the
+old fused adapter with explicit stock GVS2/GVS3 packet decoding.
 
 ### Extended Mission 1 host replay
 
@@ -262,6 +263,7 @@ Historical platform receipts remain bound to their recorded revisions.
 | SDK ABI and selected boundaries | Published C symbols, owned-copy rollback and encoder/decoder boundary fixes implemented; [C API](stock-sdk-api.md), [encoder](stock-encoder-bounds.md), [decoder](stock-decoder-bounds.md) | Broader malformed-input/failure/concurrency audit, deferred from immediate delivery |
 | Independent packages | Four current MOV-enabled profiles pass relocated C/C++/SDK and installed PCM/timecode wrap/recovery; [current packages](stock-restored-gpr-receipts/packages.json), [installed 1x/2x reconstructed GPR/DNG and Mission 1 binary identity](stock-restored-gpr-receipts/installed-validation.json) | Latest hosted platform/release validation; source uploads require approval |
 | Actual camera production | Integration requirements documented; host/Pi evidence stays explicitly labeled | Sensor/DMA, display presentation, durable SD, thermal and physical A/V synchronization receipts |
+| Optional FFmpeg decoder | Stock GVS2/GVS3 adapter for pinned FFmpeg n8.0; exact twelve-format Bayer matrix, frozen fixtures, corruption rejection and PNG/ProRes pass on Mac and Pi; [contract/receipts](stock-ffmpeg-decoder.md) | Latest hosted x86 gate; patched build required; older MOVs without configuration need unwrap/rewrap; no calibrated color claim |
 
 ## Feature accounting at the start
 

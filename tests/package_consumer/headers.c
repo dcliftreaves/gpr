@@ -31,6 +31,7 @@ int c_header_probe(void) {
     gpr_preview_plan *plan=0;
     gpr_preview_info info;
     gpr_preview_calibration_identity(&video,&calibration);
+    if (gpr_preview_validate_payload(0,0,0)!=GPR_PREVIEW_INVALID) return 0;
     if (gpr_preview_queue_offer_wavelets(0,0,0,0,0,0)!=GPR_PREVIEW_INVALID) return 0;
     if (gpr_preview_plan_create(&video,&calibration,&plan)) return 0;
     if (gpr_preview_plan_info(plan,&info) || info.width!=32 || info.height!=24) {

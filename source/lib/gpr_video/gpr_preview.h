@@ -14,6 +14,8 @@ typedef struct {
 } gpr_preview_options;
 typedef struct { uint32_t width,height; size_t row_bytes; } gpr_preview_info;
 void gpr_preview_options_default(gpr_preview_options *out);
+/* Validate the supported stock RAW VC-5 framing/geometry without decoding. */
+int gpr_preview_validate_payload(const gpr_gvid_config *video,const uint8_t *payload,size_t size);
 /* Decoder-backed preview requires width/height >=48. */
 int gpr_preview_dimensions(const gpr_gvid_config *video,const gpr_preview_options *options,gpr_preview_info *out);
 /* Render the complete wavelet-scaled frame to caller-owned RGB24 rows. No CNN,

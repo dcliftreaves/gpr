@@ -166,6 +166,12 @@ void mux(const char *source,const char *destination) {
     stream->codecpar->codec_type=AVMEDIA_TYPE_VIDEO;stream->codecpar->codec_id=AV_CODEC_ID_NONE;
     stream->codecpar->codec_tag=tag(v.version);stream->codecpar->width=int(v.config.width);stream->codecpar->height=int(v.config.height);
     stream->codecpar->format=AV_PIX_FMT_NONE;stream->time_base={1,int(1000000000/unit)};
+    // Standard glbl sample-description atom makes the original checked clip
+    // configuration available to optional decoders without parsing MOV metadata.
+    stream->codecpar->extradata=static_cast<uint8_t *>(av_mallocz(v.prefix.size()+AV_INPUT_BUFFER_PADDING_SIZE));
+    require(stream->codecpar->extradata!=nullptr,"allocate stock codec configuration");
+    std::memcpy(stream->codecpar->extradata,v.prefix.data(),v.prefix.size());
+    stream->codecpar->extradata_size=int(v.prefix.size());
     stream->avg_frame_rate={int(v.config.fps_num),int(v.config.fps_den)};
     auto metadata=[&](const char *key,const std::string& value){checked(av_dict_set(&format.p->metadata,key,value.c_str(),0),"set MOV metadata");};
     metadata("gpr.stock.profile","framed_gvid.v1");metadata("gpr.stock.prefix_hex",hex(v.prefix));
