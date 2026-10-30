@@ -87,6 +87,8 @@ struct Output {
     int fd=-1;
     bool sync_each=false;
     uint64_t frame_remaining=0;
+    uint64_t writeback_bytes=0,bytes_written=0,writeback_until=0,writeback_requests=0;
+    size_t writeback_page_bytes=0;
     std::vector<Completion> completions;
 #if GPR_CAPTURE_HAS_PREVIEW
     std::vector<Plan> plans;
@@ -131,6 +133,7 @@ struct Output {
             if (count<0 && errno==EINTR) continue;
             if (count<=0) return -1;
             cursor+=count; remaining-=size_t(count);
+            out.bytes_written+=uint64_t(count);
         }
         if (n==48 && !std::memcmp(p,"FRM3",4)) {
             out.frame_remaining=get(p+24,8)+get(p+32,4);
@@ -139,6 +142,21 @@ struct Output {
             if (n>out.frame_remaining) return -1;
             out.frame_remaining-=n;
             if (!out.frame_remaining && out.sync_each && fsync(out.fd)) return -1;
+#if defined(__linux__)
+            // Start data writeback before dirty-page throttling builds up. This
+            // is scheduling only: the final fsync still establishes durability.
+            if (!out.frame_remaining && out.writeback_bytes) {
+                // Leave the append page dirty so the next frame never has to
+                // modify a partial page that this request put under writeback.
+                uint64_t completed=out.bytes_written-out.bytes_written%out.writeback_page_bytes;
+                if (completed-out.writeback_until>=out.writeback_bytes) {
+                    if (completed>uint64_t(INT64_MAX)) return -1;
+                    if (sync_file_range(out.fd,off64_t(out.writeback_until),
+                            off64_t(completed-out.writeback_until),SYNC_FILE_RANGE_WRITE)) return -1;
+                    out.writeback_until=completed;++out.writeback_requests;
+                }
+            }
+#endif
         }
         return 0;
     }
@@ -218,6 +236,7 @@ int main(int argc,char **argv) {
                 std::cout<<"gpr_capture_app --input frame.raw [--input another.raw] --output clip.gvid\n"
                     "  [--width 4096 --height 3072 --cfa RGGB --sample-bits 14 --quality 4 --frames 900 --fps-num 30 --fps-den 1]\n"
                     "  [--queue 4 --workspace-mib 192 --submit-timeout-ms 0] [--paced] [--fsync-each] [--leased]\n"
+                    "  [--writeback-mib 8] (Linux asynchronous data writeback; final fsync is retained)\n"
                     "  [--source-metadata calibration.json] (one per input, in input order; trusted JSON)\n";
 #if GPR_CAPTURE_HAS_PREVIEW
                 std::cout<<"  [--preview-profile source.gprp] (one per input; calibrated memory sink)\n"
@@ -252,6 +271,19 @@ int main(int argc,char **argv) {
                 else if (k=="--fps-num") cfg.video.fps_num=uint32_t(n);
                 else if (k=="--fps-den") cfg.video.fps_den=uint32_t(n);
                 else if (k=="--queue") cfg.max_inflight=uint32_t(n);
+                else if (k=="--writeback-mib") {
+                    if (n>1024) throw std::runtime_error("writeback interval must be 0..1024 MiB");
+#if !defined(__linux__)
+                    if (n) throw std::runtime_error("asynchronous writeback requires Linux");
+#else
+                    if (n) {
+                        long page=sysconf(_SC_PAGESIZE);
+                        if (page<=0) throw std::runtime_error("cannot determine writeback page size");
+                        output.writeback_page_bytes=size_t(page);
+                    }
+#endif
+                    output.writeback_bytes=n*1024*1024;
+                }
                 else if (k=="--workspace-mib") {
                     if (n>2048) throw std::runtime_error("workspace too large");
                     cfg.workspace_bytes=size_t(n)*1024*1024;
@@ -263,6 +295,7 @@ int main(int argc,char **argv) {
                 else throw std::runtime_error("unknown option: "+k);
             }
         }
+        if (output.sync_each && output.writeback_bytes) throw std::runtime_error("choose fsync-each or asynchronous writeback");
         if (!metadata_paths.empty()) {
             if (metadata_paths.size()!=inputs.size()) throw std::runtime_error("supply one calibration per RAW input");
             for (const auto &file:metadata_paths) {
@@ -402,6 +435,11 @@ int main(int argc,char **argv) {
             <<",\"accepted\":"<<accepted<<",\"written\":"<<stats.written<<",\"overruns\":"<<overruns
             <<",\"queue\":"<<cfg.max_inflight<<",\"inflight_high_water\":"<<stats.inflight_high_water
             <<",\"leased\":"<<(leased ? "true":"false")
+            <<",\"fsync_each\":"<<(output.sync_each ? "true":"false")
+            <<",\"writeback_mib\":"<<output.writeback_bytes/(1024*1024)
+            <<",\"writeback_requests\":"<<output.writeback_requests
+            <<",\"writeback_scheduled_bytes\":"<<output.writeback_until
+            <<",\"writeback_page_bytes\":"<<output.writeback_page_bytes
             <<",\"fps_num\":"<<cfg.video.fps_num<<",\"fps_den\":"<<cfg.video.fps_den<<",\"quality\":"<<cfg.video.quality
             <<",\"buffered_fps\":"<<double(stats.written)*1e9/(finish-begin)
             <<",\"durable_fps\":"<<double(stats.written)*1e9/(durable-begin)

@@ -122,6 +122,31 @@ class Combined(unittest.TestCase):
         self.capture(output,'--frames','2','--preview-from-encoder',preview=True,okay=False)
         self.assertFalse(output.exists())
 
+    def test_writeback_policy_and_unchanged_recording(self):
+        for options in (['--writeback-mib','1025'],['--writeback-mib','1','--fsync-each']):
+            output=self.root/'invalid-writeback.gvid'
+            self.capture(output,*options,okay=False)
+            self.assertFalse(output.exists())
+        output=self.root/'writeback.gvid'
+        if not sys.platform.startswith('linux'):
+            self.capture(output,'--writeback-mib','1',okay=False)
+            self.assertFalse(output.exists())
+            return
+        events=self.capture(output,'--frames','128','--writeback-mib','1')
+        final=events[-1]
+        self.assertTrue(final['complete']);self.assertEqual(final['written'],128)
+        self.assertEqual(final['writeback_mib'],1);self.assertFalse(final['fsync_each'])
+        self.assertGreater(final['writeback_requests'],0)
+        self.assertGreaterEqual(final['writeback_scheduled_bytes'],1024*1024)
+        self.assertGreater(final['writeback_page_bytes'],0)
+        self.assertEqual(final['writeback_scheduled_bytes']%final['writeback_page_bytes'],0)
+        self.assertLessEqual(final['writeback_scheduled_bytes'],output.stat().st_size)
+        with output.open('rb') as file:
+            header=stock_video.read_header(file);frames=list(stock_video.records(file,header))
+        self.assertTrue(header['_end_marker_verified']);self.assertEqual(len(frames),128)
+        for frame in frames:
+            self.assertEqual(frame['payload'],self.expected_payloads[frame['metadata']['source_index']])
+
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()

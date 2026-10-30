@@ -44,6 +44,10 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    than substituting aggregate PSNR or backend agreement for quality approval.
 3. Improve sustained Pi deadlines/durability before claiming a strict sustained
    20 fps floor. Short-run success and p95 do not close this gate.
+   The [writeback follow-up](stock-capture-writeback.md) reaches 20.0047 durable
+   fps with all 600 frames/previews exact, but 16 write/33 preview deadlines
+   remain late. Poorer repeats and an unchanged-binary control also show
+   unresolved platform timing variability; this is not a closed gate.
 4. Keep sensor/DMA, rear-display, actual SD, thermal and physical A/V work
    explicitly unverified. The original PR did not establish those either.
 

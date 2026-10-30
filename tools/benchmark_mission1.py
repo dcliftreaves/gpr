@@ -95,8 +95,13 @@ def main():
     parser.add_argument('--quality', type=int, choices=range(6), default=3)
     parser.add_argument('--downsample', type=int, choices=(4, 8, 16), default=4)
     parser.add_argument('--preview-from-encoder', action='store_true', help='reconstruct retained encoder bands before queued display; requires downsample 4')
+    parser.add_argument('--fsync-each', action='store_true', help='sync every completed frame as well as final completion; measure storage stalls explicitly')
+    parser.add_argument('--writeback-mib', type=int, default=0, help='Linux asynchronous writeback interval; final fsync remains required')
+    parser.add_argument('--preview-foreground', action='store_true', help='use normal display worker priority instead of best-effort background')
     parser.add_argument('--require-floor', action='store_true', help='exit 2 if replay timing misses the requested floor')
     args = parser.parse_args()
+    if not 0<=args.writeback_mib<=1024 or args.fsync_each and args.writeback_mib:
+        parser.error('writeback interval must be 0..1024 MiB and cannot accompany --fsync-each')
     if args.preview_from_encoder and args.downsample != 4:
         parser.error('encoder preview requires --downsample 4')
     if len(args.input) != len(args.metadata) or not 1 <= len(args.input) <= 16:
@@ -124,6 +129,10 @@ def main():
     base = [args.capture.resolve(), '--width', 4096, '--height', 3072, '--cfa', 'RGGB',
             '--sample-bits', 14, '--quality', args.quality, '--fps-num', args.fps,
             '--fps-den', 1, '--queue', 4, '--workspace-mib', 192, '--leased']
+    if args.fsync_each:
+        base += ['--fsync-each']
+    if args.writeback_mib:
+        base += ['--writeback-mib', args.writeback_mib]
     for source, calibration in zip(args.input, args.metadata):
         base += ['--input', source.resolve(), '--source-metadata', calibration.resolve()]
     seed = root/'sources.gvid'
@@ -143,6 +152,8 @@ def main():
             command += ['--preview-every', 1]
             if args.preview_from_encoder:
                 command += ['--preview-from-encoder']
+            if args.preview_foreground:
+                command += ['--preview-foreground']
             for index in range(len(metadata)):
                 command += ['--preview-profile', profiles/f'{index:06}.gprp']
         events = run(command, root/(name+'.jsonl'), environment)
@@ -155,6 +166,8 @@ def main():
                   source_geometry=[4096, 3072], cfa='RGGB', sample_bits=14,
                   quality=args.quality, requested_fps=args.fps, preview_downsample=args.downsample,
                   frames_requested=args.frames, functional_checks_passed=True,
+                  fsync_each=args.fsync_each, writeback_mib=args.writeback_mib,
+                  preview_background=not args.preview_foreground,
                   preview_pipeline='encoder_wavelets' if args.preview_from_encoder else 'compressed',
                   combined_replay_floor_passed=combined['recording'] and combined['preview'],
                   camera_production_ready=False, model_quality_approved=False,

@@ -56,3 +56,9 @@ completion of the entire goal or approval of every output. The
 measured failures, unsupported combinations and external validation. The strict
 sustained Pi timing gate and learned-model quality gate remain unmet.
 Percentages are planning estimates, not fractions of passing tests.
+
+The [writeback follow-up](stock-capture-writeback.md) adds an optional Linux
+storage policy. Its final 600-frame replay reaches 20.0047 durable fps and
+retains all pixels/payloads, but misses 16 write/33 preview deadlines. Slower
+repeats, including an unchanged-binary control, expose additional unresolved
+platform timing variability. No sustained-floor approval follows.
