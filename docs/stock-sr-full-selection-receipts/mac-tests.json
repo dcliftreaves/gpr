@@ -1,0 +1,26 @@
+{
+  "schema": "gpr.stock_sr_full_selection_tests.v1",
+  "host": "mac",
+  "complete": true,
+  "passed": true,
+  "tests": 9,
+  "elapsed_s": 2.406,
+  "torch": "2.8.0",
+  "source_files": {
+    "tools/select_stock_sr.py": "226366f4bbac4d41d5ffbb3e59d15b0f0927731fbe18cda65aaea541cb50e2e6",
+    "tools/benchmark_stock_sr.py": "1abb9acb932baf843628e9c4124ce4b66f04b505f38fe2e2768b91f53f3e8fc6",
+    "tests/stock_cnn_test.py": "99dc74085036df705555aa63f4b4a29a24aa63f591af4cf8ae60c7518bd1f2a6"
+  },
+  "log_sha256": "9dff2c085d62432e79d7ed9a2b2adc3f74cbcc3ae0c4bb07a9c48117fe721723",
+  "command": [
+    "python",
+    "tests/stock_cnn_test.py",
+    "--sdk",
+    "build-runtime/source/app/gpr_tools/gpr_tools",
+    "--capture",
+    "build-runtime/gpr_capture_app",
+    "--decoder",
+    "build-runtime/source/app/stock_video/stock_video"
+  ],
+  "scope": "optional Torch contracts including real SDK full-frame selection; not camera timing"
+}

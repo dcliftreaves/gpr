@@ -67,6 +67,13 @@ class Bicubic(torch.nn.Module):
         return torch.nn.functional.interpolate(x,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1)
 
 
+def psnr_delta(candidate,baseline):
+    # Perfect reconstruction has infinite PSNR, represented as JSON null.
+    if candidate is None or baseline is None:
+        return 0. if candidate is None and baseline is None else None
+    return candidate-baseline
+
+
 def evaluate(source,sdk,checkpoints,output_dir,device='cpu',tile=256,halo=64,cnn_root=None):
     source=Path(source).resolve(); root=Path(output_dir).resolve()
     meta=raw_media.extract(source,14); w,h=meta['width'],meta['height']
@@ -108,7 +115,7 @@ def evaluate(source,sdk,checkpoints,output_dir,device='cpu',tile=256,halo=64,cnn
         metrics=quality(reference,pixels,meta)
         row=dict(checkpoint_name=Path(checkpoint).name,model=receipt['model'],cnn_s=receipt['cnn_s'],
                  restored_raw_sha256=receipt['restored_raw_sha256'],editable_dng_sha256=receipt['output_sha256'],
-                 geometry=geometry,metrics=metrics,active_psnr_delta_vs_bicubic_db=metrics['active']['psnr_db']-base_metrics['active']['psnr_db'])
+                 geometry=geometry,metrics=metrics,active_psnr_delta_vs_bicubic_db=psnr_delta(metrics['active']['psnr_db'],base_metrics['active']['psnr_db']))
         rows.append(row)
         report=dict(schema='gpr.stock_sr_benchmark.v1',complete=False,quality_approval=False,
                     host=platform.platform(),torch=torch.__version__,device=device,width=w,height=h,

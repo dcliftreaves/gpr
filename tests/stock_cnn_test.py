@@ -80,6 +80,58 @@ class Contract(unittest.TestCase):
             self.assertFalse(dng.exists());self.assertFalse(dng.with_suffix('.dng.json').exists())
             self.assertFalse(list(root.glob('.stock-still-*')))
 
+    def test_full_frame_selection_uses_validation_only_and_can_reject_all(self):
+        import copy
+        import select_stock_sr
+        import stock_cnn_models
+        import train_stock_sr
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);rows=[]
+            values=np.array([500,1001,2003,4007],dtype='<u2')
+            for index,split in enumerate(('train','validation','test')):
+                pixels=np.empty((256,256),dtype='<u2')
+                for site in range(4):pixels[site//2::2,site%2::2]=values[site]+index
+                path=root/(split+'.dng');raw_media.write(path,metadata(256,256),pixels.tobytes())
+                rows.append(dict(path=str(path),group=split,split=split))
+            manifest=root/'sources.json';manifest.write_text(json.dumps(dict(schema='gpr.stock_sr_sources.v1',sources=rows)))
+            dataset=root/'dataset';train_stock_sr.build(manifest,args.sdk,dataset,patch=64,train_patches=1,validation_patches=1)
+            with tifffile.TiffFile(dataset/'source-001/decoded.dng') as file:decoded=file.asarray()
+            low=np.array([decoded[site//2,site%2] for site in range(4)],dtype=np.float64)
+            correction=values.astype(np.float64)+1-low
+            self.assertTrue(np.any(correction!=0))
+            checkpoints=[]
+            for name,offset in [('bad',correction+100),('identity',np.zeros(4)),('good',correction)]:
+                model=stock_cnn_models.build('F_ane')
+                for parameter in model.parameters():parameter.data.zero_()
+                model.subpixel[0].bias.data.copy_(torch.tensor(np.repeat(offset/(.01*16383),4),dtype=torch.float32))
+                checkpoint=root/(name+'.pt')
+                torch.save(dict(variant='F_ane',raw_norm=16383.,residual_scale=.01,width=16,depth=3,
+                                backbone_state=model.state_dict()),checkpoint);checkpoints.append(checkpoint)
+            evaluate=select_stock_sr.benchmark_stock_sr.evaluate
+            with patch.object(select_stock_sr.benchmark_stock_sr,'evaluate',wraps=evaluate) as measured:
+                report=select_stock_sr.select(dataset,args.sdk,checkpoints,root/'selected',tile=64,halo=16)
+                self.assertEqual(len(measured.call_args_list),1)
+                self.assertEqual(Path(measured.call_args.args[0]).resolve(),Path(rows[1]['path']).resolve())
+            self.assertTrue(report['complete']);self.assertFalse(report['quality_approval'])
+            self.assertFalse(report['final_reference_pixels_used'])
+            self.assertEqual(report['selected']['checkpoint']['sha256'],stock_still.digest(checkpoints[2]))
+            self.assertEqual(report['selected']['active_mse_counts'],0.)
+            self.assertFalse(report['candidates'][0]['eligible'])
+            self.assertTrue(report['candidates'][0]['regressions'])
+            self.assertFalse(report['candidates'][1]['eligible'])
+            rejected=select_stock_sr.select(dataset,args.sdk,checkpoints[:2],root/'rejected',tile=64,halo=16)
+            self.assertIsNone(rejected['selected'])
+            # Reject duplicate candidates and leaked final pixels before creating output.
+            with self.assertRaisesRegex(ValueError,'duplicate candidate'):
+                select_stock_sr.select(dataset,args.sdk,[checkpoints[0]]*2,root/'duplicate')
+            self.assertFalse((root/'duplicate').exists())
+            info=json.loads((dataset/'dataset.json').read_text());bad=copy.deepcopy(info)
+            bad['sources'][2]['patch_start']=0;bad['sources'][2]['patch_count']=1
+            (dataset/'dataset.json').write_text(json.dumps(bad))
+            with self.assertRaisesRegex(ValueError,'final-test pixels leaked'):
+                select_stock_sr.select(dataset,args.sdk,checkpoints,root/'leaked')
+            self.assertFalse((root/'leaked').exists())
+
     def test_training_split_guards_and_checkpoint_roundtrip(self):
         import copy
         import train_stock_sr as recipe

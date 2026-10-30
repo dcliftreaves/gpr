@@ -102,3 +102,8 @@ Photos, patch arrays, weights and full image outputs remain external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_region_relative_20261030`.
 Archived drivers identify the measured installation; adjust paths and choose
 fresh output roots to reproduce. No model is downloaded or selected by default.
+
+The [full-image selection stage](stock-sr-full-selection.md) is now implemented
+and tested on Mac/Pi. Ten patch-qualified snapshot/strength candidates all fail
+its complete-image guard, so this follow-up selects no checkpoint and skips
+final-reference testing. No failed weights are promoted.

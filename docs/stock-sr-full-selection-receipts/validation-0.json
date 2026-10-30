@@ -1,0 +1,1050 @@
+{
+  "schema": "gpr.stock_sr_benchmark.v1",
+  "complete": true,
+  "quality_approval": false,
+  "host": "macOS-26.7.1-arm64-arm-64bit",
+  "torch": "2.8.0",
+  "device": "mps",
+  "width": 8280,
+  "height": 5520,
+  "input_width": 4140,
+  "input_height": 2760,
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "output_scale": 2,
+  "source_sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b",
+  "reference_raw_sha256": "89519f5d35be3e6292c03e87b988a4019e5bc78913f618090a889475d0cbb3df",
+  "independent_lossless_decode_verified": true,
+  "simulated_low_raw_sha256": "d32648a505b7394aa0deb41e9c26c4f8850c761943351dcafe6b76ee44938d09",
+  "low_gpr_sha256": "ad5bfe4dfb690ab5540b939c77b8677ab583a45e635421c8a5f9613f944e1128",
+  "low_gpr_bytes": 729600,
+  "low_decoded_raw_sha256": "2a77a05e13eb7f438dab797329c71da3445cc8c8d78a3718acd950c3cd8fa43d",
+  "sdk_sha256": "e9405aeeb27e97720a38870d99ae828d62a0136ba3fa44cae15f7de87e60638e",
+  "simulated_metadata_sha256": "376083f18d5236ef94df6d7f4da18728d1131820f102572289ef151349029380",
+  "simulation_metadata_omissions": [
+    {
+      "code": 700,
+      "reason": "simulation changes pixel geometry; opaque source XMP omitted"
+    }
+  ],
+  "stock_quality": 3,
+  "tile_plane_pixels": 256,
+  "halo_plane_pixels": 64,
+  "bicubic_metrics": {
+    "full_frame": {
+      "rmse_counts": 47.23074646983994,
+      "psnr_db": 50.80337243422626
+    },
+    "active": {
+      "rmse_counts": 47.23074646983994,
+      "psnr_db": 50.80337243422626
+    },
+    "active_area": [
+      0,
+      0,
+      5520,
+      8280
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 16.0,
+      "p90": 62.0,
+      "p99": 141.0,
+      "p99_9": 317.0
+    },
+    "active_max_abs_error": 12546,
+    "active_bias_counts": -3.844271205279003,
+    "detail_gradient_threshold_counts": 155.0,
+    "detail_top_decile": {
+      "rmse_counts": 120.34235697578859,
+      "psnr_db": 42.679498362072025
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 12.263833382366167,
+      "psnr_db": 62.51534379471805
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 98.57659655661509,
+      "psnr_db": 44.412392231504924
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 37.726001012815544,
+        "psnr_db": 52.755053183746284
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 47.6794368319809,
+        "psnr_db": 50.72124628366837
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 48.46786753130652,
+        "psnr_db": 50.578790380333125
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 53.64009336612961,
+        "psnr_db": 49.698078122810585
+      }
+    ]
+  },
+  "bicubic_s": 0.28831245800000005,
+  "bicubic_raw_sha256": "cd77a599aab18db8a45ceff249ac08c3e206d7d01a0a1bd68253fc005e877ee8",
+  "rows": [
+    {
+      "checkpoint_name": "step-300.pt",
+      "model": {
+        "checkpoint_sha256": "017c77a45ab65ca4fb9a8ddb82a466bc9bb8f37621d8820efbeea9fc54823260",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.753589625,
+      "restored_raw_sha256": "19e383b47b3b3dc2edce34b9c1f967828c57231b0b80fdb8110242b206880594",
+      "editable_dng_sha256": "0b451b8c004f6a9384c6bb8c983d897c2e748780e8003013af285f06b86fe8de",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.230697304794795,
+          "psnr_db": 50.803381475844496
+        },
+        "active": {
+          "rmse_counts": 47.230697304794795,
+          "psnr_db": 50.803381475844496
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 317.0
+        },
+        "active_max_abs_error": 12546,
+        "active_bias_counts": -3.8438618462507876,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.34225332020496,
+          "psnr_db": 42.67950584357206
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.263848755046016,
+          "psnr_db": 62.51533290698721
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.57637796886468,
+          "psnr_db": 44.41241149197088
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.72603365929124,
+            "psnr_db": 52.7550456673503
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.67933001002047,
+            "psnr_db": 50.72126574373041
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.4678340154838,
+            "psnr_db": 50.57879638668027
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.640022479205754,
+            "psnr_db": 49.69808960147078
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 9.041618234562065e-06
+    },
+    {
+      "checkpoint_name": "step-600.pt",
+      "model": {
+        "checkpoint_sha256": "93a7061748ae1c6635ab4845d7055593a314d1eb574f0898ab69774ec89dce3b",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.30076120900000003,
+      "restored_raw_sha256": "8e7b43cd12e0da8c13f4855b4f000e7f4d46d548ee1a92552ee4a0c501c476d5",
+      "editable_dng_sha256": "d5ec10ed5875e31daf207ddea94ad98fc0934b1c6ee1dd715db1504364ccf283",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.23072869764534,
+          "psnr_db": 50.80337570259193
+        },
+        "active": {
+          "rmse_counts": 47.23072869764534,
+          "psnr_db": 50.80337570259193
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 317.0
+        },
+        "active_max_abs_error": 12546,
+        "active_bias_counts": -3.8441350731639012,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.34231354403316,
+          "psnr_db": 42.67950149682451
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.263837140328343,
+          "psnr_db": 62.515341133132665
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.57651634282418,
+          "psnr_db": 44.41239929939369
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.72603055424678,
+            "psnr_db": 52.75504638224323
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.67938810895736,
+            "psnr_db": 50.72125515967551
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.46785104921315,
+            "psnr_db": 50.57879333407703
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.64006819616337,
+            "psnr_db": 49.69808219856039
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 3.268365666997397e-06
+    },
+    {
+      "checkpoint_name": "step-900.pt",
+      "model": {
+        "checkpoint_sha256": "75f87294f1bfd86627b18d3b45fd2e3e384d787bcf36002d97ac28fc76df6e4f",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.2886089590000003,
+      "restored_raw_sha256": "ed2d78ed05cc1e0194a59eaca3bb5dd3a371439055dab8493c5c8aae09954bf1",
+      "editable_dng_sha256": "cdbfe3212786c4d12a12637eccaecec336a0955dc433fdcd223eb8480b0a0e4b",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.22586388383853,
+          "psnr_db": 50.8042704042685
+        },
+        "active": {
+          "rmse_counts": 47.22586388383853,
+          "psnr_db": 50.8042704042685
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 317.0
+        },
+        "active_max_abs_error": 12546,
+        "active_bias_counts": -3.8014201979626128,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.33430340103651,
+          "psnr_db": 42.6800796603284
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.266136543820167,
+          "psnr_db": 62.51371272820414
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.56205958452719,
+          "psnr_db": 44.41367322365459
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.73453458778319,
+            "psnr_db": 52.75308866838436
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.670269530111156,
+            "psnr_db": 50.72291647596582
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.46171528630836,
+            "psnr_db": 50.579892989456134
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.63060070685498,
+            "psnr_db": 49.699615396187234
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.0008979700422386827
+    },
+    {
+      "checkpoint_name": "step-1200.pt",
+      "model": {
+        "checkpoint_sha256": "cbbbde9a741198fd7434725fc7eef20e10c888b01234f35229d1627781048c77",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.29460058299999936,
+      "restored_raw_sha256": "d0a01f1f873ca61140ade4d6bd7ee8e08ef886a3f6436899b46c4fadcf3d1864",
+      "editable_dng_sha256": "11a94ce3f673912073396d44ea2224ff58770cc26646046cd09d8788c08a7566",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.17019552888544,
+          "psnr_db": 50.81451509555154
+        },
+        "active": {
+          "rmse_counts": 47.17019552888544,
+          "psnr_db": 50.81451509555154
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 316.0
+        },
+        "active_max_abs_error": 12558,
+        "active_bias_counts": -3.1630885493243714,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.21642373912788,
+          "psnr_db": 42.68859254098392
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.291879543435357,
+          "psnr_db": 62.4955027119947
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.40412166834369,
+          "psnr_db": 44.427602839337084
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.887860490132965,
+            "psnr_db": 52.717866993905574
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.54693210639903,
+            "psnr_db": 50.74541862539597
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.36617323593074,
+            "psnr_db": 50.59703408356371
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.522163130751515,
+            "psnr_db": 49.71719547730609
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.0111426613252803
+    },
+    {
+      "checkpoint_name": "step-1500.pt",
+      "model": {
+        "checkpoint_sha256": "1244f1810165358371f72aa3b3ff22006913515a40b315c54e1c8c1a6cb7f0f9",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.2949203339999986,
+      "restored_raw_sha256": "247a2f028527e03d80176f53fe3e6fbed2648b72b9709c5e314ca5e0a203bddf",
+      "editable_dng_sha256": "271d022523c4ae1869a03217279c4a49e4c38a98ce82d3717627181ac4f8682e",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.15923140104257,
+          "psnr_db": 50.81653425771439
+        },
+        "active": {
+          "rmse_counts": 47.15923140104257,
+          "psnr_db": 50.81653425771439
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 316.0
+        },
+        "active_max_abs_error": 12569,
+        "active_bias_counts": -3.0934290546453824,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.20097118543923,
+          "psnr_db": 42.68970909227333
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.281136923725448,
+          "psnr_db": 62.50309715733217
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.372743327713,
+          "psnr_db": 44.43037296992189
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.91274410813603,
+            "psnr_db": 52.71216423286086
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.50467242299838,
+            "psnr_db": 50.75314207145794
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.33637462275401,
+            "psnr_db": 50.60238714776614
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.53033948941209,
+            "psnr_db": 49.715868671348886
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.01316182348812589
+    },
+    {
+      "checkpoint_name": "step-1800.pt",
+      "model": {
+        "checkpoint_sha256": "1ebe8cd4395a39bd000d6a030decfa5ba8e5a304d7197128f75de8e8222555b7",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.29703266699999986,
+      "restored_raw_sha256": "69d7bf295138ee442694a966e3fcfff3ab6351c0d056de0f14c9bb502c2d8ce5",
+      "editable_dng_sha256": "d7ff50827169bf2cf4de651b42bff1d5a5715318ec854e5385d3b56439ea66c2",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 47.087398837104566,
+          "psnr_db": 50.82977462168336
+        },
+        "active": {
+          "rmse_counts": 47.087398837104566,
+          "psnr_db": 50.82977462168336
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 140.0,
+          "p99_9": 316.0
+        },
+        "active_max_abs_error": 12613,
+        "active_bias_counts": -2.519704062521879,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.07705126257449,
+          "psnr_db": 42.69866833755449
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.230752409959118,
+          "psnr_db": 62.5388051304256
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.16381379389712,
+          "psnr_db": 44.44884016587812
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.876753751611346,
+            "psnr_db": 52.72041361561531
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.435905491380254,
+            "psnr_db": 50.76572472255106
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.270025796675085,
+            "psnr_db": 50.6143180067785
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.42362325806051,
+            "psnr_db": 49.73320184333994
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.026402187457101434
+    },
+    {
+      "checkpoint_name": "step-2100.pt",
+      "model": {
+        "checkpoint_sha256": "7b4ab9898aa527e80cfa238e6fcf906fed6a63688fcc4cb4cf9460c5c2706874",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.3016066669999997,
+      "restored_raw_sha256": "6f241ec323cc28da136c4125ef4db1c7a352f3af9a751f4c2c3c8fc4d41525c8",
+      "editable_dng_sha256": "53536a39872be0e8e4a3894143b127cbc9079097885d0fccbe854042027ec85e",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 46.97913331280651,
+          "psnr_db": 50.84976861507085
+        },
+        "active": {
+          "rmse_counts": 46.97913331280651,
+          "psnr_db": 50.84976861507085
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 140.0,
+          "p99_9": 314.0
+        },
+        "active_max_abs_error": 12702,
+        "active_bias_counts": -1.03048878036827,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 119.60794819088959,
+          "psnr_db": 42.73266781788396
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.309991588126556,
+          "psnr_db": 62.482713501866044
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 97.5341290971679,
+          "psnr_db": 44.50473641677392
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.920893185341704,
+            "psnr_db": 52.71029746270294
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.20750189378972,
+            "psnr_db": 50.80764824047704
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.06156358947331,
+            "psnr_db": 50.651910712627824
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.40130707762258,
+            "psnr_db": 49.73683088166718
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.04639618084458874
+    },
+    {
+      "checkpoint_name": "step-2400.pt",
+      "model": {
+        "checkpoint_sha256": "7d49e515605321b04f8b0b429d3bcb46cecf40dcb2bfee448d10c30768bb855c",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.2999750419999998,
+      "restored_raw_sha256": "f295379f820a8807a47a4fe3e0ac33756a0734d5024f6e78540eb57caab7fa84",
+      "editable_dng_sha256": "78b09d094721d41a4555bf83f0e912d49285d4c9f8f3631fa10c92a2ad5753b0",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 46.987126798303535,
+          "psnr_db": 50.84829083926205
+        },
+        "active": {
+          "rmse_counts": 46.987126798303535,
+          "psnr_db": 50.84829083926205
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 61.0,
+          "p99": 140.0,
+          "p99_9": 316.0
+        },
+        "active_max_abs_error": 12622,
+        "active_bias_counts": -2.183490907022334,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 119.72110104065649,
+          "psnr_db": 42.724454579735934
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.17627420136504,
+          "psnr_db": 62.57758023407925
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 97.79561226666101,
+          "psnr_db": 44.48148122487858
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.875444992578544,
+            "psnr_db": 52.720713745161675
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.21790283135286,
+            "psnr_db": 50.805734742802684
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.05675074789769,
+            "psnr_db": 50.6527805533256
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.45679905696683,
+            "psnr_db": 49.72780962405472
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.044918405035787146
+    },
+    {
+      "checkpoint_name": "step-2700.pt",
+      "model": {
+        "checkpoint_sha256": "d72cd2361dcd526241bed6c4664b6af99b96cda1e2439fb27fd850a7e7278521",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.29586279099999757,
+      "restored_raw_sha256": "98f84eebf93d8b0e4d19a745e95f1265905b3de3417125a4625db11de2745920",
+      "editable_dng_sha256": "dc21dd48bfebac696fed2321ef86df8315316ce907a8ffba3057396f1c302ae1",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 46.80736313695158,
+          "psnr_db": 50.881585102844625
+        },
+        "active": {
+          "rmse_counts": 46.80736313695158,
+          "psnr_db": 50.881585102844625
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 140.0,
+          "p99_9": 314.0
+        },
+        "active_max_abs_error": 12677,
+        "active_bias_counts": -1.046526836974025,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 118.93255543921833,
+          "psnr_db": 42.781853616440294
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.261435427863375,
+          "psnr_db": 62.517042317853175
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 96.8373201759335,
+          "psnr_db": 44.567013375036126
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.85290856523447,
+            "psnr_db": 52.72588351097142
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.02554970961896,
+            "psnr_db": 50.84119100553244
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 47.78591993555609,
+            "psnr_db": 50.70186960293603
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.25389956529562,
+            "psnr_db": 49.760840327421214
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.07821266861836307
+    },
+    {
+      "checkpoint_name": "step-3000.pt",
+      "model": {
+        "checkpoint_sha256": "32670e05643a44d30524ea23028def517f98d392aa0fe23932db3726bae45546",
+        "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+        "checkpoint_schema": "build",
+        "architecture_source": "bundled",
+        "output_scale": 2,
+        "runtime_raw_norm": 16383,
+        "input_cfa": "RGGB",
+        "device": "mps",
+        "quality_status": "unvalidated_for_stock_video"
+      },
+      "cnn_s": 0.29059141699999813,
+      "restored_raw_sha256": "80713a4100ae7b76d90383fc34fa0115ad3a3a60b777e7f56b7f4a7024d5fb91",
+      "editable_dng_sha256": "5c7de6e26faa987c1c5a8f9b63275e76455f6dd107f5bf9ee1bd3bea2b791d3b",
+      "geometry": {
+        "scale": 2,
+        "changed_image_tags": [
+          50719,
+          50720,
+          50829
+        ],
+        "changed_exif_tags": [
+          41486,
+          41487
+        ],
+        "omitted": []
+      },
+      "metrics": {
+        "full_frame": {
+          "rmse_counts": 46.80284938501347,
+          "psnr_db": 50.88242274545139
+        },
+        "active": {
+          "rmse_counts": 46.80284938501347,
+          "psnr_db": 50.88242274545139
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 315.0
+        },
+        "active_max_abs_error": 12669,
+        "active_bias_counts": -1.6470263600084016,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 118.7241961132984,
+          "psnr_db": 42.797083872360844
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.238840062474374,
+          "psnr_db": 62.5330634361317
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 96.609989179162,
+          "psnr_db": 44.58742795577969
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.987854314989114,
+            "psnr_db": 52.694973349154196
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.01695164178469,
+            "psnr_db": 50.84277926334022
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 47.71139816978129,
+            "psnr_db": 50.71542575251981
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.21633686911243,
+            "psnr_db": 49.766969090876955
+          }
+        ]
+      },
+      "active_psnr_delta_vs_bicubic_db": 0.07905031122513151
+    }
+  ],
+  "source_files": {
+    "benchmark_stock_sr.py": "1abb9acb932baf843628e9c4124ce4b66f04b505f38fe2e2768b91f53f3e8fc6",
+    "benchmark_stills.py": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6",
+    "stock_video.py": "0564742516b755ff04f148ec084b78f48cfdef1791a3bfa64f7ff45f39a560da",
+    "stock_still.py": "d3791cb860808a57735db9e8e30dd9929f97a436da0a02f3c7ff6c5ddbc787fb",
+    "stock_cnn_models.py": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "stock_cnn_metadata.py": "263a8a2cab3dc9ab6033d1f8d80f80f7d4035fa59290bf6b320131f8f0c736eb",
+    "raw_media.py": "452a1a4badf0f923264c618426f3ae4f98a1b86422abaae9fdd5f230405599e4"
+  },
+  "limitations": "Same-site rounded 2x2 area average, then actual stock Q3: not the previous fused decimator, sensor footage or temporal evidence. Checkpoint training/split provenance requires its separate receipt; inference support is not quality approval. Timing is diagnostic tiled inference, not capture throughput."
+}

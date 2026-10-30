@@ -488,3 +488,9 @@ quality guards, so no new 2x weights are promoted. A current-binary
 and preview but still misses deadlines with competing processes paused.
 All seven hosted jobs pass at source/model revision `c47fdf1`; these new reports
 and receipts do not change production source or model weights.
+
+The new [full-image model selector](stock-sr-full-selection.md) writes an explicit
+candidate/data/code protocol before validation and requires per-image regional
+nonregression plus pooled active improvement. SDK-backed tests pass on Mac/Pi;
+all ten real patch-qualified candidates fail, so final testing is skipped.
+The camera codec/runtime and selected 1x weights are unchanged.

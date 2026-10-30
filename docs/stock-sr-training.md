@@ -167,3 +167,8 @@ shadows/highlights on all historical final references but regresses overall
 and detail error on two, so it also remains unapproved. Full-frame diagnostics
 on its four validation sources fail three guards despite passing patch guards;
 future selection needs full-frame validation before final testing.
+
+The [full-image selection stage](stock-sr-full-selection.md) is now implemented
+and tested on Mac/Pi. Ten patch-qualified snapshot/strength candidates all fail
+its complete-image guard, so this follow-up selects no checkpoint and skips
+final-reference testing. No failed weights are promoted.

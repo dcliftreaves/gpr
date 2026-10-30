@@ -92,3 +92,9 @@ The [region-balanced 2x follow-up](stock-sr-relative.md) also fails final guards
 Its full-frame validation diagnostic fails three of four held-out validation
 sources despite patch-level success. This exposes a validation-coverage gap;
 full-frame guards should precede subsequent final-reference evaluations.
+
+The [full-image selector](stock-sr-full-selection.md) now implements this
+validation stage, with nine optional CNN tests passing on both Mac and Pi.
+Forty complete validation-image inferences reject all ten patch-qualified
+candidates before further final evaluation. This closes the missing selection
+mechanism, not the 2x model-quality gate.
