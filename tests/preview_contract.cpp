@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 OR MIT */
 #include "gpr_preview.h"
 #include "gpr_gvid_reader.h"
+#include "vc5_decoder.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -166,6 +167,31 @@ static void calibrated_preview(const std::string &root,unsigned width,unsigned s
     serial_decoder(false);
     check(!serial_error,"serial calibrated render");
     check(serial_output==output,"parallel/fused preview differs from serial decoder");
+    vc5_decoder_parameters decoder={};vc5_decoder_parameters_set_default(&decoder);
+    decoder.mem_alloc=std::malloc;decoder.mem_free=std::free;decoder.rgb_bits=16;
+    decoder.rgb_resolution=scale==4 ? GPR_RGB_RESOLUTION_QUARTER:
+        (scale==8 ? GPR_RGB_RESOLUTION_EIGHTH:GPR_RGB_RESOLUTION_SIXTEENTH);
+    gpr_buffer compressed={payload.data(),payload.size()};
+    std::vector<int16_t> samples[3];gpr_preview_wavelet_planes planes={};
+    for (unsigned channel=0;channel<3;++channel) {
+        gpr_rgb_buffer plane={};
+        check(vc5_decoder_process_wavelet_channel(&decoder,&compressed,channel,&plane)==CODEC_ERROR_OKAY,"wavelet producer decode");
+        std::unique_ptr<void,decltype(&std::free)> owned(plane.buffer,std::free);
+        planes.width=plane.width;planes.height=plane.height;
+        samples[channel].assign(static_cast<int16_t *>(plane.buffer),static_cast<int16_t *>(plane.buffer)+plane.size/2);
+        planes.samples[channel]=samples[channel].data();planes.sample_count[channel]=samples[channel].size();
+    }
+    std::vector<uint8_t> direct(output.size(),0xcd);
+    check(!gpr_preview_plan_render_wavelets(plan.get(),&planes,direct.data()+16,needed,pitch,&info),"direct wavelet render");
+    check(direct==output,"direct wavelet pixels/padding differ");
+    std::fill(direct.begin(),direct.end(),0xcd);
+    --planes.sample_count[2];
+    check(gpr_preview_plan_render_wavelets(plan.get(),&planes,direct.data()+16,needed,pitch,&info)==GPR_PREVIEW_INVALID,"short wavelet plane accepted");
+    ++planes.sample_count[2];
+    check(gpr_preview_plan_render_wavelets(plan.get(),&planes,direct.data()+16,needed-1,pitch,&info)==GPR_PREVIEW_CAPACITY,"short direct output accepted");
+    ++planes.width;
+    check(gpr_preview_plan_render_wavelets(plan.get(),&planes,direct.data()+16,needed,pitch,&info)==GPR_PREVIEW_INVALID,"wrong wavelet geometry accepted");
+    check(std::all_of(direct.begin(),direct.end(),[](uint8_t p){return p==0xcd;}),"invalid wavelet render modified output");
     unsigned full_width=(width+scale-1)/scale,full_height=(96+scale-1)/scale;
     check(linear.size()==size_t(full_width)*full_height*6,"stock linear fixture extent");
     for (unsigned y=0;y<rows;++y) for (unsigned x=0;x<columns;++x) {

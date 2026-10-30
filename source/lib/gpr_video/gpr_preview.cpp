@@ -430,6 +430,34 @@ extern "C" void gpr_preview_plan_retain(const gpr_preview_plan *p) { if (p) p->r
 extern "C" void gpr_preview_plan_destroy(gpr_preview_plan *p) {
     if (p && p->references.fetch_sub(1,std::memory_order_acq_rel)==1) delete p;
 }
+extern "C" int gpr_preview_plan_render_wavelets(const gpr_preview_plan *p,
+    const gpr_preview_wavelet_planes *input,uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out) {
+    if (!p || !input || !rgb || !out || input->width!=p->full_width || input->height!=p->full_height)
+        return GPR_PREVIEW_INVALID;
+    if (pitch<p->info.row_bytes || pitch>SIZE_MAX/p->info.height ||
+        capacity<(p->info.height-1)*pitch+p->info.row_bytes) return GPR_PREVIEW_CAPACITY;
+    const size_t count=size_t(p->full_width)*p->full_height;
+    gpr_rgb_buffer planes[3]={};
+    for (unsigned c=0;c<3;++c) {
+        if (!input->samples[c] || reinterpret_cast<uintptr_t>(input->samples[c])%alignof(int16_t) ||
+            input->sample_count[c]<count) return GPR_PREVIEW_INVALID;
+        planes[c].buffer=const_cast<int16_t *>(input->samples[c]);
+    }
+    try {
+        SetupDecoderLogCurve();
+        const uint8_t *gamma=srgb_table();
+        if (size_t(p->columns)*p->rows>=500000) {
+            constexpr uint32_t workers=4;
+            std::future<void> done[workers-1];
+            for (uint32_t i=1;i<workers;++i)
+                done[i-1]=std::async(std::launch::async,display_wavelet_rows,p,planes,gamma,rgb,pitch,
+                    p->rows*i/workers,p->rows*(i+1)/workers);
+            display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows/workers);
+            for (auto &worker:done) worker.get();
+        } else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows);
+        *out=p->info;return GPR_PREVIEW_OK;
+    } catch (...) { return GPR_PREVIEW_NOMEM; }
+}
 extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *payload,size_t size,
     uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out) {
     if (!p || !rgb || !out) return GPR_PREVIEW_INVALID;
@@ -478,25 +506,27 @@ extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *
             if (!plane.buffer || plane.width!=p->full_width || plane.height!=p->full_height ||
                 plane.size!=size_t(p->full_width)*p->full_height*sizeof(int16_t)) return GPR_PREVIEW_CODEC;
         }
+        if (!serial_decoder) {
+            gpr_preview_wavelet_planes input={};input.width=p->full_width;input.height=p->full_height;
+            for (unsigned c=0;c<3;++c) {
+                input.samples[c]=static_cast<const int16_t *>(planes[c].buffer);
+                input.sample_count[c]=planes[c].size/sizeof(int16_t);
+            }
+            return gpr_preview_plan_render_wavelets(p,&input,rgb,capacity,pitch,out);
+        }
         const uint8_t *data=static_cast<const uint8_t *>(decoded.buffer);
         const uint8_t *gamma=srgb_table();
-        auto display=serial_decoder ? display_rows:nullptr;
         if (size_t(p->columns)*p->rows>=500000) {
             constexpr uint32_t workers=4;
             std::future<void> workers_done[workers-1];
             for (uint32_t i=1;i<workers;++i) {
                 uint32_t first=p->rows*i/workers,last=p->rows*(i+1)/workers;
-                if (serial_decoder)
-                    workers_done[i-1]=std::async(std::launch::async,display,p,data,gamma,rgb,pitch,first,last);
-                else
-                    workers_done[i-1]=std::async(std::launch::async,display_wavelet_rows,p,planes,gamma,rgb,pitch,first,last);
+                workers_done[i-1]=std::async(std::launch::async,display_rows,p,data,gamma,rgb,pitch,first,last);
             }
-            if (serial_decoder) display(p,data,gamma,rgb,pitch,0,p->rows/workers);
-            else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows/workers);
+            display_rows(p,data,gamma,rgb,pitch,0,p->rows/workers);
             for (auto &worker:workers_done) worker.get();
         } else {
-            if (serial_decoder) display(p,data,gamma,rgb,pitch,0,p->rows);
-            else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows);
+            display_rows(p,data,gamma,rgb,pitch,0,p->rows);
         }
         release(decoded.buffer); *out=p->info; return GPR_PREVIEW_OK;
     } catch (...) { return GPR_PREVIEW_NOMEM; }

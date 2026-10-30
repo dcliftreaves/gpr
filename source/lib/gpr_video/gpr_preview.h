@@ -66,6 +66,21 @@ int gpr_preview_plan_from_profile(const gpr_gvid_config *video,const uint8_t *pr
 int gpr_preview_plan_info(const gpr_preview_plan *plan,gpr_preview_info *out);
 int gpr_preview_plan_render(const gpr_preview_plan *plan,const uint8_t *payload,size_t payload_size,
     uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out);
+/* Render already reconstructed reduced GS/RG/BG planes with the same color,
+ * crop and orientation contract as compressed preview. Samples are signed
+ * host-endian 16-bit values in the decoder's 14-bit wavelet domain, tightly
+ * packed without row padding. Geometry must equal ceil(sensor/downsample).
+ * Each plane must cover width*height samples and remain immutable until return.
+ * This synchronous entry point does not retain any plane or output pointers.
+ * Encoder coefficients require reconstruction to this domain before use. */
+typedef struct {
+    uint32_t width,height;
+    const int16_t *samples[3];
+    size_t sample_count[3];
+} gpr_preview_wavelet_planes;
+int gpr_preview_plan_render_wavelets(const gpr_preview_plan *plan,
+    const gpr_preview_wavelet_planes *planes,
+    uint8_t *rgb,size_t capacity,size_t pitch,gpr_preview_info *out);
 void gpr_preview_plan_destroy(gpr_preview_plan *plan);
 /* Acquire another ownership reference. Each reference is released by destroy.
  * The caller must hold a reference while retaining or rendering. */

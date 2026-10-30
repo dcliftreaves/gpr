@@ -28,6 +28,9 @@ int c_header_probe(void) {
     if (gpr_preview_plan_info(plan,&info) || info.width!=32 || info.height!=24) {
         gpr_preview_plan_destroy(plan);return 0;
     }
+    if (gpr_preview_plan_render_wavelets(plan,0,0,0,0,&info)!=GPR_PREVIEW_INVALID) {
+        gpr_preview_plan_destroy(plan);return 0;
+    }
     gpr_preview_plan_destroy(plan);
     {
         gpr_preview_queue_config config={1,1,c_display,0};gpr_preview_queue *queue=0;

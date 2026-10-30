@@ -110,11 +110,24 @@ wavelet planes directly: it reconstructs RGB, applies the decoder log curve,
 and continues through calibration without materializing the historical
 six-byte-per-pixel intermediate RGB image. `GPR_PREVIEW_SERIAL_DECODER=1`
 retains the ordinary decoder path as a bit-exact comparison mode.
+`gpr_preview_plan_render_wavelets` exposes the same renderer for producers that
+already have reconstructed reduced GS/RG/BG planes. It validates exact reduced
+geometry, natural sample alignment, per-plane capacity and RGB output capacity
+before writing output. Plan calibration and source count-domain conversion are
+identical to compressed preview. Plane pointers remain caller-owned and are
+borrowed only for the synchronous call. This interface avoids decompression
+when a producer already has the required samples; capture currently still uses
+the compressed-payload queue. Encoder intermediate coefficients must first be
+reconstructed to the decoder's 14-bit wavelet sample domain; directly passing
+quantized or prescaled encoder bands is not supported.
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,
 GainMap, unaligned-input, pitched-output and canary coverage. Both ordinary
 NEON and forced-scalar test invocations pass on Mac and Pi 5.
+The same matrix also compares explicitly decoded planes through the public
+wavelet entry point with compressed rendering, and checks short-plane,
+wrong-geometry and short-output rejection without modifying output canaries.
 
 On AArch64 with NEON enabled, a four-pixel kernel loads the three wavelet
 planes and processes independent pixels in vector registers through RGB
