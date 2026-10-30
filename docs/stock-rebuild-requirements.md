@@ -151,3 +151,9 @@ about 1.3% lower on the other. All 4,800 prototype/final recordings and previews
 remain exact. Both final runs have fewer late writes/previews than both old
 controls, but every run still fails the strict deadline gate. New source passes
 27 Mac/24 Pi tests and four relocated package profiles.
+
+Hosted `f332e07` initially fails native CTest because the explicit CI build
+list omits the newly registered wavelet-queue executable. The [workflow
+integration correction](stock-preview-colors.md#ci-target-integration) adds it
+and retains failure logs; hosted validation of that correction remains pending.
+The local 27 Mac/24 Pi source checks and package evidence are unchanged.

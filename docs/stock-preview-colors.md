@@ -134,3 +134,19 @@ counter comparison. Native media, binaries, package ZIPs and full GVIDs remain
 external under `/Volumes/OWC_8TB/gpr_work/artifacts/stock_preview_color_20261030`
 and matching Pi directories. Broader CNN quality/restored-tier and strict Pi
 deadline approval remain open.
+
+## CI target integration
+
+The first hosted source run at `f332e07` fails the three native jobs because
+CI builds an explicit target list that omitted `preview_wavelet_queue_test`.
+CTest reports this test **Not Run**; the other tests in those jobs pass. The
+Mac artifact step additionally lacks files because later package stages are
+skipped. This is a workflow integration omission, not a passing hosted result.
+
+The corrected list includes the executable and preserves CTest logs in the
+Release artifacts. The exact corrected build command and new test pass locally;
+the corrected hosted revision still needs its own results.
+[Failure receipt](stock-preview-color-receipts/ci-integration/failed-f332e07.json),
+[excerpts](stock-preview-color-receipts/ci-integration/missing-target-excerpts.txt)
+and [local target check](stock-preview-color-receipts/ci-integration/local-target-check.txt)
+retain the distinction. Runtime/source measurements remain bound to `f197f09`.

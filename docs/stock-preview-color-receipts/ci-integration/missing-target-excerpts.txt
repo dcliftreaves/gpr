@@ -1,0 +1,9 @@
+LinuxSanitizers	Test	2026-10-30T22:30:44.6322784Z Could not find executable /home/runner/work/gpr/gpr/build-runtime/preview_wavelet_queue_test
+LinuxSanitizers	Test	2026-10-30T22:31:36.1574449Z 96% tests passed, 1 tests failed out of 23
+LinuxSanitizers	Test	2026-10-30T22:31:36.1576521Z 	  2 - preview_wavelet_queue (Not Run)
+MacRelease	Test	2026-10-30T22:30:41.8179680Z Could not find executable /Users/runner/work/gpr/gpr/build-runtime/preview_wavelet_queue_test
+MacRelease	Test	2026-10-30T22:30:51.9687760Z 96% tests passed, 1 tests failed out of 24
+MacRelease	Test	2026-10-30T22:30:51.9689680Z 	  2 - preview_wavelet_queue (Not Run)
+LinuxRelease	Test	2026-10-30T22:31:17.5165059Z Could not find executable /home/runner/work/gpr/gpr/build-runtime/preview_wavelet_queue_test
+LinuxRelease	Test	2026-10-30T22:31:27.2543705Z 96% tests passed, 1 tests failed out of 23
+LinuxRelease	Test	2026-10-30T22:31:27.2545775Z 	  2 - preview_wavelet_queue (Not Run)

@@ -113,7 +113,7 @@ jobs:
             -DGPR_BUILD_PACKAGE=ON -DGPR_BUILD_CODEC_TESTS=ON \
             -DCMAKE_C_FLAGS="${{ matrix.flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
       - name: Build
-        run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test sdk_c_api_test encoder_bounds_test decoder_bounds_test encoder_preview_probe gpr_capture_app preview_contract_test preview_queue_test gpr_preview_app gpr_preview_profile stock_video gpr_tools bayer_formats_test sdk_bayer_probe --parallel 4
+        run: cmake --build build-runtime --target capture_lifecycle_test capture_c_api_test sdk_c_api_test encoder_bounds_test decoder_bounds_test encoder_preview_probe gpr_capture_app preview_contract_test preview_wavelet_queue_test preview_queue_test gpr_preview_app gpr_preview_profile stock_video gpr_tools bayer_formats_test sdk_bayer_probe --parallel 4
       - name: Test
         run: ctest --test-dir build-runtime --output-on-failure
       - name: Optional portable CNN contracts and stock recording reconstruction
@@ -183,6 +183,8 @@ jobs:
             stock-coreml-receipt.json
             stock-metal-receipt.json
             stock-native-receipt.json
+            build-runtime/Testing/Temporary/LastTest.log
+            build-runtime/Testing/Temporary/LastTestsFailed.log
           if-no-files-found: error
   windows:
     name: WindowsNativePackages
