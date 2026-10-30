@@ -150,7 +150,7 @@ def frames(f, header, recover=False):
         yield row["index"], row["pts_ns"], row["payload"]
 
 
-def load_cnn(root, checkpoint, device):
+def load_cnn(root, checkpoint, device, coreml_package=None, coreml_units='all'):
     import torch
     # Weights are always caller-selected. A caller may override the bundled
     # legacy BIBO architecture explicitly; nothing is downloaded.
@@ -193,11 +193,17 @@ def load_cnn(root, checkpoint, device):
     else:
         model = module.make_model(dict(ckpt["config"]))
         model.load_state_dict(ckpt["model"], strict=True)
-    return model.to(device).eval(), dict(
+    info=dict(
         checkpoint_sha256=sha256(checkpoint), architecture_sha256=sha256(module_path),
         checkpoint_schema=entry, architecture_source='bundled' if root is None else 'external',
         output_scale=output_scale, runtime_raw_norm=16383, input_cfa='RGGB',
         device=str(device), quality_status="unvalidated_for_stock_video")
+    if coreml_package is not None:
+        if root is not None or entry!='build' or str(device)!='cpu':
+            raise ValueError('Core ML requires bundled BIBO and CPU host tensors; native units are selected separately')
+        from stock_coreml import load_runtime
+        return load_runtime(coreml_package,info,scale,coreml_units),info
+    return model.to(device).eval(),info
 
 
 def restore(raw, width, height, model, device, tile, halo, scale=1):
@@ -245,6 +251,8 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="0 exports all; inspection always validates all")
     parser.add_argument("--cnn-root", type=Path, help="external architecture override; default: bundled BIBO")
     parser.add_argument("--checkpoint", type=Path)
+    from stock_coreml import add_arguments
+    add_arguments(parser)
     parser.add_argument('--scale',type=int,choices=(1,2),default=1,help='explicit reconstruction scale')
     parser.add_argument("--reference-raw", type=Path, action="append",
                         help="optional reference replay RAWs in input order, for distortion measurements")
@@ -264,6 +272,7 @@ def main():
     if args.action == "restore" and not all((args.decoder, args.checkpoint)):
         parser.error("restore requires --decoder and --checkpoint")
     if args.scale!=1 and args.action!='restore': parser.error('--scale requires restore')
+    if args.coreml_package and args.action!='restore':parser.error('--coreml-package requires restore')
     if args.scale!=1 and args.reference_raw: parser.error('2x reference comparison requires an explicit high-resolution benchmark')
     if args.reference_raw and (not args.decoder or args.action == "inspect"):
         parser.error("reference measurements require extraction/restore with --decoder")
@@ -280,7 +289,7 @@ def main():
     if args.action == "restore":
         import torch
         device = torch.device(args.device)
-        model, model_info = load_cnn(args.cnn_root, args.checkpoint, device)
+        model, model_info = load_cnn(args.cnn_root, args.checkpoint, device,args.coreml_package,args.coreml_units)
         if model_info.get('output_scale',1)!=args.scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     if args.out_dir:
         args.out_dir.mkdir(parents=True, exist_ok=False)

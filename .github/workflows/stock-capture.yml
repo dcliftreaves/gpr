@@ -144,6 +144,13 @@ jobs:
           cmake -S . -B build-runtime -DGPR_BUILD_RENDER_TOOLS=ON -DGPR_BUILD_RENDER_TESTS=ON -DGPR_BUILD_MOV_TOOLS=ON -DGPR_BUILD_MOV_TESTS=ON
           cmake --build build-runtime --target gpr_render gpr_prores gpr_mov --parallel 4
           ctest --test-dir build-runtime -R '^(stock_prores|stock_mov)$' --output-on-failure
+      - name: Optional native Core ML contracts
+        if: matrix.name == 'MacRelease'
+        run: |
+          python -m pip install torch==2.8.0 coremltools==9.0
+          python tests/stock_coreml_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools \
+            --decoder build-runtime/source/app/stock_video/stock_video --renderer build-runtime/gpr_render \
+            --encoder build-runtime/gpr_prores --probe "$(command -v ffprobe)" --receipt stock-coreml-receipt.json
       - name: Stripped builds, relocated packages and public C/C++ clients
         if: matrix.type == 'Release'
         run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime
@@ -155,6 +162,7 @@ jobs:
             profile-check/**/archives/*.zip
             profile-check/**/*.log
             profile-check/receipt.json
+            stock-coreml-receipt.json
           if-no-files-found: error
   windows:
     name: WindowsNativePackages
