@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 OR MIT */
 #include "gpr_preview.h"
 #include "vc5_decoder.h"
+#include "logcurve.h"
 #include <cstdlib>
 #include <cstring>
 #include <map>
@@ -10,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <atomic>
+#include <future>
 #if defined(__aarch64__) && NEON
 #include <arm_neon.h>
 #endif
@@ -194,7 +196,118 @@ void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *
         display_pixel(p,rgb,pitch,x+lane,y,color);
     }
 }
+void display_wavelet_neon4(const gpr_preview_plan *p,const gpr_rgb_buffer *planes,
+    const uint8_t *gamma,uint8_t *rgb,size_t pitch,unsigned x,unsigned y) {
+    int32x4_t gs=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[0].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+    int32x4_t rg=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[1].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+    int32x4_t bg=vmovl_s16(vld1_s16(static_cast<const int16_t *>(planes[2].buffer)+size_t(p->ys[y])*p->full_width+p->xs[x]));
+    int32x4_t midpoint=vdupq_n_s32(1<<13);
+    int32x4_t indices[3]={
+        vshrq_n_s32(vaddq_s32(vshlq_n_s32(vsubq_s32(rg,midpoint),1),gs),2),
+        vshrq_n_s32(gs,2),
+        vshrq_n_s32(vaddq_s32(vshlq_n_s32(vsubq_s32(bg,midpoint),1),gs),2)};
+    float32x4_t samples[3];
+    for (unsigned c=0;c<3;++c) {
+        uint32_t index[4];uint16_t linear[4];
+        vst1q_u32(index,vreinterpretq_u32_s32(vmaxq_s32(vdupq_n_s32(0),vminq_s32(vdupq_n_s32(4095),indices[c]))));
+        for (unsigned lane=0;lane<4;++lane) linear[lane]=DecoderLogCurve[index[lane]];
+        samples[c]=vmulq_n_f32(vcvtq_f32_u32(vmovl_u16(vld1_u16(linear))),1/p->count_scale);
+    }
+    float32x4_t gains[4],caps[4];
+    if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
+    else {
+        const float *values=p->gains[size_t(y)*p->columns+x].data();
+        float32x4x4_t first=vld4q_f32(values),last=vld4q_f32(values+16);
+        for (unsigned site=0;site<4;++site) {
+            gains[site]=vuzp1q_f32(first.val[site],last.val[site]);
+            caps[site]=vuzp2q_f32(first.val[site],last.val[site]);
+        }
+    }
+    auto corrected=[&](unsigned site,unsigned channel)->float32x4_t {
+        float32x4_t value=vmulq_n_f32(vsubq_f32(samples[channel],vdupq_n_f32(p->black[site])),p->inverse_range[site]);
+        value=vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value));
+        return vminq_f32(caps[site],vmulq_f32(value,gains[site]));
+    };
+    float32x4_t camera[3]={corrected(p->red,0),vmulq_n_f32(vaddq_f32(corrected(p->green1,1),corrected(p->green2,1)),.5f),corrected(p->blue,2)};
+    for (unsigned c=0;c<3;++c) camera[c]=vminq_f32(camera[c],vdupq_n_f32(p->camera_white[c]));
+    uint32_t output[3][4];
+    for (unsigned c=0;c<3;++c) {
+        float32x4_t value=vmulq_n_f32(camera[0],p->matrix[c*3]);
+        value=vaddq_f32(value,vmulq_n_f32(camera[1],p->matrix[c*3+1]));
+        value=vaddq_f32(value,vmulq_n_f32(camera[2],p->matrix[c*3+2]));
+        value=vmulq_n_f32(vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value)),p->exposure);
+        value=vmaxq_f32(vdupq_n_f32(0),vminq_f32(vdupq_n_f32(1),value));
+        vst1q_u32(output[c],vcvtq_u32_f32(vaddq_f32(vmulq_n_f32(value,65535),vdupq_n_f32(.5f))));
+    }
+    for (unsigned lane=0;lane<4;++lane) {
+        uint8_t color[3]={gamma[output[0][lane]],gamma[output[1][lane]],gamma[output[2][lane]]};
+        display_pixel(p,rgb,pitch,x+lane,y,color);
+    }
+}
 #endif
+void display_rows(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *gamma,
+    uint8_t *rgb,size_t pitch,uint32_t first,uint32_t last) {
+    for (uint32_t y=first;y<last;++y) for (uint32_t x=0;x<p->columns;) {
+#if defined(__aarch64__) && NEON
+        if (!p->scalar && x+4<=p->columns && p->xs[x+1]==p->xs[x]+1 && p->xs[x+2]==p->xs[x]+2 && p->xs[x+3]==p->xs[x]+3) {
+            display_neon4(p,data,gamma,rgb,pitch,x,y);x+=4;continue;
+        }
+#endif
+        const uint8_t *pixel=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x]))*6;
+        float camera[3];
+        const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
+        auto corrected=[&](unsigned site,unsigned channel)->float {
+            uint16_t encoded;std::memcpy(&encoded,pixel+channel*2,2);
+            unsigned sample=(encoded>>8)|((encoded&255)<<8);
+            float value=(sample/p->count_scale-p->black[site])*p->inverse_range[site];
+            value=std::max(0.f,std::min(1.f,value));
+            return std::min(gain[site+4],value*gain[site]);
+        };
+        camera[0]=corrected(p->red,0); camera[1]=.5f*(corrected(p->green1,1)+corrected(p->green2,1)); camera[2]=corrected(p->blue,2);
+        for (unsigned c=0;c<3;++c) camera[c]=std::min(camera[c],p->camera_white[c]);
+        uint8_t color[3];
+        for (unsigned c=0;c<3;++c) {
+            float value=p->matrix[c*3]*camera[0]+p->matrix[c*3+1]*camera[1]+p->matrix[c*3+2]*camera[2];
+            color[c]=srgb(std::max(0.f,std::min(1.f,value))*p->exposure,gamma);
+        }
+        display_pixel(p,rgb,pitch,x,y,color);++x;
+    }
+}
+void display_wavelet_rows(const gpr_preview_plan *p,const gpr_rgb_buffer *planes,
+    const uint8_t *gamma,uint8_t *rgb,size_t pitch,uint32_t first,uint32_t last) {
+    const auto *gs=static_cast<const int16_t *>(planes[0].buffer);
+    const auto *rg=static_cast<const int16_t *>(planes[1].buffer);
+    const auto *bg=static_cast<const int16_t *>(planes[2].buffer);
+    for (uint32_t y=first;y<last;++y) for (uint32_t x=0;x<p->columns;) {
+#if defined(__aarch64__) && NEON
+        if (!p->scalar && x+4<=p->columns && p->xs[x+1]==p->xs[x]+1 && p->xs[x+2]==p->xs[x]+2 && p->xs[x+3]==p->xs[x]+3) {
+            display_wavelet_neon4(p,planes,gamma,rgb,pitch,x,y);x+=4;continue;
+        }
+#endif
+        size_t index=size_t(p->ys[y])*p->full_width+p->xs[x];
+        int32_t values[3]={2*(int32_t(rg[index])-(1<<13))+gs[index],gs[index],
+                           2*(int32_t(bg[index])-(1<<13))+gs[index]};
+        float samples[3];
+        for (unsigned c=0;c<3;++c) {
+            int32_t value=values[c]>>2;
+            samples[c]=DecoderLogCurve[std::max(0,std::min(4095,int(value)))]/p->count_scale;
+        }
+        const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
+        auto corrected=[&](unsigned site,unsigned channel)->float {
+            float value=(samples[channel]-p->black[site])*p->inverse_range[site];
+            value=std::max(0.f,std::min(1.f,value));
+            return std::min(gain[site+4],value*gain[site]);
+        };
+        float camera[3]={corrected(p->red,0),.5f*(corrected(p->green1,1)+corrected(p->green2,1)),corrected(p->blue,2)};
+        for (unsigned c=0;c<3;++c) camera[c]=std::min(camera[c],p->camera_white[c]);
+        uint8_t color[3];
+        for (unsigned c=0;c<3;++c) {
+            float value=p->matrix[c*3]*camera[0]+p->matrix[c*3+1]*camera[1]+p->matrix[c*3+2]*camera[2];
+            color[c]=srgb(std::max(0.f,std::min(1.f,value))*p->exposure,gamma);
+        }
+        display_pixel(p,rgb,pitch,x,y,color);++x;
+    }
+}
 }
 extern "C" void gpr_preview_calibration_identity(const gpr_gvid_config *v,gpr_preview_calibration *out) {
     if (!out) return; *out={};
@@ -335,35 +448,55 @@ extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *
             (p->downsample==8 ? GPR_RGB_RESOLUTION_EIGHTH:GPR_RGB_RESOLUTION_SIXTEENTH);
         parameters.rgb_bits=16;
         gpr_buffer input={const_cast<uint8_t *>(payload),size}; gpr_rgb_buffer decoded={};
-        CODEC_ERROR error=vc5_decoder_process(&parameters,&input,nullptr,&decoded);
-        if (error || !decoded.buffer || decoded.width!=p->full_width || decoded.height!=p->full_height ||
-            decoded.size!=size_t(p->full_width)*p->full_height*6) return GPR_PREVIEW_CODEC;
+        gpr_rgb_buffer planes[3]={};
+        struct PlaneRelease {
+            gpr_rgb_buffer *planes;
+            ~PlaneRelease() { for (unsigned i=0;i<3;++i) std::free(planes[i].buffer); }
+        } plane_release{planes};
+        CODEC_ERROR error=CODEC_ERROR_OKAY;
+        const char *serial=std::getenv("GPR_PREVIEW_SERIAL_DECODER");
+        const bool serial_decoder=serial && !std::strcmp(serial,"1");
+        if (serial_decoder) {
+            error=vc5_decoder_process(&parameters,&input,nullptr,&decoded);
+        } else {
+            CODEC_ERROR errors[3]={CODEC_ERROR_OKAY,CODEC_ERROR_OKAY,CODEC_ERROR_OKAY};
+            vc5_decoder_parameters channel_parameters=parameters;
+            channel_parameters.mem_alloc=std::malloc;channel_parameters.mem_free=std::free;
+            auto decode_channel=[&](unsigned channel) {
+                return vc5_decoder_process_wavelet_channel(&channel_parameters,&input,channel,&planes[channel]);
+            };
+            auto channel1=std::async(std::launch::async,decode_channel,1);
+            auto channel2=std::async(std::launch::async,decode_channel,2);
+            errors[0]=decode_channel(0);errors[1]=channel1.get();errors[2]=channel2.get();
+            for (CODEC_ERROR channel_error:errors) if (!error && channel_error) error=channel_error;
+        }
+        if (error) return GPR_PREVIEW_CODEC;
+        if (serial_decoder) {
+            if (!decoded.buffer || decoded.width!=p->full_width || decoded.height!=p->full_height ||
+                decoded.size!=size_t(p->full_width)*p->full_height*6) return GPR_PREVIEW_CODEC;
+        } else for (const auto &plane:planes) {
+            if (!plane.buffer || plane.width!=p->full_width || plane.height!=p->full_height ||
+                plane.size!=size_t(p->full_width)*p->full_height*sizeof(int16_t)) return GPR_PREVIEW_CODEC;
+        }
         const uint8_t *data=static_cast<const uint8_t *>(decoded.buffer);
         const uint8_t *gamma=srgb_table();
-        for (uint32_t y=0;y<p->rows;++y) for (uint32_t x=0;x<p->columns;) {
-#if defined(__aarch64__) && NEON
-            if (!p->scalar && x+4<=p->columns && p->xs[x+1]==p->xs[x]+1 && p->xs[x+2]==p->xs[x]+2 && p->xs[x+3]==p->xs[x]+3) {
-                display_neon4(p,data,gamma,rgb,pitch,x,y);x+=4;continue;
+        auto display=serial_decoder ? display_rows:nullptr;
+        if (size_t(p->columns)*p->rows>=500000) {
+            constexpr uint32_t workers=4;
+            std::future<void> workers_done[workers-1];
+            for (uint32_t i=1;i<workers;++i) {
+                uint32_t first=p->rows*i/workers,last=p->rows*(i+1)/workers;
+                if (serial_decoder)
+                    workers_done[i-1]=std::async(std::launch::async,display,p,data,gamma,rgb,pitch,first,last);
+                else
+                    workers_done[i-1]=std::async(std::launch::async,display_wavelet_rows,p,planes,gamma,rgb,pitch,first,last);
             }
-#endif
-            const uint8_t *pixel=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x]))*6;
-            float camera[3];
-            const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
-            auto corrected=[&](unsigned site,unsigned channel)->float {
-                uint16_t encoded;std::memcpy(&encoded,pixel+channel*2,2);
-                unsigned sample=(encoded>>8)|((encoded&255)<<8);
-                float value=(sample/p->count_scale-p->black[site])*p->inverse_range[site];
-                value=std::max(0.f,std::min(1.f,value));
-                return std::min(gain[site+4],value*gain[site]);
-            };
-            camera[0]=corrected(p->red,0); camera[1]=.5f*(corrected(p->green1,1)+corrected(p->green2,1)); camera[2]=corrected(p->blue,2);
-            for (unsigned c=0;c<3;++c) camera[c]=std::min(camera[c],p->camera_white[c]);
-            uint8_t color[3];
-            for (unsigned c=0;c<3;++c) {
-                float value=p->matrix[c*3]*camera[0]+p->matrix[c*3+1]*camera[1]+p->matrix[c*3+2]*camera[2];
-                color[c]=srgb(std::max(0.f,std::min(1.f,value))*p->exposure,gamma);
-            }
-            display_pixel(p,rgb,pitch,x,y,color);++x;
+            if (serial_decoder) display(p,data,gamma,rgb,pitch,0,p->rows/workers);
+            else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows/workers);
+            for (auto &worker:workers_done) worker.get();
+        } else {
+            if (serial_decoder) display(p,data,gamma,rgb,pitch,0,p->rows);
+            else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows);
         }
         release(decoded.buffer); *out=p->info; return GPR_PREVIEW_OK;
     } catch (...) { return GPR_PREVIEW_NOMEM; }

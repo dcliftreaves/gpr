@@ -103,9 +103,17 @@ latest-pending replacement and sink error/drain contracts. Pi combined capture
 measurements demonstrate its CPU cost; physical display integration and reliable
 live 30 fps remain unverified.
 
-On AArch64 with NEON enabled, a four-pixel kernel deinterleaves linear word
-triplets, fixes byte/lane order and processes independent pixels in vector
-registers through black normalization, gains, clipping and the 3x3 transform.
+Reduced stock RAW preview decodes the independent GS/RG/BG VC-5 channels in
+parallel by skipping non-selected channel payloads and allocating only the
+selected transform. The AArch64 fast path consumes these host-endian reduced
+wavelet planes directly: it reconstructs RGB, applies the decoder log curve,
+and continues through calibration without materializing the historical
+six-byte-per-pixel intermediate RGB image. `GPR_PREVIEW_SERIAL_DECODER=1`
+retains the ordinary decoder path as a bit-exact comparison mode.
+
+On AArch64 with NEON enabled, a four-pixel kernel loads the three wavelet
+planes and processes independent pixels in vector registers through RGB
+reconstruction, black normalization, gains, clipping and the 3x3 transform.
 Non-contiguous crop samples and tails use the scalar path. `GPR_PREVIEW_SCALAR=1`
 forces scalar processing for comparison. Both paths use a shared 65,536-entry
 sRGB lookup; independent floating-point references allow one RGB8 count of

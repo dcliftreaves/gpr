@@ -85,6 +85,14 @@
                                     const gpr_buffer*               vc5_buffer,             /* vc5 input buffer. */
                                           gpr_buffer*               raw_buffer,             /* raw output buffer. */
                                           gpr_rgb_buffer*           rgb_buffer);            /* rgb output buffer */
+
+    /* Reduced-preview building block.  The returned plane contains host-endian
+       GS, RG, or BG wavelet samples for the requested channel. */
+    CODEC_ERROR vc5_decoder_process_wavelet_channel(
+                                    const vc5_decoder_parameters* decoding_parameters,
+                                    const gpr_buffer* vc5_buffer,
+                                    unsigned channel,
+                                    gpr_rgb_buffer* wavelet_buffer);
         
 
 #ifdef __cplusplus

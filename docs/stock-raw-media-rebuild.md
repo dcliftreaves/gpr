@@ -167,11 +167,28 @@ Both 120-frame recording-only runs and both combined runs write all 120
 frames with no overruns; every payload matches the independent stock encoder,
 and every delivered preview matches separately prepared offline pixels.
 
-The requested 1024x768 preview does not meet the 20 fps handoff floor. It
-delivers 56/120 frames, replacing 64 pending frames; median render time is
-105.11 ms and capture-to-sink p95 is 185.88 ms. Capture still has zero
-deadline misses and 20.09 buffered fps. A 699.97 ms final SSD fsync lowers
-the short-run durable average to 17.98 fps.
+That revision's requested 1024x768 preview did not meet the 20 fps handoff
+floor. It delivered 56/120 frames, replacing 64 pending frames; median render
+time was 105.11 ms and capture-to-sink p95 was 185.88 ms.
+
+The current decoder can decode the three independent reduced GS/RG/BG VC-5
+channels concurrently. The calibrated NEON display kernel consumes those
+host-endian wavelet planes directly, fusing the historical WaveletToRGB pass,
+byte/lane reversal, calibration, matrix and RGB8 conversion. A serial decoder
+switch remains available for exact comparison. On the same Pi/source/quality
+contract, the current path delivers **120/120** 1024x768 previews with no
+replacement, a **49.01 ms** render median and exact offline preview pixels.
+This is a 2.14x median render improvement over the 105.11 ms baseline, and it
+closes the sustained-preview throughput gap.
+
+It does not close the stricter end-to-end latency or durability gates.
+Preview currently starts from the completed compressed payload, after a
+26.92 ms median encode; capture-to-sink p95 is 99.18 ms and every delivery is
+therefore later than the same-frame 50 ms deadline. A 701.37 ms final SSD
+fsync lowers the short-run durable average to 17.97 fps despite zero capture
+deadline misses and 20.07 buffered fps. Reusing encoder wavelet state (or a
+raw-source preview path) is the next architectural step for same-frame latency;
+changing final-flush accounting is not a codec optimization.
 
 At 512x384 the same combined path delivers 120/120 previews with no
 replacement, a 16.30 ms render median and 46.83 ms capture-to-sink p95. One
@@ -179,8 +196,9 @@ delivery exceeds the strict 50 ms deadline, and the 699.85 ms final fsync
 again prevents the durable-average gate from passing. This is a useful
 reduced-preview fallback, not evidence that the 1024x768 requirement is met.
 The runs use a memory CRC sink and do not establish sensor, display, card or
-thermal behavior. Exact receipts: [1024x768](stock-core-receipts/mission1-pi5-s4.json)
-and [512x384](stock-core-receipts/mission1-pi5-s8.json).
+thermal behavior. Exact receipts: [current parallel/fused 1024x768](stock-core-receipts/mission1-pi5-parallel-preview.json),
+[prior 1024x768 baseline](stock-core-receipts/mission1-pi5-s4.json) and
+[512x384 baseline](stock-core-receipts/mission1-pi5-s8.json).
 
 ## Current task and evidence matrix
 
@@ -221,7 +239,7 @@ Historical platform receipts remain bound to their recorded revisions.
 | Bounded capture API | Ownership, leases, backpressure, cancellation, flush and writer failures implemented; [capture contract](stock-capture-api.md) | Physical sensor/DMA/storage adapter integration |
 | Checked recording/recovery | Actual timestamps, CRC metadata/payloads, END3 and explicit prefix recovery implemented; [recording contract](stock-capture-api.md) | Live sensor/card interruption and durability evidence |
 | Native calibrated preview | Immutable plans, source color/GainMaps/orientation and bounded queue implemented; [preview contract](stock-calibrated-preview.md), [combined path](stock-capture-preview.md) | Rear-display backend and broader lens/look/temporal approval |
-| Mission 1 20-fps path | Mac: 1200/1200 recorded and previewed at 1024x768 over 60 seconds with no late deliveries/overruns and all 2400 payloads exact; [extended host receipt](stock-core-receipts/mission1-minute-mac.json). Pi 5: fresh exact 120-frame replay writes every frame, but 1024x768 delivers 56/120 previews; 512x384 delivers 120/120 with one late delivery; [Pi receipts](stock-core-receipts/mission1-pi5-s4.json) | Optimize 1024x768 Pi preview and durable flush behavior; actual camera proof; source is still replay, sink is memory |
+| Mission 1 20-fps path | Mac: 1200/1200 recorded and previewed at 1024x768 over 60 seconds with no late deliveries/overruns and all 2400 payloads exact; [extended host receipt](stock-core-receipts/mission1-minute-mac.json). Pi 5: current parallel/fused reduced decoder delivers all 120/120 exact 1024x768 previews, up from 56/120, at a 49.01 ms render median; [current Pi receipt](stock-core-receipts/mission1-pi5-parallel-preview.json) | Same-frame latency remains 99.18 ms p95 because preview follows encode; final fsync lowers short-run durable average; actual camera proof; source is still replay, sink is memory |
 | Offline 1x reconstruction | Portable inference, editable/sequence export and [explicit still GPR re-encoding](stock-cnn-quality.md#optional-reconstructed-gpr) work; eight optional contracts; [fresh source-grouped Q3 experiment](stock-cleanup-training.md) rejects all 30 trained checkpoints | Model quality approval; identity fallback is not a quality improvement; re-encoding can erase the legacy gain; legacy Q5 scene regression remains |
 | Offline 2x/8K reconstruction | Explicit architecture/geometry/calibration paths and fresh training/evaluation implemented; [functional evidence](stock-cnn-portable.md), [frozen candidate](stock-sr-training.md) | Candidate selection/perceptual/temporal approval; current shadow regression |
 | Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |

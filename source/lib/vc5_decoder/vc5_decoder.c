@@ -29,11 +29,12 @@ void vc5_decoder_parameters_set_default(vc5_decoder_parameters* decoding_paramet
     
     gpr_rgb_gain_set_defaults(&decoding_parameters->rgb_gain);
 }
-
-CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_parameters,    /* vc5 decoding parameters */
-                                const gpr_buffer*               vc5_buffer,             /* vc5 input buffer. */
-                                      gpr_buffer*               raw_buffer,             /* raw output buffer. */
-                                      gpr_rgb_buffer*           rgb_buffer)             /* rgb output buffer */
+static CODEC_ERROR vc5_decoder_process_internal(
+                                const vc5_decoder_parameters*   decoding_parameters,
+                                const gpr_buffer*               vc5_buffer,
+                                      gpr_buffer*               raw_buffer,
+                                      gpr_rgb_buffer*           rgb_buffer,
+                                      int                       wavelet_channel)
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
 
@@ -80,6 +81,7 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
     parameters.rgb_resolution  = decoding_parameters->rgb_resolution;
     parameters.rgb_bits        = decoding_parameters->rgb_bits;
     parameters.rgb_gain        = decoding_parameters->rgb_gain;
+    parameters.wavelet_channel = wavelet_channel;
     
     if( rgb_buffer == NULL )
     {
@@ -181,4 +183,28 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
     }
     
     return error;
+}
+
+CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters* decoding_parameters,
+                                const gpr_buffer* vc5_buffer,
+                                gpr_buffer* raw_buffer,
+                                gpr_rgb_buffer* rgb_buffer)
+{
+    return vc5_decoder_process_internal(decoding_parameters, vc5_buffer,
+                                        raw_buffer, rgb_buffer, -1);
+}
+
+CODEC_ERROR vc5_decoder_process_wavelet_channel(
+                                const vc5_decoder_parameters* decoding_parameters,
+                                const gpr_buffer* vc5_buffer,
+                                unsigned channel,
+                                gpr_rgb_buffer* wavelet_buffer)
+{
+    if (!decoding_parameters || !wavelet_buffer || channel >= 3 ||
+        (decoding_parameters->rgb_resolution != GPR_RGB_RESOLUTION_QUARTER &&
+         decoding_parameters->rgb_resolution != GPR_RGB_RESOLUTION_EIGHTH &&
+         decoding_parameters->rgb_resolution != GPR_RGB_RESOLUTION_SIXTEENTH))
+        return CODEC_ERROR_BAD_ARGUMENT;
+    return vc5_decoder_process_internal(decoding_parameters, vc5_buffer, NULL,
+                                        wavelet_buffer, (int)channel);
 }

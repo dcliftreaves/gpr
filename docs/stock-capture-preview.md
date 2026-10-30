@@ -100,6 +100,15 @@ and 114 foreground. Background rendering took longer (36.81 vs 28.52 ms median)
 while yielding CPU to capture, but still had 71 late completions. The sustained
 runs supersede any inference of reliable 30 fps from that short experiment.
 
+A current 20 fps Mission 1 replay exercises the full 1024x768 preview rather
+than the smaller 30 fps samples above. Parallel independent-channel reduced
+decode plus fused wavelet-to-calibrated-RGB NEON processing delivers 120/120
+previews with no replacement and exact offline pixels. Its 49.01 ms render
+median is down from 105.11 ms and 56/120 deliveries on the prior path. The
+same-frame latency gate remains open: preview begins only after encoding the
+compressed payload, so capture-to-sink p95 is 99.18 ms. See the
+[exact receipt](stock-core-receipts/mission1-pi5-parallel-preview.json).
+
 Neither baseline nor combined runs establish reliable live 30 fps. Both Pi HDMI
 connectors were disconnected. Sensor capture, physical presentation, microSD,
 CNN inference and full thermal qualification remain unverified. The governor

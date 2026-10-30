@@ -69,6 +69,12 @@ int main(int argc,char **argv) {
     p.rgb_bits=16;REQUIRE(vc5_decoder_process(&p,&source,NULL,&rgb)==CODEC_ERROR_OKAY);
     REQUIRE(rgb.buffer && rgb.size==32*24*6 && rgb.width==32 && rgb.height==24);
     free(rgb.buffer);rgb.buffer=NULL;rgb.size=0;
+    REQUIRE(vc5_decoder_process_wavelet_channel(NULL,&source,0,&rgb)==CODEC_ERROR_BAD_ARGUMENT);
+    REQUIRE(vc5_decoder_process_wavelet_channel(&p,&source,3,&rgb)==CODEC_ERROR_BAD_ARGUMENT);
+    REQUIRE(vc5_decoder_process_wavelet_channel(&p,&source,0,NULL)==CODEC_ERROR_BAD_ARGUMENT);
+    REQUIRE(vc5_decoder_process_wavelet_channel(&p,&source,0,&rgb)==CODEC_ERROR_OKAY);
+    REQUIRE(rgb.buffer && rgb.size==32*24*2 && rgb.width==32 && rgb.height==24);
+    free(rgb.buffer);rgb.buffer=NULL;rgb.size=0;
     q=p;q.mem_alloc=deny;allocations=0;
     REQUIRE(vc5_decoder_process(&q,&source,&raw,NULL)==CODEC_ERROR_OUTOFMEMORY);
     REQUIRE(allocations && !raw.buffer && !raw.size);
