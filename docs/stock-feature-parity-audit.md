@@ -73,3 +73,9 @@ The next [register experiment](stock-preview-register-experiment.md) was also
 discarded after a slower isolated renderer and no consistent sustained benefit.
 The retained validation now covers all twelve CFA/depth combinations and 576
 calibrated configurations, with runtime behavior unchanged.
+
+The [compute-stage follow-up](stock-preview-compute-stages.md) adds an opt-in
+wait after writer enqueue, allowing storage/preview overlap while preventing
+preview from competing with the next encode. Same-executable ABBA replay
+improves durable fps from 16.41–16.76 to 18.28–18.63 with exact accepted output.
+Overruns and late deliveries persist; the strict timing gate remains unmet.

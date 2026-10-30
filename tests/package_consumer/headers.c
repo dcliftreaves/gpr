@@ -22,6 +22,9 @@ static int c_preview_boundary(void) {
 static int c_display(void *user,const gpr_preview_frame_view *frame) { (void)user;(void)frame;return 0; }
 #endif
 int c_header_probe(void) {
+#if HAS_CAPTURE
+    if (gpr_capture_set_encoder_wait(0,0,0)!=GPR_CAPTURE_INVALID) return 0;
+#endif
 #if HAS_DECODER
     if (!c_preview_boundary()) return 0;
 #endif
@@ -44,6 +47,7 @@ int c_header_probe(void) {
     {
         gpr_preview_queue_config config={1,1,c_display,0};gpr_preview_queue *queue=0;
         if (gpr_preview_queue_create(&config,&queue)) return 0;
+        if (gpr_preview_queue_flush(queue)) {gpr_preview_queue_destroy(queue);return 0;}
         if (gpr_preview_queue_finish(queue)) {gpr_preview_queue_destroy(queue);return 0;}
         gpr_preview_queue_destroy(queue);
     }

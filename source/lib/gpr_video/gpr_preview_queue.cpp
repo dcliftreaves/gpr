@@ -186,6 +186,12 @@ extern "C" void gpr_preview_queue_cancel(gpr_preview_queue *q) {
     { std::lock_guard<std::mutex> lock(q->mutex);q->closing=q->cancelled=true;discard=q->discard_locked();q->changed.notify_all(); }
     release(discard);
 }
+extern "C" int gpr_preview_queue_flush(gpr_preview_queue *q) {
+    if (!q) return GPR_PREVIEW_INVALID;
+    std::unique_lock<std::mutex> lock(q->mutex);
+    q->changed.wait(lock,[&]{return !q->stats.inflight;});
+    return q->stats.error;
+}
 extern "C" int gpr_preview_queue_finish(gpr_preview_queue *q) {
     if (!q) return GPR_PREVIEW_INVALID;
     std::unique_lock<std::mutex> lock(q->mutex);q->closing=true;q->changed.notify_all();q->changed.wait(lock,[&]{return q->done;});return q->stats.error;

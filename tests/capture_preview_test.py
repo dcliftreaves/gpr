@@ -122,6 +122,23 @@ class Combined(unittest.TestCase):
         self.capture(output,'--frames','2','--preview-from-encoder',preview=True,okay=False)
         self.assertFalse(output.exists())
 
+    def test_serialized_compute_stages_preserve_frames_and_isolate_failure(self):
+        self.downsample=4;self.profiles=self.root/'sync-quarter-profiles'
+        stock_preview.prepare(self.base,self.profiles,args.compiler,4)
+        for failed in (False,True):
+            output=self.root/f'sync-stages-{failed}.gvid'
+            options=['--frames','24','--preview-every','1','--preview-from-encoder','--preview-sync-stages']
+            if failed:options+=['--preview-fail-after','1']
+            events=self.capture(output,*options,preview=True,okay=not failed)
+            final,summary,previews=self.verify(output,events,1,failed=failed)
+            self.assertEqual(final['written'],24);self.assertTrue(summary['sync_compute_stages'])
+            self.assertGreater(summary['producer_flush_wait_s'],0)
+            self.assertEqual(summary['replaced'],0)
+            self.assertEqual(len(previews),1 if failed else 24)
+        output=self.root/'sync-without-preview.gvid'
+        self.capture(output,'--preview-sync-stages',okay=False)
+        self.assertFalse(output.exists())
+
     def test_writeback_policy_and_unchanged_recording(self):
         for options in (['--writeback-mib','1025'],['--writeback-mib','1','--fsync-each']):
             output=self.root/'invalid-writeback.gvid'

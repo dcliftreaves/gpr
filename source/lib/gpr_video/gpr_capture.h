@@ -88,6 +88,15 @@ typedef void (*gpr_capture_preview_fn)(void *user,uint64_t index,uint64_t timest
 int gpr_capture_create_with_encoder_preview(const gpr_capture_config *cfg,
     const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
     gpr_capture_preview_fn preview,void *preview_user,gpr_capture **out);
+/* Optional encoder-thread barrier after a frame is enqueued for storage and
+ * its input lease released. The writer can progress while this callback waits.
+ * Configure before the first successful submission; later changes return
+ * CLOSED. NULL disables it. Runs outside capture/codec locks; may call get_stats,
+ * but not submit/flush/finish/destroy. Cancellation cannot interrupt a blocked
+ * callback; keep context alive through finish/destroy and return cooperatively.
+ * Frame index is copied; no slot/payload pointer remains borrowed. */
+typedef void (*gpr_capture_encoder_wait_fn)(void *user,uint64_t frame_index);
+int gpr_capture_set_encoder_wait(gpr_capture *capture,gpr_capture_encoder_wait_fn wait,void *user);
 /* Thread-safe; submissions serialize in frame-index order. Input and metadata
  * are COPIED before success returns unless an input lease is supplied; copied
  * input includes repacking padded rows. Index is

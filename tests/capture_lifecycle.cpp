@@ -280,6 +280,46 @@ static void formats() {
         validate(sink,{reference(data,gbrg ? VC5_ENCODER_PIXEL_FORMAT_GBRG_12:VC5_ENCODER_PIXEL_FORMAT_RGGB_12)});
     }
 }
+struct EncoderWait {
+    gpr_capture *capture=nullptr;
+    std::mutex mutex;std::condition_variable changed;
+    bool entered=false,released=false;
+    std::vector<uint64_t> indices;
+    static void wait(void *user,uint64_t index) {
+        auto &self=*static_cast<EncoderWait *>(user);gpr_capture_stats stats={};
+        check(!gpr_capture_get_stats(self.capture,&stats) && stats.encoded>index,"encoder wait holds capture lock or precedes enqueue");
+        std::unique_lock<std::mutex> lock(self.mutex);self.indices.push_back(index);
+        self.entered=true;self.changed.notify_all();self.changed.wait(lock,[&]{return self.released;});
+    }
+    void entered_wait() {
+        std::unique_lock<std::mutex> lock(mutex);
+        check(changed.wait_for(lock,std::chrono::seconds(10),[&]{return entered;}),"encoder barrier entry timeout");
+    }
+    void unblock() {std::lock_guard<std::mutex> lock(mutex);released=true;changed.notify_all();}
+};
+static void encoder_wait_barrier() {
+    check(gpr_capture_set_encoder_wait(nullptr,nullptr,nullptr)==GPR_CAPTURE_INVALID,"null encoder barrier setter");
+    Sink sink;EncoderWait barrier;Capture capture(config(),sink);barrier.capture=capture.p;
+    check(!gpr_capture_set_encoder_wait(capture.p,EncoderWait::wait,&barrier),"encoder barrier setup");
+    auto a=image(0),b=image(1);auto first=frame(a,0);
+    check(!gpr_capture_submit(capture.p,&first,UINT32_MAX),"encoder barrier submit");barrier.entered_wait();
+    bool written=false;auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+    do {
+        gpr_capture_stats stats={};gpr_capture_get_stats(capture.p,&stats);written=stats.written==1;
+        if (!written) std::this_thread::yield();
+    } while (!written && std::chrono::steady_clock::now()<deadline);
+    if (!written) {barrier.unblock();check(false,"writer cannot progress during encoder barrier");}
+    int closed=gpr_capture_set_encoder_wait(capture.p,nullptr,nullptr);
+    auto flushing=std::async(std::launch::async,[&]{return gpr_capture_flush(capture.p);});
+    bool waited=flushing.wait_for(std::chrono::milliseconds(10))==std::future_status::timeout;
+    barrier.unblock();int result=flushing.get();
+    check(waited && !result,"capture flush omitted active encoder barrier");
+    check(closed==GPR_CAPTURE_CLOSED,"encoder barrier changed after submission");
+    auto second=frame(b,1);check(!gpr_capture_submit(capture.p,&second,UINT32_MAX),"submit after barrier flush");
+    check(!gpr_capture_finish(capture.p),"encoder barrier finish");
+    check(barrier.indices==std::vector<uint64_t>({0,1}),"encoder barrier frame order");
+    validate(sink,{reference(a),reference(b)});
+}
 int main(int argc,char **argv) {
     try {
         for (const char *flag : {"GPR_STREAM_UNPACK","GPR_BAND_STREAM","GPR_CHANNEL_ASM",
@@ -290,7 +330,7 @@ int main(int argc,char **argv) {
             setenv(flag,"1",1);
 #endif
         }
-        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); observer_lifetime(); formats();
+        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); observer_lifetime(); formats();encoder_wait_barrier();
         std::cout<<"PASS: bounded capture, copy/lease ownership, padded stride, timestamps, stock payloads, flush/finish, writer failures, cancellation, concurrent SDK/capture\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }

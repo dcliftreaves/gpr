@@ -99,6 +99,8 @@ struct Output {
     uint64_t preview_setup_ns=0;
     int preview_offer_error=0;
     bool preview_from_encoder=false;
+    bool preview_sync_stages=false;
+    uint64_t preview_flush_ns=0;
     gpr_rgb_buffer reconstructed[3]={};
     ReconstructionArena reconstruction[3];
     void release_planes() {for (auto &plane:reconstructed) plane={};}
@@ -178,6 +180,17 @@ struct Output {
         (void)user;(void)frame;
 #endif
     }
+    static void wait_preview(void *user,uint64_t index) {
+#if GPR_CAPTURE_HAS_PREVIEW
+        auto &out=*static_cast<Output *>(user);(void)index;
+        if (!out.preview || out.preview_offer_error) return;
+        uint64_t begin=now_ns();
+        out.preview_offer_error=gpr_preview_queue_flush(out.preview.get());
+        out.preview_flush_ns+=now_ns()-begin;
+#else
+        (void)user;(void)index;
+#endif
+    }
     static void coefficients(void *user,uint64_t index,uint64_t timestamp,const vc5_preview_coefficients *view) {
 #if GPR_CAPTURE_HAS_PREVIEW
         auto &out=*static_cast<Output *>(user);(void)timestamp;
@@ -227,7 +240,7 @@ int main(int argc,char **argv) {
         cfg.metadata="{\"source_kind\":\"raw_fixture_replay\",\"calibration\":\"external_required\"}";
         cfg.metadata_size=std::strlen(static_cast<const char *>(cfg.metadata));
         uint32_t attempts=120,timeout=0;
-        bool paced=false,leased=false,preview_from_encoder=false; Output output;
+        bool paced=false,leased=false,preview_from_encoder=false,preview_sync_stages=false; Output output;
         std::string path; std::vector<std::string> inputs,metadata_paths,source_metadata;
         std::vector<std::string> preview_profiles;uint32_t preview_every=3,preview_delay=0,preview_fail_after=0;bool preview_option=false,preview_background=true;
         for (int a=1;a<argc;++a) {
@@ -244,6 +257,7 @@ int main(int argc,char **argv) {
                     "  [--preview-fail-after 0] (nonzero simulates failure after N accepted images)\n"
                     "  [--preview-foreground] (default is best-effort background priority)\n";
                 std::cout<<"  [--preview-from-encoder] (quarter-scale retained-band preview)\n";
+                std::cout<<"  [--preview-sync-stages] (wait for display before the next encode; same pixels)\n";
 #endif
                 return 0;
             }
@@ -252,6 +266,7 @@ int main(int argc,char **argv) {
             if (k=="--fsync-each") { output.sync_each=true; continue; }
             if (k=="--preview-foreground") {preview_background=false;preview_option=true;continue;}
             if (k=="--preview-from-encoder") {preview_from_encoder=true;preview_option=true;continue;}
+            if (k=="--preview-sync-stages") {preview_sync_stages=true;preview_option=true;continue;}
             if (++a==argc) throw std::runtime_error("missing argument: "+k);
             std::string v=argv[a];
             if (k=="--input") inputs.push_back(v);
@@ -326,6 +341,7 @@ int main(int argc,char **argv) {
             }
             output.preview_every=preview_every;output.preview_delay_ms=preview_delay;output.preview_fail_after=preview_fail_after;output.source_count=attempts;
             output.preview_from_encoder=preview_from_encoder;
+            output.preview_sync_stages=preview_sync_stages;
             if (preview_from_encoder) {
                 size_t pixels=size_t((cfg.video.width+3)/4)*((cfg.video.height+3)/4);
                 if (pixels>(size_t(64)*1024*1024-1024*1024)/16) throw std::runtime_error("encoder preview scratch exceeds per-channel 64 MiB limit");
@@ -354,6 +370,8 @@ int main(int argc,char **argv) {
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture(created,gpr_capture_destroy);
 #if GPR_CAPTURE_HAS_PREVIEW
         output.capture=created;PreviewBeforeCaptureDestruction preview_guard{output};
+        if (output.preview_sync_stages && gpr_capture_set_encoder_wait(created,Output::wait_preview,&output))
+            throw std::runtime_error("cannot configure encoder preview barrier");
 #endif
         uint64_t setup_ns=now_ns()-setup_begin,begin=now_ns(),accepted=0,overruns=0,submit_ns=0;
         for (uint64_t i=0;i<attempts;++i) {
@@ -424,6 +442,8 @@ int main(int argc,char **argv) {
                 <<",\"rendered\":"<<state.rendered<<",\"discarded\":"<<state.discarded<<",\"replaced\":"<<state.replaced
                 <<",\"inflight_high_water\":"<<state.inflight_high_water<<",\"payload_peak_bytes\":"<<state.payload_peak_bytes
                 <<",\"render_median_ms\":"<<percentile(render_ms,.5)<<",\"capture_to_sink_p95_ms\":"<<percentile(display_latency,.95)
+                <<",\"sync_compute_stages\":"<<(output.preview_sync_stages ? "true":"false")
+                <<",\"producer_flush_wait_s\":"<<output.preview_flush_ns*1e-9
                 <<",\"before_capture_finish\":"<<before_finish<<",\"with_capture_inflight\":"<<with_inflight
                 <<",\"drain_after_durability_s\":"<<(display_finish-durable)*1e-9
                 <<",\"setup_s\":"<<output.preview_setup_ns*1e-9

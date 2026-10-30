@@ -54,6 +54,10 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    A subsequent CFA canonicalization prototype was likewise rejected after
    measurement; [retained independent preview coverage](stock-preview-register-experiment.md)
    now includes all four phases at 12/14/16 bits.
+   Optional [compute-stage serialization](stock-preview-compute-stages.md)
+   subsequently improves matched durable replay from 16.41–16.76 to
+   18.28–18.63 fps, with exact accepted frames/previews. Both serial runs still
+   overrun and miss deadlines; this is not closure of the timing gate.
 4. Keep sensor/DMA, rear-display, actual SD, thermal and physical A/V work
    explicitly unverified. The original PR did not establish those either.
 

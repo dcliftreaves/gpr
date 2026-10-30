@@ -98,6 +98,7 @@ def main():
     parser.add_argument('--fsync-each', action='store_true', help='sync every completed frame as well as final completion; measure storage stalls explicitly')
     parser.add_argument('--writeback-mib', type=int, default=0, help='Linux asynchronous writeback interval; final fsync remains required')
     parser.add_argument('--preview-foreground', action='store_true', help='use normal display worker priority instead of best-effort background')
+    parser.add_argument('--preview-sync-stages', action='store_true', help='wait for each offered preview before starting the next encode')
     parser.add_argument('--require-floor', action='store_true', help='exit 2 if replay timing misses the requested floor')
     args = parser.parse_args()
     if not 0<=args.writeback_mib<=1024 or args.fsync_each and args.writeback_mib:
@@ -154,6 +155,8 @@ def main():
                 command += ['--preview-from-encoder']
             if args.preview_foreground:
                 command += ['--preview-foreground']
+            if args.preview_sync_stages:
+                command += ['--preview-sync-stages']
             for index in range(len(metadata)):
                 command += ['--preview-profile', profiles/f'{index:06}.gprp']
         events = run(command, root/(name+'.jsonl'), environment)
@@ -168,6 +171,7 @@ def main():
                   frames_requested=args.frames, functional_checks_passed=True,
                   fsync_each=args.fsync_each, writeback_mib=args.writeback_mib,
                   preview_background=not args.preview_foreground,
+                  preview_sync_stages=args.preview_sync_stages,
                   preview_pipeline='encoder_wavelets' if args.preview_from_encoder else 'compressed',
                   combined_replay_floor_passed=combined['recording'] and combined['preview'],
                   camera_production_ready=False, model_quality_approved=False,

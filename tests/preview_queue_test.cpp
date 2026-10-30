@@ -4,6 +4,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -79,6 +80,7 @@ static void cancellation(const std::vector<uint8_t> &payload) {
 static void failures(const std::vector<uint8_t> &payload) {
     auto p=plan();Sink sink;sink.fail=true;auto q=queue(sink,payload.size());
     check(!gpr_preview_queue_offer(q.get(),p.get(),0,100,payload.data(),payload.size()),"failing callback offer");
+    check(gpr_preview_queue_flush(q.get())==GPR_PREVIEW_CALLBACK,"flush propagates sink failure");
     check(gpr_preview_queue_finish(q.get())==GPR_PREVIEW_CALLBACK,"sink failure latches");
     check(gpr_preview_queue_offer(q.get(),p.get(),1,101,payload.data(),payload.size())==GPR_PREVIEW_CALLBACK,"failure sticky");
     Sink bad_sink;auto bad=queue(bad_sink,payload.size());std::vector<uint8_t> corrupt(64,0);
@@ -89,11 +91,28 @@ static void failures(const std::vector<uint8_t> &payload) {
     check(!gpr_preview_queue_finish(small.get()),"empty finish");
     gpr_preview_queue_stats stats={};gpr_preview_queue_get_stats(small.get(),&stats);check(!stats.offered && !stats.inflight,"rejected offer ownership");
 }
+static void reusable_flush(const std::vector<uint8_t> &payload) {
+    check(gpr_preview_queue_flush(nullptr)==GPR_PREVIEW_INVALID,"null flush");
+    auto p=plan();Sink sink;sink.block=true;auto q=queue(sink,payload.size());
+    check(!gpr_preview_queue_flush(q.get()),"empty flush");
+    check(!gpr_preview_queue_offer(q.get(),p.get(),0,100,payload.data(),payload.size()),"flush active offer");sink.wait();
+    check(!gpr_preview_queue_offer(q.get(),p.get(),1,101,payload.data(),payload.size()),"flush pending offer");
+    auto flushing=std::async(std::launch::async,[&]{return gpr_preview_queue_flush(q.get());});
+    bool waited=flushing.wait_for(std::chrono::milliseconds(10))==std::future_status::timeout;
+    sink.unblock();int result=flushing.get();
+    check(waited && !result,"flush did not wait for active callback");
+    gpr_preview_queue_stats stats={};gpr_preview_queue_get_stats(q.get(),&stats);
+    check(!stats.inflight && stats.rendered==2 && !stats.discarded,"flush returned before queue drained");
+    check(!gpr_preview_queue_offer(q.get(),p.get(),2,102,payload.data(),payload.size()),"flush closed submission");
+    check(!gpr_preview_queue_flush(q.get()),"second flush");
+    check(!gpr_preview_queue_finish(q.get()) && !gpr_preview_queue_flush(q.get()),"flush after finish");
+    check(sink.indices==std::vector<uint64_t>({0,1,2}),"flush lost/reordered delivery");
+}
 int main(int argc,char **argv) {
     try {
         check(argc==2,"fixture required");std::ifstream in(argv[1],std::ios::binary|std::ios::ate);check(bool(in),"fixture open");
         std::vector<uint8_t> payload(size_t(in.tellg()));in.seekg(0);check(bool(in.read(reinterpret_cast<char *>(payload.data()),payload.size())),"fixture read");
-        latest(payload);cancellation(payload);failures(payload);
+        latest(payload);cancellation(payload);failures(payload);reusable_flush(payload);
         std::cout<<"PASS: bounded latest-frame queue, copied payloads, retained plans, callback/stats, concurrent finish, cancellation and failures\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n';return 1; }

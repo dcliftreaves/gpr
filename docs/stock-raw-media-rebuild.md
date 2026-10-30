@@ -441,3 +441,10 @@ fused-codec model's visual approval without new evidence.
 Actual sensor delivery, firmware integration, on-camera display presentation,
 durable microSD recording and camera-specific thermal behavior remain
 hardware integration work. Host evidence must identify those boundaries.
+
+The optional [compute-stage policy](stock-preview-compute-stages.md) serializes
+preview against the next encode while allowing writer/preview overlap. Matched
+600-attempt ABBA replay improves durable fps from 16.41–16.76 to 18.28–18.63,
+with exact accepted payloads/pixels. All runs still overrun and miss deadlines.
+The policy remains opt-in; 24 Mac/21 Pi Release tests and four relocated
+package profiles pass for its source-bound implementation.

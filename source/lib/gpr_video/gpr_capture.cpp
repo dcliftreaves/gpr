@@ -71,6 +71,9 @@ struct gpr_capture {
     void *encoded_user=nullptr;
     gpr_capture_preview_fn preview=nullptr;
     void *preview_user=nullptr;
+    gpr_capture_encoder_wait_fn encoder_wait=nullptr;
+    void *encoder_wait_user=nullptr;
+    bool encoder_wait_active=false;
     struct PreviewContext {gpr_capture *capture;Slot *slot;};
     static void coefficients(void *user,const vc5_preview_coefficients *view) noexcept {
         auto &context=*static_cast<PreviewContext *>(user);
@@ -171,6 +174,8 @@ struct gpr_capture {
                         slot.payload.data(),slot.payload_size};
                     encoded(encoded_user,&frame);
                 }
+                gpr_capture_encoder_wait_fn wait=nullptr;void *wait_user=nullptr;
+                uint64_t frame_index=slot.index;
                 {
                     std::lock_guard<std::mutex> lock(mutex);
                     stats.workspace_peak_bytes=workspace.peak;
@@ -179,10 +184,17 @@ struct gpr_capture {
                     if (stats.error) { release_locked(index,true); owned=SIZE_MAX; break; }
                     ++stats.encoded; stats.encode_ns+=slot.encode_ns;
                     encoded_queue.push_back(index); owned=SIZE_MAX; changed.notify_all();
+                    wait=encoder_wait;wait_user=encoder_wait_user;
+                    encoder_wait_active=wait!=nullptr;
+                }
+                if (wait) {
+                    wait(wait_user,frame_index);
+                    std::lock_guard<std::mutex> lock(mutex);encoder_wait_active=false;changed.notify_all();
                 }
             }
         } catch (...) {
             std::lock_guard<std::mutex> lock(mutex);
+            encoder_wait_active=false;
             fail_locked(GPR_CAPTURE_NOMEM);
         }
         // All callbacks happen on this worker, including leases discarded by
@@ -351,11 +363,17 @@ extern "C" int gpr_capture_submit(gpr_capture *c,const gpr_capture_frame *frame,
         return GPR_CAPTURE_OK;
     } catch (...) { c->fail(GPR_CAPTURE_NOMEM); return GPR_CAPTURE_NOMEM; }
 }
+extern "C" int gpr_capture_set_encoder_wait(gpr_capture *c,gpr_capture_encoder_wait_fn wait,void *user) {
+    if (!c) return GPR_CAPTURE_INVALID;
+    std::lock_guard<std::mutex> lock(c->mutex);
+    if (c->stats.submitted || c->closing) return GPR_CAPTURE_CLOSED;
+    c->encoder_wait=wait;c->encoder_wait_user=user;return 0;
+}
 extern "C" int gpr_capture_flush(gpr_capture *c) {
     if (!c) return GPR_CAPTURE_INVALID;
     std::lock_guard<std::timed_mutex> submission(c->submission);
     std::unique_lock<std::mutex> lock(c->mutex);
-    c->changed.wait(lock,[&]{ return c->stats.inflight==0; });
+    c->changed.wait(lock,[&]{ return c->stats.inflight==0 && !c->encoder_wait_active; });
     return c->stats.error;
 }
 extern "C" int gpr_capture_finish(gpr_capture *c) {

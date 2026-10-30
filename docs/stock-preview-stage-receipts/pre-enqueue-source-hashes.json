@@ -1,0 +1,5 @@
+{
+  "source/app/gpr_capture_main.cpp": "bd16092b9334a9dbb67d5d2b6a6268a67d1db031a71825628a3d6a46ea5691fe",
+  "source/lib/gpr_video/gpr_preview_queue.h": "f5eb901e08941ba5aa3f9bd9634001260d2c11306c847fa47e86f2e3f3e68913",
+  "source/lib/gpr_video/gpr_preview_queue.cpp": "5924cf424fe7cd2c384f097a59f5e9a6cde92e2ba484c2a2fcb2d8a359313581"
+}

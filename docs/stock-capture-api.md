@@ -94,6 +94,17 @@ work. The application owns file close, filesystem synchronization and display
 presentation. The app's `--fsync-each` and final flush are explicit measurements
 of those storage choices, not library promises of durability.
 
+An optional `gpr_capture_set_encoder_wait` callback, configured before the first
+successful submission, runs after writer enqueue and input-lease release,
+outside capture/codec locks. It receives a copied frame index; the writer can
+finish/recycle that frame while the callback waits. Capture flush waits for an
+active callback as well as inflight frames. Finish joins it, and cancellation
+cannot interrupt it. Keep context alive through finish/destroy; callbacks may
+query stats but must not submit/flush/finish/destroy. The app uses this with
+`gpr_preview_queue_flush` under `--preview-sync-stages` to prevent preview from
+overlapping the next encode while retaining writer/preview overlap. Default
+scheduling is unchanged. See [measurements and limits](stock-preview-compute-stages.md).
+
 ## Allocation and optimization policy
 
 Frame slots are preallocated and first-touched at create. Each slot reserves
