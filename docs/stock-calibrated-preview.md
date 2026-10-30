@@ -159,6 +159,29 @@ for all four channels. A capture producer still needs bounded reusable scratch,
 failure/ownership handling and a measured combined replay before this can be
 claimed as a preview latency improvement. No timing gate is closed by this
 functional proof.
+
+The retained coefficients are now also available through the additive
+`vc5_encoder_process_with_preview` API. Existing parameter structures and the
+ordinary process function preserve their ABI. The synchronous callback receives
+an in-process `vc5_preview_coefficients` view containing typed GS/RG/BG upper
+levels with geometry, strides, capacities, quantization and prescale. Its
+pointers expire when the callback returns. The callback runs under the existing
+global encoder lock and must not reenter encoder or SDK encoding functions.
+
+`vc5_decoder_reconstruct_preview` converts this view into three caller-owned
+quarter-scale planes suitable for `gpr_preview_plan_render_wavelets`. It checks
+geometry, capacity, alignment, quantization and prescale before reconstruction;
+failed reconstruction releases partial outputs. The encoder remains independent
+of the decoder library. The public callback/reconstruction path is compared
+with both the internal retained-band proof and compressed decoding at all six
+qualities, including both real Pi replay sources. Its shared header and symbols
+are included in relocated packages. These measurements still cover RGGB14;
+broader source-domain calibration parity requires additional fixtures.
+
+The helper currently allocates intermediate wavelets per invocation. Capture
+does not yet invoke this callback, and no combined latency result is attributed
+to the API alone. Bounded scratch reuse and capture ownership/scheduling remain
+the next integration work.
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,

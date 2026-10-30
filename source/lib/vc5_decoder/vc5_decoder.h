@@ -24,6 +24,7 @@
 #include "gpr_buffer.h"
 #include "gpr_rgb_buffer.h"
 #include "vc5_common.h"
+#include "vc5_preview.h"
 
 #ifdef __cplusplus
     extern "C" {
@@ -94,6 +95,14 @@
                                     unsigned channel,
                                     gpr_rgb_buffer* wavelet_buffer);
         
+
+    /* Reconstruct quarter-sensor GS/RG/BG planes from the encoder callback view.
+     * No entropy decode. Three initially empty outputs receive owned tightly
+     * packed host-endian int16_t planes, freed by the caller's mem_free.
+     * On failure no plane remains owned by the caller. Source views are borrowed
+     * for this synchronous call. Supports the stock RAW three-level profile. */
+    CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *coefficients,
+        gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3]);
 
 #ifdef __cplusplus
     }

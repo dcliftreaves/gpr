@@ -24,6 +24,7 @@
 #include "gpr_buffer.h"
 #include "gpr_rgb_buffer.h"
 #include "vc5_common.h"
+#include "vc5_preview.h"
 
 #ifdef __cplusplus
     extern "C" {
@@ -112,6 +113,17 @@
                                     const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                           gpr_buffer*               vc5_buffer,
                                           gpr_rgb_buffer*           rgb_buffer);            /* vc5 output buffer. */
+
+    /* Same encoding/validation and payload as process. Optional preview callback
+     * borrows retained upper bands after encoding and before codec cleanup.
+     * Callback runs synchronously under the codec's global encoder lock: do not
+     * reenter any encoder/SDK encoding call or let exceptions cross C frames.
+     * Copy/reconstruct coefficients before return. NULL keeps ordinary memory
+     * behavior. Extra band storage is allocated through the supplied allocator.
+     * Callback return does not establish payload durability or recording. */
+    CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *parameters,
+        const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
+        vc5_encoder_preview_fn preview,void *user);
 
 #ifdef __cplusplus
     }

@@ -208,3 +208,76 @@ CODEC_ERROR vc5_decoder_process_wavelet_channel(
     return vc5_decoder_process_internal(decoding_parameters, vc5_buffer, NULL,
                                         wavelet_buffer, (int)channel);
 }
+
+CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *input,
+    gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3])
+{
+    WAVELET *levels[3]={NULL,NULL,NULL};
+    gpr_allocator allocator={mem_alloc,mem_free};
+    CODEC_ERROR error=CODEC_ERROR_OKAY;
+    int16_t cubic[1025];
+    if (!input || !mem_alloc || !mem_free || !planes ||
+        input->sensor_width<48 || input->sensor_height<48 ||
+        input->sensor_width>UINT16_MAX || input->sensor_height>UINT16_MAX ||
+        (uint64_t)input->sensor_width*input->sensor_height>INT_MAX/2 ||
+        (input->sensor_width&1) || (input->sensor_height&1)) return CODEC_ERROR_BAD_ARGUMENT;
+    for (unsigned channel=0;channel<3;++channel) {
+        if (planes[channel].buffer || planes[channel].size) return CODEC_ERROR_BAD_ARGUMENT;
+        for (unsigned level=0;level<2;++level) {
+            const vc5_preview_level *source=&input->channels[channel][level];
+            unsigned scale=8u<<level;
+            if (source->width!=(input->sensor_width+scale-1)/scale ||
+                source->height!=(input->sensor_height+scale-1)/scale ||
+                source->pitch_samples<source->width || source->pitch_samples>UINT16_MAX/2 ||
+                (source->prescale!=0 && source->prescale!=2)) return CODEC_ERROR_BAD_ARGUMENT;
+            for (unsigned band=level ? 0:1;band<4;++band) {
+                size_t required=(size_t)(source->height-1)*source->pitch_samples+source->width;
+                if (!source->bands[band] || ((uintptr_t)source->bands[band]&1) ||
+                    source->band_samples[band]<required || !source->quant[band] || source->quant[band]>32767)
+                    return CODEC_ERROR_BAD_ARGUMENT;
+            }
+        }
+    }
+    ComputeCubicTable(cubic,1025,255);
+    for (unsigned channel=0;channel<3;++channel) {
+        for (unsigned stage=0;stage<3;++stage) {
+            unsigned scale=4u<<stage;
+            levels[stage]=CreateWavelet(&allocator,(input->sensor_width+scale-1)/scale,
+                (input->sensor_height+scale-1)/scale);
+            if (!levels[stage]) {error=CODEC_ERROR_OUTOFMEMORY;goto done;}
+            if (!stage) continue;
+            const vc5_preview_level *source=&input->channels[channel][stage-1];
+            for (unsigned band=stage==2 ? 0:1;band<4;++band) {
+                levels[stage]->quant[band]=(QUANT)source->quant[band];
+                for (unsigned y=0;y<source->height;++y) {
+                    const int16_t *row=source->bands[band]+(size_t)y*source->pitch_samples;
+                    PIXEL *out=(PIXEL *)((uint8_t *)levels[stage]->data[band]+(size_t)y*levels[stage]->pitch);
+                    for (unsigned x=0;x<source->width;++x) {
+                        int value=row[x],magnitude=value<0 ? -value:value;
+                        if (band) {if (magnitude>1023) magnitude=1023;value=cubic[magnitude]*(value<0 ? -1:1);}
+                        out[x]=(PIXEL)value;
+                    }
+                }
+            }
+        }
+        error=TransformInverseSpatialQuantLowpass(&allocator,levels[2],levels[1],input->channels[channel][1].prescale);
+        if (!error) error=TransformInverseSpatialQuantLowpass(&allocator,levels[1],levels[0],input->channels[channel][0].prescale);
+        if (error) goto done;
+        gpr_rgb_buffer *output=&planes[channel];
+        output->width=levels[0]->width;output->height=levels[0]->height;
+        output->size=(size_t)output->width*output->height*sizeof(PIXEL);
+        output->buffer=mem_alloc(output->size);
+        if (!output->buffer) {error=CODEC_ERROR_OUTOFMEMORY;goto done;}
+        for (unsigned y=0;y<output->height;++y)
+            memcpy((uint8_t *)output->buffer+(size_t)y*output->width*sizeof(PIXEL),
+                (uint8_t *)levels[0]->data[0]+(size_t)y*levels[0]->pitch,output->width*sizeof(PIXEL));
+        for (unsigned stage=0;stage<3;++stage) {DeleteWavelet(&allocator,levels[stage]);levels[stage]=NULL;}
+    }
+done:
+    for (unsigned stage=0;stage<3;++stage) if (levels[stage]) DeleteWavelet(&allocator,levels[stage]);
+    if (error) for (unsigned channel=0;channel<3;++channel) {
+        if (planes[channel].buffer) mem_free(planes[channel].buffer);
+        memset(&planes[channel],0,sizeof(planes[channel]));
+    }
+    return error;
+}

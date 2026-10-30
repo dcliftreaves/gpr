@@ -4,6 +4,10 @@
 #endif
 #if HAS_DECODER
 #include "vc5_decoder.h"
+static int c_preview_boundary(void) {
+    gpr_rgb_buffer planes[3]={{0}};
+    return vc5_decoder_reconstruct_preview(0,0,0,planes)==CODEC_ERROR_BAD_ARGUMENT;
+}
 #endif
 #if HAS_SDK && !NATIVE_CLIENT
 #include "gpr.h"
@@ -18,6 +22,9 @@
 static int c_display(void *user,const gpr_preview_frame_view *frame) { (void)user;(void)frame;return 0; }
 #endif
 int c_header_probe(void) {
+#if HAS_DECODER
+    if (!c_preview_boundary()) return 0;
+#endif
 #if HAS_PREVIEW
     gpr_gvid_config video={128,96,30,1,3,14,{'R','G','G','B'}};
     gpr_preview_calibration calibration;
@@ -56,6 +63,7 @@ int c_header_probe(void) {
 #elif HAS_ENCODER
     vc5_encoder_parameters p;
     vc5_encoder_parameters_set_default(&p);
+    if (vc5_encoder_process_with_preview(0,0,0,0,0,0)!=CODEC_ERROR_BAD_ARGUMENT) return 0;
     return p.input_width > 0;
 #elif HAS_DECODER
     vc5_decoder_parameters p;

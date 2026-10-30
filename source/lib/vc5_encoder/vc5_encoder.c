@@ -43,10 +43,34 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->mem_free  = free;
 }
 
+typedef struct {
+    vc5_encoder_preview_fn callback;
+    void *user;
+    unsigned width,height;
+} PREVIEW_CALLBACK;
+static void encoder_preview_adapter(void *user,const TRANSFORM *transforms)
+{
+    PREVIEW_CALLBACK *callback=user;
+    vc5_preview_coefficients view={0};
+    view.sensor_width=callback->width;view.sensor_height=callback->height;
+    for (unsigned channel=0;channel<3;++channel) for (unsigned level=0;level<2;++level) {
+        const WAVELET *wavelet=transforms[channel].wavelet[level+1];
+        vc5_preview_level *output=&view.channels[channel][level];
+        output->width=wavelet->width;output->height=wavelet->height;
+        output->pitch_samples=wavelet->pitch/sizeof(PIXEL);
+        output->prescale=transforms[channel].prescale[level+1];
+        for (unsigned band=0;band<4;++band) {
+            output->bands[band]=wavelet->data[band];output->quant[band]=wavelet->quant[band];
+            output->band_samples[band]=(size_t)(wavelet->height-1)*output->pitch_samples+wavelet->width;
+        }
+    }
+    callback->callback(callback->user,&view);
+}
 static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
                                 const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                       gpr_buffer*               vc5_buffer,
-                                      gpr_rgb_buffer*           rgb_buffer)             /* rgb output buffer. */
+                                      gpr_rgb_buffer*           rgb_buffer,
+                                      vc5_encoder_preview_fn preview,void *preview_user)
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
     IMAGE image;
@@ -72,6 +96,8 @@ static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_p
 
     // Initialize the data structure for passing parameters to the encoder
     InitEncoderParameters(&parameters);
+    PREVIEW_CALLBACK callback={preview,preview_user,encoding_parameters->input_width,encoding_parameters->input_height};
+    if (preview) {parameters.preview_observer=encoder_preview_adapter;parameters.preview_user=&callback;}
     
     {
         QUANT quant_table[VC5_ENCODER_QUALITY_SETTING_COUNT][sizeof(parameters.quant_table) / sizeof(parameters.quant_table[0])] = {
@@ -225,7 +251,7 @@ static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_p
  * Dimensions are stored in 16-bit codec fields and image counts use signed int. */
 static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters *p,
                                                const gpr_buffer *raw, gpr_buffer *out,
-                                               gpr_rgb_buffer *rgb)
+                                               gpr_rgb_buffer *rgb,vc5_encoder_preview_fn preview,void *preview_user)
 {
     size_t row,span,pitch;
     gpr_buffer input;
@@ -271,7 +297,7 @@ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters *p,
         normalized.input_pitch=(int)aligned_pitch;
         input.buffer=scratch;input.size=(p->input_height-1)*aligned_pitch+row;
     }
-    error=vc5_encoder_encode(&normalized,&input,out,rgb);
+    error=vc5_encoder_encode(&normalized,&input,out,rgb,preview,preview_user);
     if (scratch) {
         const gpr_allocator allocator={p->mem_alloc,p->mem_free};
         gpr_aligned_free(&allocator,scratch);
@@ -286,13 +312,19 @@ CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters *parameters,
                                 const gpr_buffer *raw, gpr_buffer *vc5,
                                 gpr_rgb_buffer *rgb)
 {
+    return vc5_encoder_process_with_preview(parameters,raw,vc5,rgb,NULL,NULL);
+}
+CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *parameters,
+                                const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
+                                vc5_encoder_preview_fn preview,void *preview_user)
+{
     CODEC_ERROR error;
 #if defined(_WIN32)
     AcquireSRWLockExclusive(&encoder_process_mutex);
 #else
     pthread_mutex_lock(&encoder_process_mutex);
 #endif
-    error = vc5_encoder_process_unlocked(parameters, raw, vc5, rgb);
+    error = vc5_encoder_process_unlocked(parameters, raw, vc5, rgb,preview,preview_user);
 #if defined(_WIN32)
     ReleaseSRWLockExclusive(&encoder_process_mutex);
 #else

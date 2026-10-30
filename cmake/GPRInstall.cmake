@@ -34,6 +34,7 @@ endif()
 install(DIRECTORY source/lib/common/public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr FILES_MATCHING PATTERN "*.h")
 install(FILES source/lib/vc5_common/error.h source/lib/vc5_common/types.h
   source/lib/vc5_common/config.h source/lib/vc5_common/vc5_common.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
+install(FILES source/lib/vc5_common/vc5_preview.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
 if(TARGET vc5_encoder)
   install(FILES source/lib/vc5_encoder/vc5_encoder.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr)
 endif()

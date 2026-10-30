@@ -38,6 +38,26 @@ static void observe(void *user,const TRANSFORM *transforms) {
         for (unsigned stage=0;stage<3;++stage) DeleteWavelet(&probe->allocator,levels[stage]);
     }
 }
+typedef struct {PROBE *reference;unsigned calls;} CALLBACK_CONTEXT;
+static unsigned allocation_attempts;
+static void *deny_allocation(size_t bytes) {(void)bytes;++allocation_attempts;return NULL;}
+static void public_observe(void *user,const vc5_preview_coefficients *input) {
+    CALLBACK_CONTEXT *context=user;gpr_rgb_buffer planes[3]={{0}};
+    ++context->calls;
+    vc5_preview_coefficients bad=*input;
+    --bad.channels[2][1].band_samples[3];
+    REQUIRE(vc5_decoder_reconstruct_preview(&bad,malloc,free,planes)==CODEC_ERROR_BAD_ARGUMENT);
+    REQUIRE(!planes[0].buffer && !planes[1].buffer && !planes[2].buffer);
+    allocation_attempts=0;
+    REQUIRE(vc5_decoder_reconstruct_preview(input,deny_allocation,free,planes)==CODEC_ERROR_OUTOFMEMORY);
+    REQUIRE(allocation_attempts && !planes[0].buffer && !planes[1].buffer && !planes[2].buffer);
+    REQUIRE(vc5_decoder_reconstruct_preview(input,malloc,free,planes)==CODEC_ERROR_OKAY);
+    for (unsigned channel=0;channel<3;++channel) {
+        REQUIRE(planes[channel].width==context->reference->width && planes[channel].height==context->reference->height);
+        REQUIRE(!memcmp(planes[channel].buffer,context->reference->planes[channel],planes[channel].size));
+        free(planes[channel].buffer);
+    }
+}
 int main(int argc,char **argv) {
     const unsigned width=argc>1 ? 4096:128,height=argc>1 ? 3072:96;
     const size_t raw_size=(size_t)width*height*2,capacity=raw_size+raw_size/2+1024*1024;
@@ -66,6 +86,10 @@ int main(int argc,char **argv) {
         gpr_buffer input={raw,raw_size},stock={0};
         REQUIRE(vc5_encoder_process(&ep,&input,&stock,NULL)==CODEC_ERROR_OKAY);
         REQUIRE(stock.size==stream.byte_count && !memcmp(stock.buffer,bytes,stock.size));
+        CALLBACK_CONTEXT callback={&probe,0};gpr_buffer observed={0};
+        REQUIRE(vc5_encoder_process_with_preview(&ep,&input,&observed,NULL,public_observe,&callback)==CODEC_ERROR_OKAY);
+        REQUIRE(callback.calls==1 && observed.size==stock.size && !memcmp(observed.buffer,stock.buffer,stock.size));
+        free(observed.buffer);
         vc5_decoder_parameters dp;vc5_decoder_parameters_set_default(&dp);dp.mem_alloc=malloc;dp.mem_free=free;
         dp.rgb_bits=16;dp.rgb_resolution=GPR_RGB_RESOLUTION_QUARTER;
         for (unsigned channel=0;channel<3;++channel) {
