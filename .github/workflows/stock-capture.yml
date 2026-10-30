@@ -122,7 +122,7 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python tests/stock_cnn_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools \
             --capture build-runtime/gpr_capture_app --decoder build-runtime/source/app/stock_video/stock_video
-          sudo apt-get install -y pkg-config libavformat-dev libavcodec-dev libavutil-dev
+          sudo apt-get install -y pkg-config libavformat-dev libavcodec-dev libavutil-dev ffmpeg
           cmake -S . -B build-runtime -DGPR_BUILD_MOV_TOOLS=ON
           cmake --build build-runtime --target gpr_mov --parallel 4
           python tests/stock_sequence_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools --bridge build-runtime/gpr_mov

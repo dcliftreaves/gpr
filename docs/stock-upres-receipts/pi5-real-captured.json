@@ -1,0 +1,151 @@
+{
+  "schema": "gpr.stock_upres.benchmark.v1",
+  "complete": true,
+  "quality_approval": false,
+  "host": "Linux-6.6.51+rpt-rpi-2712-aarch64-with-glibc2.36",
+  "machine": "aarch64",
+  "torch": "2.14.1+cpu",
+  "threads": 4,
+  "input_mode": "captured_gpr",
+  "input_count": 2,
+  "workflow_s": 114.23955506645143,
+  "workflow_s_per_frame": 57.119777533225715,
+  "workflow_fps": 0.017507070986372716,
+  "verification_and_workflow_s": 118.60066683776677,
+  "process_peak_rss_bytes": 1584676864,
+  "model": {
+    "checkpoint_sha256": "3a6fa544e1d5d2e07ced41018795c2daa572f577c2fbed9196a290f2c998febf",
+    "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "checkpoint_schema": "build",
+    "architecture_source": "bundled",
+    "output_scale": 2,
+    "runtime_raw_norm": 16383,
+    "input_cfa": "RGGB",
+    "device": "cpu",
+    "quality_status": "unvalidated_for_stock_video"
+  },
+  "tile": 256,
+  "halo": 64,
+  "quality": 3,
+  "frames": [
+    {
+      "source_name": "GP011728.GPR",
+      "source_sha256": "649c021e611b09c07c2c88395a2ad973930b710cb5407406c240b59cfa5dbfe4",
+      "width": 8192,
+      "height": 6144,
+      "full_gpr_sha256": "6818b4d9941f17785438842058a2d0c3c75420bc9df9ed3d78501f0e76bf1b6c",
+      "payload_sha256": "f19dca67fe873aaf4b8b2fb3b69584167ec2714edb73f2652f7b385db86891de",
+      "decoded_raw_sha256": "ddb179e6d50ed048e37391c338ad34f4e978a200e4e62488a061fe8b1166e07c",
+      "metadata_sha256": "49e82891784983c9f20a9d42528f25d4fbdddda0550579c9d7b96c93486cc415",
+      "cnn_s": 49.95096037350595,
+      "independent_payload_exact": true,
+      "independent_pixels_exact": true,
+      "source_payload_preserved": true,
+      "scaled_calibration_exact": true,
+      "reencode_loss": {
+        "active": {
+          "rmse_counts": 11.716517568087713,
+          "psnr_db": 62.9118976639915
+        },
+        "shadow": {
+          "rmse_counts": 6.2901105575546605,
+          "psnr_db": 68.31470304810985
+        },
+        "highlight": {
+          "rmse_counts": 23.851175788684568,
+          "psnr_db": 56.73767275971905
+        },
+        "detail": {
+          "rmse_counts": 21.85779762376099,
+          "psnr_db": 57.495740612842496
+        },
+        "sites": [
+          {
+            "rmse_counts": 15.011399009516252,
+            "psnr_db": 60.75944524819354
+          },
+          {
+            "rmse_counts": 10.176785652442987,
+            "psnr_db": 64.13565607853431
+          },
+          {
+            "rmse_counts": 11.258068811559518,
+            "psnr_db": 63.258590648570255
+          },
+          {
+            "rmse_counts": 9.667158625405303,
+            "psnr_db": 64.58189172800996
+          }
+        ]
+      }
+    },
+    {
+      "source_name": "GPAB1094.GPR",
+      "source_sha256": "49677a517d9bb09abad73a274882c2732cb4a0650e8bbd65d3d1134b6e51afa5",
+      "width": 8192,
+      "height": 6144,
+      "full_gpr_sha256": "2e3c5e3f4fd2c8df57c1ebb3627a182fd030bb1bffe54fcc6212769d4bc313a0",
+      "payload_sha256": "8f0d028d8a7d701e3def7d9e34f7f50d8792bd001c8daa6ca45c606d4095b687",
+      "decoded_raw_sha256": "aad8466ad1be422baf9fbc0af254eeb9e6c93eedab126e0f30ec073188b0ea76",
+      "metadata_sha256": "305452963f064b23fbfa27efbb505b5e73707f9fd1558ad21ea0ebee3321f695",
+      "cnn_s": 50.16869271174073,
+      "independent_payload_exact": true,
+      "independent_pixels_exact": true,
+      "source_payload_preserved": true,
+      "scaled_calibration_exact": true,
+      "reencode_loss": {
+        "active": {
+          "rmse_counts": 5.723496591712664,
+          "psnr_db": 69.1346400543616
+        },
+        "shadow": {
+          "rmse_counts": 2.9009391166854783,
+          "psnr_db": 75.03709634181197
+        },
+        "highlight": {
+          "rmse_counts": 6.87204296106298,
+          "psnr_db": 67.5461513080168
+        },
+        "detail": {
+          "rmse_counts": 6.152208590654318,
+          "psnr_db": 68.50724758912477
+        },
+        "sites": [
+          {
+            "rmse_counts": 6.679421581306845,
+            "psnr_db": 67.79309151608162
+          },
+          {
+            "rmse_counts": 4.633063040997928,
+            "psnr_db": 70.97050443338176
+          },
+          {
+            "rmse_counts": 4.698057069675135,
+            "psnr_db": 70.84950286373744
+          },
+          {
+            "rmse_counts": 6.548432400870668,
+            "psnr_db": 67.96512165162557
+          }
+        ]
+      }
+    }
+  ],
+  "gvid_sha256": "22006b3895f871fe7feab39e4c7d9fbcb73fd9086baa4b37515315b7a94e04bf",
+  "mov_sha256": "644a0adad127300a80f4746ce9afa8645e2cf7eac8bde43859870a04d89c336d",
+  "binaries": {
+    "sdk": "650ef7794ad0fa56805450366b125e4a9d37260baec1d64292da3e475e838a7b",
+    "bridge": "a3319a851b9ec1593d187fd8911aa0c29c8239dc117a3a67350bb72472f799ff",
+    "decoder": "b61ba3a0835643244270c3a8e8f25762d135a4cf55830c88730bf449cfb2d514",
+    "reference_encoder": "05b1fac320aa772c14cc9812d9715684c997d1c4eb32027baa561edbb828117a"
+  },
+  "source_files": {
+    "benchmark_stock_upres.py": "56a65535df91a4a8d3158eb2afba45e62b2fb959c158dcab417b9fb513196d1f",
+    "stock_upres.py": "80943b201d683f91d53ebe91140918c0e997c4cde4b214d84608c61c8f76449a",
+    "stock_sequence.py": "25b48e554d4d814235f10a5ae96005259eeccb2f3101d946a031fe3af38116c9",
+    "stock_video.py": "b86ddc30a6bd96a09dde015c2f12d811ffbe530979eb83d4c2f512377d87a406",
+    "stock_still.py": "ae8209504a0fdf4a304c441c377ae4907817bac8987d30b08f9804c39c968f0a",
+    "stock_cnn_metadata.py": "263a8a2cab3dc9ab6033d1f8d80f80f7d4035fa59290bf6b320131f8f0c736eb"
+  },
+  "limitations": "Camera still replay, offline 2x reconstruction, one measured pass; no independent high-resolution sensor truth, temporal quality or model promotion. Workflow includes imports/model load, all local exports and verification performed by the product workflow. Additional independent codec verification is timed separately. Process RSS includes later verification."
+}

@@ -4,6 +4,7 @@ import argparse
 import json
 import platform
 import struct
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -81,6 +82,33 @@ class Workflow(unittest.TestCase):
             replay=stock_upres.execute('regression',[],[root/'regression/000000-regression/full.gpr'],
                 output_dir=root/'replay',**dict(common,reference_kind='camera_gpr_replay'))
             self.assertTrue(replay['complete']);self.assertEqual(replay['reference_kind'],'camera_gpr_replay')
+            captured=root/'regression/000000-regression/full.gpr'
+            captured_meta,captured_payload=raw_media.extract(captured,14,with_payload=True)
+            body=struct.pack('>8I',0,0,96,128,0,1,1,1)+struct.pack('>2I4dI4f',2,2,1.,1.,0.,0.,1,1.,1.1,1.2,1.3)
+            opcodes=struct.pack('>I4I',1,9,0x01040000,3,len(body))+body
+            captured_meta['image']=[t for t in captured_meta['image'] if t['code']!=51009]
+            captured_meta['image'].append(raw_media.record(51009,7,len(opcodes),opcodes))
+            captured=root/'captured-calibrated.gpr';raw_media.write(captured,captured_meta,captured_payload,'gpr')
+            direct=stock_upres.execute('timelapse',[captured],[],output_dir=root/'direct',
+                input_mode='captured_gpr',**dict(common,reference_kind='camera_gpr_replay'))
+            self.assertFalse(direct['capture_simulated']);self.assertIsNone(direct['capture_quality'])
+            direct_frame=root/'direct/000000-timelapse'
+            self.assertEqual(raw_media.extract(captured,14,with_payload=True)[1],
+                             raw_media.extract(direct_frame/'capture.gpr',14,with_payload=True)[1])
+            with tifffile.TiffFile(direct_frame/'model-output.dng') as file:self.assertEqual(file.asarray().shape,(192,256))
+            self.assertFalse(direct['frames'][0]['capture_simulated'])
+            self.assertIsNone(direct['frames'][0]['capture_quality'])
+            expected_meta,_=stock_cnn_metadata.scaled(captured_meta,2)
+            self.assertEqual(stock_still.canonical(raw_media.extract(direct_frame/'full.gpr',14)),stock_still.canonical(expected_meta))
+            command=[sys.executable,str(Path(stock_upres.__file__)),'--mode','timelapse','--input-mode','captured_gpr',
+                '--input',str(captured),'--reference-kind','camera_gpr_replay','--checkpoint',str(checkpoint),
+                '--sdk',str(args.sdk),'--output-quality','3','--bridge',str(args.bridge),'--output-dir',str(root/'cli-direct')]
+            cli=json.loads(subprocess.run(command,check=True,capture_output=True,text=True).stdout)
+            self.assertTrue(cli['complete']);self.assertIsNone(cli['capture_quality'])
+            with self.assertRaises(ValueError):
+                stock_upres.execute('timelapse',[captured],[],output_dir=root/'refused-simulation',
+                    **dict(common,reference_kind='camera_gpr_replay'))
+            self.assertFalse((root/'refused-simulation').exists())
             if args.renderer:
                 render_source=root/'render.dng';render_meta=metadata(512,384)
                 render_meta['image'].append(raw_media.record(50707,1,4,b'\1\3\0\0'))
@@ -117,7 +145,7 @@ if __name__=='__main__':
                     platform=platform.platform(),machine=platform.machine(),torch=torch.__version__,
                     sdk_sha256=stock_still.digest(args.sdk),bridge_sha256=stock_still.digest(args.bridge),
                     tool_sha256={name:stock_still.digest(tools/name) for name in ('stock_upres.py','stock_sequence.py','stock_cnn_metadata.py')},
-                    tested_modes=['regression','timelapse','both'],prores_tested=args.renderer is not None,
+                    tested_modes=['regression','timelapse','both'],tested_inputs=['simulated','captured_gpr'],prores_tested=args.renderer is not None,
                     quality_approval=False)
         args.receipt.parent.mkdir(parents=True,exist_ok=True)
         args.receipt.write_text(json.dumps(record,indent=2)+'\n')

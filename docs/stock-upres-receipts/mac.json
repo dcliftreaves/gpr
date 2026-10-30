@@ -5,10 +5,10 @@
   "platform": "macOS-26.7.1-arm64-arm-64bit",
   "machine": "arm64",
   "torch": "2.8.0",
-  "sdk_sha256": "bcbee4bd3b124e1d927d4d406441d06a66d32b97f28e46dfb5f6bf8ae1a246a1",
+  "sdk_sha256": "c6018391a0079a749eec60d7a5c68e04ba770f123c32e8be5b897a5b84257931",
   "bridge_sha256": "5b5d63214c6ec88161650b9d20ba5a12b4a5f65bbf81c60df6c5500828bb6219",
   "tool_sha256": {
-    "stock_upres.py": "8c670fc9290251c2fae065836f0bd848d5ccc27968531dcc1ca4e79dae0e1f74",
+    "stock_upres.py": "80943b201d683f91d53ebe91140918c0e997c4cde4b214d84608c61c8f76449a",
     "stock_sequence.py": "25b48e554d4d814235f10a5ae96005259eeccb2f3101d946a031fe3af38116c9",
     "stock_cnn_metadata.py": "263a8a2cab3dc9ab6033d1f8d80f80f7d4035fa59290bf6b320131f8f0c736eb"
   },
@@ -16,6 +16,10 @@
     "regression",
     "timelapse",
     "both"
+  ],
+  "tested_inputs": [
+    "simulated",
+    "captured_gpr"
   ],
   "prores_tested": true,
   "quality_approval": false
