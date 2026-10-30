@@ -1,0 +1,146 @@
+{
+  "schema": "gpr.stock_sr_full_selection_protocol.v1",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "dataset_input_sha256": "4d04665fb31afac9d2065bf612d1acc8203b382c9f52bebe8ebf11727d6c8ec1",
+  "dataset_target_sha256": "22e70d5b539053131dfb509d462440f74e83907c0c0139230d1e4ed8f3d8a4e9",
+  "sdk_sha256": "160ce5dbc150f00ca840bfca8169049aa6ae9a8af82c51377081d6a92bb4a2bb",
+  "validation_sources": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+    }
+  ],
+  "candidates": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-00.pt",
+      "sha256": "0c6d7cc0a7031c7fff4ec9e48979701c51326c26494b1ccc55861a8caea6f104"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-01.pt",
+      "sha256": "32e6f6d38bf40393fda2c817495d6433a0018661c61310a8e42db7aec06d9a11"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-02.pt",
+      "sha256": "8443fe79d8e9679611ab35a0af43d4d4ccab04ad2a5eb91cf20902de64546d60"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-03.pt",
+      "sha256": "a98b7a45b7be1f385d4bc9c1552271e247e81974db27ae8c38ac6fbc4e859ee4"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-04.pt",
+      "sha256": "25e83cf88cc7696bf610e6a53c1f26c61ae3f2fe3cf8a3c090a4afebba8db90f"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-05.pt",
+      "sha256": "cbafc8887367db24ca670757eea322d83730bd2857a31a54d2459bd0c1bb133c"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-06.pt",
+      "sha256": "97b23e9c4c7132f4e89b1b6a2bff12da74968a30ac4fa948a4fa48baf60bd2ed"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-07.pt",
+      "sha256": "4abc01e39f0f7fd64324dd621e46b50e94201bd6ca6371baf2fd92afd09e4add"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-08.pt",
+      "sha256": "ab70895424dc433fe6976bf2f3409c7967e83699ea3b9f4a09c444e989cd0660"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-09.pt",
+      "sha256": "96bc96518196924f60d66b0beb5d6b807b11fe05aec2a3ef0301da336284e37f"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-10.pt",
+      "sha256": "e672591e4630511db84fe5c1def05dd7eeefd85f51d088e462162c2399eae3a3"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-11.pt",
+      "sha256": "b4d1b4fccf3d7e6f9bf09899472f11ebc5243220a11ee1d7736046923ca22fdd"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-12.pt",
+      "sha256": "05628350820b1ad796a30106b0526a782bb7064b84f1ecd38d2837a9650f5fdd"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-13.pt",
+      "sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-14.pt",
+      "sha256": "625310b3bc819ac3ce0c724d518f944f4d2ec47dffc95bb7d9ea4e8b4bfbc3ea"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-15.pt",
+      "sha256": "d7853f051fed072ea711e3a7f22cc0d0a6ce1a1019073c46720b7f6cf7d70950"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-16.pt",
+      "sha256": "012230aa8741e6237148ee27c41d3fa02c2887da6b5945320541df35b5021bc0"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-17.pt",
+      "sha256": "885493c3d52bb1cb30d3cd81e90e25f7b13c4a4bc39b66905475697bc647fb1b"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-18.pt",
+      "sha256": "3e18bc64d7b97ac2773719b0726b8edadf4c36968bc73f971a149985bbbfa916"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-19.pt",
+      "sha256": "7687fdd237ce689583d257f4097dad0a73575286262323a3c1c488608c5db5a4"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-20.pt",
+      "sha256": "44af71bea55d4b5fa02b4af12d8c5dccaebedf7b81a64e0b8ff58981fcfc2ac6"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/candidates/candidate-21.pt",
+      "sha256": "2233fb146638fdd08f977de8616d98b1eba23ac0211543f9937881bbbd46fa51"
+    }
+  ],
+  "device": "mps",
+  "tile_plane_pixels": 256,
+  "halo_plane_pixels": 64,
+  "regions": [
+    "active",
+    "shadow_bottom_decile",
+    "highlight_top_decile",
+    "detail_top_decile"
+  ],
+  "selection": "lowest sample-weighted active MSE strictly below bicubic; no regional RMSE increase on any complete validation image; first explicit candidate wins an exact tie",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "source_files": {
+    "select_stock_sr.py": "226366f4bbac4d41d5ffbb3e59d15b0f0927731fbe18cda65aaea541cb50e2e6",
+    "benchmark_stock_sr.py": "1abb9acb932baf843628e9c4124ce4b66f04b505f38fe2e2768b91f53f3e8fc6",
+    "benchmark_stills.py": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6",
+    "train_stock_sr.py": "4bf8845844c19c637ce97f2b2894be559662f9176362f956a5b954734fe19cea",
+    "stock_still.py": "d3791cb860808a57735db9e8e30dd9929f97a436da0a02f3c7ff6c5ddbc787fb",
+    "stock_video.py": "0564742516b755ff04f148ec084b78f48cfdef1791a3bfa64f7ff45f39a560da",
+    "stock_cnn_models.py": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "stock_cnn_metadata.py": "263a8a2cab3dc9ab6033d1f8d80f80f7d4035fa59290bf6b320131f8f0c736eb",
+    "raw_media.py": "452a1a4badf0f923264c618426f3ae4f98a1b86422abaae9fdd5f230405599e4"
+  }
+}

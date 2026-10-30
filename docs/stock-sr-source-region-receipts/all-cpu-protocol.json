@@ -1,0 +1,16 @@
+{
+  "schema": "gpr.stock_sr_source_all_cpu_protocol.v1",
+  "created_utc": "2026-10-30T20:09:49.346520+00:00",
+  "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+  "frozen_sha256": "05aca45ce53f46e64c47512af795d7a687bc8766eeb0ee132c4593c4d9fb3bf7",
+  "device": "cpu",
+  "threads": 4,
+  "selection_used": false,
+  "references": [
+    "0001",
+    "0067",
+    "5323",
+    "6693"
+  ],
+  "quality_approval": false
+}

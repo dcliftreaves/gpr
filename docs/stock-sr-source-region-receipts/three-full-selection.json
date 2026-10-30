@@ -1,0 +1,1193 @@
+{
+  "schema": "gpr.stock_sr_full_selection.v1",
+  "complete": true,
+  "quality_approval": false,
+  "protocol_sha256": "ff79397f09f11267659077c05c54ee6ef8ba73a5f80bd45ae86200ed5f8fe3fe",
+  "host": "macOS-26.7.1-arm64-arm-64bit",
+  "torch": "2.8.0",
+  "final_reference_pixels_used": false,
+  "validation_sources": [
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+        "group": "20250727_ForestFire",
+        "split": "validation",
+        "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b"
+      },
+      "benchmark_sha256": "4ba3010c405ef2e5284e10c888dffe9665836f2eaf509db2a9a3bee4bfedce7c",
+      "active_samples": 45705600,
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 47.23074646983994,
+          "psnr_db": 50.80337243422626
+        },
+        "active": {
+          "rmse_counts": 47.23074646983994,
+          "psnr_db": 50.80337243422626
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 317.0
+        },
+        "active_max_abs_error": 12546,
+        "active_bias_counts": -3.844271205279003,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.34235697578859,
+          "psnr_db": 42.679498362072025
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.263833382366167,
+          "psnr_db": 62.51534379471805
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.57659655661509,
+          "psnr_db": 44.412392231504924
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.726001012815544,
+            "psnr_db": 52.755053183746284
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.6794368319809,
+            "psnr_db": 50.72124628366837
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.46786753130652,
+            "psnr_db": 50.578790380333125
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.64009336612961,
+            "psnr_db": 49.698078122810585
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "checkpoint_sha256": "bcc102b21dddf03f053ce0d39f8f5763f094e43960bc264b8f64ffcc6dc75b2a",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.99159545804629,
+              "psnr_db": 50.84746481642511
+            },
+            "active": {
+              "rmse_counts": 46.99159545804629,
+              "psnr_db": 50.84746481642511
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 62.0,
+              "p99": 141.0,
+              "p99_9": 314.0
+            },
+            "active_max_abs_error": 12526,
+            "active_bias_counts": -3.59917233336834,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 119.54117719153756,
+              "psnr_db": 42.73751805971978
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.251489175079978,
+              "psnr_db": 62.524091012378975
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 97.78966232585368,
+              "psnr_db": 44.4820096954327
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 37.47873577954932,
+                "psnr_db": 52.81216996543479
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 47.391825368503525,
+                "psnr_db": 50.77379989437359
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 48.15345316054441,
+                "psnr_db": 50.63531989462795
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 53.51116122916749,
+                "psnr_db": 49.718981113767924
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 47.22655287341061,
+              "psnr_db": 50.80414368464415
+            },
+            "active": {
+              "rmse_counts": 47.22655287341061,
+              "psnr_db": 50.80414368464415
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 62.0,
+              "p99": 141.0,
+              "p99_9": 316.0
+            },
+            "active_max_abs_error": 12546,
+            "active_bias_counts": -3.840781567247777,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 120.32843536033619,
+              "psnr_db": 42.68050323361763
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.263561372762046,
+              "psnr_db": 62.51553644831421
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 98.56367043568159,
+              "psnr_db": 44.413531266789306
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 37.722171375671444,
+                "psnr_db": 52.75593494945545
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 47.67443005682854,
+                "psnr_db": 50.72215842908785
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 48.46225064367229,
+                "psnr_db": 50.57979703682077
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 53.63754238619732,
+                "psnr_db": 49.69849121040354
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "9ea82e0fe3629e020706b8a4306ab90aa34151013cf2015e016d062e3e31929d",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.97072977041373,
+              "psnr_db": 50.85132247027812
+            },
+            "active": {
+              "rmse_counts": 46.97072977041373,
+              "psnr_db": 50.85132247027812
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 62.0,
+              "p99": 141.0,
+              "p99_9": 314.0
+            },
+            "active_max_abs_error": 12531,
+            "active_bias_counts": -3.5788420237345098,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 119.46889292854411,
+              "psnr_db": 42.74277183961078
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.244915942145461,
+              "psnr_db": 62.52875246183914
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 97.74592831330146,
+              "psnr_db": 44.485895114057016
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 37.46052443932601,
+                "psnr_db": 52.81639156287231
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 47.36348260555869,
+                "psnr_db": 50.77899605960343
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 48.12620337405318,
+                "psnr_db": 50.64023658529683
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 53.500242930885804,
+                "psnr_db": 49.720753544192206
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+        "group": "20250727_ForestFire",
+        "split": "validation",
+        "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081"
+      },
+      "benchmark_sha256": "a97d5eee67adcaa00ede1358de1d3a6f90bfc2e3be89efab929f0f8eb92a2564",
+      "active_samples": 45705600,
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 135.40782915429196,
+          "psnr_db": 41.65499311357094
+        },
+        "active": {
+          "rmse_counts": 135.40782915429196,
+          "psnr_db": 41.65499311357094
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 57.0,
+          "p90": 193.0,
+          "p99": 386.0,
+          "p99_9": 862.0
+        },
+        "active_max_abs_error": 12543,
+        "active_bias_counts": -3.200815589336974,
+        "detail_gradient_threshold_counts": 523.0,
+        "detail_top_decile": {
+          "rmse_counts": 325.26445839460706,
+          "psnr_db": 34.043136413656306
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 62.18233843294471,
+          "psnr_db": 48.414527622704576
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 292.078336417174,
+          "psnr_db": 34.97788169812082
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 130.94827211563089,
+            "psnr_db": 41.9458731808906
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 147.51074489816318,
+            "psnr_db": 40.911395502885405
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 147.9295993949881,
+            "psnr_db": 40.88676700212985
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 112.03162311360894,
+            "psnr_db": 43.30105606362016
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "checkpoint_sha256": "bcc102b21dddf03f053ce0d39f8f5763f094e43960bc264b8f64ffcc6dc75b2a",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 134.9927186721096,
+              "psnr_db": 41.68166174791596
+            },
+            "active": {
+              "rmse_counts": 134.9927186721096,
+              "psnr_db": 41.68166174791596
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 57.0,
+              "p90": 193.0,
+              "p99": 386.0,
+              "p99_9": 855.0
+            },
+            "active_max_abs_error": 12533,
+            "active_bias_counts": -3.018348101764335,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 323.7181487507156,
+              "psnr_db": 34.084527662610775
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 62.18490619668024,
+              "psnr_db": 48.41416895410991
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 290.06876777186915,
+              "psnr_db": 35.037849224131016
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 130.6060312286524,
+                "psnr_db": 41.96860397317705
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 146.96401995599368,
+                "psnr_db": 40.94364816785513
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 147.40244675373,
+                "psnr_db": 40.91777477515578
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 111.84049585922654,
+                "psnr_db": 43.31588694697749
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "passed_regional_guard": false
+        },
+        {
+          "checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 135.40048890156612,
+              "psnr_db": 41.65546397521629
+            },
+            "active": {
+              "rmse_counts": 135.40048890156612,
+              "psnr_db": 41.65546397521629
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 57.0,
+              "p90": 193.0,
+              "p99": 386.0,
+              "p99_9": 862.0
+            },
+            "active_max_abs_error": 12543,
+            "active_bias_counts": -3.1981385431982075,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 325.2379509062599,
+              "psnr_db": 34.04384430071468
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 62.18229673688586,
+              "psnr_db": 48.41453344698677
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 292.0445997579422,
+              "psnr_db": 34.978885024239425
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 130.9425265951689,
+                "psnr_db": 41.94625429360551
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 147.50132850295935,
+                "psnr_db": 40.9119499871044
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 147.92009195781995,
+                "psnr_db": 40.88732526230335
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 112.02780366077958,
+                "psnr_db": 43.30135219350173
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "9ea82e0fe3629e020706b8a4306ab90aa34151013cf2015e016d062e3e31929d",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 134.93980591701842,
+              "psnr_db": 41.68506700156411
+            },
+            "active": {
+              "rmse_counts": 134.93980591701842,
+              "psnr_db": 41.68506700156411
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 57.0,
+              "p90": 193.0,
+              "p99": 386.0,
+              "p99_9": 854.0
+            },
+            "active_max_abs_error": 12537,
+            "active_bias_counts": -3.0632461886508437,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 323.5443493882404,
+              "psnr_db": 34.089192237253215
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 62.14739237716627,
+              "psnr_db": 48.41941040640873
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 289.911031164028,
+              "psnr_db": 35.042573812138684
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 130.55571043028885,
+                "psnr_db": 41.97195117789178
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 146.8980900825391,
+                "psnr_db": 40.94754563945642
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 147.33729913368353,
+                "psnr_db": 40.921614535860044
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 111.8162902793088,
+                "psnr_db": 43.31776703298107
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+        "group": "LRT_20250730_05__ColoradoSky",
+        "split": "validation",
+        "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa"
+      },
+      "benchmark_sha256": "c6a6e0dbf2b73aa898816016bac7e777f7bef3b22dea7809cc40243a6443a24a",
+      "active_samples": 45705600,
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 62.3261000128749,
+          "psnr_db": 48.3944695802463
+        },
+        "active": {
+          "rmse_counts": 62.3261000128749,
+          "psnr_db": 48.3944695802463
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 15.0,
+          "p90": 50.0,
+          "p99": 110.0,
+          "p99_9": 395.0
+        },
+        "active_max_abs_error": 11928,
+        "active_bias_counts": -3.3604178043828328,
+        "detail_gradient_threshold_counts": 124.0,
+        "detail_top_decile": {
+          "rmse_counts": 176.82059757720413,
+          "psnr_db": 39.3372115458299
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 10.617470541516097,
+          "psnr_db": 63.7674473310723
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 168.3215260316946,
+          "psnr_db": 39.76507542751575
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 62.951359122038895,
+            "psnr_db": 48.307766405541884
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 65.41437807193554,
+            "psnr_db": 47.97440429133999
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 65.08928344486272,
+            "psnr_db": 48.01767881499316
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 55.314027859520664,
+            "psnr_db": 49.43116294316515
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "checkpoint_sha256": "bcc102b21dddf03f053ce0d39f8f5763f094e43960bc264b8f64ffcc6dc75b2a",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 61.54098855701714,
+              "psnr_db": 48.50457926090544
+            },
+            "active": {
+              "rmse_counts": 61.54098855701714,
+              "psnr_db": 48.50457926090544
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 15.0,
+              "p90": 50.0,
+              "p99": 110.0,
+              "p99_9": 389.0
+            },
+            "active_max_abs_error": 11898,
+            "active_bias_counts": -3.282167196142267,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 174.41428528409244,
+              "psnr_db": 39.45622757212055
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 10.599075015685395,
+              "psnr_db": 63.782509306812656
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 165.79471428944927,
+              "psnr_db": 39.89645501173786
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 62.183619843489325,
+                "psnr_db": 48.414348631753576
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 64.48879749373464,
+                "psnr_db": 48.09818304843033
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 64.13323523662488,
+                "psnr_db": 48.14620565118657
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 54.867965602488646,
+                "psnr_db": 49.5014914711161
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 62.31303372125063,
+              "psnr_db": 48.396290715615955
+            },
+            "active": {
+              "rmse_counts": 62.31303372125063,
+              "psnr_db": 48.396290715615955
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 15.0,
+              "p90": 50.0,
+              "p99": 110.0,
+              "p99_9": 395.0
+            },
+            "active_max_abs_error": 11928,
+            "active_bias_counts": -3.3593977762024783,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 176.7804833973017,
+              "psnr_db": 39.33918228268449
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 10.616966375486733,
+              "psnr_db": 63.76785978660463
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 168.2807151164508,
+              "psnr_db": 39.7671816470487
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 62.94002897889859,
+                "psnr_db": 48.3093298543949
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 65.39875098528093,
+                "psnr_db": 47.97647954405613
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 65.07280021337445,
+                "psnr_db": 48.019878711096965
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 55.30590818595923,
+                "psnr_db": 49.4324380585033
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "9ea82e0fe3629e020706b8a4306ab90aa34151013cf2015e016d062e3e31929d",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 61.50776555280379,
+              "psnr_db": 48.50926961892071
+            },
+            "active": {
+              "rmse_counts": 61.50776555280379,
+              "psnr_db": 48.50926961892071
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 15.0,
+              "p90": 50.0,
+              "p99": 110.0,
+              "p99_9": 388.0
+            },
+            "active_max_abs_error": 11902,
+            "active_bias_counts": -3.323926477280683,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 174.3027561372364,
+              "psnr_db": 39.46178353743902
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 10.589523980484463,
+              "psnr_db": 63.79033986166136
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 165.72248230251816,
+              "psnr_db": 39.900240028522504
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 62.20215902377563,
+                "psnr_db": 48.41175944066428
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 64.42281354316121,
+                "psnr_db": 48.10707486753036
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 64.06923863744613,
+                "psnr_db": 48.15487736284785
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 54.85021478150017,
+                "psnr_db": 49.50430197477004
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+        "group": "LRT_20250730_05__ColoradoSky",
+        "split": "validation",
+        "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+      },
+      "benchmark_sha256": "58bcd5ecea3a8f9d1e2b9a7a304f2faa778a058d5d887d191ce6662b04059e46",
+      "active_samples": 45705600,
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 52.25243174262561,
+          "psnr_db": 49.92573849295275
+        },
+        "active": {
+          "rmse_counts": 52.25243174262561,
+          "psnr_db": 49.92573849295275
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 8.0,
+          "p90": 24.0,
+          "p99": 58.0,
+          "p99_9": 357.0
+        },
+        "active_max_abs_error": 12611,
+        "active_bias_counts": -3.0023223193656796,
+        "detail_gradient_threshold_counts": 53.0,
+        "detail_top_decile": {
+          "rmse_counts": 154.7713409611331,
+          "psnr_db": 40.49405771712303
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 7.0147822988677095,
+          "psnr_db": 67.36758467695425
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 156.49989698995532,
+          "psnr_db": 40.39758750460605
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 48.325957197415335,
+            "psnr_db": 50.60425932704116
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 57.3179377429095,
+            "psnr_db": 49.1220574968738
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 57.9319526315425,
+            "psnr_db": 49.02950528701925
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 44.095478568910465,
+            "psnr_db": 51.39998741771644
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "checkpoint_sha256": "bcc102b21dddf03f053ce0d39f8f5763f094e43960bc264b8f64ffcc6dc75b2a",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 51.479664046266464,
+              "psnr_db": 50.05515454395704
+            },
+            "active": {
+              "rmse_counts": 51.479664046266464,
+              "psnr_db": 50.05515454395704
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 8.0,
+              "p90": 24.0,
+              "p99": 58.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12582,
+            "active_bias_counts": -2.987051783588882,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 152.46296803476224,
+              "psnr_db": 40.624581224390205
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.017108662315834,
+              "psnr_db": 67.3647045895292
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 154.0468641250364,
+              "psnr_db": 40.53481138568392
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 47.62107155466099,
+                "psnr_db": 50.73188535431889
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 56.44174446053535,
+                "psnr_db": 49.255860062126786
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 56.96808706764593,
+                "psnr_db": 49.17523589470803
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 43.60989937338124,
+                "psnr_db": 51.496166933660675
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "passed_regional_guard": false
+        },
+        {
+          "checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 52.239641147387964,
+              "psnr_db": 49.92786492601359
+            },
+            "active": {
+              "rmse_counts": 52.239641147387964,
+              "psnr_db": 49.92786492601359
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 8.0,
+              "p90": 24.0,
+              "p99": 58.0,
+              "p99_9": 357.0
+            },
+            "active_max_abs_error": 12611,
+            "active_bias_counts": -3.002253465658475,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 154.73301747580211,
+              "psnr_db": 40.496208727645225
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.01465482975843,
+              "psnr_db": 67.3677425140229
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 156.45964176900753,
+              "psnr_db": 40.399821994149484
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 48.31554757625793,
+                "psnr_db": 50.60613050694691
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 57.30316469334338,
+                "psnr_db": 49.124296475144504
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 57.9158231364773,
+                "psnr_db": 49.03192396124982
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 44.086653737720674,
+                "psnr_db": 51.401725899380246
+              }
+            ]
+          },
+          "regressions": [],
+          "passed_regional_guard": true
+        },
+        {
+          "checkpoint_sha256": "9ea82e0fe3629e020706b8a4306ab90aa34151013cf2015e016d062e3e31929d",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 51.430031325846855,
+              "psnr_db": 50.06353284813662
+            },
+            "active": {
+              "rmse_counts": 51.430031325846855,
+              "psnr_db": 50.06353284813662
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 8.0,
+              "p90": 24.0,
+              "p99": 58.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12584,
+            "active_bias_counts": -3.0157919160890567,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 152.31142866122306,
+              "psnr_db": 40.633218789731146
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.017494440060262,
+              "psnr_db": 67.3642270807761
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 153.89840787531259,
+              "psnr_db": 40.54318608611495
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 47.61851396012518,
+                "psnr_db": 50.732351861680556
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 56.360010883334525,
+                "psnr_db": 49.26844725907894
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 56.89983475713812,
+                "psnr_db": 49.18564852186607
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 43.57324402406262,
+                "psnr_db": 51.503470738620656
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "passed_regional_guard": false
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "checkpoint": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/full-candidates/step-2400.pt",
+        "sha256": "bcc102b21dddf03f053ce0d39f8f5763f094e43960bc264b8f64ffcc6dc75b2a"
+      },
+      "active_mse_counts": 6717.173305267845,
+      "regressions": [
+        {
+          "source_index": 1,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false,
+      "active_psnr_gain_db": 0.05017016022558646
+    },
+    {
+      "checkpoint": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/full-candidates/step-2700.pt",
+        "sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5"
+      },
+      "active_mse_counts": 6793.883492460441,
+      "regressions": [],
+      "eligible": true,
+      "active_psnr_gain_db": 0.00085474474529566
+    },
+    {
+      "checkpoint": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/full-candidates/step-3000.pt",
+        "sha256": "9ea82e0fe3629e020706b8a4306ab90aa34151013cf2015e016d062e3e31929d"
+      },
+      "active_mse_counts": 6710.813505391025,
+      "regressions": [
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false,
+      "active_psnr_gain_db": 0.05428399536406629
+    }
+  ],
+  "selected": {
+    "checkpoint": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/full-candidates/step-2700.pt",
+      "sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5"
+    },
+    "active_mse_counts": 6793.883492460441,
+    "regressions": [],
+    "eligible": true,
+    "active_psnr_gain_db": 0.00085474474529566
+  },
+  "active_samples": 182822400,
+  "bicubic_active_mse_counts": 6795.220743552212,
+  "elapsed_s": 27.010190417,
+  "limitation": "Validation selection only. Historical or newly unseen final references, broader-camera, rendered and temporal quality require separate frozen evaluation. Supplied scene-group labels do not establish perceptual disjointness."
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "gpr.stock_sr_source_cross_host_protocol.v1",
+  "created_utc": "2026-10-30T19:57:13.417466+00:00",
+  "packaged_checkpoint_sha256": "7a2e5ff1adf4d71c30711b55bc7dbc6b559cfe4298bd381c32040f7b9089e0b3",
+  "evaluated_checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+  "packaging_binding_sha256": "c5cbb03d283056b368c09fdb7f7f6274b6bd0b2f6ef0cf98f09b48da19ae9b17",
+  "sources": [
+    "GP011728",
+    "GPAB1094"
+  ],
+  "source_kind": "two supplied still-derived 4096x3072 RGGB14 stock-Q3 payloads; no lossless sensor references",
+  "output_shape": [
+    6144,
+    8192
+  ],
+  "output_scale": 2,
+  "torch_cpu_threads": 4,
+  "tile": 256,
+  "halo": 64,
+  "cpu_mps_max_abs_count_difference": 1,
+  "calibration": "exact supported scale-two transform",
+  "independent_tiff_pixel_readback": true,
+  "quality_approval": false,
+  "purpose": "execution/count agreement only, not GoPro reconstruction ground truth or real-time CNN"
+}

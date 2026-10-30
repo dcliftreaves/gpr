@@ -101,3 +101,10 @@ Photos, checkpoints, full-image outputs and detailed test logs remain external
 under `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_full_selection_20261030`.
 The selector is an analysis command in the repository; it adds no ML dependency
 to the installed camera/SDK libraries and does not change capture performance.
+
+The later [source-wide loss study](stock-sr-source-regions.md) retains the
+original guards and checks all 22 patch-qualified combinations on full images.
+Its selected 1/32-strength model passes all four historical final references
+on MPS/CPU and Pi execution/count checks. An explicit diagnostic checkpoint is
+supplied; pooled gain is small (+0.00729 dB), and broader/restored-tier quality
+approval remains open. Older failures above remain revision-bound.

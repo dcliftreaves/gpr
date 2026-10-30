@@ -1,0 +1,63 @@
+{
+  "schema": "gpr.stock_sr_source_all_cpu_final.v1",
+  "complete": true,
+  "quality_approval": false,
+  "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+  "freeze_sha256": "05aca45ce53f46e64c47512af795d7a687bc8766eeb0ee132c4593c4d9fb3bf7",
+  "final_pixels_used_for_selection": false,
+  "results": [
+    {
+      "source": "0001",
+      "receipt_sha256": "c5b616a10f0ac0db1ad56171660e3012e14e4add75073eece6820187a790fbad",
+      "active_psnr_delta_db": 0.06133098977546325,
+      "region_delta_db": {
+        "active": 0.06133098977546325,
+        "shadow_bottom_decile": 0.03308514108107374,
+        "highlight_top_decile": 0.07271744990717366,
+        "detail_top_decile": 0.06947852369587793
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "0067",
+      "receipt_sha256": "418e464361ccd00fa2f3b5d36db743997c3511a26d96dd90e96a43f33a49b84f",
+      "active_psnr_delta_db": 0.03404115399874286,
+      "region_delta_db": {
+        "active": 0.03404115399874286,
+        "shadow_bottom_decile": 0.04317184933375984,
+        "highlight_top_decile": 0.04526022048958822,
+        "detail_top_decile": 0.04303599714739903
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "5323",
+      "receipt_sha256": "3fbfdaf7f0a9fdbdb205d85a7fab6ddd26c360f911e5aaaaff5c062e274a3160",
+      "active_psnr_delta_db": 0.0009541813783400244,
+      "region_delta_db": {
+        "active": 0.0009541813783400244,
+        "shadow_bottom_decile": 0.006602086492293324,
+        "highlight_top_decile": 0.008090342697798292,
+        "detail_top_decile": 0.0021419899983499135
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "6693",
+      "receipt_sha256": "b1471da50825de424d57fd8a1c85063325df053adcc83f7ec206c625b98c384d",
+      "active_psnr_delta_db": 0.00046085717237787094,
+      "region_delta_db": {
+        "active": 0.00046085717237787094,
+        "shadow_bottom_decile": 0.0049011543255375045,
+        "highlight_top_decile": 0.006503086137151115,
+        "detail_top_decile": 0.0015254473830950133
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    }
+  ],
+  "all_scenes_pass_numeric_guard": true
+}

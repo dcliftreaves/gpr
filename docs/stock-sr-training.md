@@ -172,3 +172,10 @@ The [full-image selection stage](stock-sr-full-selection.md) is now implemented
 and tested on Mac/Pi. Ten patch-qualified snapshot/strength candidates all fail
 its complete-image guard, so this follow-up selects no checkpoint and skips
 final-reference testing. No failed weights are promoted.
+
+The later [source-wide loss study](stock-sr-source-regions.md) retains the
+original guards and checks all 22 patch-qualified combinations on full images.
+Its selected 1/32-strength model passes all four historical final references
+on MPS/CPU and Pi execution/count checks. An explicit diagnostic checkpoint is
+supplied; pooled gain is small (+0.00729 dB), and broader/restored-tier quality
+approval remains open. Older failures above remain revision-bound.

@@ -1,0 +1,63 @@
+{
+  "schema": "gpr.stock_sr_source_regions_final.v1",
+  "complete": true,
+  "quality_approval": false,
+  "checkpoint_sha256": "3920eabf99e5549ec91e066b0b093b1ce991de4deb9cc7fa0a355c032b7654d5",
+  "freeze_sha256": "de7746d7eb4d7dbe23cd4fc6326ab44a0704abb83452d8c2df39a4e0917d79ab",
+  "final_pixels_used_for_selection": false,
+  "results": [
+    {
+      "source": "0001",
+      "receipt_sha256": "0a464e500ee61420afb993bcf0f3ba09d417ecfb6841110747af519031209acc",
+      "active_psnr_delta_db": 0.0018915931413161502,
+      "region_delta_db": {
+        "active": 0.0018915931413161502,
+        "shadow_bottom_decile": 0.0008416395032639912,
+        "highlight_top_decile": 0.002212926124954606,
+        "detail_top_decile": 0.0021310088273907013
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "0067",
+      "receipt_sha256": "a465c63f736173d3c704cb129a82ff0c6622918e0e180432981f81483a8d2197",
+      "active_psnr_delta_db": 0.0010980315129955898,
+      "region_delta_db": {
+        "active": 0.0010980315129955898,
+        "shadow_bottom_decile": 0.0014196349883803805,
+        "highlight_top_decile": 0.0014380025841020938,
+        "detail_top_decile": 0.001364902108129229
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "5323",
+      "receipt_sha256": "87de101eea43c205721e448b60dfd264fbe1e2a6fe1996266d956344998935c7",
+      "active_psnr_delta_db": 3.3011970096197274e-05,
+      "region_delta_db": {
+        "active": 3.3011970096197274e-05,
+        "shadow_bottom_decile": 4.146184914333162e-05,
+        "highlight_top_decile": 0.00011605630569988534,
+        "detail_top_decile": 5.342848966449765e-05
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "6693",
+      "receipt_sha256": "0caced1f4b5a7fe227aa7805d9ef6762f02b6ff41ded672579ddf2c7a8ec0176",
+      "active_psnr_delta_db": 1.668402778420841e-05,
+      "region_delta_db": {
+        "active": 1.668402778420841e-05,
+        "shadow_bottom_decile": 5.3092385805086906e-05,
+        "highlight_top_decile": 0.00022814112436719824,
+        "detail_top_decile": 4.5065952754441696e-05
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    }
+  ],
+  "all_scenes_pass_numeric_guard": true
+}

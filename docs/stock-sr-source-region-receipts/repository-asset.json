@@ -1,0 +1,28 @@
+{
+  "schema": "gpr.stock_sr_source_asset.v1",
+  "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+  "checkpoint_bytes": 1320232,
+  "normal_adapter_load": true,
+  "output_scale": 2,
+  "output_shape": [
+    1,
+    4,
+    128,
+    128
+  ],
+  "finite_bounded": true,
+  "nonidentity_float_output": true,
+  "quality_approval": false,
+  "torch": "2.8.0",
+  "model": {
+    "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+    "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "checkpoint_schema": "build",
+    "architecture_source": "bundled",
+    "output_scale": 2,
+    "runtime_raw_norm": 16383,
+    "input_cfa": "RGGB",
+    "device": "cpu",
+    "quality_status": "unvalidated_for_stock_video"
+  }
+}

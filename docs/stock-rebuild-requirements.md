@@ -23,11 +23,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 | Exact MOV, large files, PCM/timecode | `stock_mov`; [contract](stock-mov.md), 4.42 GB boundary receipt, [real A/V receipt](stock-av-receipts/real-core.json) | Implemented for declared private stock profiles. Exact recovery does not imply standard CFHD or universal editor support |
 | Calibrated deep ProRes/editable outputs | `stock_prores`; [contract](stock-prores.md), real 120-frame outputs and [native integration](stock-native-receipts/real-integration.json) | Implemented on macOS with optional CNN and audio/timecode. Broader rendered look/motion approval open |
 | Optional FFmpeg decoder equivalent | Pinned n8.0 adapter; twelve CFA/depth checks, fixtures, malformed configuration and conversion on Mac/Pi/hosted Linux; [contract](stock-ffmpeg-decoder.md) | Implemented as an explicit patched build. Bayer output is not calibrated color rendering |
-| Portable offline 1x cleanup and 2x/8K inference | Eight `stock_cnn_test.py` contracts; [runtime](stock-cnn-portable.md), editable media and separate lossy re-encoding identities | Implemented for the declared RGGB14 family, explicit caller weights and an optional repository 1x candidate. Broader codec formats do not widen model support |
+| Portable offline 1x cleanup and 2x/8K inference | Eight `stock_cnn_test.py` contracts; [runtime](stock-cnn-portable.md), editable media and separate lossy re-encoding identities | Implemented for the declared RGGB14 family, explicit caller weights and optional repository 1x/2x research candidates. Broader codec formats do not widen model support |
 | Original native desktop backend capability | Core ML, MPSGraph, custom Metal hybrid; `stock_coreml_test.py`, `stock_metal_test.py`, `stock_native_test.py`; [runtime](stock-native-runtime.md) | Implemented, including standalone host processing without Torch/NumPy runtime. Explicit numeric tolerances; historical monolithic CLI syntax not retained |
 | High-level UPRESABLE modes/media chain | `stock_upres_test.py`, `stock_sequence_test.py`; [workflow](stock-upres-workflow.md), real Mac native and [Pi receipt](stock-upres-receipts/pi5-real-captured.json) | Timelapse/regression/both implemented through analysis workflows. Captured-GPR timelapse additionally has a standard-library native path. Native simulation/regression uses the analysis workflow |
-| Real Pi reconstruction correctness/cost | Two 4096x3072 captures become 8192x6144 GPR/GVID/MOV; final payloads checked against independent historical encoder, editable pixels/calibration verified | Verified offline: 114.24 s total, 57.12 s/frame. Not real-time CNN or sensor ground truth |
-| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x study remains failed; [2x follow-ups](stock-sr-balanced.md) still fail regional guards. Broader visual/temporal/restored-tier promotion remains open |
+| Real Pi reconstruction correctness/cost | Two 4096x3072 captures become 8192x6144 GPR/GVID/MOV; final payloads checked against independent historical encoder, editable pixels/calibration verified | Earlier candidate verified offline: 114.24 s total, 57.12 s/frame. The later [supplied diagnostic](stock-sr-source-regions.md) separately verifies 50 MP editable output/count agreement at 86.29–99.89 s/frame inference. Neither result is real-time CNN or sensor ground truth |
+| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x and stronger earlier 2x failures remain recorded. The later [source-wide 2x diagnostic](stock-sr-source-regions.md) passes patch/full-image/four-reference CPU/MPS numeric guards, but pooled gain is only +0.00729 dB. Broader visual/temporal/restored-tier promotion remains open |
 | Original compact restored-tier claims | Six measured stock presets and explicit model/final decoded metrics | Old size/quality approvals do not transfer. No replacement restored tier or temporal/perceptual model approval |
 | Independent packages/public clients | `build_profiles.py`, stripped capture/preview/camera/full packages, relocated C/C++ consumers, installed native receipt | Implemented. Apple/native ML optional and outside camera-library dependencies |
 | Applicable validation/reproducible evidence | Old-to-new test map in [audit](stock-feature-parity-audit.md); 24 local Release targets; optional CNN/native/FFmpeg tests; seven hosted jobs and hashed receipts | Implemented; hosted status evaluated per revision. Broader fuzz/sanitizer expansion deferred by user. Old commit-adoption/coverage instrumentation and research diagnostics not recreated |
@@ -42,9 +42,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    results precede this documentation/evidence-only update.
 2. The [selected 1x candidate](stock-cleanup-strength.md) now passes the declared
    patch-validation and four-reference numeric nonregression guards, with an
-   explicit repository checkpoint and Pi execution evidence. Extend 2x and
-   broader real-source, rendered visual and temporal evidence before promoting
-   restored tiers. Earlier failures remain recorded; the scoped 1x result does
+   explicit repository checkpoint and Pi execution evidence. The later
+   [2x diagnostic](stock-sr-source-regions.md) also passes narrow numeric guards
+   and Pi execution/count checks, with small benefit. Improve useful 2x detail
+   quality and broader real-source, rendered visual and temporal evidence before
+   promoting restored tiers; qualify native artifacts for this new checkpoint. Earlier failures remain recorded; the scoped 1x result does
    not approve other domains or video quality.
 3. Improve sustained Pi deadlines/durability before claiming a strict sustained
    20 fps floor. Short-run success and p95 do not close this gate.
@@ -111,3 +113,12 @@ Pi lease runs have slower rendering and higher preview p95 than copying
 controls. All 2,400 recordings/previews remain exact; the strict timing gate
 still fails. The prototype is discarded, all six files are restored, fresh
 26 Mac/23 Pi tests pass and the prior Pi executable is reproduced byte for byte.
+
+The [source-wide 2x follow-up](stock-sr-source-regions.md) supplies an explicit
+frozen diagnostic checkpoint after unchanged patch guards, full validation on
+all 22 qualified combinations and four-reference CPU/MPS nonregression.
+Pooled active gain is only +0.00729 dB; useful restored detail/tier/temporal
+approval remains open. Both supplied 12 MP Pi inputs produce 50 MP editable
+outputs with exact calibration and at most one-count CPU/MPS differences.
+The separate 1x checkpoint and production encoder/capture source are unchanged;
+new 2x native artifacts are not yet qualified.

@@ -1,0 +1,36 @@
+{
+  "schema": "gpr.stock_sr_source_regions_summary.v1",
+  "quality_approval": false,
+  "selected_checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+  "selection_scope": "all 22 patch-qualified combinations; strict per-image full validation before frozen final evaluation",
+  "training_sources": 8,
+  "training_patches": 512,
+  "validation_sources": 4,
+  "validation_patches": 128,
+  "final_reference_sources": 4,
+  "patch_candidates": 170,
+  "patch_eligible": 22,
+  "full_image_candidates": 22,
+  "full_image_inferences": 88,
+  "full_image_eligible": 13,
+  "selected_step": 3000,
+  "selected_alpha": 0.03125,
+  "residual_scale": 0.0003125,
+  "full_validation_active_gain_db": 0.0278202786944773,
+  "results": {
+    "final": {
+      "all_regions_all_references_pass": true,
+      "active_samples": 182822400,
+      "bicubic_active_mse_counts": 9657.592490849043,
+      "model_active_mse_counts": 9641.39139226375,
+      "pooled_active_gain_db": 0.007291626763155932
+    },
+    "cpu-final": {
+      "all_regions_all_references_pass": true,
+      "active_samples": 182822400,
+      "bicubic_active_mse_counts": 9657.592401489097,
+      "model_active_mse_counts": 9641.391382571283,
+      "pooled_active_gain_db": 0.00729159094463042
+    }
+  }
+}
