@@ -448,3 +448,11 @@ preview against the next encode while allowing writer/preview overlap. Matched
 with exact accepted payloads/pixels. All runs still overrun and miss deadlines.
 The policy remains opt-in; 24 Mac/21 Pi Release tests and four relocated
 package profiles pass for its source-bound implementation.
+
+The subsequent [direct-output reconstruction](stock-preview-direct-output.md)
+removes a profiled full-plane copy and unused final highpass bands while
+preserving intermediate alignment and exact pixels. Four serialized runs retain
+all 600 attempted frames/previews each, with durable fps 19.9417–19.9988 and
+used scratch approximately 11.10 MB versus 30.57 MB. Hundreds of late deliveries
+still prevent strict floor approval. The independent retained-band matrix now
+also covers all twelve CFA/depth formats, six presets and odd packed row pitches.

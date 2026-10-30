@@ -358,8 +358,10 @@ if(GPR_BUILD_CODEC_TESTS)
   target_include_directories(encoder_preview_probe PRIVATE source/lib/common/private source/lib/vc5_encoder)
   add_test(NAME encoder_preview_probe COMMAND encoder_preview_probe)
   add_test(NAME encoder_preview_probe_fast COMMAND encoder_preview_probe)
-  set_tests_properties(encoder_preview_probe encoder_preview_probe_fast PROPERTIES TIMEOUT 60)
-  set_tests_properties(encoder_preview_probe_fast PROPERTIES ENVIRONMENT
+  add_test(NAME encoder_preview_matrix COMMAND encoder_preview_probe --matrix)
+  add_test(NAME encoder_preview_matrix_fast COMMAND encoder_preview_probe --matrix)
+  set_tests_properties(encoder_preview_probe encoder_preview_probe_fast encoder_preview_matrix encoder_preview_matrix_fast PROPERTIES TIMEOUT 60)
+  set_tests_properties(encoder_preview_probe_fast encoder_preview_matrix_fast PROPERTIES ENVIRONMENT
     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1;GPR_CHANNEL_ASM=1;GPR_PIN_CHANNELS=1")
   target_link_libraries(decoder_bounds_test vc5_decoder)
   add_test(NAME decoder_bounds COMMAND decoder_bounds_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)

@@ -79,3 +79,8 @@ wait after writer enqueue, allowing storage/preview overlap while preventing
 preview from competing with the next encode. Same-executable ABBA replay
 improves durable fps from 16.41–16.76 to 18.28–18.63 with exact accepted output.
 Overruns and late deliveries persist; the strict timing gate remains unmet.
+
+The [direct final-plane follow-up](stock-preview-direct-output.md) removes a
+profiled reconstruction copy and unused final bands. Both matched serial runs
+retain all 600 frames/previews at 19.9752/19.9988 durable fps, with exact output
+and lower used scratch. Late writes/previews remain; this is not gate closure.

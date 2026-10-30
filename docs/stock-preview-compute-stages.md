@@ -86,3 +86,19 @@ Driver paths refer to the measured Pi installation and frozen external inputs;
 adjust them for another machine. For new inputs, the general
 `tools/benchmark_mission1.py --preview-sync-stages` option applies the policy
 to its recording-preview run and retains independent payload/pixel checks.
+
+## Priority control
+
+A subsequent same-executable background/foreground/foreground/background
+comparison, with serialization always enabled, records 557/560/564/565 frames
+at 18.4821/18.5694/18.7114/18.7521 durable fps. Render medians are
+8.442/8.501/8.406/8.500 ms. There is no consistent priority benefit; defaults
+remain unchanged. All four runs overrun and every preview is late. Exact
+accepted payload/pixel checks pass. The [receipt](stock-preview-stage-receipts/priority-abba.json),
+[commands](stock-preview-stage-receipts/priority-commands.json) and
+[driver](stock-preview-stage-receipts/run-priority.py) preserve this control.
+
+The following [direct-output change](stock-preview-direct-output.md) instead
+removes a measured reconstruction copy and unused scratch bands. Its separate
+comparison improves serialized replay further while retaining missed-deadline
+accounting; it does not close the timing gate.

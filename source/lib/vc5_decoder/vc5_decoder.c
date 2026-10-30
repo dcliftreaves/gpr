@@ -240,12 +240,15 @@ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
     }
     ComputeCubicTable(cubic,1025,255);
     for (unsigned channel=selected<0 ? 0:(unsigned)selected;channel<(selected<0 ? 3:(unsigned)selected+1);++channel) {
-        for (unsigned stage=0;stage<3;++stage) {
+        // Only intermediate levels need four bands. The final inverse writes
+        // directly to the caller-owned packed output, avoiding a full-plane
+        // copy and three unused final highpass bands. Keep intermediate
+        // wavelets' aligned, cache-skewed pitches unchanged.
+        for (unsigned stage=1;stage<3;++stage) {
             unsigned scale=4u<<stage;
             levels[stage]=CreateWavelet(&allocator,(input->sensor_width+scale-1)/scale,
                 (input->sensor_height+scale-1)/scale);
             if (!levels[stage]) {error=CODEC_ERROR_OUTOFMEMORY;goto done;}
-            if (!stage) continue;
             const vc5_preview_level *source=&input->channels[channel][stage-1];
             for (unsigned band=stage==2 ? 0:1;band<4;++band) {
                 levels[stage]->quant[band]=(QUANT)source->quant[band];
@@ -261,17 +264,16 @@ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
             }
         }
         error=TransformInverseSpatialQuantLowpass(&allocator,levels[2],levels[1],input->channels[channel][1].prescale);
-        if (!error) error=TransformInverseSpatialQuantLowpass(&allocator,levels[1],levels[0],input->channels[channel][0].prescale);
         if (error) goto done;
         gpr_rgb_buffer *output=&planes[channel];
-        output->width=levels[0]->width;output->height=levels[0]->height;
+        output->width=(input->sensor_width+3)/4;output->height=(input->sensor_height+3)/4;
         output->size=(size_t)output->width*output->height*sizeof(PIXEL);
         output->buffer=mem_alloc(output->size);
         if (!output->buffer) {error=CODEC_ERROR_OUTOFMEMORY;goto done;}
-        for (unsigned y=0;y<output->height;++y)
-            memcpy((uint8_t *)output->buffer+(size_t)y*output->width*sizeof(PIXEL),
-                (uint8_t *)levels[0]->data[0]+(size_t)y*levels[0]->pitch,output->width*sizeof(PIXEL));
-        for (unsigned stage=0;stage<3;++stage) {DeleteWavelet(&allocator,levels[stage]);levels[stage]=NULL;}
+        error=TransformInverseSpatialQuantArray(&allocator,levels[1],output->buffer,
+            output->width,output->height,output->width*sizeof(PIXEL),input->channels[channel][0].prescale);
+        if (error) goto done;
+        for (unsigned stage=1;stage<3;++stage) {DeleteWavelet(&allocator,levels[stage]);levels[stage]=NULL;}
     }
 done:
     for (unsigned stage=0;stage<3;++stage) if (levels[stage]) DeleteWavelet(&allocator,levels[stage]);

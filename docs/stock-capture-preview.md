@@ -64,6 +64,13 @@ the next frame then resets the arenas. Summary counters distinguish total
 reserved scratch from peak used scratch. This does not remove thread creation
 or other allocations elsewhere in capture.
 
+The later [direct-output path](stock-preview-direct-output.md) eliminates the
+final padded-wavelet-to-packed-plane copy and three unused final highpass
+bands. Intermediate alignment/pitches remain unchanged, and odd packed output
+rows are tested. At 12 MP, used reconstruction scratch falls to 11.10 MB while
+the existing 40.89 MB reservation remains. Both matched serialized 600-frame
+runs preserve every frame/preview, but still miss deadlines.
+
 The [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json)
 reserves 40.89 MB and uses 30.57 MB peak over 600 frames; all payloads and preview
 pixels remain exact with no drops. Preview p95 is 45.96 ms and encode/reconstruct

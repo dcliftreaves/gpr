@@ -1,0 +1,27 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 10K of event 'cycles:u'
+# Event count (approx.): 36463716205
+#
+# Overhead  Command          Shared Object          Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+# ........  ...............  .....................  ......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    22.31%  gpr_capture_app  gpr_capture_app        [.] EncodeHighpassIncremental.constprop.1
+    18.31%  gpr_capture_app  gpr_capture_app        [.] gpr_stock_unpack14_channel
+    11.75%  gpr_capture_app  libc.so.6              [.] __memcpy_generic
+    10.88%  gpr_capture_app  gpr_capture_app        [.] ForwardWaveletTransform
+    10.50%  gpr_capture_app  gpr_capture_app        [.] (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+     8.64%  gpr_capture_app  gpr_capture_app        [.] InvertSpatialQuantDescale16s
+     6.47%  gpr_capture_app  gpr_capture_app        [.] FilterHorizontalRow.isra.0
+     4.21%  gpr_capture_app  gpr_capture_app        [.] reconstruct_preview.constprop.0
+     1.85%  gpr_capture_app  gpr_capture_app        [.] InvertHorizontalDescale16s.isra.0
+     1.58%  gpr_capture_app  gpr_capture_app        [.] (anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+     1.05%  gpr_capture_app  gpr_capture_app        [.] read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

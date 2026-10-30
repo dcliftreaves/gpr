@@ -61,13 +61,13 @@ static void public_observe(void *user,const vc5_preview_coefficients *input) {
         free(planes[channel].buffer);
     }
 }
-int main(int argc,char **argv) {
-    const unsigned width=argc>1 ? 4096:128,height=argc>1 ? 3072:96;
+static void run_case(unsigned width,unsigned height,unsigned bits,PIXEL_FORMAT format,
+    VC5_ENCODER_PIXEL_FORMAT public_format,const char *path) {
     const size_t raw_size=(size_t)width*height*2,capacity=raw_size+raw_size/2+1024*1024;
     uint16_t *raw=malloc(raw_size);uint32_t random=17;REQUIRE(raw);
-    for (unsigned i=0;i<width*height;++i) {random=random*1664525u+1013904223u;raw[i]=(uint16_t)((random>>16)&16383);}
-    if (argc>1) {
-        FILE *file=fopen(argv[1],"rb");REQUIRE(file);
+    for (unsigned i=0;i<width*height;++i) {random=random*1664525u+1013904223u;raw[i]=(uint16_t)((random>>16)&((1u<<bits)-1));}
+    if (path) {
+        FILE *file=fopen(path,"rb");REQUIRE(file);
         REQUIRE(fread(raw,1,raw_size,file)==raw_size && fgetc(file)==EOF && !ferror(file));REQUIRE(!fclose(file));
     }
     const QUANT qualities[6][10]={{1,24,24,12,64,64,48,512,512,768},{1,24,24,12,48,48,32,256,256,384},
@@ -78,13 +78,13 @@ int main(int argc,char **argv) {
         p.allocator.Alloc=malloc;p.allocator.Free=free;memcpy(p.quant_table,qualities[quality],sizeof(p.quant_table));
         PROBE probe={0};probe.allocator=p.allocator;p.preview_observer=observe;p.preview_user=&probe;
         IMAGE image={0};image.buffer=raw;image.width=width;image.height=height;image.pitch=width*2;
-        image.size=raw_size;image.format=PIXEL_FORMAT_RAW_RGGB_14;
+        image.size=raw_size;image.format=format;
         p.input.width=width;p.input.height=height;p.input.format=image.format;
         uint8_t *bytes=malloc(capacity);REQUIRE(bytes);STREAM stream;
         REQUIRE(CreateStreamBuffer(&stream,bytes,capacity)==CODEC_ERROR_OKAY);
         REQUIRE(EncodeImage(&image,&stream,NULL,&p)==CODEC_ERROR_OKAY);
         vc5_encoder_parameters ep;vc5_encoder_parameters_set_default(&ep);
-        ep.input_width=width;ep.input_height=height;ep.input_pitch=width*2;ep.pixel_format=VC5_ENCODER_PIXEL_FORMAT_RGGB_14;
+        ep.input_width=width;ep.input_height=height;ep.input_pitch=width*2;ep.pixel_format=public_format;
         ep.quality_setting=(VC5_ENCODER_QUALITY_SETTING)quality;
         gpr_buffer input={raw,raw_size},stock={0};
         REQUIRE(vc5_encoder_process(&ep,&input,&stock,NULL)==CODEC_ERROR_OKAY);
@@ -105,5 +105,28 @@ int main(int argc,char **argv) {
         free(stock.buffer);free(bytes);
     }
     free(raw);
-    printf("PASS: %ux%u retained encoder upper bands reconstruct exact quarter-scale stock planes at all six qualities\n",width,height);return 0;
+    printf("PASS: %ux%u %u-bit format %d retained bands reconstruct exact quarter-scale stock planes at all six qualities\n",width,height,bits,(int)format);
+}
+int main(int argc,char **argv) {
+    if (argc==2 && !strcmp(argv[1],"--matrix")) {
+        static const PIXEL_FORMAT formats[4][3]={
+            {PIXEL_FORMAT_RAW_RGGB_12,PIXEL_FORMAT_RAW_RGGB_14,PIXEL_FORMAT_RAW_RGGB_16},
+            {PIXEL_FORMAT_RAW_GBRG_12,PIXEL_FORMAT_RAW_GBRG_14,PIXEL_FORMAT_RAW_GBRG_16},
+            {PIXEL_FORMAT_RAW_GRBG_12,PIXEL_FORMAT_RAW_GRBG_14,PIXEL_FORMAT_RAW_GRBG_16},
+            {PIXEL_FORMAT_RAW_BGGR_12,PIXEL_FORMAT_RAW_BGGR_14,PIXEL_FORMAT_RAW_BGGR_16}};
+        static const VC5_ENCODER_PIXEL_FORMAT public_formats[4][3]={
+            {VC5_ENCODER_PIXEL_FORMAT_RGGB_12,VC5_ENCODER_PIXEL_FORMAT_RGGB_14,VC5_ENCODER_PIXEL_FORMAT_RGGB_16},
+            {VC5_ENCODER_PIXEL_FORMAT_GBRG_12,VC5_ENCODER_PIXEL_FORMAT_GBRG_14,VC5_ENCODER_PIXEL_FORMAT_GBRG_16},
+            {VC5_ENCODER_PIXEL_FORMAT_GRBG_12,VC5_ENCODER_PIXEL_FORMAT_GRBG_14,VC5_ENCODER_PIXEL_FORMAT_GRBG_16},
+            {VC5_ENCODER_PIXEL_FORMAT_BGGR_12,VC5_ENCODER_PIXEL_FORMAT_BGGR_14,VC5_ENCODER_PIXEL_FORMAT_BGGR_16}};
+        // Packed output rows have odd pixel counts (and are not all 64-byte
+        // aligned). Compare against the old padded-wavelet path and independent
+        // entropy decoding at both a small and a wider tail geometry.
+        for (unsigned phase=0;phase<4;++phase) for (unsigned depth=0;depth<3;++depth) {
+            run_case(50,50,12+2*depth,formats[phase][depth],public_formats[phase][depth],NULL);
+            run_case(130,98,12+2*depth,formats[phase][depth],public_formats[phase][depth],NULL);
+        }
+    } else run_case(argc>1 ? 4096:128,argc>1 ? 3072:96,14,
+        PIXEL_FORMAT_RAW_RGGB_14,VC5_ENCODER_PIXEL_FORMAT_RGGB_14,argc>1 ? argv[1]:NULL);
+    return 0;
 }
