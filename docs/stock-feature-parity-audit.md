@@ -118,4 +118,5 @@ Pooled active gain is only +0.00729 dB; useful restored detail/tier/temporal
 approval remains open. Both supplied 12 MP Pi inputs produce 50 MP editable
 outputs with exact calibration and at most one-count CPU/MPS differences.
 The separate 1x checkpoint and production encoder/capture source are unchanged;
-new 2x native artifacts are not yet qualified.
+[new 2x native artifacts](stock-sr-native.md) pass 12 execution and 24 full-reference
+checks. Broader quality and strict Pi timing remain open.

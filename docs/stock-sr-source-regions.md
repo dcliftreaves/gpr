@@ -118,7 +118,8 @@ score.
 Pi inference takes 99.89/86.29 s; whole workflows 100.82/87.19 s. Mac MPS
 inference takes 0.481/0.286 s in the checks. These are individual offline
 execution costs, not sustained throughput or controlled speedup comparisons.
-Native artifacts for this checkpoint are not yet qualified. The separate 1x
+[Native artifacts for this checkpoint](stock-sr-native.md) now pass 12 execution
+and 24 full-reference checks through standalone Core ML/Metal media commands. The separate 1x
 candidate, production codec/capture source and strict Pi recording timing gate
 remain unchanged.
 

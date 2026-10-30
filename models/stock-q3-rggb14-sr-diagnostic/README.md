@@ -40,8 +40,9 @@ python3 tools/stock_still.py restore input.gpr --sample-bits 14 \
   --device mps --scale 2 --output diagnostic-2x.dng
 ```
 
-Use `--device cpu` for CPU execution. Native exporters support this architecture,
-but this checkpoint's native artifacts have not been qualified. The separate
+Use `--device cpu` for CPU execution. [Checkpoint-specific native checks](../../docs/stock-sr-native.md)
+pass FP32 Core ML, MPSGraph and hybrid count/RAW-quality guards on the declared
+inputs. These checks do not establish broader model-quality approval. The separate
 [1x cleanup candidate](../stock-q3-rggb14-cleanup/README.md) and its checks are
 unchanged. This file is a diagnostic asset, not a recommended SR model.
 

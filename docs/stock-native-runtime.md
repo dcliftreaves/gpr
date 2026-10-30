@@ -129,3 +129,13 @@ FP32-Core-ML/Metal cases pass their existing count budgets through `python -S`
 media commands. All eight FP16-Core-ML cases exceed the predefined two-count
 budget despite faster execution. FP32 is the validated Core ML configuration.
 These checks do not approve the earlier 2x model, wider domains or video quality.
+
+## Supplied 2x diagnostic follow-up
+
+The later [source-wide 2x diagnostic](stock-sr-native.md) passes all twelve
+standalone execution cases and 24 full-reference cases on FP32 Core ML,
+MPSGraph and hybrid, within existing count budgets (observed maximum one count).
+Every declared RAW region retains nonregression against the frozen MPS bicubic
+baseline. The diagnostic's small +0.00729 dB pooled benefit does not establish
+useful recovered detail or broader model/temporal approval. These results are
+checkpoint-specific and do not change the earlier candidate's recorded failure.

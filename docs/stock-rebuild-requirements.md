@@ -46,7 +46,8 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    [2x diagnostic](stock-sr-source-regions.md) also passes narrow numeric guards
    and Pi execution/count checks, with small benefit. Improve useful 2x detail
    quality and broader real-source, rendered visual and temporal evidence before
-   promoting restored tiers; qualify native artifacts for this new checkpoint. Earlier failures remain recorded; the scoped 1x result does
+   promoting restored tiers. [Native artifacts for this checkpoint](stock-sr-native.md)
+   now pass scoped execution/count and full-reference RAW-quality checks. Earlier failures remain recorded; the scoped 1x result does
    not approve other domains or video quality.
 3. Improve sustained Pi deadlines/durability before claiming a strict sustained
    20 fps floor. Short-run success and p95 do not close this gate.
@@ -121,4 +122,5 @@ Pooled active gain is only +0.00729 dB; useful restored detail/tier/temporal
 approval remains open. Both supplied 12 MP Pi inputs produce 50 MP editable
 outputs with exact calibration and at most one-count CPU/MPS differences.
 The separate 1x checkpoint and production encoder/capture source are unchanged;
-new 2x native artifacts are not yet qualified.
+[new 2x native artifacts](stock-sr-native.md) pass 12 execution and 24 full-reference
+checks. Useful detail, broader quality and strict Pi timing remain open.

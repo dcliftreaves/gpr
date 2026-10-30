@@ -1,0 +1,60 @@
+{
+  "schema": "gpr.stock_sr_source_native_quality_protocol.v1",
+  "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4",
+  "native_check_protocol_sha256": "2bd8b3a3ba2107774cc13f92f1f9442fe89acc683f90333641eb41b1ef0e3235",
+  "cases": [
+    {
+      "backend": "coreml",
+      "units": "cpu",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/coreml-f32",
+      "bound": 1
+    },
+    {
+      "backend": "coreml",
+      "units": "gpu",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/coreml-f32",
+      "bound": 1
+    },
+    {
+      "backend": "coreml",
+      "units": "ane",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/coreml-f32",
+      "bound": 1
+    },
+    {
+      "backend": "coreml",
+      "units": "all",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/coreml-f32",
+      "bound": 1
+    },
+    {
+      "backend": "mpsgraph",
+      "units": "all",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/metal-f16",
+      "bound": 32
+    },
+    {
+      "backend": "hybrid",
+      "units": "all",
+      "artifact": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_source_regions_20261030/all-qualified/native/metal-f16",
+      "bound": 32
+    }
+  ],
+  "references": [
+    "0001",
+    "0067",
+    "5323",
+    "6693"
+  ],
+  "baseline": "same frozen Torch MPS bicubic counts/metrics from the published final evaluation, on identical stock-Q3 low input",
+  "regions": [
+    "active",
+    "shadow_bottom_decile",
+    "highlight_top_decile",
+    "detail_top_decile"
+  ],
+  "quality_approval": false,
+  "selection_used": false,
+  "driver_sha256": "614d645d190feb4a396d05db74429a7e1f56d78b709dd26aabc65a6f7102969c",
+  "evaluator_sha256": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6"
+}
