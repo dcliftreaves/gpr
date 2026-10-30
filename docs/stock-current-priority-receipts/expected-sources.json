@@ -1,0 +1,6 @@
+{
+  "source/lib/vc5_encoder/encoder.c": "f8913176171651668446a56f0a1462aad680dcc1cc77eba75e5e728b7ebc40a4",
+  "source/lib/gpr_video/gpr_preview.cpp": "080b5798a02082af06e5b20f9825763dbd07b109e8384a1e44c07e01cb8c5d7e",
+  "source/lib/gpr_video/gpr_preview_queue.cpp": "d3c2356ed3eae37179e4d5944c7c0def02d8f0f53b82c5968cd333dc8f1378e5",
+  "source/lib/gpr_video/gpr_capture.cpp": "264b448dcc4687115301ba61b01d427c5f20c24a60d25d6c2ce9d292198032e6"
+}

@@ -1,0 +1,39 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e304c73..e008227 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -385,3 +385,9 @@ if(GPR_BUILD_CODEC_TESTS)
+   set_tests_properties(bayer_formats_fast PROPERTIES ENVIRONMENT
+     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1")
+ endif()
++
++# Private scanner proof only.
++add_executable(zero_scan_test tests/zero_scan_test.c)
++
++add_executable(zero_scan_benchmark tests/zero_scan_benchmark.c)
++target_link_libraries(zero_scan_benchmark vc5_encoder)
+diff --git a/source/lib/vc5_encoder/encoder.c b/source/lib/vc5_encoder/encoder.c
+index 1935a2a..4f454aa 100755
+--- a/source/lib/vc5_encoder/encoder.c
++++ b/source/lib/vc5_encoder/encoder.c
+@@ -56,6 +56,8 @@ static double EncoderWallTime(void)
+ 
+ extern void UnpackChannelRow14(const PACKED_IMAGE *, int, int, PIXEL *);
+ extern void FilterVerticalDirect(PIXEL **, PIXEL **, PIXEL **, int, int32_t *, int32_t *, int);
++#include "zero_scan.h"
++
+ static CODEC_ERROR EncodeHighpassIncremental(BITSTREAM *, ENCODER_CODESET *, PIXEL *,
+     DIMENSION, DIMENSION, DIMENSION, uint32_t *, bool);
+ 
+@@ -2987,10 +2989,7 @@ static CODEC_ERROR EncodeHighpassIncremental(BITSTREAM *stream, ENCODER_CODESET
+                 PIXEL* start = rowptr + index;
+                 PIXEL* end   = rowptr + width;
+                 
+-                for (; start != end && *(start) == 0; start++)
+-                {
+-                    
+-                }
++                start = (PIXEL *)FindFirstNonzero(start,end);
+                 
+                 uint32_t x = start - (rowptr + index);
+                     

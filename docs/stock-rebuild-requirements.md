@@ -181,3 +181,18 @@ source is restored. Production and the strict timing gate remain unchanged.
 All seven hosted jobs pass at `a00ae4a`
 ([receipt](stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
 commits need their own hosted results.
+
+A [current-executable preview priority control](stock-current-priority.md)
+repeats the background/foreground comparison after direct-output and plane
+spacing changes. All 2,400 attempts/payloads/previews are exact. The final
+background control beats both foreground runs on late deliveries, so there is
+no consistent priority benefit and defaults stay unchanged. Its p95 below
+50 ms still includes 11 late writes/17 late previews; the strict gate is open.
+
+Two [bulk zero-run scanners](stock-zero-scan.md) preserve all tested prefixes,
+including guard boundaries, and all 492 independent real-input payloads, but
+64-bit word and 128-bit NEON variants are slower than both scalar controls on
+both inputs. Both are rejected without proceeding to capture timing. Prototype
+source is restored. All seven hosted checks pass at `950deda`
+([receipt](stock-current-priority-receipts/passed-950deda.json)); later evidence
+commits require their own results. Production/model behavior is unchanged.

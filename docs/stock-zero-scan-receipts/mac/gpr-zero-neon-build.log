@@ -1,0 +1,133 @@
+[  5%] Building C object source/lib/md5_lib/CMakeFiles/md5_lib.dir/md5.c.o
+[  5%] Building C object CMakeFiles/zero_scan_test.dir/tests/zero_scan_test.c.o
+[  5%] Building C object source/lib/common/CMakeFiles/common.dir/private/gpr_allocator.c.o
+[  5%] Building C object source/lib/gpr_video/CMakeFiles/gpr_gvid.dir/gpr_gvid.c.o
+[  6%] Building C object source/lib/common/CMakeFiles/common.dir/private/gpr_buffer.c.o
+[  7%] Linking C static library libmd5_lib.a
+[  8%] Building CXX object source/lib/gpr_video/CMakeFiles/gpr_gvid.dir/gpr_gvid_reader.cpp.o
+[ 11%] Linking C executable zero_scan_test
+[ 11%] Building CXX object source/lib/common/CMakeFiles/common.dir/private/gpr_buffer_auto.cpp.o
+[ 11%] Built target md5_lib
+[ 12%] Building CXX object source/app/common/argument_parser/CMakeFiles/argument_parser.dir/argument_parser.cpp.o
+[ 13%] Building C object source/lib/common/CMakeFiles/common.dir/private/log.c.o
+[ 13%] Built target zero_scan_test
+[ 15%] Building CXX object source/app/common/argument_parser/CMakeFiles/argument_parser.dir/program_options_lite.cpp.o
+[ 16%] Building C object source/lib/common/CMakeFiles/common.dir/private/timer.c.o
+[ 17%] Linking CXX static library libcommon.a
+[ 18%] Linking CXX static library libgpr_gvid.a
+[ 18%] Built target common
+[ 20%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/bitstream.c.o
+[ 20%] Built target gpr_gvid
+[ 21%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/codec.c.o
+[ 22%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/companding.c.o
+[ 24%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/image.c.o
+[ 25%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/logcurve.c.o
+[ 26%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/stream.c.o
+[ 27%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/syntax.c.o
+[ 29%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/utilities.c.o
+[ 30%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/wavelet.c.o
+[ 31%] Linking CXX static library libargument_parser.a
+[ 32%] Linking CXX static library libvc5_common.a
+[ 32%] Built target argument_parser
+[ 32%] Built target vc5_common
+[ 37%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/decoder.c.o
+[ 37%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/component.c.o
+[ 37%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/codebooks.c.o
+[ 37%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/codebooks.c.o
+[ 39%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/dequantize.c.o
+[ 40%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/inverse.c.o
+[ 41%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/component.c.o
+[ 43%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/parameters.c.o
+[ 44%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/raw.c.o
+[ 45%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/encoder.c.o
+[ 46%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/syntax.c.o
+[ 48%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/vc5_decoder.c.o
+[ 49%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/vlc.c.o
+[ 50%] Building C object source/lib/vc5_decoder/CMakeFiles/vc5_decoder.dir/wavelet.c.o
+[ 51%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/forward.c.o
+[ 53%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/parameters.c.o
+[ 54%] Linking CXX static library libvc5_decoder.a
+[ 55%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/raw.c.o
+[ 56%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/sections.c.o
+[ 56%] Built target vc5_decoder
+[ 58%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/syntax.c.o
+[ 59%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/vc5_encoder.c.o
+[ 60%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/vlc.c.o
+[ 62%] Building ASM object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/stock_unpack_arm64.S.o
+[ 64%] Building C object CMakeFiles/decoder_bounds_test.dir/tests/decoder_bounds.c.o
+[ 64%] Building CXX object source/lib/gpr_video/CMakeFiles/gpr_preview.dir/gpr_preview.cpp.o
+[ 67%] Linking CXX static library libvc5_encoder.a
+[ 67%] Building CXX object source/app/vc5_decoder_app/CMakeFiles/vc5_decoder_app.dir/main.cpp.o
+[ 68%] Linking CXX executable decoder_bounds_test
+[ 68%] Built target vc5_encoder
+[ 69%] Building CXX object source/lib/gpr_video/CMakeFiles/gpr_preview.dir/gpr_preview_queue.cpp.o
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 69%] Built target decoder_bounds_test
+/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-zero-scan-prototype/source/app/vc5_decoder_app/main.cpp:98:5: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+   98 |     sprintf( line, "VC5 Decoder Version %d.%d.%d [%s @ %s] ", VC5_VERSION_MAJOR, VC5_VERSION_MINOR, VC5_VERSION_REVISION, GIT_BRANCH, GIT_COMMIT_HASH );
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:227:48: note: expanded from macro '__deprecated_msg'
+  227 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+[ 70%] Building CXX object source/lib/gpr_video/CMakeFiles/gpr_video.dir/gpr_capture.cpp.o
+1 warning generated.
+[ 72%] Linking CXX executable vc5_decoder_app
+[ 73%] Building C object CMakeFiles/encoder_bounds_test.dir/tests/encoder_bounds.c.o
+[ 74%] Linking CXX executable encoder_bounds_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 74%] Built target vc5_decoder_app
+[ 75%] Linking CXX static library libgpr_preview.a
+[ 77%] Building C object CMakeFiles/encoder_preview_probe.dir/tests/encoder_preview_probe.c.o
+[ 77%] Built target gpr_preview
+[ 78%] Linking CXX executable encoder_preview_probe
+[ 79%] Building CXX object CMakeFiles/bayer_formats_test.dir/tests/bayer_formats.cpp.o
+[ 81%] Linking CXX static library libgpr_video.a
+[ 81%] Built target gpr_video
+[ 82%] Building C object CMakeFiles/zero_scan_benchmark.dir/tests/zero_scan_benchmark.c.o
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 82%] Built target encoder_bounds_test
+[ 83%] Building CXX object source/app/vc5_encoder_app/CMakeFiles/vc5_encoder_app.dir/main.cpp.o
+[ 84%] Linking CXX executable zero_scan_benchmark
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 84%] Built target encoder_preview_probe
+[ 86%] Building CXX object CMakeFiles/gpr_preview_app.dir/source/app/gpr_preview_main.cpp.o
+[ 87%] Linking CXX executable bayer_formats_test
+/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-zero-scan-prototype/source/app/vc5_encoder_app/main.cpp:124:5: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  124 |     sprintf( line, "VC5 Encoder Version %d.%d.%d [%s @ %s] ", VC5_VERSION_MAJOR, VC5_VERSION_MINOR, VC5_VERSION_REVISION, GIT_BRANCH, GIT_COMMIT_HASH );
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:227:48: note: expanded from macro '__deprecated_msg'
+  227 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 87%] Built target zero_scan_benchmark
+1 warning generated.
+[ 88%] Linking CXX executable vc5_encoder_app
+[ 89%] Building CXX object CMakeFiles/preview_contract_test.dir/tests/preview_contract.cpp.o
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 89%] Built target bayer_formats_test
+[ 91%] Building CXX object CMakeFiles/preview_wavelet_queue_test.dir/tests/preview_wavelet_queue_test.cpp.o
+[ 92%] Linking CXX executable gpr_preview_app
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 92%] Built target vc5_encoder_app
+[ 93%] Building CXX object CMakeFiles/preview_queue_test.dir/tests/preview_queue_test.cpp.o
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 93%] Built target gpr_preview_app
+[ 94%] Building CXX object CMakeFiles/gpr_capture_app.dir/source/app/gpr_capture_main.cpp.o
+[ 96%] Linking CXX executable preview_contract_test
+[ 97%] Linking CXX executable preview_wavelet_queue_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 97%] Built target preview_contract_test
+[ 98%] Linking CXX executable preview_queue_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 98%] Built target preview_wavelet_queue_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[100%] Linking CXX executable gpr_capture_app
+[100%] Built target preview_queue_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[100%] Built target gpr_capture_app
