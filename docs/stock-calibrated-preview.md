@@ -120,6 +120,23 @@ when a producer already has the required samples; capture currently still uses
 the compressed-payload queue. Encoder intermediate coefficients must first be
 reconstructed to the decoder's 14-bit wavelet sample domain; directly passing
 quantized or prescaled encoder bands is not supported.
+
+The fast encoder cannot supply these planes by borrowing its final transform:
+`AllocEncoderTransforms` in `source/lib/vc5_encoder/encoder.c` retains each LL
+plane but allocates only one row per highpass band when compact bands are
+enabled. `TransformVertical` overwrites those rows after incremental entropy
+coding. The decoder's quarter-scale LL is instead reconstructed from the two
+upper wavelet levels by `ReconstructWaveletBand` in
+`source/lib/vc5_decoder/decoder.c`, including inverse companding, quantization
+and prescale handling. The existing encoder thumbnail only consumes the
+sixteenth-scale LL and does not establish quarter-scale equivalence.
+An encoder-side producer therefore needs to retain the upper-level highpass
+coefficients before reuse (or reconstruct them incrementally), reproduce their
+encoded companding, and perform those two inverse levels. Its acceptance gate
+is exact reduced planes/display pixels against independently decoded stock
+payloads at every quality, while preserving payload bytes and measuring total
+capture latency, memory and recording deadlines on Pi 5. That producer is not
+implemented by the public plane-rendering entry point.
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,

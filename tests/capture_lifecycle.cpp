@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
+#include <future>
 
 static void check(bool okay,const char *why) { if (!okay) throw std::runtime_error(why); }
 static uint64_t get(const uint8_t *p,unsigned n) {
@@ -21,13 +22,22 @@ struct Sink {
     std::condition_variable changed;
     std::vector<uint8_t> bytes;
     std::vector<std::vector<uint8_t>> observed;
+    bool block_observer=false,observer_entered=false,observer_released=false;
+    gpr_capture *capture=nullptr;
     static void encoded(void *user,const gpr_capture_encoded_frame *frame) {
         Sink &s=*static_cast<Sink *>(user);
-        std::lock_guard<std::mutex> lock(s.mutex);
+        gpr_capture_stats state={};
+        if (s.capture) check(!gpr_capture_get_stats(s.capture,&state),"observer stats reentry");
+        std::unique_lock<std::mutex> lock(s.mutex);
         check(frame->index==s.observed.size(),"observer frame order");
         check(frame->timestamp_ns==900000000000ULL+frame->index*33410000,"observer timestamp");
         check(frame->payload && frame->payload_size>=64 && !std::memcmp(frame->payload,"VC-5",4),"observer payload");
         s.observed.emplace_back(frame->payload,frame->payload+frame->payload_size);
+        if (s.block_observer) {
+            s.observer_entered=true;s.changed.notify_all();
+            s.changed.wait(lock,[&]{return s.observer_released;});
+            check(!std::memcmp(s.observed.back().data(),frame->payload,frame->payload_size),"borrowed observer payload expired");
+        }
     }
     bool block=false, entered=false, released=false, fail=false, fail_end=false;
     unsigned completions=0;
@@ -57,6 +67,7 @@ struct Capture {
     Capture(const gpr_capture_config &cfg,Sink &sink) {
         gpr_capture_callbacks callbacks={Sink::write,Sink::complete,&sink};
         check(!gpr_capture_create_with_observer(&cfg,&callbacks,Sink::encoded,&sink,&p),"create failed");
+        sink.capture=p;
     }
     ~Capture() { if (p) gpr_capture_destroy(p); }
 };
@@ -229,6 +240,30 @@ static void leased_inputs() {
     gpr_capture_stats stats={}; gpr_capture_get_stats(c.p,&stats);
     check(stats.inflight==0 && stats.discarded==2,"lease cancel accounting");
 }
+static void observer_lifetime() {
+    Sink sink;sink.block_observer=true;
+    auto cfg=config();Capture capture(cfg,sink);auto data=image(11);auto f=frame(data,0);
+    check(!gpr_capture_submit(capture.p,&f,UINT32_MAX),"observer lifetime submit");
+    {
+        std::unique_lock<std::mutex> lock(sink.mutex);
+        bool entered=sink.changed.wait_for(lock,std::chrono::seconds(10),[&]{return sink.observer_entered;});
+        if (!entered) {sink.observer_released=true;sink.changed.notify_all();}
+        check(entered,"observer gate timeout");
+    }
+    gpr_capture_cancel(capture.p);
+    auto finishing=std::async(std::launch::async,[&]{return gpr_capture_finish(capture.p);});
+    bool waits=finishing.wait_for(std::chrono::milliseconds(25))==std::future_status::timeout;
+    {
+        std::lock_guard<std::mutex> lock(sink.mutex);
+        sink.observer_released=true;sink.changed.notify_all();
+    }
+    int result=finishing.get();
+    check(waits,"finish returned while observer owned payload");
+    check(result==GPR_CAPTURE_CANCELLED,"observer cancellation status");
+    gpr_capture_stats state={};check(!gpr_capture_get_stats(capture.p,&state),"observer final stats");
+    check(!state.inflight && !state.written && state.discarded==1,"observed cancellation accounting");
+    check(sink.observed.size()==1 && !sink.completions,"observer/completion distinction");
+}
 static void formats() {
     for (bool gbrg : {false,true}) {
         auto cfg=config(); cfg.video.sample_bits=12;
@@ -255,7 +290,7 @@ int main(int argc,char **argv) {
             setenv(flag,"1",1);
 #endif
         }
-        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); formats();
+        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); observer_lifetime(); formats();
         std::cout<<"PASS: bounded capture, copy/lease ownership, padded stride, timestamps, stock payloads, flush/finish, writer failures, cancellation, concurrent SDK/capture\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }

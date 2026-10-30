@@ -69,6 +69,10 @@ This removes the storage-write dependency; preview still waits for encoding.
 The original `gpr_capture_create` and callback-structure ABI remain available.
 An observed frame may subsequently be discarded on cancellation or writer
 failure, so a preview event alone does not prove that the frame was recorded.
+The lifecycle test blocks an encoded observer, cancels capture and verifies that
+finish waits for observer release, its borrowed payload remains intact, no
+frame is written/completed, and the observed frame is accounted as discarded.
+Observers also exercise reentrant stats access outside the capture locks.
 Its sink computes RGB CRCs in memory, with frame identity, geometry and render,
 capture-to-sink and overlap measurements. There is no physical display backend.
 Background priority is the default; `--preview-foreground` enables comparison.
