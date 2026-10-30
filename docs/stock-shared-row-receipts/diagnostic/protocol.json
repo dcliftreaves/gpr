@@ -1,0 +1,28 @@
+{
+  "schema": "gpr.experimental_shared_rows.v1",
+  "binary_sha256": "c112014072ce3ebe0cf53c3081b4a7342f80dc0f249c0549053c7b71e9553cc1",
+  "source_files": {
+    "source/lib/vc5_encoder/encoder.c": "9e7ad49bf12b44d7080dc403c2085d220a02475334609ea903b09768eb92ae5e",
+    "source/lib/vc5_encoder/encoder.h": "340a0278225a291d6a57b54cdfd732abeddfc73805b9eb572d18e8545691b887",
+    "source/lib/vc5_encoder/raw.c": "cba865d7f1913c836484f902f553f0b8074e03a981229680eaf6779e42881821"
+  },
+  "sources": [
+    [
+      "GP017517.raw",
+      "e75aea542a2da413ff097bd1f1825b20e8723e56b1cda257ea4da4b8ed1121d9"
+    ],
+    [
+      "GP017348.raw",
+      "6b286a10e816887c044640f220667173e7c0ccf31bb268ebb2b494e06ccb87c4"
+    ]
+  ],
+  "order": [
+    "8",
+    "32",
+    "128"
+  ],
+  "runs_per_process": 1,
+  "warmup_discard": 0,
+  "scope": "isolated reused-arena encoding; not capture/preview or strict deadlines",
+  "same_binary": true
+}

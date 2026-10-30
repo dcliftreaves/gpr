@@ -1,0 +1,8 @@
+[    1-ms] Raw Input image: /mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw
+[    1-ms] Vc5 Output file: /mnt/ssd/gpr_work/stock-row-cache-prototype-20261030/diagnostic/2-128-GP017348.raw.vc5
+[  130-ms] Encode wall 0.045624 seconds
+[  136-ms] 0 283E9F3FEC4CD0C7C67B5B27C478F183
+[  136-ms] Workspace used 100034176 bytes
+[  136-ms] Encoding 0.117 secs per frame
+[0000000000] VC5 Encoder Version 1.0.0 [ @ ] [Linux][GCC 12.2.0][64 bit] 
+Shared rows capacity=128 requests=6144 computations=1536

@@ -1,0 +1,31 @@
+{
+  "eight-row": {
+    "protocol_sha256": "a8b23ff3ad2571a799f9845c435eac9836c058673b8b6945dd15ef867afb9c99",
+    "receipt_sha256": "ec47b298c562bfcbbd9b7896acd4aeea735e91dac03870a8ffa5d54bd532150c",
+    "patch_sha256": "928c061650c02624db4223a0257692142fc8d7fe2e61cef5c41bf529c61a57d6",
+    "driver_sha256": "98182910f744fda8729631981441dcb46ed685121e3db4c081e5584e06d995fb",
+    "source_bindings_verified": true,
+    "all_outputs_exact_within_study": true,
+    "median_of_run_medians": {
+      "GP017517.raw": {
+        "baseline": 0.023808,
+        "cache": 0.0295605,
+        "slowdown_percent": 24.16204637096775
+      },
+      "GP017348.raw": {
+        "baseline": 0.023626,
+        "cache": 0.02646975,
+        "slowdown_percent": 12.03652755438922
+      }
+    }
+  },
+  "diagnostic": {
+    "protocol_sha256": "310cadfe72ee7a61924f16f2acf431655a2515ae99f7c2f32aa4108ef3f71522",
+    "receipt_sha256": "1dd517562fcadc37e768f9af669721d9888a11bffb5fcfa6b8c5e0ba4a806416",
+    "patch_sha256": "f50946a901e05354ec4e27cdbebab9c15f64ecea124dfe800b0e7d3dc7c2f949",
+    "driver_sha256": "3896470b153a4927765d4351a365d580a34390915e15808a2cdd1977673ea905",
+    "source_bindings_verified": true,
+    "all_outputs_exact_within_study": true
+  },
+  "scope": "Rejected prototype; isolated reused-arena performance only, no capture gate change. Diagnostic one-shot timings are not controlled performance comparisons."
+}

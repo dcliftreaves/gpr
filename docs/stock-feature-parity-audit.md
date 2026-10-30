@@ -120,3 +120,8 @@ outputs with exact calibration and at most one-count CPU/MPS differences.
 The separate 1x checkpoint and production encoder/capture source are unchanged;
 [new 2x native artifacts](stock-sr-native.md) pass 12 execution and 24 full-reference
 checks. Broader quality and strict Pi timing remain open.
+
+A [bounded shared unpack-row cache](stock-shared-rows.md) is rejected after
+byte-exact isolated Pi comparisons: it computes each row once for all four
+consumers, yet both eight-row comparisons are slower. Production runtime and
+the unresolved strict deadline gate are unchanged.

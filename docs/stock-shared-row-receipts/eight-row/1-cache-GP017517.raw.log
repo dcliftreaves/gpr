@@ -1,0 +1,97 @@
+[    1-ms] Raw Input image: /mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw
+[    1-ms] Vc5 Output file: /mnt/ssd/gpr_work/stock-row-cache-prototype-20261030/measurements/1-cache-GP017517.raw.vc5
+[  106-ms] Encode wall 0.032125 seconds
+[  116-ms] 0 790EA22848253E451B1B0ABD5B9C2A42
+[  116-ms] Workspace used 98068096 bytes
+[  199-ms] Encode wall 0.029894 seconds
+[  210-ms] 1 790EA22848253E451B1B0ABD5B9C2A42
+[  210-ms] Workspace used 98068096 bytes
+[  292-ms] Encode wall 0.029581 seconds
+[  303-ms] 2 790EA22848253E451B1B0ABD5B9C2A42
+[  303-ms] Workspace used 98068096 bytes
+[  385-ms] Encode wall 0.029674 seconds
+[  395-ms] 3 790EA22848253E451B1B0ABD5B9C2A42
+[  395-ms] Workspace used 98068096 bytes
+[  478-ms] Encode wall 0.029925 seconds
+[  489-ms] 4 790EA22848253E451B1B0ABD5B9C2A42
+[  489-ms] Workspace used 98068096 bytes
+[  570-ms] Encode wall 0.029717 seconds
+[  581-ms] 5 790EA22848253E451B1B0ABD5B9C2A42
+[  581-ms] Workspace used 98068096 bytes
+[  663-ms] Encode wall 0.029588 seconds
+[  674-ms] 6 790EA22848253E451B1B0ABD5B9C2A42
+[  674-ms] Workspace used 98068096 bytes
+[  756-ms] Encode wall 0.029193 seconds
+[  768-ms] 7 790EA22848253E451B1B0ABD5B9C2A42
+[  768-ms] Workspace used 98068096 bytes
+[  849-ms] Encode wall 0.029208 seconds
+[  861-ms] 8 790EA22848253E451B1B0ABD5B9C2A42
+[  861-ms] Workspace used 98068096 bytes
+[  943-ms] Encode wall 0.029376 seconds
+[  953-ms] 9 790EA22848253E451B1B0ABD5B9C2A42
+[  953-ms] Workspace used 98068096 bytes
+[ 1036-ms] Encode wall 0.029722 seconds
+[ 1046-ms] 10 790EA22848253E451B1B0ABD5B9C2A42
+[ 1046-ms] Workspace used 98068096 bytes
+[ 1129-ms] Encode wall 0.029547 seconds
+[ 1139-ms] 11 790EA22848253E451B1B0ABD5B9C2A42
+[ 1139-ms] Workspace used 98068096 bytes
+[ 1221-ms] Encode wall 0.029291 seconds
+[ 1232-ms] 12 790EA22848253E451B1B0ABD5B9C2A42
+[ 1232-ms] Workspace used 98068096 bytes
+[ 1314-ms] Encode wall 0.029430 seconds
+[ 1325-ms] 13 790EA22848253E451B1B0ABD5B9C2A42
+[ 1325-ms] Workspace used 98068096 bytes
+[ 1407-ms] Encode wall 0.029333 seconds
+[ 1418-ms] 14 790EA22848253E451B1B0ABD5B9C2A42
+[ 1418-ms] Workspace used 98068096 bytes
+[ 1500-ms] Encode wall 0.029521 seconds
+[ 1511-ms] 15 790EA22848253E451B1B0ABD5B9C2A42
+[ 1511-ms] Workspace used 98068096 bytes
+[ 1593-ms] Encode wall 0.029647 seconds
+[ 1604-ms] 16 790EA22848253E451B1B0ABD5B9C2A42
+[ 1604-ms] Workspace used 98068096 bytes
+[ 1686-ms] Encode wall 0.029536 seconds
+[ 1697-ms] 17 790EA22848253E451B1B0ABD5B9C2A42
+[ 1697-ms] Workspace used 98068096 bytes
+[ 1779-ms] Encode wall 0.029581 seconds
+[ 1790-ms] 18 790EA22848253E451B1B0ABD5B9C2A42
+[ 1790-ms] Workspace used 98068096 bytes
+[ 1872-ms] Encode wall 0.029518 seconds
+[ 1883-ms] 19 790EA22848253E451B1B0ABD5B9C2A42
+[ 1883-ms] Workspace used 98068096 bytes
+[ 1965-ms] Encode wall 0.029513 seconds
+[ 1976-ms] 20 790EA22848253E451B1B0ABD5B9C2A42
+[ 1976-ms] Workspace used 98068096 bytes
+[ 2058-ms] Encode wall 0.029504 seconds
+[ 2068-ms] 21 790EA22848253E451B1B0ABD5B9C2A42
+[ 2068-ms] Workspace used 98068096 bytes
+[ 2150-ms] Encode wall 0.029557 seconds
+[ 2161-ms] 22 790EA22848253E451B1B0ABD5B9C2A42
+[ 2161-ms] Workspace used 98068096 bytes
+[ 2243-ms] Encode wall 0.029461 seconds
+[ 2255-ms] 23 790EA22848253E451B1B0ABD5B9C2A42
+[ 2255-ms] Workspace used 98068096 bytes
+[ 2337-ms] Encode wall 0.029562 seconds
+[ 2348-ms] 24 790EA22848253E451B1B0ABD5B9C2A42
+[ 2348-ms] Workspace used 98068096 bytes
+[ 2430-ms] Encode wall 0.029738 seconds
+[ 2441-ms] 25 790EA22848253E451B1B0ABD5B9C2A42
+[ 2441-ms] Workspace used 98068096 bytes
+[ 2523-ms] Encode wall 0.029607 seconds
+[ 2534-ms] 26 790EA22848253E451B1B0ABD5B9C2A42
+[ 2534-ms] Workspace used 98068096 bytes
+[ 2616-ms] Encode wall 0.029274 seconds
+[ 2626-ms] 27 790EA22848253E451B1B0ABD5B9C2A42
+[ 2626-ms] Workspace used 98068096 bytes
+[ 2709-ms] Encode wall 0.029473 seconds
+[ 2720-ms] 28 790EA22848253E451B1B0ABD5B9C2A42
+[ 2720-ms] Workspace used 98068096 bytes
+[ 2802-ms] Encode wall 0.029427 seconds
+[ 2813-ms] 29 790EA22848253E451B1B0ABD5B9C2A42
+[ 2813-ms] Workspace used 98068096 bytes
+[ 2895-ms] Encode wall 0.029432 seconds
+[ 2905-ms] 30 790EA22848253E451B1B0ABD5B9C2A42
+[ 2905-ms] Workspace used 98068096 bytes
+[ 2905-ms] Encoding 0.082 secs per frame
+[0000000000] VC5 Encoder Version 1.0.0 [ @ ] [Linux][GCC 12.2.0][64 bit] 
