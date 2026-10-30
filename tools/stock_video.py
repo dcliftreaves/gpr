@@ -261,6 +261,8 @@ def main():
     add_arguments(parser)
     import stock_metal
     stock_metal.add_arguments(parser)
+    import stock_native
+    stock_native.add_arguments(parser)
     parser.add_argument('--scale',type=int,choices=(1,2),default=1,help='explicit reconstruction scale')
     parser.add_argument("--reference-raw", type=Path, action="append",
                         help="optional reference replay RAWs in input order, for distortion measurements")
@@ -274,6 +276,9 @@ def main():
                         help="gpr.raw_metadata.v1 default calibration; per-frame/clip raw_metadata overrides it")
     args = parser.parse_args()
     metal=stock_metal.configuration(args)
+    standalone=stock_native.configuration(args)
+    if standalone is not None and (args.action!='restore' or args.cnn_root or args.coreml_package or metal or args.device!='cpu'):
+        parser.error('standalone native requires restore and cannot combine Python backends/devices')
     if metal is not None and args.action!='restore':parser.error('Metal options require restore')
     if args.limit < 0 or args.tile < 8 or args.tile % 8 or args.halo < 0 or args.halo % 8:
         parser.error("invalid frame limit, tile or halo (spatial sizes must be multiples of 8)")
@@ -297,15 +302,19 @@ def main():
     fallback_metadata = decode_metadata(args.metadata_file.read_bytes()) if args.metadata_file else None
     model, model_info = None, None
     if args.action == "restore":
-        import torch
-        device = torch.device(args.device)
-        model, model_info = load_cnn(args.cnn_root, args.checkpoint, device,args.coreml_package,args.coreml_units,metal)
+        if standalone is not None:
+            model_info=stock_native.inspect(args.checkpoint,standalone,args.scale)
+            standalone['contract_sha256']=model_info['artifact_contract_sha256']
+        else:
+            import torch
+            device = torch.device(args.device)
+            model, model_info = load_cnn(args.cnn_root, args.checkpoint, device,args.coreml_package,args.coreml_units,metal)
         if model_info.get('output_scale',1)!=args.scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     if args.out_dir:
         args.out_dir.mkdir(parents=True, exist_ok=False)
     with args.clip.open("rb") as f:
         header = read_header(f)
-        if model is not None and (header["bayer"], header["sample_bits"]) != ("RGGB", 14):
+        if (model is not None or standalone is not None) and (header["bayer"], header["sample_bits"]) != ("RGGB", 14):
             raise ValueError("the current CNN checkpoint adapter requires RGGB14")
         report = dict(schema="gpr.stock_video.inspect.v1", clip_sha256=sha256(args.clip),
                       header={k: v for k, v in header.items() if not k.startswith("_")}, frames=[], cnn=model_info)
@@ -336,22 +345,31 @@ def main():
                     if raw.stat().st_size != header["width"] * header["height"] * 2:
                         raise ValueError("decoded RAW size mismatch")
                     row["raw_sha256"] = sha256(raw)
-                    restored = None
+                    restored = None;restored_data=None
                     if model is not None:
                         restored, elapsed = restore(raw, header["width"], header["height"],
                                                     model, device, args.tile, args.halo,scale=args.scale)
                         path = vc5.with_suffix(".cnn.raw")
                         restored.tofile(path)
+                        restored_data=restored.astype('<u2').tobytes()
                         row.update(cnn_s=elapsed, cnn_sha256=sha256(path),output_width=header['width']*args.scale,
                                    output_height=header['height']*args.scale,output_scale=args.scale)
+                    elif standalone is not None:
+                        path=vc5.with_suffix('.cnn.raw')
+                        restored_data,native_receipt=stock_native.restore(raw,header['width'],header['height'],args.scale,
+                            args.checkpoint,standalone,path,args.tile,args.halo)
+                        report['cnn']=native_receipt['model']
+                        row.update(cnn_s=native_receipt['restore_s'],cnn_sha256=sha256(path),
+                            output_width=header['width']*args.scale,output_height=header['height']*args.scale,
+                            output_scale=args.scale,native_reconstruction=native_receipt)
                     if args.editable in ("dng", "both"):
                         path = vc5.with_suffix(".dng")
                         output_calibration=calibration
-                        if restored is not None:
+                        if restored_data is not None:
                             from stock_cnn_metadata import scaled
                             output_calibration,geometry=scaled(calibration,args.scale)
                             row.update(geometry=geometry,output_metadata_sha256=hashlib.sha256(json.dumps(output_calibration,sort_keys=True,separators=(',',':')).encode()).hexdigest())
-                        raw_media.write(path, output_calibration, restored.astype("<u2").tobytes() if restored is not None else raw.read_bytes())
+                        raw_media.write(path, output_calibration, restored_data if restored_data is not None else raw.read_bytes())
                         row["dng_sha256"] = sha256(path)
                     if args.reference_raw:
                         import numpy as np
@@ -365,6 +383,8 @@ def main():
                                    stock_psnr_db=psnr(np.fromfile(raw, dtype="<u2").reshape(ref.shape)))
                         if restored is not None:
                             row["cnn_psnr_db"] = psnr(restored)
+                        elif restored_data is not None:
+                            row['cnn_psnr_db']=psnr(np.frombuffer(restored_data,dtype='<u2').reshape(ref.shape))
             report["frames"].append(row)
     report["frame_count"] = len(report["frames"])
     report["complete"] = header["_complete"]

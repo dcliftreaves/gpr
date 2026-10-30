@@ -156,12 +156,19 @@ jobs:
         run: |
           xcrun -sdk macosx metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
           cmake -S . -B build-runtime -DGPR_BUILD_METAL_TOOLS=ON
-          cmake --build build-runtime --target gpr_metal --parallel 4
+          cmake --build build-runtime --target gpr_metal gpr_reconstruct --parallel 4
           python tests/stock_metal_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools \
             --bridge build-runtime/gpr_mov --library build-runtime/source/app/stock_metal/libgpr_metal.dylib \
             --kernels build-runtime/source/app/stock_metal/gpr_stock.metallib \
             --decoder build-runtime/source/app/stock_video/stock_video --renderer build-runtime/gpr_render \
             --encoder build-runtime/gpr_prores --probe "$(command -v ffprobe)" --receipt stock-metal-receipt.json
+          python tests/stock_native_test.py --sdk build-runtime/source/app/gpr_tools/gpr_tools \
+            --native build-runtime/source/app/stock_metal/gpr_reconstruct \
+            --library build-runtime/source/app/stock_metal/libgpr_metal.dylib \
+            --kernels build-runtime/source/app/stock_metal/gpr_stock.metallib \
+            --decoder build-runtime/source/app/stock_video/stock_video --bridge build-runtime/gpr_mov \
+            --renderer build-runtime/gpr_render --encoder build-runtime/gpr_prores \
+            --probe "$(command -v ffprobe)" --receipt stock-native-receipt.json
       - name: Stripped builds, relocated packages and public C/C++ clients
         if: matrix.type == 'Release'
         run: python tests/build_profiles.py --work-dir profile-check --full-build build-runtime
@@ -175,6 +182,7 @@ jobs:
             profile-check/receipt.json
             stock-coreml-receipt.json
             stock-metal-receipt.json
+            stock-native-receipt.json
           if-no-files-found: error
   windows:
     name: WindowsNativePackages

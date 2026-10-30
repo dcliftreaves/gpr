@@ -10,7 +10,10 @@ The adapter deliberately uses the current host baseline, checkpoint residual
 scale, tiling and integer conversion. The old GPU post-processing used a
 different bicubic polynomial and a hardcoded 0.01 scale; it is not reused.
 This is a residual-engine port, not a reconstruction-quality approval or the
-old standalone Objective-C application. Torch host processing is still needed.
+old standalone Objective-C application. This Python adapter retains Torch host
+processing; a [standalone native option](stock-native-runtime.md) now removes
+that runtime dependency through a separate raw executable and standard-library
+media adapters.
 
 ## Build, export and select
 

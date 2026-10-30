@@ -6,7 +6,8 @@ through native Core ML and retains the current Torch host baseline, Bayer
 tiling, normalization, clipping and integer rounding. Both 1x cleanup and 2x
 reconstruction are supported. This Python integration still requires Torch;
 it does not recreate the old standalone Objective-C app, MPSGraph implementation
-or custom Metal hybrid kernels.
+or custom Metal hybrid kernels. The [standalone native runtime](stock-native-runtime.md)
+provides a separate Core ML option without Torch/Core ML Tools at runtime.
 
 The original `SuperResCNN.m` at runtime revision
 `8be29eee57b4637865b572f18ab9e3f4edaa2236` also separated native residual

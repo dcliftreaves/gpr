@@ -46,7 +46,14 @@ def metrics(reference, actual, meta):
 def execute(mode, inputs, references, reference_kind, checkpoint, sdk, output_dir,
             capture_quality, output_quality, bridge=None, device='cpu', tile=256, halo=64,
             cnn_root=None, fps_num=24, fps_den=1, dng_export=False, prores=None,
-            input_mode='simulated',coreml_package=None,coreml_units='all',metal=None):
+            input_mode='simulated',coreml_package=None,coreml_units='all',metal=None,native=None):
+    if native is not None:
+        if (mode!='timelapse' or input_mode!='captured_gpr' or references or reference_kind!='camera_gpr_replay'
+                or coreml_package is not None or metal is not None or cnn_root is not None or device!='cpu'):
+            raise ValueError('standalone native upres requires captured-GPR timelapse with no Python backend')
+        import stock_native
+        return stock_native.timelapse(inputs,checkpoint,sdk,output_dir,output_quality,bridge,native,
+            tile,halo,fps_num,fps_den,dng_export,prores)
     import numpy as np
     import tifffile
     import torch
@@ -166,6 +173,8 @@ def main():
     add_arguments(p)
     import stock_metal
     stock_metal.add_arguments(p)
+    import stock_native
+    stock_native.add_arguments(p)
     p.add_argument('--input',dest='inputs',action='append',type=Path,default=[])
     p.add_argument('--input-mode',choices=('simulated','captured_gpr'),default='simulated',
                    help='captured_gpr: feed existing timelapse GPR captures directly to the 2x model; no simulated capture or capture-preset claim')
@@ -183,6 +192,8 @@ def main():
     args=vars(p.parse_args());enabled=args.pop('prores')
     args['metal']=stock_metal.configuration(args)
     for name in stock_metal.ARGUMENTS:args.pop(name)
+    args['native']=stock_native.configuration(args)
+    for name in stock_native.ARGUMENTS:args.pop(name)
     binaries={name:args.pop('prores_'+name) for name in ('decoder','renderer','encoder','probe')}
     if enabled and not all(binaries.values()) or not enabled and any(binaries.values()):p.error('ProRes requires --prores and all four executable paths')
     print(json.dumps(execute(**args,prores=binaries if enabled else None),indent=2))

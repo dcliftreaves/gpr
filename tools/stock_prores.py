@@ -164,10 +164,12 @@ def verify(movie, probe, timing, width, height, profile):
 def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             metadata=None, profile='hq', checkpoint=None, cnn_root=None,
             device='cpu', scale=1, tile=256, halo=64, mov_bridge=None,
-            audio=None, timecode=None, ffmpeg=None,coreml_package=None,coreml_units='all',metal=None):
+            audio=None, timecode=None, ffmpeg=None,coreml_package=None,coreml_units='all',metal=None,native=None):
     started = time.perf_counter()
     if coreml_package is not None and checkpoint is None:raise ValueError('Core ML requires a checkpoint')
     if metal is not None and checkpoint is None:raise ValueError('Metal requires a checkpoint')
+    if native is not None and (checkpoint is None or cnn_root or coreml_package or metal or device!='cpu'):
+        raise ValueError('standalone native requires a checkpoint and cannot combine Python backends/devices')
     source = Path(source).resolve()
     binaries = {k: Path(v).resolve() for k, v in dict(decoder=decoder, renderer=renderer, encoder=encoder, ffprobe=probe).items()}
     if not source.is_file() or any(not path.is_file() for path in binaries.values()):
@@ -224,9 +226,14 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
         gvid_sha = stock_still.digest(gvid)
         model = model_info = None
         if checkpoint:
-            import torch
-            device = torch.device(device)
-            model, model_info = stock_video.load_cnn(cnn_root, checkpoint, device,coreml_package,coreml_units,metal)
+            if native is not None:
+                import stock_native
+                model_info=stock_native.inspect(checkpoint,native,scale)
+                native=dict(native,contract_sha256=model_info['artifact_contract_sha256'])
+            else:
+                import torch
+                device = torch.device(device)
+                model, model_info = stock_video.load_cnn(cnn_root, checkpoint, device,coreml_package,coreml_units,metal)
             if model_info.get('output_scale', 1) != scale:
                 raise ValueError('checkpoint output scale differs from requested scale')
         manifest = dict(schema='gpr.prores_stream.v1', profile=profile, timescale=timing['timescale'],
@@ -257,6 +264,12 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
                         calibration, geometry = scaled(calibration, scale)
                         payload = restored.astype('<u2').tobytes()
                         row.update(cnn_s=elapsed, geometry=geometry)
+                    elif native is not None:
+                        from stock_cnn_metadata import scaled
+                        payload,native_receipt=stock_native.restore(raw,header['width'],header['height'],scale,
+                            checkpoint,native,root/'native.raw',tile,halo)
+                        calibration,geometry=scaled(calibration,scale);model_info=native_receipt['model']
+                        row.update(cnn_s=native_receipt['restore_s'],geometry=geometry,native_reconstruction=native_receipt)
                     row['rendered_raw_sha256'] = hashlib.sha256(payload).hexdigest()
                     row['render_calibration_sha256'] = hashlib.sha256(stock_still.canonical(calibration)).hexdigest()
                     raw_media.write(dng, calibration, payload)
@@ -272,14 +285,15 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
                     row.update(render=rendered, tiff_sha256=stock_still.digest(tiff), mov_pts=pts)
                     rendered_tiff_peak_bytes = max(rendered_tiff_peak_bytes, tiff.stat().st_size)
                     rendered_tiff_total_bytes += tiff.stat().st_size
-                    scratch_image_peak_bytes = max(scratch_image_peak_bytes, sum(path.stat().st_size for path in (vc5, raw, dng, tiff)))
+                    scratch_paths=[vc5,raw,dng,tiff]+([root/'native.raw',root/'native.raw.json'] if native is not None else [])
+                    scratch_image_peak_bytes = max(scratch_image_peak_bytes, sum(path.stat().st_size for path in scratch_paths))
                     next_pts = timing['pts'][row['index']+1] if row['index']+1 < len(rows) else timing['end_pts']
                     stream.append(tiff, pts, next_pts)
-                    for path in (vc5, raw, dng, tiff):
+                    for path in scratch_paths:
                         path.unlink()
             if stock_still.digest(source) != source_sha or stock_still.digest(gvid) != gvid_sha:
                 raise ValueError('source changed during rendering')
-            native = stream.finish()
+            encoded_native = stream.finish()
         auxiliary = None
         if auxiliary_audio is not None or auxiliary_timecode is not None:
             combined = root/'combined.mov'
@@ -292,7 +306,7 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             reencoded=True, profile=profile, color_space='ITU-R BT.709', sdr=True,
             intermediate_bits=16, frames=rows, frame_count=len(rows), cnn=model_info,
             cnn_settings=dict(tile=tile, halo=halo, device=str(device), scale=scale) if model is not None else None,
-            reconstruction_scale=scale, timing=timing, verification=verified, native=native,
+            reconstruction_scale=scale, timing=timing, verification=verified, native=encoded_native,
             auxiliary=auxiliary,
             scratch=dict(rendered_tiff_files_max=1, rendered_tiff_peak_bytes=rendered_tiff_peak_bytes,
                          rendered_tiff_total_bytes=rendered_tiff_total_bytes,
@@ -324,11 +338,15 @@ def main():
     add_arguments(parser)
     import stock_metal
     stock_metal.add_arguments(parser)
+    import stock_native
+    stock_native.add_arguments(parser)
     parser.add_argument('--timecode', help='HH:MM:SS:FF or valid drop-frame HH:MM:SS;FF; defaults to private MOV source label')
     args = parser.parse_args()
     options = vars(args).copy()
     options['metal']=stock_metal.configuration(args)
     for name in stock_metal.ARGUMENTS:options.pop(name)
+    options['native']=stock_native.configuration(args)
+    for name in stock_native.ARGUMENTS:options.pop(name)
     source = options.pop('input')
     options['probe'] = options.pop('ffprobe')
     path = options.pop('metadata_file')

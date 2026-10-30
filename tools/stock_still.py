@@ -150,21 +150,26 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None, gpr_out
     meta,payload=raw_media.extract(source,bits,with_payload=True)
     if meta['width']<48 or meta['height']<48: raise ValueError('still frontend requires Bayer dimensions at least 48')
     output,receipt,gpr_output=outputs(output,receipt,gpr_output)
-    model=model_info=None; output_meta=meta; output_scale=1; geometry=None
+    model=model_info=None; output_meta=meta; output_scale=1; geometry=None;native=None;native_result=None
     if reconstruction is not None:
         if (meta['cfa'],bits)!=('RGGB',14): raise ValueError('current CNN checkpoint adapter requires RGGB14')
         tile,halo=reconstruction['tile'],reconstruction['halo']
         if type(tile) is not int or type(halo) is not int or tile<8 or tile%8 or halo<0 or halo%8:
             raise ValueError('CNN tile/halo must be multiples of eight; tile must be positive')
-        import torch
-        from stock_video import load_cnn, restore
         from stock_cnn_metadata import scaled
         output_scale=reconstruction.get('scale',1)
         output_meta,geometry=scaled(meta,output_scale)
-        device=torch.device(reconstruction['device'])
-        model,model_info=load_cnn(reconstruction.get('root'),Path(reconstruction['checkpoint']),device,
-                                 reconstruction.get('coreml_package'),reconstruction.get('coreml_units','all'),reconstruction.get('metal'))
-        if model_info.get('output_scale',1)!=output_scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
+        native=reconstruction.get('native')
+        if native is not None:
+            if reconstruction.get('root') or reconstruction.get('coreml_package') or reconstruction.get('metal'):
+                raise ValueError('select standalone native or a Python reconstruction backend')
+        else:
+            import torch
+            from stock_video import load_cnn, restore
+            device=torch.device(reconstruction['device'])
+            model,model_info=load_cnn(reconstruction.get('root'),Path(reconstruction['checkpoint']),device,
+                                     reconstruction.get('coreml_package'),reconstruction.get('coreml_units','all'),reconstruction.get('metal'))
+            if model_info.get('output_scale',1)!=output_scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     with tempfile.TemporaryDirectory(prefix='.stock-still-',dir=output.parent) as temp:
         root=Path(temp); private=root/'carrier.gpr'
         raw_media.write(private,carrier(meta),payload,'gpr')
@@ -173,22 +178,30 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None, gpr_out
         if model is not None:
             restored,cnn_s=restore(raw,meta['width'],meta['height'],model,device,tile,halo,scale=output_scale)
             data=restored.astype('<u2').tobytes()
+        elif native is not None:
+            from stock_native import restore as native_restore
+            data,native_result=native_restore(raw,meta['width'],meta['height'],output_scale,reconstruction['checkpoint'],
+                                            native,root/'native.raw',tile,halo)
+            model_info=native_result['model'];cnn_s=native_result['restore_s']
+            if not raw_media.samples_in_domain(data,bits):raise ValueError('native output exceeds declared count domain')
+        restored_sha=hashlib.sha256(data).hexdigest() if reconstruction is not None else None
         dng=root/'editable.dng'; raw_media.write(dng,output_meta,data)
         if gpr_output is not None:
             reconstructed=root/'restored.raw'; reconstructed.write_bytes(data)
         del data
-        result=dict(schema='gpr.stock_still.v1',action='restore' if model is not None else 'decode',cnn=model is not None,
+        result=dict(schema='gpr.stock_still.v1',action='restore' if reconstruction is not None else 'decode',cnn=reconstruction is not None,
                     width=output_meta['width'],height=output_meta['height'],sample_bits=bits,cfa=meta['cfa'],
                     source_sha256=meta['source_sha256'],payload_sha256=hashlib.sha256(payload).hexdigest(),
                     metadata_sha256=hashlib.sha256(canonical(output_meta)).hexdigest(),
                     raw_sha256=raw_sha,output_sha256=digest(dng),sdk_sha256=digest(sdk),
                     decode_process_s=decode_s,elapsed_before_publication_s=time.perf_counter()-start)
-        if model is not None:
-            result.update(model=model_info,cnn_s=cnn_s,restored_raw_sha256=hashlib.sha256(restored.astype('<u2').tobytes()).hexdigest(),
+        if reconstruction is not None:
+            result.update(model=model_info,cnn_s=cnn_s,restored_raw_sha256=restored_sha,
                           source_width=meta['width'],source_height=meta['height'],
                           source_metadata_sha256=hashlib.sha256(canonical(meta)).hexdigest(),geometry=geometry,
                           tile_plane_pixels=tile,halo_plane_pixels=halo,runtime_raw_norm=16383,output_scale=output_scale,
                           quality_approval=False)
+        if native_result is not None:result['native_reconstruction']=native_result
         files=[(dng,output)]
         if gpr_output is not None:
             packaged=root/'restored.gpr'
@@ -231,6 +244,8 @@ def main():
     add_arguments(rec)
     import stock_metal
     stock_metal.add_arguments(rec)
+    import stock_native
+    stock_native.add_arguments(rec)
     rec.add_argument('--tile',type=int,default=256); rec.add_argument('--halo',type=int,default=64)
     rec.add_argument('--gpr-output',type=Path,help='also save reconstructed counts as a newly compressed GPR')
     rec.add_argument('--gpr-quality',type=int,choices=range(6),help='required with --gpr-output; lossy stock preset')
@@ -247,7 +262,7 @@ def main():
     else:
         settings=dict(root=args.cnn_root,checkpoint=args.checkpoint,device=args.device,tile=args.tile,halo=args.halo,scale=args.scale,
                       coreml_package=args.coreml_package,coreml_units=args.coreml_units,
-                      metal=stock_metal.configuration(args)) if args.action=='restore' else None
+                      metal=stock_metal.configuration(args),native=stock_native.configuration(args)) if args.action=='restore' else None
         result=decode(args.input,args.sample_bits,args.sdk,args.output,args.receipt,settings,
                       getattr(args,'gpr_output',None),getattr(args,'gpr_quality',None))
     print(json.dumps(result,indent=2))

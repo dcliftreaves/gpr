@@ -82,7 +82,7 @@ def main():
         tools = prefix/'share/gpr/tools'
         run([sys.executable,tools/'stock_preview.py','--help'],dest/'installed-preview-prepare-help.log')
         run([sys.executable,'-c',
-             "import ast,sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); import stock_cnn_metadata,stock_sequence,stock_upres,stock_coreml,stock_metal; ast.parse((Path(sys.argv[1])/'stock_cnn_models.py').read_text()); assert 'torch' not in sys.modules and 'coremltools' not in sys.modules",
+             "import ast,sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); import stock_cnn_metadata,stock_sequence,stock_upres,stock_coreml,stock_metal,stock_native; ast.parse((Path(sys.argv[1])/'stock_cnn_models.py').read_text()); assert 'torch' not in sys.modules and 'coremltools' not in sys.modules",
              tools],dest/'installed-optional-cnn-contract.log')
         inspected = run([sys.executable, tools/'stock_video.py', 'inspect', root/'tests/fixtures/stock_preview/container-v3.gvid'], dest/'python-inspect.log')
         report = json.loads(inspected.stdout)
@@ -165,7 +165,7 @@ def main():
             if doc.is_dir(): shutil.copytree(doc, src/'docs'/doc.name)
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
-        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_preview.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py', 'stock_av.py', 'stock_coreml.py', 'stock_metal.py', 'stock_sequence.py', 'stock_upres.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_preview.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py', 'stock_av.py', 'stock_coreml.py', 'stock_metal.py', 'stock_native.py', 'stock_sequence.py', 'stock_upres.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
         shutil.copytree(root/'tools/ffmpeg_stock',src/'tools/ffmpeg_stock',ignore=shutil.ignore_patterns('__pycache__'))
         (src/'source/app').mkdir(parents=True)
         shutil.copy2(root/'source/app/gpr_mov.cpp',src/'source/app/gpr_mov.cpp')

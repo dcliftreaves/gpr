@@ -70,7 +70,7 @@ foreach(app gpr_tools vc5_encoder_app vc5_decoder_app gpr_capture_app gpr_previe
   endif()
 endforeach()
 install(FILES tools/stock_video.py tools/raw_media.py tools/stock_still.py tools/stock_mov.py tools/stock_prores.py tools/stock_preview.py
-  tools/stock_cnn_models.py tools/stock_cnn_metadata.py tools/stock_coreml.py tools/stock_metal.py tools/stock_sequence.py tools/stock_upres.py DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools)
+  tools/stock_cnn_models.py tools/stock_cnn_metadata.py tools/stock_coreml.py tools/stock_metal.py tools/stock_native.py tools/stock_sequence.py tools/stock_upres.py DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools)
 install(FILES tools/stock_av.py DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools)
 install(FILES tools/ffmpeg_stock/build.py tools/ffmpeg_stock/gpr_stock.c
   DESTINATION ${CMAKE_INSTALL_DATADIR}/gpr/tools/ffmpeg_stock)
