@@ -1,0 +1,33 @@
+{
+  "schema": "gpr.entropy_handoff_standalone.v1",
+  "base": "a00ae4a",
+  "scope": "standalone public encoder with malloc/free per encode, no preview/capture/writer; every payload compared to independent frozen reference; first five excluded from timing medians",
+  "binary_sha256": "0d3f771cc48c18d9a3940226ecb378c24f543c0aa325aaf1a0c81d61e14346c2",
+  "source_sha256": {
+    "source/lib/vc5_encoder/encoder.c": "c506ae52c6b3c83c071657a8e70dda1527275d4714a9f6dc43a6bb93b54abd77",
+    "source/lib/vc5_encoder/entropy_handoff.h": "4887d7319f939b7845d64fba79a1cb0fe6f05b82cb3970e0000bbf01865965cf",
+    "tests/entropy_handoff_benchmark.c": "5297d3be80529efd76d25bc6764548736b853e39c5aaddb4b6c10bd5f0defa14"
+  },
+  "order": [
+    "baseline",
+    "handoff",
+    "handoff",
+    "baseline"
+  ],
+  "iterations": 41,
+  "discard": 5,
+  "inputs": [
+    {
+      "path": "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+      "sha256": "e75aea542a2da413ff097bd1f1825b20e8723e56b1cda257ea4da4b8ed1121d9",
+      "reference": "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+      "reference_sha256": "bd1966d35be26afdd5d676473427245f80d884bee911ed1c7c2c4ecbe93023b8"
+    },
+    {
+      "path": "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+      "sha256": "6b286a10e816887c044640f220667173e7c0ccf31bb268ebb2b494e06ccb87c4",
+      "reference": "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+      "reference_sha256": "13626758bf6bf1262412ad308ed07ccb6b5f3557d7d2356c6b5e6a02816ceddb"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "complete": true,
+  "protocol_sha256": "cb8abf3a7fccae766b64c357419fd620a083222e28ff891b54a1732d69c3daf1",
+  "rows": [
+    {
+      "index": 0,
+      "mode": "baseline",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "0",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 24.916104040999997
+    },
+    {
+      "index": 0,
+      "mode": "baseline",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "0",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 18.991193734
+    },
+    {
+      "index": 1,
+      "mode": "handoff",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "1",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 25.778932497
+    },
+    {
+      "index": 1,
+      "mode": "handoff",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "1",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 21.147943102
+    },
+    {
+      "index": 2,
+      "mode": "handoff",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "1",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 25.127319618999998
+    },
+    {
+      "index": 2,
+      "mode": "handoff",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "1",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 20.836191251499997
+    },
+    {
+      "index": 3,
+      "mode": "baseline",
+      "source": 0,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5",
+        "0",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 24.454455823
+    },
+    {
+      "index": 3,
+      "mode": "baseline",
+      "source": 1,
+      "command": [
+        "/mnt/ssd/gpr_work/stock-entropy-handoff-rows32-20261030/build/entropy_handoff_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5",
+        "0",
+        "41"
+      ],
+      "all_payloads_exact": true,
+      "median_encode_ms": 21.553590894000003
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "zero",
+    "environment": {
+      "GPR_PROBE_PATTERN": "0"
+    },
+    "command": [
+      "ctest",
+      "--test-dir",
+      "build-experiment",
+      "--output-on-failure",
+      "-R",
+      "encoder_preview_(probe|matrix)_fast"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "maximum",
+    "environment": {
+      "GPR_PROBE_PATTERN": "1"
+    },
+    "command": [
+      "ctest",
+      "--test-dir",
+      "build-experiment",
+      "--output-on-failure",
+      "-R",
+      "encoder_preview_(probe|matrix)_fast"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "sparse",
+    "environment": {
+      "GPR_PROBE_PATTERN": "2"
+    },
+    "command": [
+      "ctest",
+      "--test-dir",
+      "build-experiment",
+      "--output-on-failure",
+      "-R",
+      "encoder_preview_(probe|matrix)_fast"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "no-created-threads",
+    "environment": {
+      "GPR_HANDOFF_NO_THREADS": "1"
+    },
+    "command": [
+      "ctest",
+      "--test-dir",
+      "build-experiment",
+      "--output-on-failure",
+      "-R",
+      "encoder_preview_(probe|matrix)_fast"
+    ],
+    "returncode": 0
+  }
+]

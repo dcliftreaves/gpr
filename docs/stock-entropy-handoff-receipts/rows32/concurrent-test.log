@@ -1,0 +1,1 @@
+PASS: 49 disabled references, 392 exact enabled encodes across four simultaneous callers, helpers and no-created-thread fallback, including >1MiB ring capacity fallback

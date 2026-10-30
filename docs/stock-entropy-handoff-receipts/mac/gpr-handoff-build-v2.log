@@ -1,0 +1,38 @@
+[  2%] Built target md5_lib
+[ 10%] Built target common
+[ 14%] Built target gpr_gvid
+[ 18%] Built target argument_parser
+[ 32%] Built target vc5_common
+[ 36%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/encoder.c.o
+[ 49%] Built target vc5_decoder
+[ 50%] Building C object CMakeFiles/decoder_bounds_test.dir/tests/decoder_bounds.c.o
+[ 53%] Built target vc5_decoder_app
+[ 57%] Built target gpr_preview
+[ 58%] Linking CXX executable decoder_bounds_test
+[ 61%] Built target preview_contract_test
+[ 64%] Built target gpr_preview_app
+[ 66%] Built target preview_wavelet_queue_test
+[ 69%] Built target preview_queue_test
+[ 70%] Linking CXX static library libvc5_encoder.a
+[ 84%] Built target vc5_encoder
+[ 86%] Building C object CMakeFiles/encoder_bounds_test.dir/tests/encoder_bounds.c.o
+[ 86%] Building C object CMakeFiles/encoder_preview_probe.dir/tests/encoder_preview_probe.c.o
+[ 89%] Built target gpr_video
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 90%] Building CXX object CMakeFiles/bayer_formats_test.dir/tests/bayer_formats.cpp.o
+[ 90%] Built target decoder_bounds_test
+[ 92%] Linking CXX executable encoder_bounds_test
+[ 93%] Linking CXX executable encoder_preview_probe
+[ 94%] Linking CXX executable vc5_encoder_app
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 94%] Built target encoder_bounds_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 94%] Built target encoder_preview_probe
+[ 96%] Linking CXX executable gpr_capture_app
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[ 97%] Built target vc5_encoder_app
+[ 98%] Linking CXX executable bayer_formats_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[100%] Built target gpr_capture_app
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[100%] Built target bayer_formats_test

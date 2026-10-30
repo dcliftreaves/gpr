@@ -1,0 +1,10 @@
+Internal ctest changing into directory: /mnt/ssd/gpr_work/stock-entropy-handoff-prototype-20261030/build
+Test project /mnt/ssd/gpr_work/stock-entropy-handoff-prototype-20261030/build
+    Start 7: encoder_preview_probe_fast
+1/2 Test #7: encoder_preview_probe_fast .......   Passed    0.01 sec
+    Start 9: encoder_preview_matrix_fast
+2/2 Test #9: encoder_preview_matrix_fast ......   Passed    0.33 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.34 sec

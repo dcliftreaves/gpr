@@ -156,3 +156,13 @@ the unrestricted case. Dispatch/join delays are small; sampled entropy coding
 is the largest process-wide hot symbol. This supplies direction for finer
 work-distribution investigation, not a production scheduling change or a
 closed timing gate.
+
+The [bounded entropy handoff](stock-entropy-handoff.md) implements helper
+work-sharing with exact per-band state and fixed storage. Mac/Pi matrix,
+concurrency and fallback checks pass, as do 2,400 captured payloads/previews.
+Eight-row standalone comparisons are slower; 32-row chunks still fail to
+establish a consistent benefit. Both prototypes are rejected and local tracked
+source is restored. Production and the strict timing gate remain unchanged.
+All seven hosted jobs pass at `a00ae4a`
+([receipt](stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
+commits need their own hosted results.

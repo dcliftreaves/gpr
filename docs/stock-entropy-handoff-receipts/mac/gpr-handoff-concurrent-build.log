@@ -1,0 +1,7 @@
+[ 20%] Built target common
+[ 53%] Built target vc5_common
+[ 93%] Built target vc5_encoder
+[ 96%] Building C object CMakeFiles/entropy_handoff_concurrency_test.dir/tests/entropy_handoff_concurrency.c.o
+[100%] Linking CXX executable entropy_handoff_concurrency_test
+ld: warning: reducing alignment of section __DATA,__common from 0x8000 to 0x4000 because it exceeds segment maximum alignment
+[100%] Built target entropy_handoff_concurrency_test

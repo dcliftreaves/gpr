@@ -1,0 +1,31 @@
+[ 10%] Building C object source/lib/common/CMakeFiles/common.dir/private/gpr_allocator.c.o
+[ 14%] Building CXX object source/lib/common/CMakeFiles/common.dir/private/gpr_buffer_auto.cpp.o
+[ 14%] Building C object source/lib/common/CMakeFiles/common.dir/private/log.c.o
+[ 14%] Building C object source/lib/common/CMakeFiles/common.dir/private/gpr_buffer.c.o
+[ 17%] Building C object source/lib/common/CMakeFiles/common.dir/private/timer.c.o
+[ 21%] Linking CXX static library libcommon.a
+[ 21%] Built target common
+[ 35%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/companding.c.o
+[ 35%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/bitstream.c.o
+[ 35%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/image.c.o
+[ 35%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/codec.c.o
+[ 42%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/stream.c.o
+[ 42%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/logcurve.c.o
+[ 46%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/syntax.c.o
+[ 50%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/utilities.c.o
+[ 53%] Building C object source/lib/vc5_common/CMakeFiles/vc5_common.dir/wavelet.c.o
+[ 57%] Linking CXX static library libvc5_common.a
+[ 57%] Built target vc5_common
+[ 71%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/encoder.c.o
+[ 71%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/codebooks.c.o
+[ 71%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/component.c.o
+[ 71%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/forward.c.o
+[ 75%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/parameters.c.o
+[ 78%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/raw.c.o
+[ 82%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/sections.c.o
+[ 85%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/syntax.c.o
+[ 89%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/vc5_encoder.c.o
+[ 92%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/vlc.c.o
+[ 96%] Building ASM object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/stock_unpack_arm64.S.o
+[100%] Linking CXX static library libvc5_encoder.a
+[100%] Built target vc5_encoder
