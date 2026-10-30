@@ -1,0 +1,573 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e384ba8..4f1b01c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -353,6 +353,11 @@ if(GPR_BUILD_CODEC_TESTS)
+   add_executable(encoder_bounds_test tests/encoder_bounds.c)
+   target_link_libraries(encoder_bounds_test vc5_encoder)
+   add_executable(decoder_bounds_test tests/decoder_bounds.c)
++  add_executable(prepared_inverse_test tests/prepared_inverse.c)
++  target_link_libraries(prepared_inverse_test vc5_decoder)
++  target_include_directories(prepared_inverse_test PRIVATE source/lib/common/private)
++  add_test(NAME prepared_inverse COMMAND prepared_inverse_test)
++  set_tests_properties(prepared_inverse PROPERTIES TIMEOUT 60)
+   add_executable(encoder_preview_probe tests/encoder_preview_probe.c)
+   target_link_libraries(encoder_preview_probe vc5_encoder vc5_decoder)
+   target_include_directories(encoder_preview_probe PRIVATE source/lib/common/private source/lib/vc5_encoder)
+diff --git a/source/lib/vc5_decoder/inverse.c b/source/lib/vc5_decoder/inverse.c
+index fcb58e6..e0b18e1 100755
+--- a/source/lib/vc5_decoder/inverse.c
++++ b/source/lib/vc5_decoder/inverse.c
+@@ -364,7 +364,7 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
+ 	Special formulas for the inverse vertical filter are applied to the top
+ 	and bottom rows.
+  */
+-CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
++static CODEC_ERROR InvertSpatialQuant16sCore(gpr_allocator *allocator,
+                                   PIXEL *lowlow_band, int lowlow_pitch,
+                                   PIXEL *lowhigh_band, int lowhigh_pitch,
+                                   PIXEL *highlow_band, int highlow_pitch,
+@@ -372,7 +372,7 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+                                   PIXEL *output_image, int output_pitch,
+                                   DIMENSION input_width, DIMENSION input_height,
+                                   DIMENSION output_width, DIMENSION output_height,
+-                                  QUANT quantization[])
++                                  QUANT quantization[], int prepared)
+ {
+     PIXEL *lowlow = (PIXEL *)lowlow_band;
+     PIXEL *lowhigh = lowhigh_band;
+@@ -395,9 +395,9 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     PIXEL *highlow_line;
+     PIXEL *highhigh_line;
+     
+-    QUANT highlow_quantization = quantization[HL_BAND];
+-    QUANT lowhigh_quantization = quantization[LH_BAND];
+-    QUANT highhigh_quantization = quantization[HH_BAND];
++    QUANT highlow_quantization = prepared ? 1:quantization[HL_BAND];
++    QUANT lowhigh_quantization = prepared ? 1:quantization[LH_BAND];
++    QUANT highhigh_quantization = prepared ? 1:quantization[HH_BAND];
+     
+     // Compute positions within the temporary buffer for each row of horizontal lowpass
+     // and highpass intermediate coefficients computed by the vertical inverse transform
+@@ -410,13 +410,17 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     odd_highpass = (PIXEL *)allocator->Alloc(buffer_row_size);
+     
+     // Compute the positions of the dequantized highpass rows
+-    lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++    lowhigh_line[0] = lowhigh_line[1] = lowhigh_line[2] = NULL;
++    highlow_line = highhigh_line = NULL;
++    if (!prepared) {
++        lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++        highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++    }
+     if (!even_lowpass || !even_highpass || !odd_lowpass || !odd_highpass ||
+-        !lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line) {
++        (!prepared && (!lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line))) {
+         if (even_lowpass) allocator->Free(even_lowpass);
+         if (even_highpass) allocator->Free(even_highpass);
+         if (odd_lowpass) allocator->Free(odd_lowpass);
+@@ -449,13 +453,20 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     lowhigh_row[2] = lowhigh + 2 * lowhigh_pitch;
+     
+     // Dequantize three rows of highpass coefficients in the first highpass band
+-    DequantizeBandRow16s(lowhigh_row[0], input_width, lowhigh_quantization, lowhigh_line[0]);
+-    DequantizeBandRow16s(lowhigh_row[1], input_width, lowhigh_quantization, lowhigh_line[1]);
+-    DequantizeBandRow16s(lowhigh_row[2], input_width, lowhigh_quantization, lowhigh_line[2]);
++    if (prepared) {
++        for (unsigned i=0;i<3;++i) lowhigh_line[i]=lowhigh_row[i];
++    } else {
++        DequantizeBandRow16s(lowhigh_row[0], input_width, lowhigh_quantization, lowhigh_line[0]);
++        DequantizeBandRow16s(lowhigh_row[1], input_width, lowhigh_quantization, lowhigh_line[1]);
++        DequantizeBandRow16s(lowhigh_row[2], input_width, lowhigh_quantization, lowhigh_line[2]);
++    }
+     
+     // Dequantize one row of coefficients each in the second and third highpass bands
+-    DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-    DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++    else {
++        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    }
+     
+     for (column = 0; column < input_width; column++)
+     {
+@@ -553,8 +564,11 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     for (; row < last_row; row++)
+     {
+         // Dequantize one row from each of the two highpass bands
+-        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++        if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++        else {
++            DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++            DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++        }
+         
+         // Process the entire row
+         for (column = 0; column < input_width; column++)
+@@ -654,14 +668,20 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+             PIXEL *lowhigh_row_ptr = (lowhigh + 2 * lowhigh_pitch);
+             //PIXEL *lowhigh_row_ptr = (lowhigh + lowhigh_pitch);
+             
+-            // Shift the rows in the buffer of dequantized lowhigh bands
+-            PIXEL *temp = lowhigh_line[0];
+-            lowhigh_line[0] = lowhigh_line[1];
+-            lowhigh_line[1] = lowhigh_line[2];
+-            lowhigh_line[2] = temp;
++            if (prepared) {
++                lowhigh_line[0]=lowhigh;
++                lowhigh_line[1]=lowhigh+lowhigh_pitch;
++                lowhigh_line[2]=lowhigh+2*lowhigh_pitch;
++            } else {
++                // Shift the rows in the buffer of dequantized lowhigh bands
++                PIXEL *temp = lowhigh_line[0];
++                lowhigh_line[0] = lowhigh_line[1];
++                lowhigh_line[1] = lowhigh_line[2];
++                lowhigh_line[2] = temp;
+             
+-            // Undo quantization for the next row in the lowhigh band
+-            DequantizeBandRow16s(lowhigh_row_ptr, input_width, lowhigh_quantization, lowhigh_line[2]);
++                // Undo quantization for the next row in the lowhigh band
++                DequantizeBandRow16s(lowhigh_row_ptr, input_width, lowhigh_quantization, lowhigh_line[2]);
++            }
+         }
+     }
+     
+@@ -678,8 +698,11 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     assert(highhigh == (highhigh_band + last_row * highhigh_pitch));
+     
+     // Undo quantization for the highlow and highhigh bands
+-    DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-    DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++    else {
++        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    }
+     
+     // Apply the vertical border filter to the last row
+     for (column = 0; column < input_width; column++)
+@@ -773,11 +796,14 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+     allocator->Free(odd_lowpass);
+     allocator->Free(odd_highpass);
+     
+-    allocator->Free(lowhigh_line[0]);
+-    allocator->Free(lowhigh_line[1]);
+-    allocator->Free(lowhigh_line[2]);
+-    allocator->Free(highlow_line);
+-    allocator->Free(highhigh_line);
++    // Prepared highpass rows are borrowed, not scratch allocations.
++    if (!prepared) {
++        allocator->Free(lowhigh_line[0]);
++        allocator->Free(lowhigh_line[1]);
++        allocator->Free(lowhigh_line[2]);
++        allocator->Free(highlow_line);
++        allocator->Free(highhigh_line);
++    }
+     
+     return CODEC_ERROR_OKAY;
+ }
+@@ -787,7 +813,7 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
+ 	This routine is similar to @ref InvertSpatialQuant16s, but a scale factor
+ 	that was applied during encoding is removed from the output values.
+  */
+-CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
++static CODEC_ERROR InvertSpatialQuantDescale16sCore(gpr_allocator *allocator,
+                                          PIXEL *lowlow_band, int lowlow_pitch,
+                                          PIXEL *lowhigh_band, int lowhigh_pitch,
+                                          PIXEL *highlow_band, int highlow_pitch,
+@@ -795,7 +821,7 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+                                          PIXEL *output_image, int output_pitch,
+                                          DIMENSION input_width, DIMENSION input_height,
+                                          DIMENSION output_width, DIMENSION output_height,
+-                                         int descale, QUANT quantization[])
++                                         int descale, QUANT quantization[], int prepared)
+ {
+     PIXEL *lowlow = lowlow_band;
+     PIXEL *lowhigh = lowhigh_band;
+@@ -818,9 +844,9 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     PIXEL *highlow_line;
+     PIXEL *highhigh_line;
+     
+-    QUANT highlow_quantization = quantization[HL_BAND];
+-    QUANT lowhigh_quantization = quantization[LH_BAND];
+-    QUANT highhigh_quantization = quantization[HH_BAND];
++    QUANT highlow_quantization = prepared ? 1:quantization[HL_BAND];
++    QUANT lowhigh_quantization = prepared ? 1:quantization[LH_BAND];
++    QUANT highhigh_quantization = prepared ? 1:quantization[HH_BAND];
+     
+     // Compute positions within the temporary buffer for each row of horizontal lowpass
+     // and highpass intermediate coefficients computed by the vertical inverse transform
+@@ -833,13 +859,17 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     odd_highpass = (PIXEL *)allocator->Alloc(buffer_row_size);
+     
+     // Allocate scratch space for the dequantized highpass coefficients
+-    lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
+-    highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++    lowhigh_line[0] = lowhigh_line[1] = lowhigh_line[2] = NULL;
++    highlow_line = highhigh_line = NULL;
++    if (!prepared) {
++        lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
++        highlow_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++        highhigh_line = (PIXEL *)allocator->Alloc(buffer_row_size);
++    }
+     if (!even_lowpass || !even_highpass || !odd_lowpass || !odd_highpass ||
+-        !lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line) {
++        (!prepared && (!lowhigh_line[0] || !lowhigh_line[1] || !lowhigh_line[2] || !highlow_line || !highhigh_line))) {
+         if (even_lowpass) allocator->Free(even_lowpass);
+         if (even_highpass) allocator->Free(even_highpass);
+         if (odd_lowpass) allocator->Free(odd_lowpass);
+@@ -872,13 +902,20 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     lowhigh_row[2] = lowhigh + 2 * lowhigh_pitch;
+     
+     // Dequantize three rows of highpass coefficients in the first highpass band
+-    DequantizeBandRow16s(lowhigh_row[0], input_width, lowhigh_quantization, lowhigh_line[0]);
+-    DequantizeBandRow16s(lowhigh_row[1], input_width, lowhigh_quantization, lowhigh_line[1]);
+-    DequantizeBandRow16s(lowhigh_row[2], input_width, lowhigh_quantization, lowhigh_line[2]);
++    if (prepared) {
++        for (unsigned i=0;i<3;++i) lowhigh_line[i]=lowhigh_row[i];
++    } else {
++        DequantizeBandRow16s(lowhigh_row[0], input_width, lowhigh_quantization, lowhigh_line[0]);
++        DequantizeBandRow16s(lowhigh_row[1], input_width, lowhigh_quantization, lowhigh_line[1]);
++        DequantizeBandRow16s(lowhigh_row[2], input_width, lowhigh_quantization, lowhigh_line[2]);
++    }
+     
+     // Dequantize one row of coefficients each in the second and third highpass bands
+-    DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-    DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++    else {
++        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    }
+     
+     for (column = 0; column < input_width; column++)
+     {
+@@ -979,8 +1016,11 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     for (; row < last_row; row++)
+     {
+         // Dequantize one row from each of the two highpass bands
+-        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++        if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++        else {
++            DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++            DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++        }
+         
+         // Process the entire row
+         for (column = 0; column < input_width; column++)
+@@ -1082,14 +1122,20 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+             // Compute the address of the next row in the lowhigh band
+             PIXEL *lowhigh_row_ptr = (lowhigh + 2 * lowhigh_pitch);
+             
+-            // Shift the rows in the buffer of dequantized lowhigh bands
+-            PIXEL *temp = lowhigh_line[0];
+-            lowhigh_line[0] = lowhigh_line[1];
+-            lowhigh_line[1] = lowhigh_line[2];
+-            lowhigh_line[2] = temp;
++            if (prepared) {
++                lowhigh_line[0]=lowhigh;
++                lowhigh_line[1]=lowhigh+lowhigh_pitch;
++                lowhigh_line[2]=lowhigh+2*lowhigh_pitch;
++            } else {
++                // Shift the rows in the buffer of dequantized lowhigh bands
++                PIXEL *temp = lowhigh_line[0];
++                lowhigh_line[0] = lowhigh_line[1];
++                lowhigh_line[1] = lowhigh_line[2];
++                lowhigh_line[2] = temp;
+             
+-            // Undo quantization for the next row in the lowhigh band
+-            DequantizeBandRow16s(lowhigh_row_ptr, input_width, lowhigh_quantization, lowhigh_line[2]);
++                // Undo quantization for the next row in the lowhigh band
++                DequantizeBandRow16s(lowhigh_row_ptr, input_width, lowhigh_quantization, lowhigh_line[2]);
++            }
+         }
+     }
+     
+@@ -1106,8 +1152,11 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     assert(highhigh == (highhigh_band + last_row * highhigh_pitch));
+     
+     // Undo quantization for the highlow and highhigh bands
+-    DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
+-    DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    if (prepared) {highlow_line=highlow;highhigh_line=highhigh;}
++    else {
++        DequantizeBandRow16s(highlow, input_width, highlow_quantization, highlow_line);
++        DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
++    }
+     
+     // Apply the vertical border filter to the last row
+     for (column = 0; column < input_width; column++)
+@@ -1203,12 +1252,62 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
+     allocator->Free(odd_lowpass);
+     allocator->Free(odd_highpass);
+     
+-    allocator->Free(lowhigh_line[0]);
+-    allocator->Free(lowhigh_line[1]);
+-    allocator->Free(lowhigh_line[2]);
+-    allocator->Free(highlow_line);
+-    allocator->Free(highhigh_line);
++    // Prepared highpass rows are borrowed, not scratch allocations.
++    if (!prepared) {
++        allocator->Free(lowhigh_line[0]);
++        allocator->Free(lowhigh_line[1]);
++        allocator->Free(lowhigh_line[2]);
++        allocator->Free(highlow_line);
++        allocator->Free(highhigh_line);
++    }
+     
+     return CODEC_ERROR_OKAY;
+ }
+ 
++
++CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
++                                  PIXEL *lowlow_band, int lowlow_pitch,
++                                  PIXEL *lowhigh_band, int lowhigh_pitch,
++                                  PIXEL *highlow_band, int highlow_pitch,
++                                  PIXEL *highhigh_band, int highhigh_pitch,
++                                  PIXEL *output_image, int output_pitch,
++                                  DIMENSION input_width, DIMENSION input_height,
++                                  DIMENSION output_width, DIMENSION output_height,
++                                  QUANT quantization[]) {
++    return InvertSpatialQuant16sCore(allocator,lowlow_band,lowlow_pitch,lowhigh_band,lowhigh_pitch,
++        highlow_band,highlow_pitch,highhigh_band,highhigh_pitch,output_image,output_pitch,
++        input_width,input_height,output_width,output_height,quantization,0);
++}
++
++CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
++                                         PIXEL *lowlow_band, int lowlow_pitch,
++                                         PIXEL *lowhigh_band, int lowhigh_pitch,
++                                         PIXEL *highlow_band, int highlow_pitch,
++                                         PIXEL *highhigh_band, int highhigh_pitch,
++                                         PIXEL *output_image, int output_pitch,
++                                         DIMENSION input_width, DIMENSION input_height,
++                                         DIMENSION output_width, DIMENSION output_height,
++                                         int descale, QUANT quantization[]) {
++    return InvertSpatialQuantDescale16sCore(allocator,lowlow_band,lowlow_pitch,lowhigh_band,lowhigh_pitch,
++        highlow_band,highlow_pitch,highhigh_band,highhigh_pitch,output_image,output_pitch,
++        input_width,input_height,output_width,output_height,descale,quantization,0);
++}
++
++/* Explicit internal path: highpass bands already contain exact saturated
++ * dequantized values. Input planes remain borrowed throughout the inverse. */
++CODEC_ERROR InvertSpatialPrepared16s(gpr_allocator *allocator,
++                                  PIXEL *lowlow_band, int lowlow_pitch,
++                                  PIXEL *lowhigh_band, int lowhigh_pitch,
++                                  PIXEL *highlow_band, int highlow_pitch,
++                                  PIXEL *highhigh_band, int highhigh_pitch,
++                                  PIXEL *output_image, int output_pitch,
++                                  DIMENSION input_width, DIMENSION input_height,
++                                  DIMENSION output_width, DIMENSION output_height, int prescale) {
++    if (prescale==0) return InvertSpatialQuant16sCore(allocator,lowlow_band,lowlow_pitch,lowhigh_band,lowhigh_pitch,
++        highlow_band,highlow_pitch,highhigh_band,highhigh_pitch,output_image,output_pitch,
++        input_width,input_height,output_width,output_height,NULL,1);
++    if (prescale==2) return InvertSpatialQuantDescale16sCore(allocator,lowlow_band,lowlow_pitch,lowhigh_band,lowhigh_pitch,
++        highlow_band,highlow_pitch,highhigh_band,highhigh_pitch,output_image,output_pitch,
++        input_width,input_height,output_width,output_height,prescale,NULL,1);
++    return CODEC_ERROR_BAD_ARGUMENT;
++}
+diff --git a/source/lib/vc5_decoder/inverse.h b/source/lib/vc5_decoder/inverse.h
+index 0d8d77c..7e79c72 100755
+--- a/source/lib/vc5_decoder/inverse.h
++++ b/source/lib/vc5_decoder/inverse.h
+@@ -44,6 +44,16 @@ extern "C" {
+                                              //ROI roi, PIXEL *buffer, size_t buffer_size,
+                                              int descale, QUANT quantization[]);
+ 
++/* Internal path for already dequantized highpass bands; inputs stay borrowed. */
++CODEC_ERROR InvertSpatialPrepared16s(gpr_allocator *allocator,
++                                  PIXEL *lowlow_band, int lowlow_pitch,
++                                  PIXEL *lowhigh_band, int lowhigh_pitch,
++                                  PIXEL *highlow_band, int highlow_pitch,
++                                  PIXEL *highhigh_band, int highhigh_pitch,
++                                  PIXEL *output_image, int output_pitch,
++                                  DIMENSION input_width, DIMENSION input_height,
++                                  DIMENSION output_width, DIMENSION output_height, int prescale);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/source/lib/vc5_decoder/vc5_decoder.c b/source/lib/vc5_decoder/vc5_decoder.c
+index 0c8a636..1d63169 100755
+--- a/source/lib/vc5_decoder/vc5_decoder.c
++++ b/source/lib/vc5_decoder/vc5_decoder.c
+@@ -209,6 +209,14 @@ CODEC_ERROR vc5_decoder_process_wavelet_channel(
+                                         wavelet_buffer, (int)channel);
+ }
+ 
++static CODEC_ERROR inverse_prepared(gpr_allocator *allocator,WAVELET *input,
++    PIXEL *output,DIMENSION width,DIMENSION height,size_t pitch,unsigned prescale)
++{
++    return InvertSpatialPrepared16s(allocator,input->data[0],input->pitch,
++        input->data[1],input->pitch,input->data[2],input->pitch,input->data[3],input->pitch,
++        output,(int)pitch,input->width,input->height,width,height,(int)prescale);
++}
++
+ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
+     gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3],int selected)
+ {
+@@ -216,6 +224,7 @@ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
+     gpr_allocator allocator={mem_alloc,mem_free};
+     CODEC_ERROR error=CODEC_ERROR_OKAY;
+     int16_t cubic[1025];
++    uint16_t expanded[1024];
+     if (!input || !mem_alloc || !mem_free || !planes ||
+         input->sensor_width<48 || input->sensor_height<48 ||
+         input->sensor_width>UINT16_MAX || input->sensor_height>UINT16_MAX ||
+@@ -239,6 +248,7 @@ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
+         }
+     }
+     ComputeCubicTable(cubic,1025,255);
++    for (unsigned m=0;m<1024;++m) expanded[m]=(uint16_t)UncompandedValue(cubic[m]);
+     for (unsigned channel=selected<0 ? 0:(unsigned)selected;channel<(selected<0 ? 3:(unsigned)selected+1);++channel) {
+         // Only intermediate levels need four bands. The final inverse writes
+         // directly to the caller-owned packed output, avoiding a full-plane
+@@ -252,25 +262,34 @@ static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
+             const vc5_preview_level *source=&input->channels[channel][stage-1];
+             for (unsigned band=stage==2 ? 0:1;band<4;++band) {
+                 levels[stage]->quant[band]=(QUANT)source->quant[band];
++                PIXEL dequantized[2048];
++                if (band) for (unsigned m=0;m<1024;++m) {
++                    int32_t value=(int32_t)expanded[m]*source->quant[band];
++                    dequantized[m]=ClampPixel(value);
++                    dequantized[1024+m]=ClampPixel(-value);
++                }
+                 for (unsigned y=0;y<source->height;++y) {
+                     const int16_t *row=source->bands[band]+(size_t)y*source->pitch_samples;
+                     PIXEL *out=(PIXEL *)((uint8_t *)levels[stage]->data[band]+(size_t)y*levels[stage]->pitch);
+                     for (unsigned x=0;x<source->width;++x) {
+                         int value=row[x],magnitude=value<0 ? -value:value;
+-                        if (band) {if (magnitude>1023) magnitude=1023;value=cubic[magnitude]*(value<0 ? -1:1);}
+-                        out[x]=(PIXEL)value;
++                        if (band) {
++                            if (magnitude>1023) magnitude=1023;
++                            out[x]=dequantized[(value<0 ? 1024:0)+magnitude];
++                        } else out[x]=(PIXEL)value;
+                     }
+                 }
+             }
+         }
+-        error=TransformInverseSpatialQuantLowpass(&allocator,levels[2],levels[1],input->channels[channel][1].prescale);
++        error=inverse_prepared(&allocator,levels[2],levels[1]->data[0],levels[1]->width,
++            levels[1]->height,levels[1]->pitch,input->channels[channel][1].prescale);
+         if (error) goto done;
+         gpr_rgb_buffer *output=&planes[channel];
+         output->width=(input->sensor_width+3)/4;output->height=(input->sensor_height+3)/4;
+         output->size=(size_t)output->width*output->height*sizeof(PIXEL);
+         output->buffer=mem_alloc(output->size);
+         if (!output->buffer) {error=CODEC_ERROR_OUTOFMEMORY;goto done;}
+-        error=TransformInverseSpatialQuantArray(&allocator,levels[1],output->buffer,
++        error=inverse_prepared(&allocator,levels[1],output->buffer,
+             output->width,output->height,output->width*sizeof(PIXEL),input->channels[channel][0].prescale);
+         if (error) goto done;
+         for (unsigned stage=1;stage<3;++stage) {DeleteWavelet(&allocator,levels[stage]);levels[stage]=NULL;}
+--- /dev/null
++++ b/tests/prepared_inverse.c
+@@ -0,0 +1,93 @@
++/* SPDX-License-Identifier: Apache-2.0 OR MIT */
++#include "../source/lib/vc5_decoder/headers.h"
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#define REQUIRE(x) do {if (!(x)) {fprintf(stderr,"prepared inverse line %d: %s\n",__LINE__,#x);exit(1);}} while (0)
++static void *owned[16];
++static unsigned allocations,live,fail_at;
++static void reset(unsigned failure) {
++    REQUIRE(!live);memset(owned,0,sizeof(owned));allocations=0;fail_at=failure;
++}
++static void *tracked_alloc(size_t size) {
++    REQUIRE(allocations<16);unsigned index=allocations++;
++    if (allocations==fail_at) return NULL;
++    void *p=malloc(size);REQUIRE(p);owned[index]=p;++live;return p;
++}
++static void tracked_free(void *p) {
++    for (unsigned i=0;i<allocations;++i) if (owned[i] && owned[i]==p) {
++        owned[i]=NULL;--live;free(p);return;
++    }
++    REQUIRE(0 && "free of borrowed or already freed input");
++}
++static void equivalent(unsigned width,unsigned height,unsigned crop_x,unsigned crop_y,
++    unsigned preset,unsigned prescale) {
++    const unsigned row=width+5,out_width=2*width-crop_x,out_height=2*height-crop_y,out_row=2*width+5;
++    const size_t count=(size_t)row*height+2,out_count=(size_t)out_row*out_height+2;
++    static const QUANT quants[][4]={{1,1,1,1},{1,24,24,12},{1,64,64,48},
++        {1,512,512,768},{1,32767,96,1}};
++    QUANT quant[4];memcpy(quant,quants[preset],sizeof(quant));
++    PIXEL *encoded[4],*prepared[4];
++    uint32_t random=width*17+height;
++    for (unsigned band=0;band<4;++band) {
++        encoded[band]=malloc(count*sizeof(PIXEL));prepared[band]=malloc(count*sizeof(PIXEL));
++        REQUIRE(encoded[band] && prepared[band]);
++        for (size_t i=0;i<count;++i) {
++            random=random*1664525u+1013904223u;
++            PIXEL value=band ? (PIXEL)((int)(random%511)-255):(PIXEL)(random>>16);
++            encoded[band][i]=value;
++            prepared[band][i]=band ? DequantizedValue(value,quant[band]):value;
++        }
++    }
++    PIXEL *reference=malloc(out_count*sizeof(PIXEL)),*result=malloc(out_count*sizeof(PIXEL));
++    REQUIRE(reference && result);memset(reference,0x5a,out_count*sizeof(PIXEL));memset(result,0x5a,out_count*sizeof(PIXEL));
++    gpr_allocator ordinary={malloc,free},tracked={tracked_alloc,tracked_free};
++    CODEC_ERROR error;
++    if (!prescale) error=InvertSpatialQuant16s(&ordinary,
++        encoded[0]+1,row*2,encoded[1]+1,row*2,encoded[2]+1,row*2,encoded[3]+1,row*2,
++        reference+1,out_row*2,width,height,out_width,out_height,quant);
++    else error=InvertSpatialQuantDescale16s(&ordinary,
++        encoded[0]+1,row*2,encoded[1]+1,row*2,encoded[2]+1,row*2,encoded[3]+1,row*2,
++        reference+1,out_row*2,width,height,out_width,out_height,prescale,quant);
++    REQUIRE(!error);reset(0);
++    REQUIRE(!InvertSpatialPrepared16s(&tracked,
++        prepared[0]+1,row*2,prepared[1]+1,row*2,prepared[2]+1,row*2,prepared[3]+1,row*2,
++        result+1,out_row*2,width,height,out_width,out_height,prescale));
++    REQUIRE(allocations==4 && !live);
++    REQUIRE(!memcmp(reference,result,out_count*sizeof(PIXEL)));
++    REQUIRE(result[0]==0x5a5a && result[out_count-1]==0x5a5a);
++    for (unsigned y=0;y<out_height;++y) for (unsigned x=out_width;x<out_row;++x)
++        REQUIRE(result[1+(size_t)y*out_row+x]==0x5a5a);
++    for (unsigned band=0;band<4;++band) {
++        for (size_t i=0;i<count;++i)
++            REQUIRE(prepared[band][i]==(band ? DequantizedValue(encoded[band][i],quant[band]):encoded[band][i]));
++        free(encoded[band]);free(prepared[band]);
++    }
++    free(reference);free(result);
++}
++static void failures(void) {
++    PIXEL bands[4][9]={{0}},output[36];gpr_allocator tracked={tracked_alloc,tracked_free};
++    for (unsigned prescale=0;prescale<=2;prescale+=2) for (unsigned failure=1;failure<=4;++failure) {
++        memset(output,0x5a,sizeof(output));reset(failure);
++        REQUIRE(InvertSpatialPrepared16s(&tracked,bands[0],6,bands[1],6,bands[2],6,bands[3],6,
++            output,12,3,3,6,6,prescale)==CODEC_ERROR_OUTOFMEMORY);
++        REQUIRE(!live && allocations==4);
++        for (unsigned i=0;i<36;++i) REQUIRE(output[i]==0x5a5a);
++    }
++    reset(0);
++    REQUIRE(InvertSpatialPrepared16s(&tracked,bands[0],6,bands[1],6,bands[2],6,bands[3],6,
++        output,12,3,3,6,6,1)==CODEC_ERROR_BAD_ARGUMENT);
++    REQUIRE(!live && !allocations);
++}
++int main(void) {
++    const unsigned widths[]={3,4,7,8,9,15,16,17,33},heights[]={3,4,9};unsigned cases=0;
++    for (unsigned w=0;w<sizeof(widths)/sizeof(widths[0]);++w)
++    for (unsigned h=0;h<sizeof(heights)/sizeof(heights[0]);++h)
++    for (unsigned x=0;x<2;++x) for (unsigned y=0;y<2;++y)
++    for (unsigned preset=0;preset<5;++preset) for (unsigned prescale=0;prescale<=2;prescale+=2) {
++        equivalent(widths[w],heights[h],x,y,preset,prescale);++cases;
++    }
++    failures();printf("PASS: %u prepared/ordinary inverse cases; bounds, padding, saturation, ownership and allocation failure\n",cases);
++    return 0;
++}

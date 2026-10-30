@@ -125,3 +125,8 @@ in its [annotations](stock-preview-row-receipts/mac-capacity-annotations.json).
 The terminal [first attempt](stock-preview-row-receipts/hosted-attempt1.json)
 is preserved. Only after that terminal failure was the Mac job retried; no
 source change or reduced validation was used to evade the missing gate.
+
+A subsequent [prepared-band inverse architecture](stock-prepared-inverse.md)
+also preserves exact pixels but is discarded after slower sustained
+encode/reconstruction medians. Its independent correctness and restoration
+evidence is recorded separately.
