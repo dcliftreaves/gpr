@@ -1,0 +1,34 @@
+{
+  "compile": [
+    "cc",
+    "-O3",
+    "-std=c11",
+    "-DNDEBUG",
+    "-DNEON=1",
+    "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/vc5_encoder",
+    "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/vc5_common",
+    "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/common/public",
+    "-I/mnt/ssd/gpr_work/stock-raw-media-runtime/source/lib/common/private",
+    "test.c",
+    "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/vc5_encoder/libvc5_encoder.a",
+    "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/vc5_common/libvc5_common.a",
+    "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/source/lib/common/libcommon.a",
+    "-lm",
+    "-pthread",
+    "-o",
+    "test-pi"
+  ],
+  "binary_sha256": "d0e57ac8f627f8022907bc16ef626e0cb046cb282a68ae9e8186bf7800c15219",
+  "source_sha256": {
+    "test.c": "0baea47b19414f18a828a827b042c18ff84ca7cd68aa4ab16664954f0e8a29e5",
+    "functions.inc": "66fcc9aead0d6e33b7f990e001076032e614044ac08b9787ac8a2895504f913d"
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/mnt/ssd/gpr_work/pi-entropy64-20261030/test-pi",
+    "--bench"
+  ],
+  "scope": "isolated synthetic entropy packing; same-process fixed ABBA and reverse order per pattern"
+}

@@ -130,3 +130,10 @@ the unresolved strict deadline gate are unchanged.
 preserves payloads/planes and passes the expanded Mac/Pi matrix, but neither
 pinned nor affinity-restored isolated comparison provides a consistent win.
 The prototype and draft API are discarded; production behavior is unchanged.
+
+A [64-bit entropy chunk experiment](stock-entropy64.md) catches and corrects a
+full-buffer boundary in its draft, then passes expanded Mac/Pi arithmetic/stream
+proofs and the Pi matrix. The hybrid is about 1.3% faster on two standalone
+real-input encodes, but both coupled runs have lower durable throughput than
+both controls. All 2,400 recordings/previews remain exact. The proposal is
+rejected; production runtime and the unmet strict deadline gate are unchanged.

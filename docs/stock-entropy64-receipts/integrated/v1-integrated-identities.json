@@ -1,0 +1,10 @@
+[
+  {
+    "mode": "baseline",
+    "binary_sha256": "61cb2444eb03fc0169ecf287321ffd9903879bff6182699963d9928b46e59331"
+  },
+  {
+    "mode": "full64",
+    "binary_sha256": "4c27a770012faf894e3c14c3aca41bf086320800024c346a19411baf18f2b7aa"
+  }
+]

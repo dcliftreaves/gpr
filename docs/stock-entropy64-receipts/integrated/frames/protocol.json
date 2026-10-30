@@ -1,0 +1,167 @@
+{
+  "schema": "gpr.experimental_entropy64_frames.v1",
+  "base": "9e51ea1",
+  "encoder_source_sha256": "d518f83ee82008ede7f03ff7be53e2b7391f9130ea0882b45f8628723d079164",
+  "builds": [
+    {
+      "mode": "baseline",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-baseline",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_C_FLAGS=-DGPR_ENTROPY64_VARIANT=0",
+          "-DGPR_BUILD_SDK=OFF",
+          "-DGPR_BUILD_STILL_APPS=OFF",
+          "-DGPR_ENABLE_PARALLEL_CHANNELS=ON",
+          "-DGPR_ENABLE_VIDEO=ON",
+          "-DGPR_BUILD_PREVIEW_TOOLS=ON",
+          "-DGPR_BUILD_CAPTURE_APP=ON",
+          "-DGPR_BUILD_CODEC_TESTS=ON"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-baseline",
+          "--target",
+          "vc5_encoder_app",
+          "gpr_capture_app",
+          "encoder_preview_probe",
+          "-j",
+          "4"
+        ],
+        [
+          "ctest",
+          "--test-dir",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-baseline",
+          "-R",
+          "encoder_preview_",
+          "--output-on-failure"
+        ]
+      ],
+      "encoder_sha256": "6251bbb7f7a7c1675328996abce1da06c9ef63ae3629009da266e2b9f9f42afe",
+      "capture_sha256": "9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c"
+    },
+    {
+      "mode": "full64",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-full64",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_C_FLAGS=-DGPR_ENTROPY64_VARIANT=1",
+          "-DGPR_BUILD_SDK=OFF",
+          "-DGPR_BUILD_STILL_APPS=OFF",
+          "-DGPR_ENABLE_PARALLEL_CHANNELS=ON",
+          "-DGPR_ENABLE_VIDEO=ON",
+          "-DGPR_BUILD_PREVIEW_TOOLS=ON",
+          "-DGPR_BUILD_CAPTURE_APP=ON",
+          "-DGPR_BUILD_CODEC_TESTS=ON"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-full64",
+          "--target",
+          "vc5_encoder_app",
+          "gpr_capture_app",
+          "encoder_preview_probe",
+          "-j",
+          "4"
+        ],
+        [
+          "ctest",
+          "--test-dir",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-full64",
+          "-R",
+          "encoder_preview_",
+          "--output-on-failure"
+        ]
+      ],
+      "encoder_sha256": "c0955106fc23ae96222db9864e5a3ad03161e28792808bd456a7514b9fc33f40",
+      "capture_sha256": "9b8b9424d76115a4bd58ca656170c3da98085cec878ab9d06ff2ba6906849d0d"
+    },
+    {
+      "mode": "hybrid",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-hybrid",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_C_FLAGS=-DGPR_ENTROPY64_VARIANT=2",
+          "-DGPR_BUILD_SDK=OFF",
+          "-DGPR_BUILD_STILL_APPS=OFF",
+          "-DGPR_ENABLE_PARALLEL_CHANNELS=ON",
+          "-DGPR_ENABLE_VIDEO=ON",
+          "-DGPR_BUILD_PREVIEW_TOOLS=ON",
+          "-DGPR_BUILD_CAPTURE_APP=ON",
+          "-DGPR_BUILD_CODEC_TESTS=ON"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-hybrid",
+          "--target",
+          "vc5_encoder_app",
+          "gpr_capture_app",
+          "encoder_preview_probe",
+          "-j",
+          "4"
+        ],
+        [
+          "ctest",
+          "--test-dir",
+          "/mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-hybrid",
+          "-R",
+          "encoder_preview_",
+          "--output-on-failure"
+        ]
+      ],
+      "encoder_sha256": "e4510ca94d773b436699cbcfaf2adea1eb0ef726c48f547f853834f4412767d6",
+      "capture_sha256": "b665374f94bbe28329ab87bc2418d379d696b8110e829fc893b6c9acb2a25028"
+    }
+  ],
+  "sources": [
+    {
+      "name": "GP017517.raw",
+      "raw": "e75aea542a2da413ff097bd1f1825b20e8723e56b1cda257ea4da4b8ed1121d9",
+      "payload": "bd1966d35be26afdd5d676473427245f80d884bee911ed1c7c2c4ecbe93023b8"
+    },
+    {
+      "name": "GP017348.raw",
+      "raw": "6b286a10e816887c044640f220667173e7c0ccf31bb268ebb2b494e06ccb87c4",
+      "payload": "13626758bf6bf1262412ad308ed07ccb6b5f3557d7d2356c6b5e6a02816ceddb"
+    }
+  ],
+  "order": [
+    "baseline",
+    "full64",
+    "hybrid",
+    "hybrid",
+    "full64",
+    "baseline"
+  ],
+  "iterations": 31,
+  "warmup_discard": 1,
+  "env": {
+    "GPR_STREAM_UNPACK": "1",
+    "GPR_BAND_STREAM": "1",
+    "GPR_CHANNEL_ASM": "1",
+    "GPR_DIRECT_BANDS": "1",
+    "GPR_COMPACT_BANDS": "1",
+    "GPR_BENCH_ARENA": "1",
+    "GPR_BENCH_RUNS": "31",
+    "GPR_BENCH_QUALITY": "3",
+    "GPR_PIN_CHANNELS": "1"
+  },
+  "scope": "standalone reused-arena actual Q3 encode wall; not capture/preview/durability"
+}

@@ -1,0 +1,43 @@
+Internal ctest changing into directory: /mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-full64
+Test project /mnt/ssd/gpr_work/stock-entropy64-prototype-20261030/build-full64
+    Start 1: encoder_preview_probe
+1/4 Test #1: encoder_preview_probe ............   Passed    0.01 sec
+    Start 2: encoder_preview_probe_fast
+2/4 Test #2: encoder_preview_probe_fast .......   Passed    0.02 sec
+    Start 3: encoder_preview_matrix
+3/4 Test #3: encoder_preview_matrix ...........***Failed    0.32 sec
+Could not decode input vc5 bitstream. Error number 5
+preview proof line 100: vc5_decoder_process_wavelet_channel(&dp,&stock,channel,&decoded)==CODEC_ERROR_OKAY
+PASS: 50x50 12-bit format 106 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 12-bit format 106 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 14-bit format 108 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 14-bit format 108 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 16-bit format 104 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 16-bit format 104 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 12-bit format 109 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 12-bit format 109 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 14-bit format 111 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 14-bit format 111 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 16-bit format 112 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 16-bit format 112 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 12-bit format 113 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 12-bit format 113 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 14-bit format 114 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 14-bit format 114 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 16-bit format 115 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 16-bit format 115 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 12-bit format 116 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 12-bit format 116 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 50x50 14-bit format 117 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+PASS: 130x98 14-bit format 117 retained bands reconstruct exact quarter-scale stock planes at all six qualities
+
+    Start 4: encoder_preview_matrix_fast
+4/4 Test #4: encoder_preview_matrix_fast ......   Passed    0.36 sec
+
+75% tests passed, 1 tests failed out of 4
+
+Total Test time (real) =   0.71 sec
+
+The following tests FAILED:
+	  3 - encoder_preview_matrix (Failed)
+Errors while running CTest
