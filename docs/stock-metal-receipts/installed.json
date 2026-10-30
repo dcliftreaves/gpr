@@ -1,0 +1,38 @@
+{
+  "schema": "gpr.stock_metal.installed.v1",
+  "passed": true,
+  "quality_approval": false,
+  "source_sha256": "649c021e611b09c07c2c88395a2ad973930b710cb5407406c240b59cfa5dbfe4",
+  "model": {
+    "checkpoint_sha256": "3a6fa544e1d5d2e07ced41018795c2daa572f577c2fbed9196a290f2c998febf",
+    "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "checkpoint_schema": "build",
+    "architecture_source": "bundled",
+    "output_scale": 2,
+    "runtime_raw_norm": 16383,
+    "input_cfa": "RGGB",
+    "device": "cpu",
+    "quality_status": "unvalidated_for_stock_video",
+    "runtime_backend": "metal_hybrid",
+    "metal_precision": "float16",
+    "metal_contract_sha256": "676af2158df9cd7a7f96d73217e32226120b97c07546dfff0c2e5440a2d93a7e",
+    "metal_library_sha256": "995e678396323dde01a14532f2f79b33e1365eed45f1a735143a04f8effdefb7",
+    "metallib_sha256": "c5db7debd928f7fa3d7aade0402b97b3c884a0fd6f87719321106be91953428c",
+    "metal_context_cache_limit": 2,
+    "metal_max_plane": 512
+  },
+  "width": 8192,
+  "height": 6144,
+  "restored_raw_sha256": "47151cf5c8bf4bf3f436845792a3dfef8ef3698d32c0ccb09b501c664d8527c1",
+  "output_sha256": "5e09aa432e34796c1e36c5529ce5e3f8c937fb7ccb8d419105a2c5525eb17e00",
+  "sdk_sha256": "6cc43591ac3fc1ac538d7969a0f64782e10fbec67b79993a38d6e5334c9f666b",
+  "installed_tool_sha256": {
+    "stock_metal.py": "fa548d82f6b6e2d1dbbca4951171f31e85d0949c14dc9302845f0f58222f0412",
+    "stock_video.py": "af291d0e6ef1165f38f7e30448ef23c024226fcd6a24d623e034b29c5a527893",
+    "stock_still.py": "7adf221129be4ce64d245847ad84059a990309f8adc97b37f1e2c97d8dc7edd8",
+    "stock_upres.py": "196813e828ac7a8730f832956ebe0acf850f26a74c962ba777f7d84bb0b0a87e",
+    "stock_prores.py": "a4ced163ec59a9ac899641ef28e8196e51298d1808c2d35ad430f8e9b310641b"
+  },
+  "counts_match_backend_benchmark": true,
+  "installed_documentation_sha256": "36d11ad8ff93c03433f01b8ba452bb6bd5aa27c7bab0efd547adf6245be2c2bd"
+}

@@ -150,8 +150,9 @@ def frames(f, header, recover=False):
         yield row["index"], row["pts_ns"], row["payload"]
 
 
-def load_cnn(root, checkpoint, device, coreml_package=None, coreml_units='all'):
+def load_cnn(root, checkpoint, device, coreml_package=None, coreml_units='all',metal=None):
     import torch
+    if coreml_package is not None and metal is not None:raise ValueError('select one native CNN backend')
     # Weights are always caller-selected. A caller may override the bundled
     # legacy BIBO architecture explicitly; nothing is downloaded.
     ckpt = torch.load(checkpoint, map_location="cpu", weights_only=True)
@@ -203,6 +204,11 @@ def load_cnn(root, checkpoint, device, coreml_package=None, coreml_units='all'):
             raise ValueError('Core ML requires bundled BIBO and CPU host tensors; native units are selected separately')
         from stock_coreml import load_runtime
         return load_runtime(coreml_package,info,scale,coreml_units),info
+    if metal is not None:
+        if root is not None or entry!='build' or str(device)!='cpu':
+            raise ValueError('Metal requires bundled BIBO and CPU host tensors')
+        from stock_metal import load_runtime
+        return load_runtime(metal,info,scale),info
     return model.to(device).eval(),info
 
 
@@ -253,6 +259,8 @@ def main():
     parser.add_argument("--checkpoint", type=Path)
     from stock_coreml import add_arguments
     add_arguments(parser)
+    import stock_metal
+    stock_metal.add_arguments(parser)
     parser.add_argument('--scale',type=int,choices=(1,2),default=1,help='explicit reconstruction scale')
     parser.add_argument("--reference-raw", type=Path, action="append",
                         help="optional reference replay RAWs in input order, for distortion measurements")
@@ -265,6 +273,8 @@ def main():
     parser.add_argument("--metadata-file", type=Path,
                         help="gpr.raw_metadata.v1 default calibration; per-frame/clip raw_metadata overrides it")
     args = parser.parse_args()
+    metal=stock_metal.configuration(args)
+    if metal is not None and args.action!='restore':parser.error('Metal options require restore')
     if args.limit < 0 or args.tile < 8 or args.tile % 8 or args.halo < 0 or args.halo % 8:
         parser.error("invalid frame limit, tile or halo (spatial sizes must be multiples of 8)")
     if args.action != "inspect" and args.out_dir is None:
@@ -289,7 +299,7 @@ def main():
     if args.action == "restore":
         import torch
         device = torch.device(args.device)
-        model, model_info = load_cnn(args.cnn_root, args.checkpoint, device,args.coreml_package,args.coreml_units)
+        model, model_info = load_cnn(args.cnn_root, args.checkpoint, device,args.coreml_package,args.coreml_units,metal)
         if model_info.get('output_scale',1)!=args.scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     if args.out_dir:
         args.out_dir.mkdir(parents=True, exist_ok=False)

@@ -163,7 +163,7 @@ def decode(source, bits, sdk, output, receipt=None, reconstruction=None, gpr_out
         output_meta,geometry=scaled(meta,output_scale)
         device=torch.device(reconstruction['device'])
         model,model_info=load_cnn(reconstruction.get('root'),Path(reconstruction['checkpoint']),device,
-                                 reconstruction.get('coreml_package'),reconstruction.get('coreml_units','all'))
+                                 reconstruction.get('coreml_package'),reconstruction.get('coreml_units','all'),reconstruction.get('metal'))
         if model_info.get('output_scale',1)!=output_scale: raise ValueError('checkpoint output scale differs from requested reconstruction scale')
     with tempfile.TemporaryDirectory(prefix='.stock-still-',dir=output.parent) as temp:
         root=Path(temp); private=root/'carrier.gpr'
@@ -229,6 +229,8 @@ def main():
     rec.add_argument('--device',choices=('cpu','mps','cuda'),default='cpu')
     from stock_coreml import add_arguments
     add_arguments(rec)
+    import stock_metal
+    stock_metal.add_arguments(rec)
     rec.add_argument('--tile',type=int,default=256); rec.add_argument('--halo',type=int,default=64)
     rec.add_argument('--gpr-output',type=Path,help='also save reconstructed counts as a newly compressed GPR')
     rec.add_argument('--gpr-quality',type=int,choices=range(6),help='required with --gpr-output; lossy stock preset')
@@ -244,7 +246,8 @@ def main():
         result=encode(args.input,meta,args.quality,args.sdk,args.output,args.receipt,args.editable,args.source_type)
     else:
         settings=dict(root=args.cnn_root,checkpoint=args.checkpoint,device=args.device,tile=args.tile,halo=args.halo,scale=args.scale,
-                      coreml_package=args.coreml_package,coreml_units=args.coreml_units) if args.action=='restore' else None
+                      coreml_package=args.coreml_package,coreml_units=args.coreml_units,
+                      metal=stock_metal.configuration(args)) if args.action=='restore' else None
         result=decode(args.input,args.sample_bits,args.sdk,args.output,args.receipt,settings,
                       getattr(args,'gpr_output',None),getattr(args,'gpr_quality',None))
     print(json.dumps(result,indent=2))

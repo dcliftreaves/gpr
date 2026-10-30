@@ -1,0 +1,80 @@
+{
+  "schema": "gpr.stock_metal.upres_integration.v1",
+  "complete": true,
+  "quality_approval": false,
+  "source_name": "GP011728.GPR",
+  "source_sha256": "649c021e611b09c07c2c88395a2ad973930b710cb5407406c240b59cfa5dbfe4",
+  "model": {
+    "checkpoint_sha256": "3a6fa544e1d5d2e07ced41018795c2daa572f577c2fbed9196a290f2c998febf",
+    "architecture_sha256": "23b20bdc3df3ab3923ff7563642d0e3d4143307503dc5ccb5335a835b03a9f26",
+    "checkpoint_schema": "build",
+    "architecture_source": "bundled",
+    "output_scale": 2,
+    "runtime_raw_norm": 16383,
+    "input_cfa": "RGGB",
+    "device": "cpu",
+    "quality_status": "unvalidated_for_stock_video",
+    "runtime_backend": "metal_hybrid",
+    "metal_precision": "float16",
+    "metal_contract_sha256": "676af2158df9cd7a7f96d73217e32226120b97c07546dfff0c2e5440a2d93a7e",
+    "metal_library_sha256": "995e678396323dde01a14532f2f79b33e1365eed45f1a735143a04f8effdefb7",
+    "metallib_sha256": "c5db7debd928f7fa3d7aade0402b97b3c884a0fd6f87719321106be91953428c",
+    "metal_context_cache_limit": 2,
+    "metal_max_plane": 512
+  },
+  "model_raw_sha256": "47151cf5c8bf4bf3f436845792a3dfef8ef3698d32c0ccb09b501c664d8527c1",
+  "final_decoded_raw_sha256": "4d756c97d9fb90908f8baf5fbc847e564aa0a3f219c00d4ba8039e9a06833b68",
+  "final_gpr_sha256": "ff4ff2fb4eefa084660611ef72267003af993783e3e7cfab57a00595bef1628f",
+  "model_counts_match_backend_benchmark": true,
+  "scaled_calibration_verified": true,
+  "gvid_payload_verified": true,
+  "end_marker_verified": true,
+  "gvid_sha256": "775806e329e891291da95951055c4b737ea82108d41fdc9b5d0dd7c5d27679bc",
+  "mov_sha256": "253bdd308e05cca096a216e0caa2cad4cca4f79099d34596e33c827774cc24f8",
+  "prores": {
+    "complete": true,
+    "output_sha256": "6448ae30e67132dabaec27c518d42723bdecd52d2a0934f6fdfd66d194f81a21",
+    "frame_count": 1,
+    "verification": {
+      "packets": [
+        {
+          "pts": 0,
+          "dts": 0,
+          "duration": 41666667,
+          "flags": "K__"
+        }
+      ],
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "prores",
+          "profile": "HQ",
+          "width": 8192,
+          "height": 6144,
+          "pix_fmt": "yuv422p10le",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709",
+          "time_base": "1/1000000000",
+          "duration_ts": 41666667
+        }
+      ]
+    },
+    "binary_sha256": {
+      "decoder": "6de2829a430de7e26aa6d0efc17e52014cb043a94a4cef937ab917c7ac6f0f4f",
+      "renderer": "6ed8dadf4736e7f5478ffc38051965efd6b31f894facda3c0ae1c6457b2c8670",
+      "encoder": "aa50d0b155edd9ec8e883b981bd8299377a7832c6bc95f57d74314ed4d09931d",
+      "ffprobe": "daba6e06838d10260602536a676069cef6d756345e1c6d66268ceb7f2d5e7c39"
+    },
+    "second_cnn_pass": false
+  },
+  "source_files": {
+    "stock_metal.py": "fa548d82f6b6e2d1dbbca4951171f31e85d0949c14dc9302845f0f58222f0412",
+    "stock_upres.py": "196813e828ac7a8730f832956ebe0acf850f26a74c962ba777f7d84bb0b0a87e",
+    "stock_still.py": "7adf221129be4ce64d245847ad84059a990309f8adc97b37f1e2c97d8dc7edd8",
+    "stock_video.py": "af291d0e6ef1165f38f7e30448ef23c024226fcd6a24d623e034b29c5a527893",
+    "stock_prores.py": "a4ced163ec59a9ac899641ef28e8196e51298d1808c2d35ad430f8e9b310641b"
+  }
+}

@@ -1,0 +1,22 @@
+enable_language(OBJC)
+include(GNUInstallDirs)
+find_program(GPR_XCRUN xcrun REQUIRED)
+add_library(gpr_metal SHARED StockMetalResidual.m)
+target_compile_options(gpr_metal PRIVATE -fobjc-arc)
+target_link_libraries(gpr_metal PRIVATE "-framework Foundation" "-framework Metal"
+  "-framework MetalPerformanceShaders" "-framework MetalPerformanceShadersGraph" "-framework Accelerate")
+set(metal_objects)
+foreach(kernel ANE_Conv1x1 ANE_DWSiLUProjRes ANE_SiLUProjRes)
+  set(input "${CMAKE_CURRENT_SOURCE_DIR}/NAFBlockKernels_${kernel}.metal")
+  set(output "${CMAKE_CURRENT_BINARY_DIR}/${kernel}.air")
+  add_custom_command(OUTPUT "${output}" COMMAND ${GPR_XCRUN} -sdk macosx metal -c "${input}" -o "${output}"
+    DEPENDS "${input}" VERBATIM)
+  list(APPEND metal_objects "${output}")
+endforeach()
+set(metal_library "${CMAKE_CURRENT_BINARY_DIR}/gpr_stock.metallib")
+add_custom_command(OUTPUT "${metal_library}" COMMAND ${GPR_XCRUN} -sdk macosx metallib ${metal_objects} -o "${metal_library}"
+  DEPENDS ${metal_objects} VERBATIM)
+add_custom_target(gpr_metal_kernels ALL DEPENDS "${metal_library}")
+add_dependencies(gpr_metal gpr_metal_kernels)
+install(TARGETS gpr_metal LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES "${metal_library}" DESTINATION ${CMAKE_INSTALL_LIBDIR}/gpr)

@@ -164,9 +164,10 @@ def verify(movie, probe, timing, width, height, profile):
 def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
             metadata=None, profile='hq', checkpoint=None, cnn_root=None,
             device='cpu', scale=1, tile=256, halo=64, mov_bridge=None,
-            audio=None, timecode=None, ffmpeg=None,coreml_package=None,coreml_units='all'):
+            audio=None, timecode=None, ffmpeg=None,coreml_package=None,coreml_units='all',metal=None):
     started = time.perf_counter()
     if coreml_package is not None and checkpoint is None:raise ValueError('Core ML requires a checkpoint')
+    if metal is not None and checkpoint is None:raise ValueError('Metal requires a checkpoint')
     source = Path(source).resolve()
     binaries = {k: Path(v).resolve() for k, v in dict(decoder=decoder, renderer=renderer, encoder=encoder, ffprobe=probe).items()}
     if not source.is_file() or any(not path.is_file() for path in binaries.values()):
@@ -225,7 +226,7 @@ def convert(source, output, decoder, renderer, encoder, probe, receipt=None,
         if checkpoint:
             import torch
             device = torch.device(device)
-            model, model_info = stock_video.load_cnn(cnn_root, checkpoint, device,coreml_package,coreml_units)
+            model, model_info = stock_video.load_cnn(cnn_root, checkpoint, device,coreml_package,coreml_units,metal)
             if model_info.get('output_scale', 1) != scale:
                 raise ValueError('checkpoint output scale differs from requested scale')
         manifest = dict(schema='gpr.prores_stream.v1', profile=profile, timescale=timing['timescale'],
@@ -321,9 +322,13 @@ def main():
     parser.add_argument('--halo', type=int, default=64)
     from stock_coreml import add_arguments
     add_arguments(parser)
+    import stock_metal
+    stock_metal.add_arguments(parser)
     parser.add_argument('--timecode', help='HH:MM:SS:FF or valid drop-frame HH:MM:SS;FF; defaults to private MOV source label')
     args = parser.parse_args()
     options = vars(args).copy()
+    options['metal']=stock_metal.configuration(args)
+    for name in stock_metal.ARGUMENTS:options.pop(name)
     source = options.pop('input')
     options['probe'] = options.pop('ffprobe')
     path = options.pop('metadata_file')

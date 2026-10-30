@@ -46,7 +46,7 @@ def metrics(reference, actual, meta):
 def execute(mode, inputs, references, reference_kind, checkpoint, sdk, output_dir,
             capture_quality, output_quality, bridge=None, device='cpu', tile=256, halo=64,
             cnn_root=None, fps_num=24, fps_den=1, dng_export=False, prores=None,
-            input_mode='simulated',coreml_package=None,coreml_units='all'):
+            input_mode='simulated',coreml_package=None,coreml_units='all',metal=None):
     import numpy as np
     import tifffile
     import torch
@@ -70,7 +70,7 @@ def execute(mode, inputs, references, reference_kind, checkpoint, sdk, output_di
             needs_simulation and (type(capture_quality) is not int or not 0<=capture_quality<=5)):
         raise ValueError('explicit stock presets 0..5 required for every new encode')
     if tile<8 or tile%8 or halo<0 or halo%8:raise ValueError('invalid inference tile/halo')
-    device=torch.device(device);model,model_info=video.load_cnn(cnn_root,checkpoint,device,coreml_package,coreml_units)
+    device=torch.device(device);model,model_info=video.load_cnn(cnn_root,checkpoint,device,coreml_package,coreml_units,metal)
     if model_info['output_scale']!=2:raise ValueError('workflow requires a 2x checkpoint')
     class Bicubic(torch.nn.Module):
         def forward(self,x):return torch.nn.functional.interpolate(x,scale_factor=2,mode='bicubic',align_corners=False).clamp(0,1)
@@ -164,6 +164,8 @@ def main():
     p.add_argument('--mode',choices=('timelapse','regression','both'),required=True)
     from stock_coreml import add_arguments
     add_arguments(p)
+    import stock_metal
+    stock_metal.add_arguments(p)
     p.add_argument('--input',dest='inputs',action='append',type=Path,default=[])
     p.add_argument('--input-mode',choices=('simulated','captured_gpr'),default='simulated',
                    help='captured_gpr: feed existing timelapse GPR captures directly to the 2x model; no simulated capture or capture-preset claim')
@@ -179,6 +181,8 @@ def main():
     p.add_argument('--prores',action='store_true',help='also render calibrated deep ProRes using the four explicit executable paths')
     for name in ('decoder','renderer','encoder','probe'):p.add_argument('--prores-'+name,type=Path)
     args=vars(p.parse_args());enabled=args.pop('prores')
+    args['metal']=stock_metal.configuration(args)
+    for name in stock_metal.ARGUMENTS:args.pop(name)
     binaries={name:args.pop('prores_'+name) for name in ('decoder','renderer','encoder','probe')}
     if enabled and not all(binaries.values()) or not enabled and any(binaries.values()):p.error('ProRes requires --prores and all four executable paths')
     print(json.dumps(execute(**args,prores=binaries if enabled else None),indent=2))
