@@ -1,0 +1,90 @@
+[
+  {
+    "source": 0,
+    "channel": 0,
+    "median_cpu_ms": 30.1788325,
+    "median_entropy_ms": 11.8181915,
+    "stage_median_ms": [
+      8.669141,
+      2.508423,
+      0.63686
+    ]
+  },
+  {
+    "source": 0,
+    "channel": 1,
+    "median_cpu_ms": 26.04802,
+    "median_entropy_ms": 9.083245999999999,
+    "stage_median_ms": [
+      4.214607,
+      3.6392150000000005,
+      1.2072770000000002
+    ]
+  },
+  {
+    "source": 0,
+    "channel": 2,
+    "median_cpu_ms": 26.2742035,
+    "median_entropy_ms": 9.516299,
+    "stage_median_ms": [
+      4.3922525,
+      3.9455940000000003,
+      1.168799
+    ]
+  },
+  {
+    "source": 0,
+    "channel": 3,
+    "median_cpu_ms": 26.098129,
+    "median_entropy_ms": 9.859489499999999,
+    "stage_median_ms": [
+      4.6409135,
+      4.118548,
+      1.0841939999999999
+    ]
+  },
+  {
+    "source": 1,
+    "channel": 0,
+    "median_cpu_ms": 23.191786999999998,
+    "median_entropy_ms": 9.867951,
+    "stage_median_ms": [
+      5.276069,
+      3.423134,
+      1.1440884999999998
+    ]
+  },
+  {
+    "source": 1,
+    "channel": 1,
+    "median_cpu_ms": 23.688129500000002,
+    "median_entropy_ms": 8.332477500000001,
+    "stage_median_ms": [
+      2.6309845,
+      4.7105735,
+      0.920861
+    ]
+  },
+  {
+    "source": 1,
+    "channel": 2,
+    "median_cpu_ms": 23.681148,
+    "median_entropy_ms": 8.4590195,
+    "stage_median_ms": [
+      2.8311969999999995,
+      4.6117085,
+      0.9375065
+    ]
+  },
+  {
+    "source": 1,
+    "channel": 3,
+    "median_cpu_ms": 21.888936499999996,
+    "median_entropy_ms": 6.377429499999999,
+    "stage_median_ms": [
+      2.6691125,
+      3.0637004999999995,
+      0.6621495000000001
+    ]
+  }
+]

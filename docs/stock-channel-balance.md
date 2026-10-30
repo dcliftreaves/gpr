@@ -52,16 +52,47 @@ kernel, 11.81% to `ForwardWaveletTransform`, 10.18% to wavelet display rows,
 This includes setup and preview and does not attribute individual symbols to
 channel 0. The annotated entropy assembly is retained for further inspection.
 
+## Per-stage entropy follow-up
+
+A separate private patch brackets the three incremental band updates in each
+vertical output row with thread-CPU timestamps and accumulates stage subtotals
+in thread-local storage. The parent prints after joining as before. Its five
+preview tests and a fourth 120-frame payload/preview verification pass. Timer
+cost is included, and final band flushes are outside these stage subtotals;
+these measurements are attribution diagnostics, not acceptance benchmarks or
+an overhead-free decomposition of the earlier run.
+
+On source 0, channel 0 spends 8.669 ms median in stage-0 entropy updates, versus
+4.215/4.392/4.641 ms in channels 1/2/3. Channel 0's stage-1/2 subtotals are
+2.508/0.637 ms. Its combined entropy-update median is 11.818 ms within
+30.179 ms worker CPU. Other channels have 9.083–9.859 ms entropy within
+26.048–26.274 ms worker CPU. Stage medians and total medians need not sum.
+On source 1, channel-0 stage-0 entropy is 5.276 ms versus 2.631–2.831 ms in the
+other channels, but combined worker CPU is more balanced. This establishes
+an input-dependent stage-0 entropy imbalance, not a universal four-ms saving.
+
+[Stage protocol](stock-channel-balance-receipts/stages/protocol.json),
+[verified replay](stock-channel-balance-receipts/stages/receipt.json) and
+[per-source summary](stock-channel-balance-receipts/stages/summary.json)
+retain the complete results. `stage-diagnostic.patch` independently applies to
+`40aa476`; it supersedes rather than stacks on `diagnostic.patch`. The stage
+build/test logs and driver are separate from the first diagnostic's records.
+
 ## Next architectural investigation
 
-Measure channel/stage-specific entropy cost before changing scheduling. The
-current direct-band worker interleaves filtering and entropy coding and gives
-one whole channel to each worker. If channel 0's excess is concentrated in
-entropy, bounded band/row jobs might let workers that finish other channels
-help it. Any such design must preserve row ordering, pending zero-run state,
-private output ownership, bounded scratch and exact historical payloads. It
-must then beat matched full-capture controls; aggregate sample percentages
-alone do not establish that this scheduling change is worthwhile.
+Test whether workers that finish their channels early can help channel 0's
+stage-0 entropy work. The current direct-band worker interleaves filtering and
+entropy coding and gives one whole channel to each worker. A bounded row-chunk
+queue could expose independent bands to helpers while the producer also drains
+work when the queue fills. This remains an unimplemented proposal.
+
+Preserve per-band row ordering and pending zero-run state: independently
+flushing each chunk could change the historical byte stream. Preserve private
+output ownership, bounded coefficient storage and worker lifetime/error
+handling. Do not assume idle helpers exist throughout the frame; they still
+have their own channels to finish. Any prototype must pass exact payload,
+preview, geometry and lifecycle checks and then beat matched full-capture
+controls. Lower isolated entropy time is insufficient for adoption.
 
 [Diagnostic protocol](stock-channel-balance-receipts/diagnostic/protocol.json),
 [verified results](stock-channel-balance-receipts/diagnostic/receipt.json),

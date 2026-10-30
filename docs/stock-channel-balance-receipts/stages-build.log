@@ -1,0 +1,24 @@
+[  2%] Built target md5_lib
+[  8%] Built target argument_parser
+[ 11%] Built target gpr_gvid
+[ 20%] Built target common
+[ 35%] Built target vc5_common
+[ 40%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/encoder.c.o
+[ 55%] Built target vc5_decoder
+[ 62%] Built target vc5_decoder_app
+[ 62%] Built target gpr_preview
+[ 71%] Built target preview_contract_test
+[ 71%] Built target preview_wavelet_queue_test
+[ 71%] Built target gpr_preview_app
+[ 74%] Built target preview_queue_test
+/mnt/ssd/gpr_work/stock-channel-balance-prototype-20261030/source/lib/vc5_encoder/encoder.c: In function ‘SetImageFormatDefaults’:
+/mnt/ssd/gpr_work/stock-channel-balance-prototype-20261030/source/lib/vc5_encoder/encoder.c:149:13: warning: statement will never be executed [-Wswitch-unreachable]
+  149 |         if (IsPartEnabled(encoder->enabled_parts, VC5_PART_COLOR_SAMPLING))
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 76%] Linking CXX static library libvc5_encoder.a
+[ 91%] Built target vc5_encoder
+[ 95%] Linking CXX executable vc5_encoder_app
+[ 95%] Built target gpr_video
+[ 97%] Linking CXX executable gpr_capture_app
+[ 98%] Built target vc5_encoder_app
+[100%] Built target gpr_capture_app

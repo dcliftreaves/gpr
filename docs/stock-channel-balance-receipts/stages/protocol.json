@@ -1,0 +1,12 @@
+{
+  "base": "40aa476",
+  "schema": "gpr.channel_entropy_stage_diagnostic.v1",
+  "scope": "instrumented 120-frame replay; per-row thread-CPU brackets around entropy updates; includes timer overhead, excludes final band flush from stage subtotals; not acceptance timing",
+  "source_sha256": "0e34358838dd6ae391cc8a37e9da8bd85b18109f807e2f88a8e363c6bf672d3e",
+  "binary_sha256": "af7a62189a4835f9032fddfd025645b965480b68ad0485cbaf8d6642af463528",
+  "production_binary_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "order": [
+    "unrestricted"
+  ],
+  "frames": 120
+}
