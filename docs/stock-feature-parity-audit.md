@@ -91,3 +91,15 @@ Later [dequantization and row-address proposals](stock-preview-rejected-kernels.
 pass their numeric checks but fail to establish a consistent workflow gain;
 isolated row addressing is slower. Both are discarded and their sources,
 measurements and restoration identities are retained separately.
+
+## Latest evidence follow-up
+
+The [published 1x checkpoint](stock-cleanup-native.md) passes checkpoint-specific
+FP32 Core ML and Metal checks on two supplied 12 MP sources through standalone
+standard-library workflows; faster FP16 Core ML fails its precision budget.
+The [2x strength/retraining study](stock-sr-balanced.md) still fails regional
+quality guards, so no new 2x weights are promoted. A current-binary
+[Pi workload control](stock-background-control.md) preserves every recording
+and preview but still misses deadlines with competing processes paused.
+All seven hosted jobs pass at source/model revision `c47fdf1`; these new reports
+and receipts do not change production source or model weights.

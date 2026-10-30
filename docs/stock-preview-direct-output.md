@@ -107,3 +107,12 @@ bounded-token NEON dequantization and per-row destination addressing. Neither
 provides a consistent end-to-end benefit, and isolated row-address rendering
 is slower. Both were discarded; their correctness, timing and patches remain
 archived separately. The direct-output runtime remains intact.
+
+## Current workload control
+
+A subsequent [active/paused/paused/active control](stock-background-control.md)
+uses the identical executable and verifies all 600 recordings/previews in each
+run. Pausing the old source-generator/encoder workload reduces preview p95,
+but both paused runs still miss write and preview deadlines. The processes
+are resumed afterward. This narrows the latency investigation without closing
+the strict zero-late gate or changing runtime defaults.

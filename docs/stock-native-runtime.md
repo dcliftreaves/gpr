@@ -120,3 +120,12 @@ Model quality remains unapproved: the selected fresh checkpoint retains its
 previous held-out shadow regression. Numeric backend agreement, codec identity
 and successful exports do not establish recovered detail, color/look or motion
 fidelity. The camera/sensor/display/SD/thermal boundaries remain unchanged.
+
+## Published 1x checkpoint follow-up
+
+[Checkpoint-specific native measurements](stock-cleanup-native.md) now cover
+the separately validated stock-Q3 1x candidate on two 12 MP inputs. All twelve
+FP32-Core-ML/Metal cases pass their existing count budgets through `python -S`
+media commands. All eight FP16-Core-ML cases exceed the predefined two-count
+budget despite faster execution. FP32 is the validated Core ML configuration.
+These checks do not approve the earlier 2x model, wider domains or video quality.

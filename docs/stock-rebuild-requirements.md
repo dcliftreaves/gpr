@@ -1,6 +1,7 @@
 # Stock rebuild requirement ledger
 
-Audit date: 2026-10-30. Implementation inspected: `6860b55`.
+Audit date: 2026-10-30. Published source/model inspected: `c47fdf1`.
+Runtime source remains the restored `f1e08c8` implementation.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
 (`821420d`), their PR bodies and adoption/validation files cited in the
 [eight-group audit](stock-feature-parity-audit.md). Older receipts remain bound
@@ -26,7 +27,7 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 | Original native desktop backend capability | Core ML, MPSGraph, custom Metal hybrid; `stock_coreml_test.py`, `stock_metal_test.py`, `stock_native_test.py`; [runtime](stock-native-runtime.md) | Implemented, including standalone host processing without Torch/NumPy runtime. Explicit numeric tolerances; historical monolithic CLI syntax not retained |
 | High-level UPRESABLE modes/media chain | `stock_upres_test.py`, `stock_sequence_test.py`; [workflow](stock-upres-workflow.md), real Mac native and [Pi receipt](stock-upres-receipts/pi5-real-captured.json) | Timelapse/regression/both implemented through analysis workflows. Captured-GPR timelapse additionally has a standard-library native path. Native simulation/regression uses the analysis workflow |
 | Real Pi reconstruction correctness/cost | Two 4096x3072 captures become 8192x6144 GPR/GVID/MOV; final payloads checked against independent historical encoder, editable pixels/calibration verified | Verified offline: 114.24 s total, 57.12 s/frame. Not real-time CNN or sensor ground truth |
-| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x study remains failed; 2x still regresses in shadows. Broader visual/temporal/restored-tier promotion remains open |
+| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x study remains failed; [2x follow-ups](stock-sr-balanced.md) still fail regional guards. Broader visual/temporal/restored-tier promotion remains open |
 | Original compact restored-tier claims | Six measured stock presets and explicit model/final decoded metrics | Old size/quality approvals do not transfer. No replacement restored tier or temporal/perceptual model approval |
 | Independent packages/public clients | `build_profiles.py`, stripped capture/preview/camera/full packages, relocated C/C++ consumers, installed native receipt | Implemented. Apple/native ML optional and outside camera-library dependencies |
 | Applicable validation/reproducible evidence | Old-to-new test map in [audit](stock-feature-parity-audit.md); 24 local Release targets; optional CNN/native/FFmpeg tests; seven hosted jobs and hashed receipts | Implemented; hosted status evaluated per revision. Broader fuzz/sanitizer expansion deferred by user. Old commit-adoption/coverage instrumentation and research diagnostics not recreated |
@@ -34,11 +35,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 ## Remaining work
 
 1. Keep hosted validation current as the branch advances. All seven checks for
-   implementation `6860b5519a15584691cc489e6eb0ab87efe26b44` passed in
-   [run 41063867230](https://github.com/dcliftreaves/gpr/actions/runs/41063867230),
+   published source/model `c47fdf1` passed in
+   [run 41101827130](https://github.com/dcliftreaves/gpr/actions/runs/41101827130),
    including native Core ML/MPSGraph/Metal and relocated packages on Mac.
-   The fresh local 24-target Release run also passed (16.94 seconds). These
-   results precede this documentation-only audit update.
+   Current runtime restoration passes 26 Mac/23 Pi Release targets. These
+   results precede this documentation/evidence-only update.
 2. The [selected 1x candidate](stock-cleanup-strength.md) now passes the declared
    patch-validation and four-reference numeric nonregression guards, with an
    explicit repository checkpoint and Pi execution evidence. Extend 2x and
@@ -76,3 +77,13 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 This is broad implementation coverage, not proof of full goal completion while
 broader quality and timing gates remain unresolved. Planning percentages
 are not passing-test ratios.
+
+## Latest checkpoint and timing evidence
+
+The [published 1x native checks](stock-cleanup-native.md) pass FP32 Core ML and
+Metal count budgets, with exact supported calibration. Faster FP16 Core ML
+fails its preregistered precision bound. The [2x follow-ups](stock-sr-balanced.md)
+fail shadow/highlight guards and supply no new weights. The current-binary
+[background workload control](stock-background-control.md) preserves all 600
+recordings/previews per run, but pausing competing work still leaves late
+deliveries. None of these results closes broader quality or strict Pi timing.

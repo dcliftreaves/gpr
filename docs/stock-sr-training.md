@@ -152,3 +152,12 @@ Receipts and exact source revisions:
 All recorded runtime/tool hashes were checked against those Git revisions.
 The complete high-level rebuild continues with rendering/interchange, integrated
 preview/capture and the outstanding quality/format/release work.
+
+## Strength selection and shadow-weighted follow-up
+
+The [follow-up study](stock-sr-balanced.md) rejects all 17 reduced strengths
+of the existing checkpoint for shadow regression. Fresh shadow-weighted
+training yields a validation-qualified 1/16-strength candidate, frozen before
+full-reference evaluation, but it regresses one reference's shadows and
+another's highlights. No new 2x weights are supplied or promoted. These failures
+preserve the original strict guard; the separate 1x candidate is unchanged.

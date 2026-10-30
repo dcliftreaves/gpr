@@ -22,8 +22,13 @@ production-quality approval. The checkpoint retains `quality_approval=false`.
 Its trained/evaluated domain is RGGB14 and stock Q3; other codec formats and
 presets do not inherit these results. Pi replay checks use still-derived
 inputs, not new lossless sensor references.
-Measured backend agreement covers Torch CPU and MPS. Other backends require
-explicit export and their own numeric check for this checkpoint.
+Measured backend agreement covers Torch CPU/MPS, FP32 Core ML and the
+MPSGraph/hybrid Metal exports on two supplied 12 MP inputs. FP32 Core ML
+differs by at most one count; Metal differs by at most two in these checks
+(within its existing 32-count bound). FP16 Core ML differs by 3–4 counts and
+fails the predefined two-count budget. Use FP32 for the validated Core ML
+configuration. See the [native checks](../../docs/stock-cleanup-native.md);
+backend agreement does not independently establish model quality.
 
 From the repository root, with optional Torch/numpy/tifffile dependencies:
 

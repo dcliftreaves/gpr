@@ -109,8 +109,10 @@ differ by at most **one**: 197/177 differing samples out of 12,582,912 each;
 supported calibration remains exact. Backend results are not bit-identical.
 MPS inference on these 12 MP frames takes 0.407/0.401 s in this check.
 [Cross-host receipt](stock-cleanup-strength-receipts/cross-host.json).
-Other native backends need explicit export and their own numeric check for
-this checkpoint; earlier generic backend tests are not relabeled as this result.
+The later [checkpoint-specific native checks](stock-cleanup-native.md) pass
+FP32 Core ML and MPSGraph/hybrid Metal on the same two 12 MP inputs through
+standard-library media commands. FP16 Core ML exceeds its predefined precision
+budget and remains rejected; generic backend tests are separate evidence.
 
 ## Use and reproduction
 

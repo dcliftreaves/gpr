@@ -1,0 +1,137 @@
+{
+  "schema": "gpr.stock_sr_balanced_split_audit.v1",
+  "source_bytes_unique": true,
+  "reference_raw_hashes_disjoint_from_final": true,
+  "final_patches_in_arrays": 0,
+  "sources": [
+    {
+      "group": "20250727_BarnAndSky",
+      "split": "train",
+      "sha256": "4f24fa4e63809a2938971f9a256b82217b8b0506216f542bfda3acbdf23bcc7a",
+      "patch_start": 0,
+      "patch_count": 64,
+      "reference_raw_sha256": "1aad61ae1f55397a382a3ccc4ed299cc8114048527b99c3f5507f87e9d1a79e1"
+    },
+    {
+      "group": "20250727_BarnAndSky",
+      "split": "train",
+      "sha256": "7d05454a11ec225e6d463297e742d02d4e342744844574a6ecaac80e3a210060",
+      "patch_start": 64,
+      "patch_count": 64,
+      "reference_raw_sha256": "1a58a9ef16a7d295daff6854449b20aa2307719ecc2999a802fc295a6b6e932d"
+    },
+    {
+      "group": "20250729_05__FieldAndSky",
+      "split": "train",
+      "sha256": "c7b9d2d8d8c3e4a982179937ea83c9685950b9b99a120b97c38f9c8483c2978c",
+      "patch_start": 128,
+      "patch_count": 64,
+      "reference_raw_sha256": "972c1b903c7684ec86626300d90d168a7701da9c6c5d568bedd94aba0c6be09b"
+    },
+    {
+      "group": "20250729_05__FieldAndSky",
+      "split": "train",
+      "sha256": "46470ae0ee12390d9955f2e5c26667aae881af590727ac8ee4db40b420d158b7",
+      "patch_start": 192,
+      "patch_count": 64,
+      "reference_raw_sha256": "9b254be0f58aaae1d70490919b0d9cd9655a4ecfbcc868dccea76e7f1e4810c0"
+    },
+    {
+      "group": "118NCZ_8",
+      "split": "train",
+      "sha256": "a264001d52e0980deed5e4ecdc13cb1d9455bcc4c73759845f45d290f07e62fd",
+      "patch_start": 256,
+      "patch_count": 64,
+      "reference_raw_sha256": "e81649f6f2a5da9e04535681bef9380609fac48e886b937e2451a6a46874bf97"
+    },
+    {
+      "group": "118NCZ_8",
+      "split": "train",
+      "sha256": "07714d4bee69c1f2d006580209cd34e15b752fa090614ce3c00cbefca2136bc7",
+      "patch_start": 320,
+      "patch_count": 64,
+      "reference_raw_sha256": "04914e74dee90863763127102b3f29f7ad055b9d36a42c8205137dbfdfcc4b74"
+    },
+    {
+      "group": "2026-01-18",
+      "split": "train",
+      "sha256": "e9adefd49d9104ac962e148ff6527d101b83f8ca37d6f6981e564176df59e5dc",
+      "patch_start": 384,
+      "patch_count": 64,
+      "reference_raw_sha256": "e77aa299a516c03beab60301866263b052a47aab6d59d81d43f4c4e0331179f8"
+    },
+    {
+      "group": "2026-01-18",
+      "split": "train",
+      "sha256": "a44049209d020807b8520e4db433f11bc13b302aecf4b65b3514d3203765bfd7",
+      "patch_start": 448,
+      "patch_count": 64,
+      "reference_raw_sha256": "d6f293c5a1b785c05c8950ffb2cf80769edb53593d55cdc3d7fa4d66cef0ad15"
+    },
+    {
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b",
+      "patch_start": 512,
+      "patch_count": 32,
+      "reference_raw_sha256": "89519f5d35be3e6292c03e87b988a4019e5bc78913f618090a889475d0cbb3df"
+    },
+    {
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081",
+      "patch_start": 544,
+      "patch_count": 32,
+      "reference_raw_sha256": "4300460a8884ef7b2c9ef2fcba69d24ab261a1765bb698283a0972ac260219ce"
+    },
+    {
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa",
+      "patch_start": 576,
+      "patch_count": 32,
+      "reference_raw_sha256": "625fd734b2087fe17470c87b4051368cd782262b9f0abc24539d6cc8097e6adc"
+    },
+    {
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79",
+      "patch_start": 608,
+      "patch_count": 32,
+      "reference_raw_sha256": "582ef47e5088f73ef7dde3d26ce84d6a242eb70f4726caaff058a88d9bd003c5"
+    },
+    {
+      "group": "nikon_gate_0001",
+      "split": "test",
+      "sha256": "1458244f1221c2ab0ba863301cb6aba65aa96f021c05fd0c6f1941865e650e6f",
+      "patch_start": null,
+      "patch_count": 0,
+      "reference_raw_sha256": "f18ca274ab12cc436fbaf83232727754d7269df91c8e613fa86d48175d1fd57a"
+    },
+    {
+      "group": "nikon_gate_0067",
+      "split": "test",
+      "sha256": "31ef1b08701e4efecfd10f7c56296bc0c485816490ddd68f3ace1aa5a90bde26",
+      "patch_start": null,
+      "patch_count": 0,
+      "reference_raw_sha256": "e3fe45e710e664d4ae78ec90b9d2d108bc9558012d14fe1975e317f2972e1d41"
+    },
+    {
+      "group": "nikon_gate_5323",
+      "split": "test",
+      "sha256": "79c4e1ddb384e39ab6f84fd27e687624b4030ded9662553b4adc3e68655dd2a2",
+      "patch_start": null,
+      "patch_count": 0,
+      "reference_raw_sha256": "3f7a57165d1344c790316acc2f9b50f5e237c3e4b80ca6cef71794c9998772c4"
+    },
+    {
+      "group": "nikon_gate_6693",
+      "split": "test",
+      "sha256": "a228d02daf7a4c7e7c6ed81701f89ac322f50cabbd568f4ee24820b05b58cf44",
+      "patch_start": null,
+      "patch_count": 0,
+      "reference_raw_sha256": "04f333923723625d09da3e7aae088289ed2572e8c01371d73aa9fb2289447c85"
+    }
+  ],
+  "limitations": "Exact identity separation only; no perceptual near-duplicate exclusion; historical final corpus"
+}

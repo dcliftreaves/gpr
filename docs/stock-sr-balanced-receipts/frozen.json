@@ -1,0 +1,11 @@
+{
+  "schema": "gpr.stock_sr_balanced_freeze.v1",
+  "created_utc": "2026-10-30T18:02:33.724087+00:00",
+  "checkpoint_sha256": "2c9abcf944fbb01eb7e12552957db298771ae4ed04d24e294a4c9163f0577d06",
+  "protocol_sha256": "3cd1e01cd74a6dd29c17de5103b2e50d3e0c616746d4f550bf77dfb8906736b3",
+  "selection_sha256": "42539d67b01c06c96e14edb71ab20cb453aa99c468b5438b8d0f2c0f29f740ea",
+  "final_evaluation_started": false,
+  "quality_approval": false,
+  "evaluator_sha256": "c528c9b77ab2f35ff50913b0d3cec5c7c9c5ccdc284a18fe0d4cd19cffb52704",
+  "sdk_sha256": "e9405aeeb27e97720a38870d99ae828d62a0136ba3fa44cae15f7de87e60638e"
+}
