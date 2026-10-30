@@ -1,0 +1,230 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e384ba8..a5e1d03 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -380,3 +380,8 @@ if(GPR_BUILD_CODEC_TESTS)
+   set_tests_properties(bayer_formats_fast PROPERTIES ENVIRONMENT
+     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1")
+ endif()
++
++find_package(Threads REQUIRED)
++add_executable(channel_preview_benchmark tests/channel_preview_benchmark.cpp)
++target_compile_features(channel_preview_benchmark PRIVATE cxx_std_11)
++target_link_libraries(channel_preview_benchmark vc5_encoder vc5_decoder Threads::Threads)
+diff --git a/source/lib/vc5_encoder/encoder.c b/source/lib/vc5_encoder/encoder.c
+index 1935a2a..43ea047 100755
+--- a/source/lib/vc5_encoder/encoder.c
++++ b/source/lib/vc5_encoder/encoder.c
+@@ -461,6 +461,8 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
+ 	error = PrepareEncoder(encoder, image, parameters,
+         bitstream && bitstream->stream && bitstream->stream->type == STREAM_TYPE_MEMORY);
+     encoder->packed_input = packed_input;
++    encoder->preview_channel_observer = parameters->preview_channel_observer;
++    encoder->preview_channel_user = parameters->preview_user;
+ 	assert(error == CODEC_ERROR_OKAY);
+ 	if (! (error == CODEC_ERROR_OKAY)) {
+ 		return error;
+@@ -1614,6 +1616,8 @@ static void *EncodeChannelThread(void *arg)
+         }
+     }
+     double transform_end = EncoderWallTime();
++    if (encoder.preview_channel_observer && thread->channel_number < 3 && encoder.row_error == CODEC_ERROR_OKAY)
++        encoder.preview_channel_observer(encoder.preview_channel_user,encoder.transform,thread->channel_number);
+     if (thread->band_workspace && getenv("GPR_DIRECT_BANDS")) {
+         thread->prepared_encoder = encoder;
+         thread->error = encoder.row_error;
+diff --git a/source/lib/vc5_encoder/encoder.h b/source/lib/vc5_encoder/encoder.h
+index ebe1092..ba63150 100755
+--- a/source/lib/vc5_encoder/encoder.h
++++ b/source/lib/vc5_encoder/encoder.h
+@@ -179,6 +179,8 @@ typedef struct _encoder
+     //! Six rows of horizontal highpass results for each channel
+     PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
+     const PACKED_IMAGE *packed_input;
++    void (*preview_channel_observer)(void *user,const TRANSFORM *transforms,unsigned channel);
++    void *preview_channel_user;
+     bool compact_bands; /* Row-sized highpass storage requires streaming channel workers. */
+     BITSTREAM *row_stream[MAX_WAVELET_COUNT][MAX_BAND_COUNT];
+     uint32_t row_pending[MAX_WAVELET_COUNT][MAX_BAND_COUNT];
+diff --git a/source/lib/vc5_encoder/parameters.h b/source/lib/vc5_encoder/parameters.h
+index 9f5cc52..f731608 100755
+--- a/source/lib/vc5_encoder/parameters.h
++++ b/source/lib/vc5_encoder/parameters.h
+@@ -126,6 +126,7 @@ typedef struct _encoder_parameters
+     /* Internal experiment: retained upper bands, borrowed only during callback. */
+     void (*preview_observer)(void *user, const TRANSFORM *transforms);
+     void *preview_user;
++    void (*preview_channel_observer)(void *user,const TRANSFORM *transforms,unsigned channel);
+     
+ } ENCODER_PARAMETERS;
+ 
+diff --git a/source/lib/vc5_encoder/vc5_encoder.c b/source/lib/vc5_encoder/vc5_encoder.c
+index 0912515..da90870 100755
+--- a/source/lib/vc5_encoder/vc5_encoder.c
++++ b/source/lib/vc5_encoder/vc5_encoder.c
+@@ -45,12 +45,13 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
+ 
+ typedef struct {
+     vc5_encoder_preview_fn callback;
++    vc5_encoder_channel_preview_fn channel_callback;
++    unsigned delivered[3];
+     void *user;
+     unsigned width,height;
+ } PREVIEW_CALLBACK;
+-static void encoder_preview_adapter(void *user,const TRANSFORM *transforms)
++static vc5_preview_coefficients encoder_preview_view(PREVIEW_CALLBACK *callback,const TRANSFORM *transforms)
+ {
+-    PREVIEW_CALLBACK *callback=user;
+     vc5_preview_coefficients view={0};
+     view.sensor_width=callback->width;view.sensor_height=callback->height;
+     for (unsigned channel=0;channel<3;++channel) for (unsigned level=0;level<2;++level) {
+@@ -64,13 +65,32 @@ static void encoder_preview_adapter(void *user,const TRANSFORM *transforms)
+             output->band_samples[band]=(size_t)(wavelet->height-1)*output->pitch_samples+wavelet->width;
+         }
+     }
+-    callback->callback(callback->user,&view);
++    return view;
++}
++static void encoder_channel_preview_adapter(void *user,const TRANSFORM *transforms,unsigned channel)
++{
++    PREVIEW_CALLBACK *callback=user;
++    if (channel>=3 || callback->delivered[channel]) return;
++    vc5_preview_coefficients view=encoder_preview_view(callback,transforms);
++    callback->channel_callback(callback->user,channel,&view);
++    callback->delivered[channel]=1;
++}
++static void encoder_preview_adapter(void *user,const TRANSFORM *transforms)
++{
++    PREVIEW_CALLBACK *callback=user;
++    if (callback->callback) {
++        vc5_preview_coefficients view=encoder_preview_view(callback,transforms);
++        callback->callback(callback->user,&view);
++    }
++    if (callback->channel_callback)
++        for (unsigned c=0;c<3;++c) if (!callback->delivered[c])
++            encoder_channel_preview_adapter(callback,transforms,c);
+ }
+ static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
+                                 const gpr_buffer*               raw_buffer,             /* raw input buffer. */
+                                       gpr_buffer*               vc5_buffer,
+                                       gpr_rgb_buffer*           rgb_buffer,
+-                                      vc5_encoder_preview_fn preview,void *preview_user)
++                                      vc5_encoder_preview_fn preview,void *preview_user,vc5_encoder_channel_preview_fn channel_preview)
+ {
+     CODEC_ERROR error = CODEC_ERROR_OKAY;
+     IMAGE image;
+@@ -96,8 +116,11 @@ static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_p
+ 
+     // Initialize the data structure for passing parameters to the encoder
+     InitEncoderParameters(&parameters);
+-    PREVIEW_CALLBACK callback={preview,preview_user,encoding_parameters->input_width,encoding_parameters->input_height};
+-    if (preview) {parameters.preview_observer=encoder_preview_adapter;parameters.preview_user=&callback;}
++    PREVIEW_CALLBACK callback={0};
++    callback.callback=preview;callback.channel_callback=channel_preview;callback.user=preview_user;
++    callback.width=encoding_parameters->input_width;callback.height=encoding_parameters->input_height;
++    if (preview || channel_preview) {parameters.preview_observer=encoder_preview_adapter;parameters.preview_user=&callback;}
++    if (channel_preview) parameters.preview_channel_observer=encoder_channel_preview_adapter;
+     
+     {
+         QUANT quant_table[VC5_ENCODER_QUALITY_SETTING_COUNT][sizeof(parameters.quant_table) / sizeof(parameters.quant_table[0])] = {
+@@ -251,7 +274,7 @@ static CODEC_ERROR vc5_encoder_encode(const vc5_encoder_parameters*   encoding_p
+  * Dimensions are stored in 16-bit codec fields and image counts use signed int. */
+ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters *p,
+                                                const gpr_buffer *raw, gpr_buffer *out,
+-                                               gpr_rgb_buffer *rgb,vc5_encoder_preview_fn preview,void *preview_user)
++                                               gpr_rgb_buffer *rgb,vc5_encoder_preview_fn preview,void *preview_user,vc5_encoder_channel_preview_fn channel_preview)
+ {
+     size_t row,span,pitch;
+     gpr_buffer input;
+@@ -297,7 +320,7 @@ static CODEC_ERROR vc5_encoder_process_unlocked(const vc5_encoder_parameters *p,
+         normalized.input_pitch=(int)aligned_pitch;
+         input.buffer=scratch;input.size=(p->input_height-1)*aligned_pitch+row;
+     }
+-    error=vc5_encoder_encode(&normalized,&input,out,rgb,preview,preview_user);
++    error=vc5_encoder_encode(&normalized,&input,out,rgb,preview,preview_user,channel_preview);
+     if (scratch) {
+         const gpr_allocator allocator={p->mem_alloc,p->mem_free};
+         gpr_aligned_free(&allocator,scratch);
+@@ -314,9 +337,9 @@ CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters *parameters,
+ {
+     return vc5_encoder_process_with_preview(parameters,raw,vc5,rgb,NULL,NULL);
+ }
+-CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *parameters,
++static CODEC_ERROR encoder_process_previews(const vc5_encoder_parameters *parameters,
+                                 const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
+-                                vc5_encoder_preview_fn preview,void *preview_user)
++                                vc5_encoder_preview_fn preview,void *preview_user,vc5_encoder_channel_preview_fn channel_preview)
+ {
+     CODEC_ERROR error;
+ #if defined(_WIN32)
+@@ -324,7 +347,7 @@ CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *param
+ #else
+     pthread_mutex_lock(&encoder_process_mutex);
+ #endif
+-    error = vc5_encoder_process_unlocked(parameters, raw, vc5, rgb,preview,preview_user);
++    error = vc5_encoder_process_unlocked(parameters, raw, vc5, rgb,preview,preview_user,channel_preview);
+ #if defined(_WIN32)
+     ReleaseSRWLockExclusive(&encoder_process_mutex);
+ #else
+@@ -332,3 +355,10 @@ CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *param
+ #endif
+     return error;
+ }
++
++CODEC_ERROR vc5_encoder_process_with_preview(const vc5_encoder_parameters *p,
++    const gpr_buffer *raw,gpr_buffer *out,gpr_rgb_buffer *rgb,vc5_encoder_preview_fn cb,void *user)
++{return encoder_process_previews(p,raw,out,rgb,cb,user,NULL);}
++CODEC_ERROR vc5_encoder_process_with_channel_preview(const vc5_encoder_parameters *p,
++    const gpr_buffer *raw,gpr_buffer *out,gpr_rgb_buffer *rgb,vc5_encoder_channel_preview_fn cb,void *user)
++{return encoder_process_previews(p,raw,out,rgb,NULL,user,cb);}
+diff --git a/source/lib/vc5_encoder/vc5_encoder.h b/source/lib/vc5_encoder/vc5_encoder.h
+index 01d40ee..41c341a 100755
+--- a/source/lib/vc5_encoder/vc5_encoder.h
++++ b/source/lib/vc5_encoder/vc5_encoder.h
+@@ -125,6 +125,14 @@
+         const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
+         vc5_encoder_preview_fn preview,void *user);
+ 
++    /* Experimental: three independent channel callbacks may run concurrently on
++     * codec workers. Selected-channel coefficients alone are ready; do not read
++     * other channels. Copy/reconstruct before returning; never reenter encoding.
++     * Callback-owned results must be discarded if the encoder returns an error. */
++    typedef void (*vc5_encoder_channel_preview_fn)(void *,unsigned,const vc5_preview_coefficients *);
++    CODEC_ERROR vc5_encoder_process_with_channel_preview(const vc5_encoder_parameters *,
++        const gpr_buffer *,gpr_buffer *,gpr_rgb_buffer *,vc5_encoder_channel_preview_fn,void *);
++
+ #ifdef __cplusplus
+     }
+ #endif
+diff --git a/tests/encoder_preview_probe.c b/tests/encoder_preview_probe.c
+index 0b61bab..9fb7bf2 100644
+--- a/tests/encoder_preview_probe.c
++++ b/tests/encoder_preview_probe.c
+@@ -61,6 +61,15 @@ static void public_observe(void *user,const vc5_preview_coefficients *input) {
+         free(planes[channel].buffer);
+     }
+ }
++typedef struct {PROBE *reference;unsigned calls[3];} CHANNEL_CONTEXT;
++static void channel_observe(void *user,unsigned channel,const vc5_preview_coefficients *input) {
++    CHANNEL_CONTEXT *context=user;gpr_rgb_buffer plane={0};
++    REQUIRE(channel<3);++context->calls[channel];
++    REQUIRE(vc5_decoder_reconstruct_preview_channel(input,channel,malloc,free,&plane)==CODEC_ERROR_OKAY);
++    REQUIRE(plane.width==context->reference->width && plane.height==context->reference->height);
++    REQUIRE(!memcmp(plane.buffer,context->reference->planes[channel],plane.size));
++    free(plane.buffer);
++}
+ static void run_case(unsigned width,unsigned height,unsigned bits,PIXEL_FORMAT format,
+     VC5_ENCODER_PIXEL_FORMAT public_format,const char *path) {
+     const size_t raw_size=(size_t)width*height*2,capacity=raw_size+raw_size/2+1024*1024;
+@@ -93,6 +102,11 @@ static void run_case(unsigned width,unsigned height,unsigned bits,PIXEL_FORMAT f
+         REQUIRE(vc5_encoder_process_with_preview(&ep,&input,&observed,NULL,public_observe,&callback)==CODEC_ERROR_OKAY);
+         REQUIRE(callback.calls==1 && observed.size==stock.size && !memcmp(observed.buffer,stock.buffer,stock.size));
+         free(observed.buffer);
++        CHANNEL_CONTEXT channel_callback={&probe,{0,0,0}};gpr_buffer early={0};
++        REQUIRE(vc5_encoder_process_with_channel_preview(&ep,&input,&early,NULL,channel_observe,&channel_callback)==CODEC_ERROR_OKAY);
++        for (unsigned c=0;c<3;++c) REQUIRE(channel_callback.calls[c]==1);
++        REQUIRE(early.size==stock.size && !memcmp(early.buffer,stock.buffer,stock.size));
++        free(early.buffer);
+         vc5_decoder_parameters dp;vc5_decoder_parameters_set_default(&dp);dp.mem_alloc=malloc;dp.mem_free=free;
+         dp.rgb_bits=16;dp.rgb_resolution=GPR_RGB_RESOLUTION_QUARTER;
+         for (unsigned channel=0;channel<3;++channel) {

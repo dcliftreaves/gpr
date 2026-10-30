@@ -522,3 +522,8 @@ A [bounded shared unpack-row cache](stock-shared-rows.md) is rejected after
 byte-exact isolated Pi comparisons: it computes each row once for all four
 consumers, yet both eight-row comparisons are slower. Production runtime and
 the unresolved strict deadline gate are unchanged.
+
+[Early per-channel preview reconstruction](stock-channel-preview.md) also
+preserves payloads/planes and passes the expanded Mac/Pi matrix, but neither
+pinned nor affinity-restored isolated comparison provides a consistent win.
+The prototype and draft API are discarded; production behavior is unchanged.

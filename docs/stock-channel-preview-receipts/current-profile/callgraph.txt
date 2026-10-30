@@ -1,0 +1,822 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 11K of event 'cycles:u'
+# Event count (approx.): 28791767312
+#
+# Children      Self  Command          Shared Object          Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+# ........  ........  ...............  .....................  ....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    97.79%     0.05%  gpr_capture_app  libc.so.6              [.] start_thread
+            |          
+             --97.74%--start_thread
+                       |          
+                       |--60.47%--0x7fff63fee9dc
+                       |          |          
+                       |          |--38.39%--gpr_capture::encode_loop()
+                       |          |          |          
+                       |          |          |--27.33%--EncodeMultipleChannels
+                       |          |          |          |          
+                       |          |          |          |--25.78%--EncodeChannelThread
+                       |          |          |          |          |          
+                       |          |          |          |           --25.76%--ForwardWaveletTransform
+                       |          |          |          |                     |          
+                       |          |          |          |                     |--10.07%--EncodeHighpassIncremental.constprop.1
+                       |          |          |          |                     |          
+                       |          |          |          |                     |--8.52%--gpr_stock_unpack14_channel
+                       |          |          |          |                     |          
+                       |          |          |          |                     |--4.41%--ForwardWaveletTransform
+                       |          |          |          |                     |          
+                       |          |          |          |                      --2.57%--FilterHorizontalRow.isra.0
+                       |          |          |          |          
+                       |          |          |           --1.56%--EncodeChannelSubbands
+                       |          |          |                     |          
+                       |          |          |                      --1.04%--__memcpy_generic
+                       |          |          |          
+                       |          |          |--8.28%--encoder_preview_adapter.lto_priv.0
+                       |          |          |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+                       |          |          |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+                       |          |          |          |          
+                       |          |          |           --8.25%--reconstruct_preview.constprop.0
+                       |          |          |                     |          
+                       |          |          |                     |--4.34%--TransformInverseSpatialQuantArray
+                       |          |          |                     |          InvertSpatialQuantDescale16s
+                       |          |          |                     |          |          
+                       |          |          |                     |           --0.70%--InvertHorizontalDescale16s.isra.0
+                       |          |          |                     |          
+                       |          |          |                      --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                       |          |          |                                InvertSpatialQuantDescale16s
+                       |          |          |          
+                       |          |          |--1.69%--Output::encoded(void*, gpr_capture_encoded_frame const*)
+                       |          |          |          |          
+                       |          |          |           --1.21%--offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+                       |          |          |                     __memcpy_generic
+                       |          |          |          
+                       |          |           --0.80%--__memcpy_generic
+                       |          |          
+                       |          |--9.75%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+                       |          |          |          
+                       |          |           --9.75%--__pthread_once_slow
+                       |          |                     |          
+                       |          |                      --9.75%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                       |          |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                       |          |                                |          
+                       |          |                                 --9.75%--reconstruct_preview.constprop.0
+                       |          |                                           |          
+                       |          |                                           |--6.06%--TransformInverseSpatialQuantArray
+                       |          |                                           |          InvertSpatialQuantDescale16s
+                       |          |                                           |          |          
+                       |          |                                           |           --0.87%--InvertHorizontalDescale16s.isra.0
+                       |          |                                           |          
+                       |          |                                            --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+                       |          |                                                      InvertSpatialQuantDescale16s
+                       |          |          
+                       |          |--8.10%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+                       |          |          |          
+                       |          |           --8.10%--__pthread_once_slow
+                       |          |                     |          
+                       |          |                      --8.10%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                       |          |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                       |          |                                |          
+                       |          |                                 --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                       |          |                                           |          
+                       |          |                                            --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+                       |          |          
+                       |           --3.92%--gpr_preview_queue::run()
+                       |                     |          
+                       |                      --3.80%--gpr_preview_plan_render_wavelets
+                       |                                |          
+                       |                                 --3.74%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                       |                                           |          
+                       |                                            --0.57%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+                       |          
+                        --37.24%--EncodeChannelThread
+                                  |          
+                                   --37.11%--ForwardWaveletTransform
+                                             |          
+                                             |--15.00%--EncodeHighpassIncremental.constprop.1
+                                             |          
+                                             |--10.56%--gpr_stock_unpack14_channel
+                                             |          
+                                             |--6.58%--ForwardWaveletTransform
+                                             |          
+                                              --4.78%--FilterHorizontalRow.isra.0
+
+    97.79%     0.00%  gpr_capture_app  libc.so.6              [.] thread_start
+            |          
+             --97.79%--thread_start
+                       |          
+                        --97.79%--start_thread
+                                  |          
+                                  |--60.47%--0x7fff63fee9dc
+                                  |          |          
+                                  |          |--38.39%--gpr_capture::encode_loop()
+                                  |          |          |          
+                                  |          |          |--27.33%--EncodeMultipleChannels
+                                  |          |          |          |          
+                                  |          |          |          |--25.78%--EncodeChannelThread
+                                  |          |          |          |          |          
+                                  |          |          |          |           --25.76%--ForwardWaveletTransform
+                                  |          |          |          |                     |          
+                                  |          |          |          |                     |--10.07%--EncodeHighpassIncremental.constprop.1
+                                  |          |          |          |                     |          
+                                  |          |          |          |                     |--8.52%--gpr_stock_unpack14_channel
+                                  |          |          |          |                     |          
+                                  |          |          |          |                     |--4.41%--ForwardWaveletTransform
+                                  |          |          |          |                     |          
+                                  |          |          |          |                      --2.57%--FilterHorizontalRow.isra.0
+                                  |          |          |          |          
+                                  |          |          |           --1.56%--EncodeChannelSubbands
+                                  |          |          |                     |          
+                                  |          |          |                      --1.04%--__memcpy_generic
+                                  |          |          |          
+                                  |          |          |--8.28%--encoder_preview_adapter.lto_priv.0
+                                  |          |          |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+                                  |          |          |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+                                  |          |          |          |          
+                                  |          |          |           --8.25%--reconstruct_preview.constprop.0
+                                  |          |          |                     |          
+                                  |          |          |                     |--4.34%--TransformInverseSpatialQuantArray
+                                  |          |          |                     |          InvertSpatialQuantDescale16s
+                                  |          |          |                     |          |          
+                                  |          |          |                     |           --0.70%--InvertHorizontalDescale16s.isra.0
+                                  |          |          |                     |          
+                                  |          |          |                      --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                                  |          |          |                                InvertSpatialQuantDescale16s
+                                  |          |          |          
+                                  |          |          |--1.69%--Output::encoded(void*, gpr_capture_encoded_frame const*)
+                                  |          |          |          |          
+                                  |          |          |           --1.21%--offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+                                  |          |          |                     __memcpy_generic
+                                  |          |          |          
+                                  |          |           --0.80%--__memcpy_generic
+                                  |          |          
+                                  |          |--9.75%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+                                  |          |          |          
+                                  |          |           --9.75%--__pthread_once_slow
+                                  |          |                     |          
+                                  |          |                      --9.75%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                  |          |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                                  |          |                                |          
+                                  |          |                                 --9.75%--reconstruct_preview.constprop.0
+                                  |          |                                           |          
+                                  |          |                                           |--6.06%--TransformInverseSpatialQuantArray
+                                  |          |                                           |          InvertSpatialQuantDescale16s
+                                  |          |                                           |          |          
+                                  |          |                                           |           --0.87%--InvertHorizontalDescale16s.isra.0
+                                  |          |                                           |          
+                                  |          |                                            --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+                                  |          |                                                      InvertSpatialQuantDescale16s
+                                  |          |          
+                                  |          |--8.10%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+                                  |          |          |          
+                                  |          |           --8.10%--__pthread_once_slow
+                                  |          |                     |          
+                                  |          |                      --8.10%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                  |          |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                                  |          |                                |          
+                                  |          |                                 --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                  |          |                                           |          
+                                  |          |                                            --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+                                  |          |          
+                                  |           --3.92%--gpr_preview_queue::run()
+                                  |                     |          
+                                  |                      --3.80%--gpr_preview_plan_render_wavelets
+                                  |                                |          
+                                  |                                 --3.74%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                  |                                           |          
+                                  |                                            --0.57%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+                                  |          
+                                   --37.24%--EncodeChannelThread
+                                             |          
+                                              --37.11%--ForwardWaveletTransform
+                                                        |          
+                                                        |--15.00%--EncodeHighpassIncremental.constprop.1
+                                                        |          
+                                                        |--10.56%--gpr_stock_unpack14_channel
+                                                        |          
+                                                        |--6.58%--ForwardWaveletTransform
+                                                        |          
+                                                         --4.78%--FilterHorizontalRow.isra.0
+
+    63.01%     0.00%  gpr_capture_app  gpr_capture_app        [.] EncodeChannelThread
+            |          
+             --63.01%--EncodeChannelThread
+                       |          
+                        --62.87%--ForwardWaveletTransform
+                                  |          
+                                  |--25.07%--EncodeHighpassIncremental.constprop.1
+                                  |          
+                                  |--19.08%--gpr_stock_unpack14_channel
+                                  |          
+                                  |--10.99%--ForwardWaveletTransform
+                                  |          
+                                   --7.36%--FilterHorizontalRow.isra.0
+
+    62.87%    10.99%  gpr_capture_app  gpr_capture_app        [.] ForwardWaveletTransform
+            |          
+            |--51.88%--ForwardWaveletTransform
+            |          |          
+            |          |--25.07%--EncodeHighpassIncremental.constprop.1
+            |          |          
+            |          |--19.08%--gpr_stock_unpack14_channel
+            |          |          
+            |           --7.36%--FilterHorizontalRow.isra.0
+            |          
+             --10.99%--thread_start
+                       start_thread
+                       |          
+                       |--6.58%--EncodeChannelThread
+                       |          ForwardWaveletTransform
+                       |          ForwardWaveletTransform
+                       |          
+                        --4.41%--0x7fff63fee9dc
+                                  gpr_capture::encode_loop()
+                                  EncodeMultipleChannels
+                                  EncodeChannelThread
+                                  ForwardWaveletTransform
+                                  ForwardWaveletTransform
+
+    60.47%     0.00%  gpr_capture_app  libstdc++.so.6.0.30    [.] 0x00007fff63fee9dc
+            |
+            ---0x7fff63fee9dc
+               |          
+               |--38.39%--gpr_capture::encode_loop()
+               |          |          
+               |          |--27.33%--EncodeMultipleChannels
+               |          |          |          
+               |          |          |--25.78%--EncodeChannelThread
+               |          |          |          |          
+               |          |          |           --25.76%--ForwardWaveletTransform
+               |          |          |                     |          
+               |          |          |                     |--10.07%--EncodeHighpassIncremental.constprop.1
+               |          |          |                     |          
+               |          |          |                     |--8.52%--gpr_stock_unpack14_channel
+               |          |          |                     |          
+               |          |          |                     |--4.41%--ForwardWaveletTransform
+               |          |          |                     |          
+               |          |          |                      --2.57%--FilterHorizontalRow.isra.0
+               |          |          |          
+               |          |           --1.56%--EncodeChannelSubbands
+               |          |                     |          
+               |          |                      --1.04%--__memcpy_generic
+               |          |          
+               |          |--8.28%--encoder_preview_adapter.lto_priv.0
+               |          |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+               |          |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+               |          |          |          
+               |          |           --8.25%--reconstruct_preview.constprop.0
+               |          |                     |          
+               |          |                     |--4.34%--TransformInverseSpatialQuantArray
+               |          |                     |          InvertSpatialQuantDescale16s
+               |          |                     |          |          
+               |          |                     |           --0.70%--InvertHorizontalDescale16s.isra.0
+               |          |                     |          
+               |          |                      --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+               |          |                                InvertSpatialQuantDescale16s
+               |          |          
+               |          |--1.69%--Output::encoded(void*, gpr_capture_encoded_frame const*)
+               |          |          |          
+               |          |           --1.21%--offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+               |          |                     __memcpy_generic
+               |          |          
+               |           --0.80%--__memcpy_generic
+               |          
+               |--9.75%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+               |          |          
+               |           --9.75%--__pthread_once_slow
+               |                     |          
+               |                      --9.75%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+               |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+               |                                |          
+               |                                 --9.75%--reconstruct_preview.constprop.0
+               |                                           |          
+               |                                           |--6.06%--TransformInverseSpatialQuantArray
+               |                                           |          InvertSpatialQuantDescale16s
+               |                                           |          |          
+               |                                           |           --0.87%--InvertHorizontalDescale16s.isra.0
+               |                                           |          
+               |                                            --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+               |                                                      InvertSpatialQuantDescale16s
+               |          
+               |--8.10%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+               |          |          
+               |           --8.10%--__pthread_once_slow
+               |                     |          
+               |                      --8.10%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+               |                                std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+               |                                |          
+               |                                 --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+               |                                           |          
+               |                                            --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+               |          
+                --3.92%--gpr_preview_queue::run()
+                          |          
+                           --3.80%--gpr_preview_plan_render_wavelets
+                                     |          
+                                      --3.74%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                                |          
+                                                 --0.57%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+    38.39%     0.27%  gpr_capture_app  gpr_capture_app        [.] gpr_capture::encode_loop()
+            |          
+             --38.12%--gpr_capture::encode_loop()
+                       |          
+                       |--27.33%--EncodeMultipleChannels
+                       |          |          
+                       |          |--25.78%--EncodeChannelThread
+                       |          |          |          
+                       |          |           --25.76%--ForwardWaveletTransform
+                       |          |                     |          
+                       |          |                     |--10.07%--EncodeHighpassIncremental.constprop.1
+                       |          |                     |          
+                       |          |                     |--8.52%--gpr_stock_unpack14_channel
+                       |          |                     |          
+                       |          |                     |--4.41%--ForwardWaveletTransform
+                       |          |                     |          
+                       |          |                      --2.57%--FilterHorizontalRow.isra.0
+                       |          |          
+                       |           --1.56%--EncodeChannelSubbands
+                       |                     |          
+                       |                      --1.04%--__memcpy_generic
+                       |          
+                       |--8.28%--encoder_preview_adapter.lto_priv.0
+                       |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+                       |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+                       |          |          
+                       |           --8.25%--reconstruct_preview.constprop.0
+                       |                     |          
+                       |                     |--4.34%--TransformInverseSpatialQuantArray
+                       |                     |          InvertSpatialQuantDescale16s
+                       |                     |          |          
+                       |                     |           --0.70%--InvertHorizontalDescale16s.isra.0
+                       |                     |          
+                       |                      --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                       |                                InvertSpatialQuantDescale16s
+                       |          
+                       |--1.69%--Output::encoded(void*, gpr_capture_encoded_frame const*)
+                       |          |          
+                       |           --1.21%--offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+                       |                     __memcpy_generic
+                       |          
+                        --0.80%--__memcpy_generic
+
+    27.33%     0.00%  gpr_capture_app  gpr_capture_app        [.] EncodeMultipleChannels
+            |          
+             --27.33%--EncodeMultipleChannels
+                       |          
+                       |--25.78%--EncodeChannelThread
+                       |          |          
+                       |           --25.76%--ForwardWaveletTransform
+                       |                     |          
+                       |                     |--10.07%--EncodeHighpassIncremental.constprop.1
+                       |                     |          
+                       |                     |--8.52%--gpr_stock_unpack14_channel
+                       |                     |          
+                       |                     |--4.41%--ForwardWaveletTransform
+                       |                     |          
+                       |                      --2.57%--FilterHorizontalRow.isra.0
+                       |          
+                        --1.56%--EncodeChannelSubbands
+                                  |          
+                                   --1.04%--__memcpy_generic
+
+    25.07%    25.07%  gpr_capture_app  gpr_capture_app        [.] EncodeHighpassIncremental.constprop.1
+            |
+            ---thread_start
+               start_thread
+               |          
+               |--15.00%--EncodeChannelThread
+               |          ForwardWaveletTransform
+               |          EncodeHighpassIncremental.constprop.1
+               |          
+                --10.07%--0x7fff63fee9dc
+                          gpr_capture::encode_loop()
+                          EncodeMultipleChannels
+                          EncodeChannelThread
+                          ForwardWaveletTransform
+                          EncodeHighpassIncremental.constprop.1
+
+    19.08%    19.08%  gpr_capture_app  gpr_capture_app        [.] gpr_stock_unpack14_channel
+            |
+            ---thread_start
+               start_thread
+               |          
+               |--10.56%--EncodeChannelThread
+               |          ForwardWaveletTransform
+               |          gpr_stock_unpack14_channel
+               |          
+                --8.52%--0x7fff63fee9dc
+                          gpr_capture::encode_loop()
+                          EncodeMultipleChannels
+                          EncodeChannelThread
+                          ForwardWaveletTransform
+                          gpr_stock_unpack14_channel
+
+    17.99%     5.60%  gpr_capture_app  gpr_capture_app        [.] reconstruct_preview.constprop.0
+            |          
+            |--12.40%--reconstruct_preview.constprop.0
+            |          |          
+            |          |--10.40%--TransformInverseSpatialQuantArray
+            |          |          InvertSpatialQuantDescale16s
+            |          |          |          
+            |          |           --1.56%--InvertHorizontalDescale16s.isra.0
+            |          |          
+            |           --2.00%--TransformInverseSpatialQuantLowpass.isra.0
+            |                     InvertSpatialQuantDescale16s
+            |          
+             --5.60%--thread_start
+                       start_thread
+                       0x7fff63fee9dc
+                       |          
+                       |--2.85%--gpr_capture::encode_loop()
+                       |          encoder_preview_adapter.lto_priv.0
+                       |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+                       |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+                       |          reconstruct_preview.constprop.0
+                       |          
+                        --2.74%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+                                  __pthread_once_slow
+                                  std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                  std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                                  reconstruct_preview.constprop.0
+
+    17.87%     0.00%  gpr_capture_app  libc.so.6              [.] __pthread_once_slow
+            |          
+             --17.87%--__pthread_once_slow
+                       |          
+                        --17.85%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                  |          
+                                  |--9.75%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                                  |          |          
+                                  |           --9.75%--reconstruct_preview.constprop.0
+                                  |                     |          
+                                  |                     |--6.06%--TransformInverseSpatialQuantArray
+                                  |                     |          InvertSpatialQuantDescale16s
+                                  |                     |          |          
+                                  |                     |           --0.87%--InvertHorizontalDescale16s.isra.0
+                                  |                     |          
+                                  |                      --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+                                  |                                InvertSpatialQuantDescale16s
+                                  |          
+                                   --8.10%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                                             |          
+                                              --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                                        |          
+                                                         --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+    17.85%     0.00%  gpr_capture_app  gpr_capture_app        [.] std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+            |
+            ---std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+               |          
+               |--9.75%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+               |          |          
+               |           --9.75%--reconstruct_preview.constprop.0
+               |                     |          
+               |                     |--6.06%--TransformInverseSpatialQuantArray
+               |                     |          InvertSpatialQuantDescale16s
+               |                     |          |          
+               |                     |           --0.87%--InvertHorizontalDescale16s.isra.0
+               |                     |          
+               |                      --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+               |                                InvertSpatialQuantDescale16s
+               |          
+                --8.10%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                          |          
+                           --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                     |          
+                                      --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+    12.40%    10.42%  gpr_capture_app  gpr_capture_app        [.] InvertSpatialQuantDescale16s
+            |          
+            |--10.42%--thread_start
+            |          start_thread
+            |          0x7fff63fee9dc
+            |          |          
+            |          |--6.02%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+            |          |          __pthread_once_slow
+            |          |          std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+            |          |          std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+            |          |          reconstruct_preview.constprop.0
+            |          |          |          
+            |          |          |--5.19%--TransformInverseSpatialQuantArray
+            |          |          |          InvertSpatialQuantDescale16s
+            |          |          |          
+            |          |           --0.83%--TransformInverseSpatialQuantLowpass.isra.0
+            |          |                     InvertSpatialQuantDescale16s
+            |          |          
+            |           --4.40%--gpr_capture::encode_loop()
+            |                     encoder_preview_adapter.lto_priv.0
+            |                     gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+            |                     Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+            |                     reconstruct_preview.constprop.0
+            |                     |          
+            |                     |--3.64%--TransformInverseSpatialQuantArray
+            |                     |          InvertSpatialQuantDescale16s
+            |                     |          
+            |                      --0.75%--TransformInverseSpatialQuantLowpass.isra.0
+            |                                InvertSpatialQuantDescale16s
+            |          
+             --1.98%--InvertSpatialQuantDescale16s
+                       InvertHorizontalDescale16s.isra.0
+
+    11.85%     9.61%  gpr_capture_app  gpr_capture_app        [.] (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+            |          
+            |--9.61%--thread_start
+            |          start_thread
+            |          0x7fff63fee9dc
+            |          |          
+            |          |--6.44%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+            |          |          __pthread_once_slow
+            |          |          std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+            |          |          std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+            |          |          (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+            |          |          
+            |           --3.17%--gpr_preview_queue::run()
+            |                     gpr_preview_plan_render_wavelets
+            |                     (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+            |          
+             --2.24%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                       (anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+    10.40%     0.00%  gpr_capture_app  gpr_capture_app        [.] TransformInverseSpatialQuantArray
+            |
+            ---TransformInverseSpatialQuantArray
+               InvertSpatialQuantDescale16s
+               |          
+                --1.56%--InvertHorizontalDescale16s.isra.0
+
+     9.75%     0.00%  gpr_capture_app  gpr_capture_app        [.] std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+            |          
+             --9.75%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+                       |          
+                        --9.75%--__pthread_once_slow
+                                  |          
+                                   --9.75%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                             std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                                             |          
+                                              --9.75%--reconstruct_preview.constprop.0
+                                                        |          
+                                                        |--6.06%--TransformInverseSpatialQuantArray
+                                                        |          InvertSpatialQuantDescale16s
+                                                        |          |          
+                                                        |           --0.87%--InvertHorizontalDescale16s.isra.0
+                                                        |          
+                                                         --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+                                                                   InvertSpatialQuantDescale16s
+
+     9.75%     0.00%  gpr_capture_app  gpr_capture_app        [.] std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+            |          
+             --9.75%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                       reconstruct_preview.constprop.0
+                       |          
+                       |--6.06%--TransformInverseSpatialQuantArray
+                       |          InvertSpatialQuantDescale16s
+                       |          |          
+                       |           --0.87%--InvertHorizontalDescale16s.isra.0
+                       |          
+                        --0.94%--TransformInverseSpatialQuantLowpass.isra.0
+                                  InvertSpatialQuantDescale16s
+
+     8.28%     0.00%  gpr_capture_app  gpr_capture_app        [.] encoder_preview_adapter.lto_priv.0
+            |
+            ---encoder_preview_adapter.lto_priv.0
+               gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+               Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+               |          
+                --8.25%--reconstruct_preview.constprop.0
+                          |          
+                          |--4.34%--TransformInverseSpatialQuantArray
+                          |          InvertSpatialQuantDescale16s
+                          |          |          
+                          |           --0.70%--InvertHorizontalDescale16s.isra.0
+                          |          
+                           --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                                     InvertSpatialQuantDescale16s
+
+     8.28%     0.00%  gpr_capture_app  gpr_capture_app        [.] gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+            |
+            ---gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+               Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+               |          
+                --8.25%--reconstruct_preview.constprop.0
+                          |          
+                          |--4.34%--TransformInverseSpatialQuantArray
+                          |          InvertSpatialQuantDescale16s
+                          |          |          
+                          |           --0.70%--InvertHorizontalDescale16s.isra.0
+                          |          
+                           --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                                     InvertSpatialQuantDescale16s
+
+     8.28%     0.00%  gpr_capture_app  gpr_capture_app        [.] Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+            |
+            ---Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+               |          
+                --8.25%--reconstruct_preview.constprop.0
+                          |          
+                          |--4.34%--TransformInverseSpatialQuantArray
+                          |          InvertSpatialQuantDescale16s
+                          |          |          
+                          |           --0.70%--InvertHorizontalDescale16s.isra.0
+                          |          
+                           --1.06%--TransformInverseSpatialQuantLowpass.isra.0
+                                     InvertSpatialQuantDescale16s
+
+     8.11%     0.01%  gpr_capture_app  gpr_capture_app        [.] std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+            |          
+             --8.10%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+                       |          
+                        --8.10%--__pthread_once_slow
+                                  |          
+                                   --8.10%--std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                                             std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                                             |          
+                                              --8.10%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                                        |          
+                                                         --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+     8.10%     0.00%  gpr_capture_app  gpr_capture_app        [.] std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+            |          
+             --8.10%--std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+                       (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                       |          
+                        --1.67%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+     7.36%     7.36%  gpr_capture_app  gpr_capture_app        [.] FilterHorizontalRow.isra.0
+            |
+            ---thread_start
+               start_thread
+               |          
+               |--4.78%--EncodeChannelThread
+               |          ForwardWaveletTransform
+               |          FilterHorizontalRow.isra.0
+               |          
+                --2.57%--0x7fff63fee9dc
+                          gpr_capture::encode_loop()
+                          EncodeMultipleChannels
+                          EncodeChannelThread
+                          ForwardWaveletTransform
+                          FilterHorizontalRow.isra.0
+
+     3.92%     0.02%  gpr_capture_app  gpr_capture_app        [.] gpr_preview_queue::run()
+            |          
+             --3.91%--gpr_preview_queue::run()
+                       |          
+                        --3.80%--gpr_preview_plan_render_wavelets
+                                  |          
+                                   --3.74%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                             |          
+                                              --0.57%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+     3.80%     0.02%  gpr_capture_app  gpr_capture_app        [.] gpr_preview_plan_render_wavelets
+            |          
+             --3.78%--gpr_preview_plan_render_wavelets
+                       |          
+                        --3.74%--(anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                                  |          
+                                   --0.57%--(anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+     3.08%     3.08%  gpr_capture_app  libc.so.6              [.] __memcpy_generic
+            |          
+             --3.05%--thread_start
+                       start_thread
+                       |          
+                        --3.05%--0x7fff63fee9dc
+                                  gpr_capture::encode_loop()
+                                  |          
+                                  |--1.21%--Output::encoded(void*, gpr_capture_encoded_frame const*)
+                                  |          offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+                                  |          __memcpy_generic
+                                  |          
+                                  |--1.04%--EncodeMultipleChannels
+                                  |          EncodeChannelSubbands
+                                  |          __memcpy_generic
+                                  |          
+                                   --0.80%--__memcpy_generic
+
+     2.24%     2.24%  gpr_capture_app  gpr_capture_app        [.] (anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+            |
+            ---thread_start
+               start_thread
+               0x7fff63fee9dc
+               |          
+               |--1.67%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void>::_M_run()
+               |          __pthread_once_slow
+               |          std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+               |          std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<void>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<void (*)(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int), gpr_preview_plan const*, gpr_rgb_buffer*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int> >, void> >::_M_invoke(std::_Any_data const&)
+               |          (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+               |          (anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+               |          
+                --0.57%--gpr_preview_queue::run()
+                          gpr_preview_plan_render_wavelets
+                          (anonymous namespace)::display_wavelet_rows(gpr_preview_plan const*, gpr_rgb_buffer const*, unsigned char const*, unsigned char*, unsigned long, unsigned int, unsigned int)
+                          (anonymous namespace)::display_pixel(gpr_preview_plan const*, unsigned char*, unsigned long, unsigned int, unsigned int, unsigned char const*)
+
+     2.21%     0.00%  gpr_capture_app  gpr_capture_app        [.] _start
+            |
+            ---_start
+               __libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               |          
+                --1.54%--read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+     2.21%     0.00%  gpr_capture_app  libc.so.6              [.] __libc_start_main@@GLIBC_2.34
+            |
+            ---__libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               |          
+                --1.54%--read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+     2.21%     0.00%  gpr_capture_app  libc.so.6              [.] __libc_start_call_main
+            |
+            ---__libc_start_call_main
+               main
+               |          
+                --1.54%--read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+     2.21%     0.16%  gpr_capture_app  gpr_capture_app        [.] main
+            |          
+             --2.05%--main
+                       |          
+                        --1.54%--read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+     2.00%     0.00%  gpr_capture_app  gpr_capture_app        [.] TransformInverseSpatialQuantLowpass.isra.0
+            |
+            ---TransformInverseSpatialQuantLowpass.isra.0
+               InvertSpatialQuantDescale16s
+
+     1.98%     1.98%  gpr_capture_app  gpr_capture_app        [.] InvertHorizontalDescale16s.isra.0
+            |
+            ---thread_start
+               start_thread
+               0x7fff63fee9dc
+               |          
+               |--1.00%--gpr_capture::encode_loop()
+               |          encoder_preview_adapter.lto_priv.0
+               |          gpr_capture::coefficients(void*, vc5_preview_coefficients const*)
+               |          Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)
+               |          reconstruct_preview.constprop.0
+               |          |          
+               |           --0.70%--TransformInverseSpatialQuantArray
+               |                     InvertSpatialQuantDescale16s
+               |                     InvertHorizontalDescale16s.isra.0
+               |          
+                --0.98%--std::__future_base::_Async_state_impl<std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error>::_M_run()
+                          __pthread_once_slow
+                          std::__future_base::_State_baseV2::_M_do_set(std::function<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> ()>*, bool*)
+                          std::_Function_handler<std::unique_ptr<std::__future_base::_Result_base, std::__future_base::_Result_base::_Deleter> (), std::__future_base::_Task_setter<std::unique_ptr<std::__future_base::_Result<_codec_error>, std::__future_base::_Result_base::_Deleter>, std::thread::_Invoker<std::tuple<Output::coefficients(void*, unsigned long, unsigned long, vc5_preview_coefficients const*)::{lambda(unsigned int)#1}, int> >, _codec_error> >::_M_invoke(std::_Any_data const&)
+                          reconstruct_preview.constprop.0
+                          |          
+                           --0.87%--TransformInverseSpatialQuantArray
+                                     InvertSpatialQuantDescale16s
+                                     InvertHorizontalDescale16s.isra.0
+
+     1.69%     0.00%  gpr_capture_app  gpr_capture_app        [.] Output::encoded(void*, gpr_capture_encoded_frame const*)
+            |
+            ---Output::encoded(void*, gpr_capture_encoded_frame const*)
+               |          
+                --1.21%--offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+                          __memcpy_generic
+
+     1.56%     0.51%  gpr_capture_app  gpr_capture_app        [.] EncodeChannelSubbands
+            |          
+            |--1.05%--EncodeChannelSubbands
+            |          |          
+            |           --1.04%--__memcpy_generic
+            |          
+             --0.51%--thread_start
+                       start_thread
+                       0x7fff63fee9dc
+                       gpr_capture::encode_loop()
+                       EncodeMultipleChannels
+                       EncodeChannelSubbands
+
+     1.54%     1.32%  gpr_capture_app  gpr_capture_app        [.] read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+            |          
+             --1.32%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       read_profile(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, gpr_gvid_config const&, bool) [clone .isra.0]
+
+     1.21%     0.00%  gpr_capture_app  gpr_capture_app        [.] offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+            |
+            ---offer(gpr_preview_queue*, gpr_preview_plan const*, unsigned long, unsigned long, unsigned char const*, unsigned long, gpr_preview_wavelet_planes const*, unsigned int) [clone .lto_priv.0]
+               __memcpy_generic
+
+     0.88%     0.88%  gpr_capture_app  gpr_capture_app        [.] arm_crc.lto_priv.0
+            |
+            ---thread_start
+               start_thread
+               0x7fff63fee9dc
+
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

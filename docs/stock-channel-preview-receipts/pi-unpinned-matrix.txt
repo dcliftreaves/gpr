@@ -1,0 +1,14 @@
+Internal ctest changing into directory: /mnt/ssd/gpr_work/stock-channel-preview-prototype-20261030/build-experiment
+Test project /mnt/ssd/gpr_work/stock-channel-preview-prototype-20261030/build-experiment
+    Start 1: encoder_preview_probe
+1/4 Test #1: encoder_preview_probe ............   Passed    0.02 sec
+    Start 2: encoder_preview_probe_fast
+2/4 Test #2: encoder_preview_probe_fast .......   Passed    0.02 sec
+    Start 3: encoder_preview_matrix
+3/4 Test #3: encoder_preview_matrix ...........   Passed    0.43 sec
+    Start 4: encoder_preview_matrix_fast
+4/4 Test #4: encoder_preview_matrix_fast ......   Passed    0.44 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.91 sec

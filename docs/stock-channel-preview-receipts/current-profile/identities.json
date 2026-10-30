@@ -1,0 +1,7 @@
+{
+  "binary_sha256": "9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c",
+  "perf_data_sha256": "508708a41aca255a1c5e2e0412435f5a5b74996b9e58796143dc1cd224126e52",
+  "verifier_sha256": "49ae64eb766fbb1d2be1a3b02d41ec6325015a744715b4280cafd6f1203b10a2",
+  "perf_version": "6.12.109",
+  "scope": "separate cycles:u diagnostic; no simultaneous Pi test/benchmark; profiled times are not acceptance evidence"
+}
