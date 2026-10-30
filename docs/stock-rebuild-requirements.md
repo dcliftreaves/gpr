@@ -1,6 +1,6 @@
 # Stock rebuild requirement ledger
 
-Audit date: 2026-10-30. Published source/model inspected: `b224ff1`.
+Audit date: 2026-10-30. Published source/model inspected: `48534e0`.
 Runtime source remains the restored `f1e08c8` implementation.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
 (`821420d`), their PR bodies and adoption/validation files cited in the
@@ -35,8 +35,8 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 ## Remaining work
 
 1. Keep hosted validation current as the branch advances. All seven checks for
-   published source/model `b224ff1` passed in
-   [run 41123778153](https://github.com/dcliftreaves/gpr/actions/runs/41123778153),
+   published revision `48534e0` passed in
+   [run 41126595741](https://github.com/dcliftreaves/gpr/actions/runs/41126595741),
    including native Core ML/MPSGraph/Metal and relocated packages on Mac.
    Current runtime restoration passes 26 Mac/23 Pi Release targets. These
    results precede this documentation/evidence-only update.
