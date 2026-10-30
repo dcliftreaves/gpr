@@ -42,6 +42,8 @@ int gpr_preview_queue_offer(gpr_preview_queue *queue,const gpr_preview_plan *pla
     uint64_t index,uint64_t timestamp_ns,const uint8_t *payload,size_t payload_size);
 /* Same bounded queue and ownership, but copies reconstructed planes instead
  * of compressed payload. max_payload_bytes bounds the combined three planes;
+ * internal plane spacing uses spare reserved capacity when available and falls
+ * back to dense storage at tight bounds. Payload stats include that spacing.
  * payload_crc32 binds the original encoded frame. Render timing covers display
  * processing only; producer reconstruction precedes offer. */
 int gpr_preview_queue_offer_wavelets(gpr_preview_queue *queue,const gpr_preview_plan *plan,

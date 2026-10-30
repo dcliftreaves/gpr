@@ -52,6 +52,7 @@ struct gpr_preview_queue {
         const gpr_preview_plan *plan=nullptr;
         uint64_t index=0,timestamp=0,offered=0;
         uint32_t wavelet_width=0,wavelet_height=0,payload_crc=0;
+        uint32_t plane_stride_bytes=0;
     } slots[2];
     gpr_preview_queue_config config={};
     gpr_preview_queue_stats stats={};
@@ -90,7 +91,8 @@ struct gpr_preview_queue {
                     if (item.wavelet_width) {
                         gpr_preview_wavelet_planes planes={};planes.width=item.wavelet_width;planes.height=item.wavelet_height;
                         size_t count=size_t(planes.width)*planes.height;
-                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data())+c*count;planes.sample_count[c]=count;}
+                        size_t stride=item.plane_stride_bytes;
+                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data()+c*stride);planes.sample_count[c]=count;}
                         view.payload_crc32=item.payload_crc;
                         error=gpr_preview_plan_render_wavelets(item.plan,&planes,rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
                     } else {
@@ -149,17 +151,29 @@ static int offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
         if (q->closing) return GPR_PREVIEW_CLOSED;
         if (q->stats.offered && (index<=q->last_index || timestamp<=q->last_timestamp)) return GPR_PREVIEW_INVALID;
         auto &item=q->slots[q->pending_slot];
-        item.payload.resize(bytes);
+        size_t storage_bytes=bytes,stride=bytes/3;
+        if (planes) {
+            // bytes is already bounded by the configured <=128 MiB reservation.
+            // An odd multiple of 128 bytes gives the three packed planes
+            // different low cache-set offsets instead of a power-of-two stride.
+            // Spend only spare reserved bytes; keep dense storage at tight bounds.
+            size_t candidate=(((stride+127)/128)|size_t(1))*128;
+            if (candidate<=(q->config.max_payload_bytes-stride)/2) {
+                storage_bytes=2*candidate+stride;stride=candidate;
+            }
+        }
+        item.plane_stride_bytes=uint32_t(stride);
+        item.payload.resize(storage_bytes);
         item.wavelet_width=planes ? planes->width:0;item.wavelet_height=planes ? planes->height:0;item.payload_crc=crc;
         if (planes) for (unsigned c=0;c<3;++c)
-            std::memcpy(item.payload.data()+c*(bytes/3),planes->samples[c],bytes/3);
+            std::memcpy(item.payload.data()+c*stride,planes->samples[c],bytes/3);
         else std::memcpy(item.payload.data(),payload,bytes);
         gpr_preview_plan_retain(plan);old=item.plan;item.plan=plan;
         item.index=index;item.timestamp=timestamp;item.offered=now_ns();
         if (q->pending) { ++q->stats.replaced;++q->stats.discarded; } else { ++q->stats.inflight;q->pending=true; }
         ++q->stats.offered;q->last_index=index;q->last_timestamp=timestamp;
         q->stats.inflight_high_water=std::max(q->stats.inflight_high_water,q->stats.inflight);
-        q->stats.payload_peak_bytes=std::max(q->stats.payload_peak_bytes,uint64_t(q->active_bytes+bytes));
+        q->stats.payload_peak_bytes=std::max(q->stats.payload_peak_bytes,uint64_t(q->active_bytes+storage_bytes));
         q->changed.notify_all();
     }
     release(old);return 0;
