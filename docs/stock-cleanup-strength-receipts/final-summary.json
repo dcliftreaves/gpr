@@ -1,0 +1,74 @@
+{
+  "schema": "gpr.stock_cleanup_strength_final.v1",
+  "complete": true,
+  "started": true,
+  "quality_approval": false,
+  "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+  "freeze_sha256": "6fc753e0917fabe65f0487f17c38b522fef2dfdbe9a6e84e75723558dd7b5fd4",
+  "final_pixels_used_for_selection": false,
+  "results": [
+    {
+      "source": "0001",
+      "receipt_sha256": "498eb97fee55160e559c33bc54c1481da2c996314c2730bb4b8dba681fae49ea",
+      "active_psnr_delta_db": 0.3278929956747447,
+      "changed_samples": 43466474,
+      "region_delta_db": {
+        "active": 0.3278929956747447,
+        "shadow_bottom_decile": 1.1373086526825489,
+        "highlight_top_decile": 0.15896697138045113,
+        "detail_top_decile": 0.15714791023694374
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "0067",
+      "receipt_sha256": "dfba704a2b108fd7de73ce6fc76cea7882d2ee609b52cdd8a06277e25ee87157",
+      "active_psnr_delta_db": 0.3525373514121739,
+      "changed_samples": 45001709,
+      "region_delta_db": {
+        "active": 0.3525373514121739,
+        "shadow_bottom_decile": 1.21815516809815,
+        "highlight_top_decile": 0.26675732517446704,
+        "detail_top_decile": 0.19192220523829207
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "5323",
+      "receipt_sha256": "2c5c114dc97ef886fcde0f9a287c9fd10dcb14edf4a8814af0b5c4bfbaa6a8fe",
+      "active_psnr_delta_db": 0.854261658506168,
+      "changed_samples": 43965083,
+      "region_delta_db": {
+        "active": 0.854261658506168,
+        "shadow_bottom_decile": 1.008787819130447,
+        "highlight_top_decile": 0.6855201057162219,
+        "detail_top_decile": 0.45729757223998746
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    },
+    {
+      "source": "6693",
+      "receipt_sha256": "6b492ae66d599c9974a30685d8ad90a2435846f63fc3bd54937d8ebd8aef6c08",
+      "active_psnr_delta_db": 0.5402386220570463,
+      "changed_samples": 44163129,
+      "region_delta_db": {
+        "active": 0.5402386220570463,
+        "shadow_bottom_decile": 0.9089628779445675,
+        "highlight_top_decile": 0.2700413927222698,
+        "detail_top_decile": 0.10074535135523632
+      },
+      "regressions": [],
+      "passed_numeric_guard": true
+    }
+  ],
+  "all_scenes_pass_numeric_guard": true,
+  "pooled_active_delta_db": 0.6391615518571327,
+  "pooled_baseline_mse_counts": 1807.493439786372,
+  "pooled_restored_mse_counts": 1560.1292329605126,
+  "pooled_samples": 182822400,
+  "pooling": "Active-area sample-count-weighted MSE reconstructed from reported RMSE; no dB averaging",
+  "quality_scope": "four declared historical Nikon reference images; numeric RAW guard only; no visual/temporal/broader-camera promotion"
+}

@@ -22,11 +22,11 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 | Exact MOV, large files, PCM/timecode | `stock_mov`; [contract](stock-mov.md), 4.42 GB boundary receipt, [real A/V receipt](stock-av-receipts/real-core.json) | Implemented for declared private stock profiles. Exact recovery does not imply standard CFHD or universal editor support |
 | Calibrated deep ProRes/editable outputs | `stock_prores`; [contract](stock-prores.md), real 120-frame outputs and [native integration](stock-native-receipts/real-integration.json) | Implemented on macOS with optional CNN and audio/timecode. Broader rendered look/motion approval open |
 | Optional FFmpeg decoder equivalent | Pinned n8.0 adapter; twelve CFA/depth checks, fixtures, malformed configuration and conversion on Mac/Pi/hosted Linux; [contract](stock-ffmpeg-decoder.md) | Implemented as an explicit patched build. Bayer output is not calibrated color rendering |
-| Portable offline 1x cleanup and 2x/8K inference | Eight `stock_cnn_test.py` contracts; [runtime](stock-cnn-portable.md), editable media and separate lossy re-encoding identities | Implemented for declared RGGB14 model family and optional external weights. Broader codec formats do not widen model support |
+| Portable offline 1x cleanup and 2x/8K inference | Eight `stock_cnn_test.py` contracts; [runtime](stock-cnn-portable.md), editable media and separate lossy re-encoding identities | Implemented for the declared RGGB14 family, explicit caller weights and an optional repository 1x candidate. Broader codec formats do not widen model support |
 | Original native desktop backend capability | Core ML, MPSGraph, custom Metal hybrid; `stock_coreml_test.py`, `stock_metal_test.py`, `stock_native_test.py`; [runtime](stock-native-runtime.md) | Implemented, including standalone host processing without Torch/NumPy runtime. Explicit numeric tolerances; historical monolithic CLI syntax not retained |
 | High-level UPRESABLE modes/media chain | `stock_upres_test.py`, `stock_sequence_test.py`; [workflow](stock-upres-workflow.md), real Mac native and [Pi receipt](stock-upres-receipts/pi5-real-captured.json) | Timelapse/regression/both implemented through analysis workflows. Captured-GPR timelapse additionally has a standard-library native path. Native simulation/regression uses the analysis workflow |
 | Real Pi reconstruction correctness/cost | Two 4096x3072 captures become 8192x6144 GPR/GVID/MOV; final payloads checked against independent historical encoder, editable pixels/calibration verified | Verified offline: 114.24 s total, 57.12 s/frame. Not real-time CNN or sensor ground truth |
-| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | Evaluation implemented. Learned-quality promotion **unmet**: all 30 trained 1x checkpoints fail the region guard; 2x pooled +0.067 dB hides shadow regression. Identity fallback supplies no learned improvement |
+| Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x study remains failed; 2x still regresses in shadows. Broader visual/temporal/restored-tier promotion remains open |
 | Original compact restored-tier claims | Six measured stock presets and explicit model/final decoded metrics | Old size/quality approvals do not transfer. No replacement restored tier or temporal/perceptual model approval |
 | Independent packages/public clients | `build_profiles.py`, stripped capture/preview/camera/full packages, relocated C/C++ consumers, installed native receipt | Implemented. Apple/native ML optional and outside camera-library dependencies |
 | Applicable validation/reproducible evidence | Old-to-new test map in [audit](stock-feature-parity-audit.md); 24 local Release targets; optional CNN/native/FFmpeg tests; seven hosted jobs and hashed receipts | Implemented; hosted status evaluated per revision. Broader fuzz/sanitizer expansion deferred by user. Old commit-adoption/coverage instrumentation and research diagnostics not recreated |
@@ -39,9 +39,12 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    including native Core ML/MPSGraph/Metal and relocated packages on Mac.
    The fresh local 24-target Release run also passed (16.94 seconds). These
    results precede this documentation-only audit update.
-2. Extend model and real-source quality evidence before recommending a learned
-   restoration tier; temporal evidence is absent. Preserve failed gates rather
-   than substituting aggregate PSNR or backend agreement for quality approval.
+2. The [selected 1x candidate](stock-cleanup-strength.md) now passes the declared
+   patch-validation and four-reference numeric nonregression guards, with an
+   explicit repository checkpoint and Pi execution evidence. Extend 2x and
+   broader real-source, rendered visual and temporal evidence before promoting
+   restored tiers. Earlier failures remain recorded; the scoped 1x result does
+   not approve other domains or video quality.
 3. Improve sustained Pi deadlines/durability before claiming a strict sustained
    20 fps floor. Short-run success and p95 do not close this gate.
    The [writeback follow-up](stock-capture-writeback.md) reaches 20.0047 durable
@@ -71,5 +74,5 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    explicitly unverified. The original PR did not establish those either.
 
 This is broad implementation coverage, not proof of full goal completion while
-quality/timing gates remain unresolved. Planning percentages
+broader quality and timing gates remain unresolved. Planning percentages
 are not passing-test ratios.

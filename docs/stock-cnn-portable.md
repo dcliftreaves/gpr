@@ -1,7 +1,10 @@
 # Portable 1x/2x reconstruction on stock VC-5
 
-Legacy BIBO architecture code is bundled with the installed tools. Explicit
-checkpoint files remain external; nothing is downloaded or enabled by default.
+Legacy BIBO architecture code is bundled with the installed tools. Checkpoint
+selection remains explicit; nothing is downloaded or enabled by default.
+An optional [repository 1x candidate](stock-cleanup-strength.md) now passes the
+declared four-reference numeric guard. Its weights are separate from installed
+camera/SDK packages; broader quality approval remains open.
 The original source is `tools/cnn/model.py` in PR #95 / upstream #71 at
 `8be29eee57b4637865b572f18ab9e3f4edaa2236`. State-dict names and arithmetic are
 retained. Supporting its 2x architecture does not make a fused-profile model
@@ -9,12 +12,12 @@ appropriate for stock input.
 
 ## Use
 
-For the stock-Q3 1x checkpoint, the external source checkout is no longer needed:
+For the scoped stock-Q3 1x candidate, choose its repository checkpoint explicitly:
 
 ```sh
 python tools/stock_still.py restore source.gpr --sample-bits 14 \
   --sdk build/source/app/gpr_tools/gpr_tools \
-  --checkpoint /path/to/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt \
+  --checkpoint models/stock-q3-rggb14-cleanup/selected.pt \
   --device mps --output restored.dng
 ```
 

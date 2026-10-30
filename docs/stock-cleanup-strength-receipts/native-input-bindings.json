@@ -1,0 +1,30 @@
+[
+  {
+    "source": "0001",
+    "current_benchmark_sha256": "b3c5f6912793c3e400fbb0d8b89325befa6bae9423d6159ffc6f41623caa9d04",
+    "previous_benchmark_sha256": "90fe61e4e89d548d538861c8eb3eedc934a029dfccc512941a27138b1e978da1",
+    "source_bytes_match_previous": true,
+    "decoded_q3_pixels_match_previous": true
+  },
+  {
+    "source": "0067",
+    "current_benchmark_sha256": "1867e2438eebf29805d8934ad58a13e662f7c74a97fffcd37fc65d3486d3a592",
+    "previous_benchmark_sha256": "1867e2438eebf29805d8934ad58a13e662f7c74a97fffcd37fc65d3486d3a592",
+    "source_bytes_match_previous": true,
+    "decoded_q3_pixels_match_previous": true
+  },
+  {
+    "source": "5323",
+    "current_benchmark_sha256": "d18e6cc8e22592ec8ab28780e9d70a464caf8bf27ecdc376009c6d3a76d5d5ac",
+    "previous_benchmark_sha256": "d18e6cc8e22592ec8ab28780e9d70a464caf8bf27ecdc376009c6d3a76d5d5ac",
+    "source_bytes_match_previous": true,
+    "decoded_q3_pixels_match_previous": true
+  },
+  {
+    "source": "6693",
+    "current_benchmark_sha256": "595cbfc99ebf908a0c13fc3872918ad8e38b6c619114674325652acb35803d07",
+    "previous_benchmark_sha256": "595cbfc99ebf908a0c13fc3872918ad8e38b6c619114674325652acb35803d07",
+    "source_bytes_match_previous": true,
+    "decoded_q3_pixels_match_previous": true
+  }
+]

@@ -465,3 +465,14 @@ isolation. Neither remains in production. Runtime source is restored to
 26-target Mac/23-target Pi Release runs pass. A hosted Mac allocation failure
 is recorded separately from code validation and retried only after it became
 terminal; six other hosted jobs passed for that implementation.
+
+The [residual-strength study](stock-cleanup-strength.md) now supplies an explicit
+1x checkpoint passing the unchanged per-group validation guard and every
+active/shadow/highlight/detail region on four full-resolution references.
+Pooled active PSNR improves 0.639 dB; Pi CPU execution and Mac MPS agree within
+one count on two supplied 12 MP sources. Pi inference remains offline at about
+96 s/frame. Photos/training arrays remain external; the optional selected
+checkpoint is supplied in the repository. Broader/2x quality remains open.
+A [prepared-inverse architecture](stock-prepared-inverse.md) was also tested
+and discarded for slower encode/reconstruction medians; runtime source and
+the prior Pi executable are restored exactly, with 26 Mac/23 Pi tests passing.

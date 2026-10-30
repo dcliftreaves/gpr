@@ -1,0 +1,11 @@
+{
+  "schema": "gpr.stock_cleanup_strength_freeze.v1",
+  "created_utc": "2026-10-30T17:25:40.403851+00:00",
+  "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+  "protocol_sha256": "fec32210b3a9d7f9004ec6c6e0da9a1bc6cde87bc297d21d4f242d12a6b6054f",
+  "selection_sha256": "a1878ba968a40a399a13ce7acbcbb9e1e63c07e89b9ff1b457e99973897f3ffa",
+  "final_evaluation_started": false,
+  "quality_approval": false,
+  "evaluator_sha256": "18f2a6bdee43cffad4cc135667102d0071286c7fc38a4bd0b0ca6cf78709a599",
+  "sdk_sha256": "e9405aeeb27e97720a38870d99ae828d62a0136ba3fa44cae15f7de87e60638e"
+}

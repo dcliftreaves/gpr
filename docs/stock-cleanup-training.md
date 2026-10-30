@@ -6,6 +6,12 @@ selected checkpoint remains the zero-residual, step-zero identity fallback.
 Ordinary decoding and default model selection are unchanged. Extending every
 format and preset through model training remains stretch work.
 
+A subsequent [residual-strength study](stock-cleanup-strength.md) preserves
+these full-strength failures, then selects half strength using validation only.
+That separately frozen 1x candidate passes the declared validation and four
+full-reference numeric guards. This earlier experiment remains the unchanged
+full-strength/identity-fallback result below.
+
 ## Data and selection
 
 The [protocol](stock-cleanup-receipts/protocol.json) was written before building

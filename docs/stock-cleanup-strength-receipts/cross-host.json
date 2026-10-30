@@ -1,0 +1,34 @@
+{
+  "schema": "gpr.stock_cleanup_strength_cross_host.v1",
+  "complete": true,
+  "rows": [
+    {
+      "source": "GP011728",
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+      "samples": 12582912,
+      "different_samples": 197,
+      "max_abs_count_difference": 1,
+      "mean_abs_count_difference": 1.5656153361002605e-05,
+      "cpu_raw_sha256": "9da94832306418419146bbadc4fe7d5d02feb064f3d3da96e8a2ca606a6297ea",
+      "mps_raw_sha256": "99e30688174bb480041fed7d1abbdf0dd55c50804b54d37e31243202635dcc37",
+      "decoded_input_exact": true,
+      "calibration_exact": true,
+      "mps_inference_s": 0.4066467090000001
+    },
+    {
+      "source": "GPAB1094",
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+      "samples": 12582912,
+      "different_samples": 177,
+      "max_abs_count_difference": 1,
+      "mean_abs_count_difference": 1.4066696166992188e-05,
+      "cpu_raw_sha256": "46361f9e23b422010e55e07a6b4c3a8257b3ce2135acd95052968f99afee1ba6",
+      "mps_raw_sha256": "87886c83aee0dd0216683bebfcbbbd3af3824caf3def378ead60b44b9e259c34",
+      "decoded_input_exact": true,
+      "calibration_exact": true,
+      "mps_inference_s": 0.401497459
+    }
+  ],
+  "all_within_one_count": true,
+  "scope": "Two supplied 12 MP still-derived sources; Torch CPU on Pi versus Torch MPS on Mac; not cross-camera quality approval"
+}
