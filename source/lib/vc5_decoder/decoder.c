@@ -234,7 +234,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
                 rgb_image->pitch = wavelet->width;
                 rgb_image->size = size;
                 for (DIMENSION y = 0; y < wavelet->height; ++y)
-                    memcpy(rgb_image->buffer + (size_t)y * row_bytes,
+                    memcpy((uint8_t *)rgb_image->buffer + (size_t)y * row_bytes,
                            (uint8_t *)wavelet->data[0] + (size_t)y * wavelet->pitch,
                            row_bytes);
             }
