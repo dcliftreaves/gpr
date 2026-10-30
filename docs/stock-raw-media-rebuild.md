@@ -210,6 +210,12 @@ thermal behavior. Exact receipts: [current parallel/fused 1024x768](stock-core-r
 
 ## Current task and evidence matrix
 
+The [original eight-group parity audit](stock-feature-parity-audit.md) maps the
+frozen #95/#96 adoption groups to this implementation. It explicitly identifies
+the optional patched FFmpeg decoder, native CoreML/Metal inference and original
+UPRESABLE command orchestration as remaining gaps; transport/portable inference
+are not treated as complete substitutes.
+
 ### Extended Mission 1 host replay
 
 A later matched run uses the existing relocated A/V package for **1200

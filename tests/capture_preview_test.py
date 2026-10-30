@@ -111,6 +111,9 @@ class Combined(unittest.TestCase):
             final,summary,previews=self.verify(output,events,1,failed=failed)
             self.assertEqual(final['written'],24)
             self.assertEqual(summary['pipeline'],'encoder_wavelets')
+            self.assertGreater(summary['reconstruction_scratch_peak_bytes'],0)
+            self.assertLessEqual(summary['reconstruction_scratch_peak_bytes'],summary['reconstruction_scratch_bytes'])
+            self.assertLessEqual(summary['reconstruction_scratch_bytes'],3*64*1024*1024)
             self.assertTrue(previews)
             if failed:self.assertEqual(len(previews),1)
 

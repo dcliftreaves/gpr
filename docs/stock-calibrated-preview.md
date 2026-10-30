@@ -183,7 +183,9 @@ now select this callback through `--preview-from-encoder`, reconstruct channels
 concurrently and feed copied planes into its bounded display queue. The
 [capture integration receipts](stock-capture-preview.md#capture-frontend) measure
 the whole path; typical Pi latency improves to 46.07 ms p95. Sustained tail
-latency, storage flush behavior and scratch reuse remain open.
+latency and storage flush behavior remain open. Capture now supplies reusable
+per-channel scratch arenas to the helper; the public helper still honors the
+caller's chosen allocator. [Scratch ownership and measurements](stock-capture-preview.md#capture-frontend).
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,

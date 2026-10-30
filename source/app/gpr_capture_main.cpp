@@ -49,6 +49,20 @@ struct Completion { gpr_capture_completion frame; uint64_t done_ns; };
 #if GPR_CAPTURE_HAS_PREVIEW
 using Plan=std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)>;
 using PreviewQueue=std::unique_ptr<gpr_preview_queue,decltype(&gpr_preview_queue_destroy)>;
+struct ReconstructionArena {
+    std::vector<uint8_t> bytes;
+    size_t used=0,peak=0;
+    void *allocate(size_t size) noexcept {
+        if (used>bytes.size()) return nullptr;
+        uintptr_t address=reinterpret_cast<uintptr_t>(bytes.data()+used);
+        size_t padding=size_t((64-(address&63))&63);
+        if (padding>bytes.size()-used || size>bytes.size()-used-padding) return nullptr;
+        void *result=bytes.data()+used+padding;used+=padding+size;peak=std::max(peak,used);return result;
+    }
+};
+static thread_local ReconstructionArena *reconstruction_arena=nullptr;
+static void *reconstruction_allocate(size_t size) {return reconstruction_arena->allocate(size);}
+static void reconstruction_release(void *) {} // All views expire together after queue copy.
 struct PreviewCompletion {
     uint64_t index,timestamp_ns,done_ns,offered_ns,render_ns,capture_inflight;
     uint32_t source,payload_crc,rgb_crc,width,height;
@@ -84,7 +98,8 @@ struct Output {
     int preview_offer_error=0;
     bool preview_from_encoder=false;
     gpr_rgb_buffer reconstructed[3]={};
-    void release_planes() {for (auto &plane:reconstructed) {std::free(plane.buffer);plane={};}}
+    ReconstructionArena reconstruction[3];
+    void release_planes() {for (auto &plane:reconstructed) plane={};}
     gpr_capture *capture=nullptr;
     std::atomic<bool> capture_finished{false};
     std::vector<PreviewCompletion> previews;
@@ -152,7 +167,10 @@ struct Output {
         out.release_planes();
         try {
             auto reconstruct=[&](unsigned c) {
-                return vc5_decoder_reconstruct_preview_channel(view,c,std::malloc,std::free,&out.reconstructed[c]);
+                auto previous=reconstruction_arena;reconstruction_arena=&out.reconstruction[c];
+                struct Restore {ReconstructionArena *previous;~Restore(){reconstruction_arena=previous;}} restore{previous};
+                reconstruction_arena->used=0;
+                return vc5_decoder_reconstruct_preview_channel(view,c,reconstruction_allocate,reconstruction_release,&out.reconstructed[c]);
             };
             auto green=std::async(std::launch::async,reconstruct,1);
             auto blue=std::async(std::launch::async,reconstruct,2);
@@ -275,6 +293,11 @@ int main(int argc,char **argv) {
             }
             output.preview_every=preview_every;output.preview_delay_ms=preview_delay;output.preview_fail_after=preview_fail_after;output.source_count=attempts;
             output.preview_from_encoder=preview_from_encoder;
+            if (preview_from_encoder) {
+                size_t pixels=size_t((cfg.video.width+3)/4)*((cfg.video.height+3)/4);
+                if (pixels>(size_t(64)*1024*1024-1024*1024)/16) throw std::runtime_error("encoder preview scratch exceeds per-channel 64 MiB limit");
+                for (auto &arena:output.reconstruction) arena.bytes.resize(pixels*16+1024*1024,0);
+            }
             output.source_for_frame.reset(new std::atomic<uint32_t>[attempts]);output.previews.reserve(attempts);
             gpr_preview_queue_config config={std::min(size_t(128)*1024*1024,size_t(cfg.video.width)*cfg.video.height*3+1024*1024),rgb_limit,Output::display,&output,uint32_t(preview_background)};
             gpr_preview_queue *created=nullptr;if (gpr_preview_queue_create(&config,&created)) throw std::runtime_error("preview queue create failed");
@@ -362,6 +385,8 @@ int main(int argc,char **argv) {
             }
             std::cout<<"{\"event\":\"preview_summary\",\"schema\":\"gpr.capture_preview.v1\",\"sink\":\"memory_crc\""
                 <<",\"pipeline\":\""<<(preview_from_encoder ? "encoder_wavelets":"compressed")<<"\""
+                <<",\"reconstruction_scratch_bytes\":"<<(output.reconstruction[0].bytes.size()+output.reconstruction[1].bytes.size()+output.reconstruction[2].bytes.size())
+                <<",\"reconstruction_scratch_peak_bytes\":"<<(output.reconstruction[0].peak+output.reconstruction[1].peak+output.reconstruction[2].peak)
                 <<",\"every\":"<<preview_every<<",\"sink_delay_ms\":"<<preview_delay<<",\"offered\":"<<state.offered
                 <<",\"rendered\":"<<state.rendered<<",\"discarded\":"<<state.discarded<<",\"replaced\":"<<state.replaced
                 <<",\"inflight_high_water\":"<<state.inflight_high_water<<",\"payload_peak_bytes\":"<<state.payload_peak_bytes

@@ -54,8 +54,24 @@ and rejects other profiles before creating output. The new capture creator is
 The `encoder_wavelets` summary identifies this path. Its `encode_ms` includes
 coefficient reconstruction, while `render_ms` covers queued color/display only.
 `payload_peak_bytes` now counts copied reduced-plane bytes for this mode.
-Reconstruction currently allocates bounded per-frame scratch; the queue still
+Reconstruction now reuses first-touched per-channel scratch arenas; the queue still
 reserves two bounded buffers and supports replacement, sink failure and drain.
+Each arena is sized from quarter-scale sensor geometry (16 bytes per reduced
+pixel plus 1 MiB headroom), capped at 64 MiB per channel before output creation.
+Allocation aligns to 64 bytes and fails explicitly on exhaustion, with no heap
+fallback. The callback owns the scratch until the queue has copied its planes;
+the next frame then resets the arenas. Summary counters distinguish total
+reserved scratch from peak used scratch. This does not remove thread creation
+or other allocations elsewhere in capture.
+
+The [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json)
+reserves 40.89 MB and uses 30.57 MB peak over 600 frames; all payloads and preview
+pixels remain exact with no drops. Preview p95 is 45.96 ms and encode/reconstruct
+median 32.14 ms. Six previews and nine writes exceed 50 ms; the matched
+recording-only baseline has three late writes. RSS peaks at 613.94 MB, versus
+588.76 MB in the prior run. These single-run results establish bounded scratch
+reuse, not a statistically proven improvement in tail latency or a passed
+strict timing gate.
 
 Two real Pi sources at 4096x3072 Q3/20 fps deliver all 120 exact previews with
 46.06 ms capture-to-sink p95, zero late previews/writes and 20.02 buffered fps.
