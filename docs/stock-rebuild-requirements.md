@@ -48,6 +48,9 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    fps with all 600 frames/previews exact, but 16 write/33 preview deadlines
    remain late. Poorer repeats and an unchanged-binary control also show
    unresolved platform timing variability; this is not a closed gate.
+   The subsequent [preview-layout comparison](stock-preview-gain-layout.md)
+   reduces retained unity-cap gain storage and measured rendering medians, but
+   sustained repeats still overrun. A persistent-worker prototype was discarded.
 4. Keep sensor/DMA, rear-display, actual SD, thermal and physical A/V work
    explicitly unverified. The original PR did not establish those either.
 

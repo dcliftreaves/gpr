@@ -2,6 +2,7 @@
 #include "gpr_preview.h"
 #include "vc5_decoder.h"
 #include "logcurve.h"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <map>
@@ -112,8 +113,16 @@ struct gpr_preview_plan {
     bool scalar;
     std::vector<uint32_t> xs,ys;
     std::vector<std::array<float,8>> gains;
+    std::vector<std::array<float,4>> unity_cap_gains;
 };
 namespace {
+std::array<float,8> pixel_gains(const gpr_preview_plan *p,size_t index) {
+    if (!p->unity_cap_gains.empty()) {
+        const auto &g=p->unity_cap_gains[index];
+        return {{g[0],g[1],g[2],g[3],1,1,1,1}};
+    }
+    return p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[index];
+}
 bool rectangle(const float *r,const gpr_gvid_config &v) {
     for (unsigned i=0;i<4;++i) if (!std::isfinite(r[i])) return false;
     return r[0]>=0 && r[1]>=0 && r[2]>r[0] && r[3]>r[1] && r[2]<=v.width && r[3]<=v.height;
@@ -166,7 +175,11 @@ void display_neon4(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *
         samples[c]=vmulq_n_f32(vcvtq_f32_u32(vmovl_u16(vrev64_u16(value))),1/p->count_scale);
     }
     float32x4_t gains[4],caps[4];
-    if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
+    if (!p->unity_cap_gains.empty()) {
+        const float *values=p->unity_cap_gains[size_t(y)*p->columns+x].data();
+        float32x4x4_t packed=vld4q_f32(values);
+        for (unsigned site=0;site<4;++site) {gains[site]=packed.val[site];caps[site]=vdupq_n_f32(1);}
+    } else if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
     else {
         const float *values=p->gains[size_t(y)*p->columns+x].data();
         float32x4x4_t first=vld4q_f32(values),last=vld4q_f32(values+16);
@@ -214,7 +227,11 @@ void display_wavelet_neon4(const gpr_preview_plan *p,const gpr_rgb_buffer *plane
         samples[c]=vmulq_n_f32(vcvtq_f32_u32(vmovl_u16(vld1_u16(linear))),1/p->count_scale);
     }
     float32x4_t gains[4],caps[4];
-    if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
+    if (!p->unity_cap_gains.empty()) {
+        const float *values=p->unity_cap_gains[size_t(y)*p->columns+x].data();
+        float32x4x4_t packed=vld4q_f32(values);
+        for (unsigned site=0;site<4;++site) {gains[site]=packed.val[site];caps[site]=vdupq_n_f32(1);}
+    } else if (p->gains.empty()) for (unsigned site=0;site<4;++site) gains[site]=caps[site]=vdupq_n_f32(1);
     else {
         const float *values=p->gains[size_t(y)*p->columns+x].data();
         float32x4x4_t first=vld4q_f32(values),last=vld4q_f32(values+16);
@@ -255,7 +272,7 @@ void display_rows(const gpr_preview_plan *p,const uint8_t *data,const uint8_t *g
 #endif
         const uint8_t *pixel=data+(size_t(p->ys[y])*p->full_width+(p->full_width-1-p->xs[x]))*6;
         float camera[3];
-        const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
+        const std::array<float,8> gain=pixel_gains(p,size_t(y)*p->columns+x);
         auto corrected=[&](unsigned site,unsigned channel)->float {
             uint16_t encoded;std::memcpy(&encoded,pixel+channel*2,2);
             unsigned sample=(encoded>>8)|((encoded&255)<<8);
@@ -292,7 +309,7 @@ void display_wavelet_rows(const gpr_preview_plan *p,const gpr_rgb_buffer *planes
             int32_t value=values[c]>>2;
             samples[c]=DecoderLogCurve[std::max(0,std::min(4095,int(value)))]/p->count_scale;
         }
-        const std::array<float,8> gain=p->gains.empty() ? std::array<float,8>{{1,1,1,1,1,1,1,1}}:p->gains[size_t(y)*p->columns+x];
+        const std::array<float,8> gain=pixel_gains(p,size_t(y)*p->columns+x);
         auto corrected=[&](unsigned site,unsigned channel)->float {
             float value=(samples[channel]-p->black[site])*p->inverse_range[site];
             value=std::max(0.f,std::min(1.f,value));
@@ -369,6 +386,7 @@ extern "C" int gpr_preview_plan_create(const gpr_gvid_config *v,const gpr_previe
         for (uint32_t y=0;y<p->rows;++y) p->ys[y]=std::min(full.height-1,uint32_t((c->crop[1]+(y+.5f)*(c->crop[3]-c->crop[1])/p->rows)/c->downsample));
         if (c->gain_map_count) {
             p->gains.resize(size_t(p->columns)*p->rows);
+            bool caps_are_unity=true;
             for (uint32_t y=0;y<p->rows;++y) for (uint32_t x=0;x<p->columns;++x) {
                 float sx=c->crop[0]+(x+.5f)*(c->crop[2]-c->crop[0])/p->columns-.5f;
                 float sy=c->crop[1]+(y+.5f)*(c->crop[3]-c->crop[1])/p->rows-.5f;
@@ -382,7 +400,17 @@ extern "C" int gpr_preview_plan_create(const gpr_gvid_config *v,const gpr_previe
                     }
                 }
                 for (float gain:sites) if (!std::isfinite(gain) || gain>65536) return GPR_PREVIEW_INVALID;
+                for (float cap:caps) if (cap!=1.f) caps_are_unity=false;
                 p->gains[size_t(y)*p->columns+x]={{sites[0],sites[1],sites[2],sites[3],caps[0],caps[1],caps[2],caps[3]}};
+            }
+            if (caps_are_unity) {
+                // Preserve evaluated float values exactly. Common lens gains
+                // never lower the sequential clip cap: store four gains rather
+                // than reading four additional constant caps for every pixel.
+                p->unity_cap_gains.resize(p->gains.size());
+                for (size_t i=0;i<p->gains.size();++i)
+                    std::copy(p->gains[i].begin(),p->gains[i].begin()+4,p->unity_cap_gains[i].begin());
+                std::vector<std::array<float,8>>().swap(p->gains);
             }
         }
         *out=p.release(); return GPR_PREVIEW_OK;

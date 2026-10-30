@@ -62,3 +62,9 @@ storage policy. Its final 600-frame replay reaches 20.0047 durable fps and
 retains all pixels/payloads, but misses 16 write/33 preview deadlines. Slower
 repeats, including an unchanged-binary control, expose additional unresolved
 platform timing variability. No sustained-floor approval follows.
+
+The [gain-layout follow-up](stock-preview-gain-layout.md) retains exact unity-cap
+compaction and large-frame serial/parallel coverage. Persistent-worker reuse was
+tested and discarded for lack of consistent benefit. Latest sustained repeats
+still overrun, including a control with the orphaned background benchmark paused;
+the strict timing gate remains unmet.
