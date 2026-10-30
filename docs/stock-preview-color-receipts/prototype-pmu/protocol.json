@@ -1,0 +1,62 @@
+{
+  "schema": "gpr.preview_color_pmu.v1",
+  "scope": "separate user-mode counters; includes startup/one-time decode and 301 queue renders per process; not acceptance timing",
+  "order": [
+    "baseline",
+    "colored",
+    "colored",
+    "baseline"
+  ],
+  "events": [
+    "l1d_cache_refill:u",
+    "cycles:u",
+    "instructions:u"
+  ],
+  "iterations": 301,
+  "builds": [
+    {
+      "mode": "baseline",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-baseline"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-baseline",
+          "--target",
+          "preview_color_benchmark",
+          "-j",
+          "4"
+        ]
+      ],
+      "binary_sha256": "ecd119d801ae0aeaa031e859d7987f87c92ab7849647b10b80a3fa662bfdcc3e"
+    },
+    {
+      "mode": "colored",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored",
+          "--target",
+          "preview_color_benchmark",
+          "-j",
+          "4"
+        ]
+      ],
+      "binary_sha256": "45f36dd5388a4b1eeeb0f385cd70de50c0debc57e381b98161ca98ef488a6995"
+    }
+  ]
+}

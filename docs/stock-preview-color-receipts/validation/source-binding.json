@@ -1,0 +1,14 @@
+{
+  "source_commit": "f197f09",
+  "source_sha256": {
+    "CMakeLists.txt": "0966b1fb378b03cb5fded0d92fdf7a788d049966de16652ff0d91820aa162818",
+    "source/lib/gpr_video/gpr_preview_queue.cpp": "d3c2356ed3eae37179e4d5944c7c0def02d8f0f53b82c5968cd333dc8f1378e5",
+    "source/lib/gpr_video/gpr_preview_queue.h": "95b492f68cc570c5596a54c919712a3f16c6dd6728cbe7b73ac43138f7856bfc",
+    "tests/preview_wavelet_queue_test.cpp": "fb872eaf61ad749cdca2fc6b3aa30d021418655542f85c17b83e81005acf58aa"
+  },
+  "mac_release_targets": 27,
+  "pi_release_targets": 24,
+  "package_profiles": 4,
+  "pi_capture_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "previous_pi_capture_sha256": "9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c"
+}

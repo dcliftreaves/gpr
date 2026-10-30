@@ -1,0 +1,77 @@
+{
+  "schema": "gpr.experimental_preview_colors.v1",
+  "base": "7f9215e",
+  "order": [
+    "baseline",
+    "colored",
+    "colored",
+    "baseline"
+  ],
+  "iterations": 61,
+  "warmup_discard": 5,
+  "scope": "isolated queue copy + calibrated render + CRC sink + flush; no encoder/writer/durability",
+  "sources": {
+    "0": {
+      "payload_sha256": "bd1966d35be26afdd5d676473427245f80d884bee911ed1c7c2c4ecbe93023b8",
+      "profile_sha256": "b0c1334b218ddfe553f54d2c78fcb19b3b74a8f2e41d59324eb150c62c24f493",
+      "rgb_crc32": 1896117749
+    },
+    "1": {
+      "payload_sha256": "13626758bf6bf1262412ad308ed07ccb6b5f3557d7d2356c6b5e6a02816ceddb",
+      "profile_sha256": "ecaf5943dcfdbeafed105331db5f0379879b59bba14af85c87c350cc55693d28",
+      "rgb_crc32": 2347339991
+    }
+  },
+  "builds": [
+    {
+      "mode": "baseline",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-baseline"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-baseline",
+          "--target",
+          "preview_color_benchmark",
+          "-j",
+          "4"
+        ]
+      ],
+      "binary_sha256": "ecd119d801ae0aeaa031e859d7987f87c92ab7849647b10b80a3fa662bfdcc3e"
+    },
+    {
+      "mode": "colored",
+      "commands": [
+        [
+          "cmake",
+          "-S",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030",
+          "-B",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored",
+          "--target",
+          "preview_color_benchmark",
+          "-j",
+          "4"
+        ]
+      ],
+      "binary_sha256": "45f36dd5388a4b1eeeb0f385cd70de50c0debc57e381b98161ca98ef488a6995"
+    }
+  ],
+  "source_sha256": {
+    "source/lib/gpr_video/gpr_preview.cpp": "52f34d80070be61d56f3c1e022b948e2d4febfa2231a5738f09ec369f4844774",
+    "source/lib/gpr_video/gpr_preview_queue.cpp": "e1befe00b595d7054dd06b38c4cbb1ea8db3ef153ec865842f8053bac888fadf",
+    "tests/preview_color_benchmark.cpp": "65c52e52e5c60f1357e8950d643d24a5ba48f6f7d886eb34cdc865d56b4c6542",
+    "tests/preview_wavelet_queue_test.cpp": "457090d4197132ce5b3aafbab0b03d3f39db13331c3e20f720d4348d9297703b"
+  }
+}

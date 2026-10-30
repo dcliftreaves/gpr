@@ -1,0 +1,404 @@
+{
+  "complete": true,
+  "scope": "untimed pointer/correctness diagnostic, not performance evidence",
+  "rows": [
+    {
+      "mode": "diagnostic-dense",
+      "binary_sha256": "8717a57400a226863cabe0fc574d7fc3be636776207f3dc94bc3e0b072a4f092",
+      "command": [
+        "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-diagnostic-dense/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--frames",
+        "4",
+        "--paced",
+        "--leased",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--writeback-mib",
+        "1",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/diagnostic/diagnostic-dense.gvid",
+        "--input",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-raw-media-runtime/mission1-inputs/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-raw-media-runtime/mission1-inputs/GPAB1094.json",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "--preview-sync-stages"
+      ],
+      "layout": [
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            16,
+            16
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 16,
+          "gain_mod16384": 16,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            16,
+            16
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 0,
+          "gain_mod16384": 2816,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            16,
+            16
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 16,
+          "gain_mod16384": 16,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            16,
+            16
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 0,
+          "gain_mod16384": 2816,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        }
+      ],
+      "verified": {
+        "frames_verified": 4,
+        "previews_verified": 4,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 4,
+          "accepted": 4,
+          "written": 4,
+          "overruns": 0,
+          "queue": 4,
+          "inflight_high_water": 2,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 4,
+          "writeback_scheduled_bytes": 8355840,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 18.6823,
+          "durable_fps": 18.3031,
+          "encode_median_ms": 39.0537,
+          "write_p95_ms": 6.67051,
+          "capture_to_written_p95_ms": 61.8078,
+          "deadline_misses": 4,
+          "final_fsync_s": 0.00443613,
+          "submit_s": 0.000317187,
+          "queue_wait_s": 1.111e-06,
+          "setup_s": 0.206384,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597753856,
+          "payload_bytes": 8320024,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102304,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 4,
+          "rendered": 4,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718592,
+          "render_median_ms": 7.38986,
+          "capture_to_sink_p95_ms": 63.8892,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 0.0357526,
+          "before_capture_finish": 4,
+          "with_capture_inflight": 3,
+          "drain_after_durability_s": 8.074e-06,
+          "setup_s": 0.2302,
+          "background_requested": 1,
+          "background_applied": 1,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 4,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "ae28b59700e8f5a142ae4e23e9f25fada5cca6462e6616235e7abf5f876ad767"
+      }
+    },
+    {
+      "mode": "diagnostic-colored",
+      "binary_sha256": "96afd85bb1e3938dd85d94cb7164caf3694fc65baaacdad58e650569237ee128",
+      "command": [
+        "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-diagnostic-colored/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--frames",
+        "4",
+        "--paced",
+        "--leased",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--writeback-mib",
+        "1",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/diagnostic/diagnostic-colored.gvid",
+        "--input",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-raw-media-runtime/mission1-inputs/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-raw-media-runtime/mission1-inputs/GPAB1094.json",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/profiles/000001.gprp",
+        "--preview-sync-stages"
+      ],
+      "layout": [
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            144,
+            272
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 16,
+          "gain_mod16384": 16,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            144,
+            272
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 0,
+          "gain_mod16384": 2816,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            144,
+            272
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 16,
+          "gain_mod16384": 16,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        },
+        {
+          "event": "layout",
+          "plane_bytes": 1572864,
+          "plane_mod64": [
+            16,
+            16,
+            16
+          ],
+          "plane_mod16384": [
+            16,
+            144,
+            272
+          ],
+          "rgb_mod64": 0,
+          "rgb_mod16384": 2816,
+          "gain_mod64": 0,
+          "gain_mod16384": 2816,
+          "full_gain_mod64": 0,
+          "gamma_mod64": 16
+        }
+      ],
+      "verified": {
+        "frames_verified": 4,
+        "previews_verified": 4,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 4,
+          "accepted": 4,
+          "written": 4,
+          "overruns": 0,
+          "queue": 4,
+          "inflight_high_water": 2,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 4,
+          "writeback_scheduled_bytes": 8355840,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 19.7886,
+          "durable_fps": 19.3648,
+          "encode_median_ms": 34.4684,
+          "write_p95_ms": 6.26223,
+          "capture_to_written_p95_ms": 51.7866,
+          "deadline_misses": 3,
+          "final_fsync_s": 0.00442365,
+          "submit_s": 7.2925e-05,
+          "queue_wait_s": 2.204e-06,
+          "setup_s": 0.251646,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597753856,
+          "payload_bytes": 8320024,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102304,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 4,
+          "rendered": 4,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718848,
+          "render_median_ms": 9.27105,
+          "capture_to_sink_p95_ms": 57.1501,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 0.0360595,
+          "before_capture_finish": 4,
+          "with_capture_inflight": 3,
+          "drain_after_durability_s": 9.611e-06,
+          "setup_s": 0.258613,
+          "background_requested": 1,
+          "background_applied": 1,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 3,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "1b0457a34c2becdd1747fb9d2681b465620d65fbf45821ff76a092414bcff849"
+      }
+    }
+  ]
+}

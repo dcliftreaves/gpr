@@ -200,3 +200,12 @@ checks complete CRC/END3 framing, every accepted payload, exact source
 calibration and every preview's timestamp, source, payload CRC and offline RGB
 CRC. Separate Q3 encodes use the earlier upstream stock build, identified by
 probe/library hashes. Sanitizer/package receipts state exact scope/revisions.
+
+## Bounded plane-placement follow-up
+
+[Final queue placement](stock-preview-colors.md) separates copied planes within
+spare reserved capacity and reports actual spaced payload usage. Tight bounds
+retain dense storage; row packing, int16 alignment, CRCs and public structures
+are unchanged. Matched counters reduce L1 refills, and all four final capture
+runs remain exact. Deadline misses persist; this does not establish a strict
+20 fps floor or physical display integration.

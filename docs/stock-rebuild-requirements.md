@@ -1,7 +1,8 @@
 # Stock rebuild requirement ledger
 
-Audit date: 2026-10-30. Published source/model inspected: `9e51ea1`.
-Runtime source remains the restored `f1e08c8` implementation.
+Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
+Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
+is implemented in `f197f09`.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
 (`821420d`), their PR bodies and adoption/validation files cited in the
 [eight-group audit](stock-feature-parity-audit.md). Older receipts remain bound
@@ -30,16 +31,17 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 | Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x and stronger earlier 2x failures remain recorded. The later [source-wide 2x diagnostic](stock-sr-source-regions.md) passes patch/full-image/four-reference CPU/MPS numeric guards, but pooled gain is only +0.00729 dB. Broader visual/temporal/restored-tier promotion remains open |
 | Original compact restored-tier claims | Six measured stock presets and explicit model/final decoded metrics | Old size/quality approvals do not transfer. No replacement restored tier or temporal/perceptual model approval |
 | Independent packages/public clients | `build_profiles.py`, stripped capture/preview/camera/full packages, relocated C/C++ consumers, installed native receipt | Implemented. Apple/native ML optional and outside camera-library dependencies |
-| Applicable validation/reproducible evidence | Old-to-new test map in [audit](stock-feature-parity-audit.md); 24 local Release targets; optional CNN/native/FFmpeg tests; seven hosted jobs and hashed receipts | Implemented; hosted status evaluated per revision. Broader fuzz/sanitizer expansion deferred by user. Old commit-adoption/coverage instrumentation and research diagnostics not recreated |
+| Applicable validation/reproducible evidence | Old-to-new test map in [audit](stock-feature-parity-audit.md); 27 Mac/24 Pi local Release targets; optional CNN/native/FFmpeg tests; seven hosted jobs and hashed receipts | Implemented; hosted status evaluated per revision. Broader fuzz/sanitizer expansion deferred by user. Old commit-adoption/coverage instrumentation and research diagnostics not recreated |
 
 ## Remaining work
 
 1. Keep hosted validation current as the branch advances. All seven checks for
-   published revision `9e51ea1` passed in
-   [run 41128700304](https://github.com/dcliftreaves/gpr/actions/runs/41128700304),
+   published revision `7f9215e` passed in
+   [run 41131634398](https://github.com/dcliftreaves/gpr/actions/runs/41131634398),
    including native Core ML/MPSGraph/Metal and relocated packages on Mac.
-   Current runtime restoration passes 26 Mac/23 Pi Release targets. These
-   results precede this documentation/evidence-only update.
+   The current [preview-spacing source](stock-preview-colors.md) separately passes
+   27 Mac/24 Pi Release targets and all four relocated package profiles. Hosted
+   results above precede this source change; the new head requires its own run.
 2. The [selected 1x candidate](stock-cleanup-strength.md) now passes the declared
    patch-validation and four-reference numeric nonregression guards, with an
    explicit repository checkpoint and Pi execution evidence. The later
@@ -141,3 +143,11 @@ proofs and the Pi matrix. The hybrid is about 1.3% faster on two standalone
 real-input encodes, but both coupled runs have lower durable throughput than
 both controls. All 2,400 recordings/previews remain exact. The proposal is
 rejected; production runtime and the unmet strict deadline gate are unchanged.
+
+The retained [bounded preview-plane spacing](stock-preview-colors.md) fits inside
+existing reservations, with dense fallback at tight limits. Matched final
+counters show about 5.8%/4.6% fewer L1 refills; cycles are flat on one input and
+about 1.3% lower on the other. All 4,800 prototype/final recordings and previews
+remain exact. Both final runs have fewer late writes/previews than both old
+controls, but every run still fails the strict deadline gate. New source passes
+27 Mac/24 Pi tests and four relocated package profiles.

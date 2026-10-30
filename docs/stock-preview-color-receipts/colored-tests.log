@@ -1,0 +1,10 @@
+Internal ctest changing into directory: /mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored
+Test project /mnt/ssd/gpr_work/stock-preview-color-prototype-20261030/build-colored
+    Start 2: preview_wavelet_queue
+1/2 Test #2: preview_wavelet_queue ............   Passed    0.01 sec
+    Start 3: preview_queue
+2/2 Test #3: preview_queue ....................   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.02 sec

@@ -1,0 +1,126 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e384ba8..f627588 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -244,6 +244,11 @@ if(GPR_BUILD_PREVIEW_TESTS)
+   target_link_libraries(preview_contract_test gpr_preview)
+   add_test(NAME preview_contract COMMAND preview_contract_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+   set_tests_properties(preview_contract PROPERTIES TIMEOUT 60)
++  add_executable(preview_wavelet_queue_test tests/preview_wavelet_queue_test.cpp)
++  target_compile_features(preview_wavelet_queue_test PRIVATE cxx_std_11)
++  target_link_libraries(preview_wavelet_queue_test gpr_preview)
++  add_test(NAME preview_wavelet_queue COMMAND preview_wavelet_queue_test)
++  set_tests_properties(preview_wavelet_queue PROPERTIES TIMEOUT 60)
+   add_executable(preview_queue_test tests/preview_queue_test.cpp)
+   target_compile_features(preview_queue_test PRIVATE cxx_std_11)
+   target_link_libraries(preview_queue_test gpr_preview)
+@@ -380,3 +385,9 @@ if(GPR_BUILD_CODEC_TESTS)
+   set_tests_properties(bayer_formats_fast PROPERTIES ENVIRONMENT
+     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1")
+ endif()
++
++if(TARGET gpr_preview)
++  add_executable(preview_color_benchmark tests/preview_color_benchmark.cpp)
++  target_compile_features(preview_color_benchmark PRIVATE cxx_std_11)
++  target_link_libraries(preview_color_benchmark gpr_preview)
++endif()
+diff --git a/source/lib/gpr_video/gpr_preview.cpp b/source/lib/gpr_video/gpr_preview.cpp
+index 5885bd0..6121f9c 100644
+--- a/source/lib/gpr_video/gpr_preview.cpp
++++ b/source/lib/gpr_video/gpr_preview.cpp
+@@ -13,6 +13,9 @@
+ #include <mutex>
+ #include <atomic>
+ #include <future>
++#if GPR_PREVIEW_LAYOUT_DIAGNOSTIC
++#include <cstdio>
++#endif
+ #if defined(__aarch64__) && NEON
+ #include <arm_neon.h>
+ #endif
+@@ -474,6 +477,16 @@ extern "C" int gpr_preview_plan_render_wavelets(const gpr_preview_plan *p,
+     try {
+         SetupDecoderLogCurve();
+         const uint8_t *gamma=srgb_table();
++#if GPR_PREVIEW_LAYOUT_DIAGNOSTIC
++        static std::atomic<unsigned> printed{0};
++        if (printed.fetch_add(1)<4) {
++            auto offset=[](const void *v,size_t n){return size_t(reinterpret_cast<uintptr_t>(v)%n);};
++            std::fprintf(stderr,"{\"event\":\"layout\",\"plane_bytes\":%zu,\"plane_mod64\":[%zu,%zu,%zu],\"plane_mod16384\":[%zu,%zu,%zu],\"rgb_mod64\":%zu,\"rgb_mod16384\":%zu,\"gain_mod64\":%zu,\"gain_mod16384\":%zu,\"full_gain_mod64\":%zu,\"gamma_mod64\":%zu}\n",
++                count*2,offset(planes[0].buffer,64),offset(planes[1].buffer,64),offset(planes[2].buffer,64),
++                offset(planes[0].buffer,16384),offset(planes[1].buffer,16384),offset(planes[2].buffer,16384),
++                offset(rgb,64),offset(rgb,16384),offset(p->unity_cap_gains.data(),64),offset(p->unity_cap_gains.data(),16384),offset(p->gains.data(),64),offset(gamma,64));
++        }
++#endif
+         if (size_t(p->columns)*p->rows>=500000) {
+             constexpr uint32_t workers=4;
+             std::future<void> done[workers-1];
+@@ -544,6 +557,7 @@ extern "C" int gpr_preview_plan_render(const gpr_preview_plan *p,const uint8_t *
+         }
+         const uint8_t *data=static_cast<const uint8_t *>(decoded.buffer);
+         const uint8_t *gamma=srgb_table();
++
+         if (size_t(p->columns)*p->rows>=500000) {
+             constexpr uint32_t workers=4;
+             std::future<void> workers_done[workers-1];
+diff --git a/source/lib/gpr_video/gpr_preview_queue.cpp b/source/lib/gpr_video/gpr_preview_queue.cpp
+index ef56894..f529dbb 100644
+--- a/source/lib/gpr_video/gpr_preview_queue.cpp
++++ b/source/lib/gpr_video/gpr_preview_queue.cpp
+@@ -52,6 +52,9 @@ struct gpr_preview_queue {
+         const gpr_preview_plan *plan=nullptr;
+         uint64_t index=0,timestamp=0,offered=0;
+         uint32_t wavelet_width=0,wavelet_height=0,payload_crc=0;
++#if GPR_PREVIEW_PLANE_COLOR
++        uint32_t plane_stride_bytes=0;
++#endif
+     } slots[2];
+     gpr_preview_queue_config config={};
+     gpr_preview_queue_stats stats={};
+@@ -90,7 +93,11 @@ struct gpr_preview_queue {
+                     if (item.wavelet_width) {
+                         gpr_preview_wavelet_planes planes={};planes.width=item.wavelet_width;planes.height=item.wavelet_height;
+                         size_t count=size_t(planes.width)*planes.height;
+-                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data())+c*count;planes.sample_count[c]=count;}
++                        size_t stride=count*sizeof(int16_t);
++#if GPR_PREVIEW_PLANE_COLOR
++                        stride=item.plane_stride_bytes;
++#endif
++                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data()+c*stride);planes.sample_count[c]=count;}
+                         view.payload_crc32=item.payload_crc;
+                         error=gpr_preview_plan_render_wavelets(item.plan,&planes,rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
+                     } else {
+@@ -149,17 +156,30 @@ static int offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+         if (q->closing) return GPR_PREVIEW_CLOSED;
+         if (q->stats.offered && (index<=q->last_index || timestamp<=q->last_timestamp)) return GPR_PREVIEW_INVALID;
+         auto &item=q->slots[q->pending_slot];
+-        item.payload.resize(bytes);
++        size_t storage_bytes=bytes,stride=bytes/3;
++#if GPR_PREVIEW_PLANE_COLOR
++        if (planes) {
++            // bytes is already bounded by the configured <=128 MiB reservation.
++            // Spend spare reserved bytes on distinct plane cache-set offsets;
++            // retain the dense layout when the caller's bound has no room.
++            size_t candidate=((stride+127)&~size_t(127))+128;
++            if (candidate<=(q->config.max_payload_bytes-stride)/2) {
++                storage_bytes=2*candidate+stride;stride=candidate;
++            }
++        }
++        item.plane_stride_bytes=uint32_t(stride);
++#endif
++        item.payload.resize(storage_bytes);
+         item.wavelet_width=planes ? planes->width:0;item.wavelet_height=planes ? planes->height:0;item.payload_crc=crc;
+         if (planes) for (unsigned c=0;c<3;++c)
+-            std::memcpy(item.payload.data()+c*(bytes/3),planes->samples[c],bytes/3);
++            std::memcpy(item.payload.data()+c*stride,planes->samples[c],bytes/3);
+         else std::memcpy(item.payload.data(),payload,bytes);
+         gpr_preview_plan_retain(plan);old=item.plan;item.plan=plan;
+         item.index=index;item.timestamp=timestamp;item.offered=now_ns();
+         if (q->pending) { ++q->stats.replaced;++q->stats.discarded; } else { ++q->stats.inflight;q->pending=true; }
+         ++q->stats.offered;q->last_index=index;q->last_timestamp=timestamp;
+         q->stats.inflight_high_water=std::max(q->stats.inflight_high_water,q->stats.inflight);
+-        q->stats.payload_peak_bytes=std::max(q->stats.payload_peak_bytes,uint64_t(q->active_bytes+bytes));
++        q->stats.payload_peak_bytes=std::max(q->stats.payload_peak_bytes,uint64_t(q->active_bytes+storage_bytes));
+         q->changed.notify_all();
+     }
+     release(old);return 0;

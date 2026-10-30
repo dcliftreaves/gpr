@@ -137,3 +137,8 @@ proofs and the Pi matrix. The hybrid is about 1.3% faster on two standalone
 real-input encodes, but both coupled runs have lower durable throughput than
 both controls. All 2,400 recordings/previews remain exact. The proposal is
 rejected; production runtime and the unmet strict deadline gate are unchanged.
+
+The retained [bounded preview-plane spacing](stock-preview-colors.md) changes
+internal placement, with exact pixels/payloads, existing memory limits and dense
+fallback preserved. Final source passes 27 Mac/24 Pi tests and four relocated
+profiles. Lower measured cache refills do not close the strict deadline gate.

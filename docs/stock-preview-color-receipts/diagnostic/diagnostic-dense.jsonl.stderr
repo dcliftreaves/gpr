@@ -1,0 +1,4 @@
+{"event":"layout","plane_bytes":1572864,"plane_mod64":[16,16,16],"plane_mod16384":[16,16,16],"rgb_mod64":0,"rgb_mod16384":2816,"gain_mod64":16,"gain_mod16384":16,"full_gain_mod64":0,"gamma_mod64":16}
+{"event":"layout","plane_bytes":1572864,"plane_mod64":[16,16,16],"plane_mod16384":[16,16,16],"rgb_mod64":0,"rgb_mod16384":2816,"gain_mod64":0,"gain_mod16384":2816,"full_gain_mod64":0,"gamma_mod64":16}
+{"event":"layout","plane_bytes":1572864,"plane_mod64":[16,16,16],"plane_mod16384":[16,16,16],"rgb_mod64":0,"rgb_mod16384":2816,"gain_mod64":16,"gain_mod16384":16,"full_gain_mod64":0,"gamma_mod64":16}
+{"event":"layout","plane_bytes":1572864,"plane_mod64":[16,16,16],"plane_mod16384":[16,16,16],"rgb_mod64":0,"rgb_mod16384":2816,"gain_mod64":0,"gain_mod16384":2816,"full_gain_mod64":0,"gamma_mod64":16}

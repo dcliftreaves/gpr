@@ -1,0 +1,37 @@
+{
+  "page_size": 16384,
+  "caches": [
+    {
+      "level": "2",
+      "type": "Unified",
+      "size": "512K",
+      "coherency_line_size": "128",
+      "number_of_sets": "1024",
+      "ways_of_associativity": "4"
+    },
+    {
+      "level": "1",
+      "type": "Data",
+      "size": "64K",
+      "coherency_line_size": "64",
+      "number_of_sets": "256",
+      "ways_of_associativity": "4"
+    },
+    {
+      "level": "3",
+      "type": "Unified",
+      "size": "2048K",
+      "coherency_line_size": "64",
+      "number_of_sets": "2048",
+      "ways_of_associativity": "16"
+    },
+    {
+      "level": "1",
+      "type": "Instruction",
+      "size": "64K",
+      "coherency_line_size": "64",
+      "number_of_sets": "256",
+      "ways_of_associativity": "4"
+    }
+  ]
+}
