@@ -166,6 +166,7 @@ def main():
             else: shutil.copy2(doc, src/'docs'/doc.name)
         (src/'tools').mkdir()
         for tool in ('stock_video.py', 'raw_media.py', 'stock_still.py', 'stock_mov.py', 'stock_prores.py', 'stock_preview.py', 'stock_cnn_models.py', 'stock_cnn_metadata.py', 'stock_av.py'): shutil.copy2(root/'tools'/tool, src/'tools'/tool)
+        shutil.copytree(root/'tools/ffmpeg_stock',src/'tools/ffmpeg_stock',ignore=shutil.ignore_patterns('__pycache__'))
         (src/'source/app').mkdir(parents=True)
         shutil.copy2(root/'source/app/gpr_mov.cpp',src/'source/app/gpr_mov.cpp')
         for helper_name in ('gpr_render.m', 'gpr_prores.m'):
