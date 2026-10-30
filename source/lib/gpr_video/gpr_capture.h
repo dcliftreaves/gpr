@@ -2,6 +2,7 @@
 #ifndef GPR_CAPTURE_H
 #define GPR_CAPTURE_H
 #include "gpr_gvid.h"
+#include "vc5_preview.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -78,6 +79,15 @@ typedef void (*gpr_capture_encoded_fn)(void *user,const gpr_capture_encoded_fram
 int gpr_capture_create_with_observer(const gpr_capture_config *cfg,
     const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
     gpr_capture **out);
+/* Optional borrowed coefficient view while the input lease is still held.
+ * Runs synchronously on the encoder thread under its global codec lock; never
+ * reenter encoding/SDK encoding, submit/flush/finish/destroy, or throw across C.
+ * Reconstruct/copy before return. NULL retains ordinary encoder memory use. */
+typedef void (*gpr_capture_preview_fn)(void *user,uint64_t index,uint64_t timestamp_ns,
+    const vc5_preview_coefficients *coefficients);
+int gpr_capture_create_with_encoder_preview(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
+    gpr_capture_preview_fn preview,void *preview_user,gpr_capture **out);
 /* Thread-safe; submissions serialize in frame-index order. Input and metadata
  * are COPIED before success returns unless an input lease is supplied; copied
  * input includes repacking padded rows. Index is

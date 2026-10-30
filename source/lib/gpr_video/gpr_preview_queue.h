@@ -40,6 +40,12 @@ typedef struct {
 int gpr_preview_queue_create(const gpr_preview_queue_config *config,gpr_preview_queue **out);
 int gpr_preview_queue_offer(gpr_preview_queue *queue,const gpr_preview_plan *plan,
     uint64_t index,uint64_t timestamp_ns,const uint8_t *payload,size_t payload_size);
+/* Same bounded queue and ownership, but copies reconstructed planes instead
+ * of compressed payload. max_payload_bytes bounds the combined three planes;
+ * payload_crc32 binds the original encoded frame. Render timing covers display
+ * processing only; producer reconstruction precedes offer. */
+int gpr_preview_queue_offer_wavelets(gpr_preview_queue *queue,const gpr_preview_plan *plan,
+    uint64_t index,uint64_t timestamp_ns,const gpr_preview_wavelet_planes *planes,uint32_t payload_crc32);
 int gpr_preview_queue_get_stats(gpr_preview_queue *queue,gpr_preview_queue_stats *out);
 int gpr_preview_queue_finish(gpr_preview_queue *queue); /* close, drain latest, wait */
 void gpr_preview_queue_cancel(gpr_preview_queue *queue); /* close, discard pending */

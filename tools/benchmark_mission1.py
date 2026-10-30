@@ -94,8 +94,11 @@ def main():
     parser.add_argument('--fps', type=int, default=20)
     parser.add_argument('--quality', type=int, choices=range(6), default=3)
     parser.add_argument('--downsample', type=int, choices=(4, 8, 16), default=4)
+    parser.add_argument('--preview-from-encoder', action='store_true', help='reconstruct retained encoder bands before queued display; requires downsample 4')
     parser.add_argument('--require-floor', action='store_true', help='exit 2 if replay timing misses the requested floor')
     args = parser.parse_args()
+    if args.preview_from_encoder and args.downsample != 4:
+        parser.error('encoder preview requires --downsample 4')
     if len(args.input) != len(args.metadata) or not 1 <= len(args.input) <= 16:
         parser.error('supply one --metadata per --input, in input order (1..16 sources)')
     if not 1 <= args.fps <= 240 or not len(args.input) <= args.frames <= 1000000:
@@ -138,6 +141,8 @@ def main():
         command = base+['--output', root/(name+'.gvid'), '--frames', args.frames, '--paced']
         if name == 'recording-preview':
             command += ['--preview-every', 1]
+            if args.preview_from_encoder:
+                command += ['--preview-from-encoder']
             for index in range(len(metadata)):
                 command += ['--preview-profile', profiles/f'{index:06}.gprp']
         events = run(command, root/(name+'.jsonl'), environment)
@@ -150,6 +155,7 @@ def main():
                   source_geometry=[4096, 3072], cfa='RGGB', sample_bits=14,
                   quality=args.quality, requested_fps=args.fps, preview_downsample=args.downsample,
                   frames_requested=args.frames, functional_checks_passed=True,
+                  preview_pipeline='encoder_wavelets' if args.preview_from_encoder else 'compressed',
                   combined_replay_floor_passed=combined['recording'] and combined['preview'],
                   camera_production_ready=False, model_quality_approved=False,
                   timing_scope='paced warm-cache replay; recording includes final fsync; preview includes queue drain; source loading and plan setup excluded',

@@ -103,6 +103,9 @@
      * for this synchronous call. Supports the stock RAW three-level profile. */
     CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *coefficients,
         gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3]);
+    /* Independent-channel variant for callers scheduling channels concurrently. */
+    CODEC_ERROR vc5_decoder_reconstruct_preview_channel(const vc5_preview_coefficients *coefficients,
+        unsigned channel,gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer *plane);
 
 #ifdef __cplusplus
     }

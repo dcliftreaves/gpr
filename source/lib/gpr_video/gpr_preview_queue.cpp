@@ -51,6 +51,7 @@ struct gpr_preview_queue {
         std::vector<uint8_t> payload;
         const gpr_preview_plan *plan=nullptr;
         uint64_t index=0,timestamp=0,offered=0;
+        uint32_t wavelet_width=0,wavelet_height=0,payload_crc=0;
     } slots[2];
     gpr_preview_queue_config config={};
     gpr_preview_queue_stats stats={};
@@ -86,8 +87,16 @@ struct gpr_preview_queue {
                 error=gpr_preview_plan_info(item.plan,&view.image);
                 if (!error) {
                     rgb.resize(view.image.row_bytes*view.image.height);
-                    view.payload_crc32=gpr_gvid_crc32(0,item.payload.data(),item.payload.size());
-                    error=gpr_preview_plan_render(item.plan,item.payload.data(),item.payload.size(),rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
+                    if (item.wavelet_width) {
+                        gpr_preview_wavelet_planes planes={};planes.width=item.wavelet_width;planes.height=item.wavelet_height;
+                        size_t count=size_t(planes.width)*planes.height;
+                        for (unsigned c=0;c<3;++c) {planes.samples[c]=reinterpret_cast<const int16_t *>(item.payload.data())+c*count;planes.sample_count[c]=count;}
+                        view.payload_crc32=item.payload_crc;
+                        error=gpr_preview_plan_render_wavelets(item.plan,&planes,rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
+                    } else {
+                        view.payload_crc32=gpr_gvid_crc32(0,item.payload.data(),item.payload.size());
+                        error=gpr_preview_plan_render(item.plan,item.payload.data(),item.payload.size(),rgb.data(),rgb.size(),view.image.row_bytes,&view.image);
+                    }
                 }
                 render_time=now_ns()-start;
                 if (!error) {
@@ -127,9 +136,10 @@ extern "C" int gpr_preview_queue_create(const gpr_preview_queue_config *c,gpr_pr
         *out=q.release();return 0;
     } catch (...) { return GPR_PREVIEW_NOMEM; }
 }
-extern "C" int gpr_preview_queue_offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
-    uint64_t index,uint64_t timestamp,const uint8_t *payload,size_t bytes) {
-    if (!q || !plan || !payload || !bytes || bytes>q->config.max_payload_bytes) return GPR_PREVIEW_INVALID;
+static int offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+    uint64_t index,uint64_t timestamp,const uint8_t *payload,size_t bytes,
+    const gpr_preview_wavelet_planes *planes,uint32_t crc) {
+    if (!q || !plan || (!payload && !planes) || !bytes || bytes>q->config.max_payload_bytes) return GPR_PREVIEW_INVALID;
     gpr_preview_info info={};
     if (gpr_preview_plan_info(plan,&info) || !info.height || info.row_bytes>q->config.max_rgb_bytes/info.height) return GPR_PREVIEW_CAPACITY;
     const gpr_preview_plan *old=nullptr;
@@ -139,7 +149,11 @@ extern "C" int gpr_preview_queue_offer(gpr_preview_queue *q,const gpr_preview_pl
         if (q->closing) return GPR_PREVIEW_CLOSED;
         if (q->stats.offered && (index<=q->last_index || timestamp<=q->last_timestamp)) return GPR_PREVIEW_INVALID;
         auto &item=q->slots[q->pending_slot];
-        item.payload.resize(bytes);std::memcpy(item.payload.data(),payload,bytes);
+        item.payload.resize(bytes);
+        item.wavelet_width=planes ? planes->width:0;item.wavelet_height=planes ? planes->height:0;item.payload_crc=crc;
+        if (planes) for (unsigned c=0;c<3;++c)
+            std::memcpy(item.payload.data()+c*(bytes/3),planes->samples[c],bytes/3);
+        else std::memcpy(item.payload.data(),payload,bytes);
         gpr_preview_plan_retain(plan);old=item.plan;item.plan=plan;
         item.index=index;item.timestamp=timestamp;item.offered=now_ns();
         if (q->pending) { ++q->stats.replaced;++q->stats.discarded; } else { ++q->stats.inflight;q->pending=true; }
@@ -149,6 +163,19 @@ extern "C" int gpr_preview_queue_offer(gpr_preview_queue *q,const gpr_preview_pl
         q->changed.notify_all();
     }
     release(old);return 0;
+}
+extern "C" int gpr_preview_queue_offer(gpr_preview_queue *q,const gpr_preview_plan *plan,
+    uint64_t index,uint64_t timestamp,const uint8_t *payload,size_t bytes) {
+    return offer(q,plan,index,timestamp,payload,bytes,nullptr,0);
+}
+extern "C" int gpr_preview_queue_offer_wavelets(gpr_preview_queue *q,const gpr_preview_plan *plan,
+    uint64_t index,uint64_t timestamp,const gpr_preview_wavelet_planes *planes,uint32_t crc) {
+    if (!planes || !planes->width || !planes->height || size_t(planes->width)>SIZE_MAX/planes->height/6)
+        return GPR_PREVIEW_INVALID;
+    size_t count=size_t(planes->width)*planes->height;
+    for (unsigned c=0;c<3;++c) if (!planes->samples[c] || planes->sample_count[c]<count ||
+        reinterpret_cast<uintptr_t>(planes->samples[c])%alignof(int16_t)) return GPR_PREVIEW_INVALID;
+    return offer(q,plan,index,timestamp,nullptr,count*6,planes,crc);
 }
 extern "C" int gpr_preview_queue_get_stats(gpr_preview_queue *q,gpr_preview_queue_stats *out) {
     if (!q || !out) return GPR_PREVIEW_INVALID;

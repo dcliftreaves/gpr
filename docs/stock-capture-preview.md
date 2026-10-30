@@ -42,6 +42,31 @@ No realtime privileges are required.
 
 ## Capture frontend
 
+`--preview-from-encoder` selects the quarter-scale retained-band path. Capture
+reconstructs the three channels concurrently while the encoder coefficient view
+is alive, then offers copied reduced planes to the same bounded display queue
+when the completed payload is available. The encoded payload CRC binds display
+to recording. This avoids entropy decoding. Existing compressed preview remains
+the default and supports reductions 4/8/16; encoder preview requires reduction 4
+and rejects other profiles before creating output. The new capture creator is
+`gpr_capture_create_with_encoder_preview`; prior creators retain their ABI.
+
+The `encoder_wavelets` summary identifies this path. Its `encode_ms` includes
+coefficient reconstruction, while `render_ms` covers queued color/display only.
+`payload_peak_bytes` now counts copied reduced-plane bytes for this mode.
+Reconstruction currently allocates bounded per-frame scratch; the queue still
+reserves two bounded buffers and supports replacement, sink failure and drain.
+
+Two real Pi sources at 4096x3072 Q3/20 fps deliver all 120 exact previews with
+46.06 ms capture-to-sink p95, zero late previews/writes and 20.02 buffered fps.
+The 600-frame/30-second follow-up delivers all 600 exact previews without drops,
+46.07 ms p95 and 20.01 buffered fps, but has four previews above 50 ms and five
+late writes (the recording-only baseline also has five late writes). Final fsync
+takes 1.047 s, reducing the combined durable average to 19.34 fps. Thus typical
+latency meets the target while the strict sustained zero-late/durability gate
+remains open. Receipts: [120 frames](stock-core-receipts/mission1-pi5-encoder-preview.json)
+and [600 frames](stock-core-receipts/mission1-pi5-encoder-preview-600.json).
+
 Build `gpr_capture_app` with both capture and preview. Supply one prepared pure
 `.gprp` profile per RAW source in input order:
 

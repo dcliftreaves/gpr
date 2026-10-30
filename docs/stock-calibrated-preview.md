@@ -178,10 +178,12 @@ qualities, including both real Pi replay sources. Its shared header and symbols
 are included in relocated packages. These measurements still cover RGGB14;
 broader source-domain calibration parity requires additional fixtures.
 
-The helper currently allocates intermediate wavelets per invocation. Capture
-does not yet invoke this callback, and no combined latency result is attributed
-to the API alone. Bounded scratch reuse and capture ownership/scheduling remain
-the next integration work.
+The helper currently allocates intermediate wavelets per invocation. Capture can
+now select this callback through `--preview-from-encoder`, reconstruct channels
+concurrently and feed copied planes into its bounded display queue. The
+[capture integration receipts](stock-capture-preview.md#capture-frontend) measure
+the whole path; typical Pi latency improves to 46.07 ms p95. Sustained tail
+latency, storage flush behavior and scratch reuse remain open.
 The preview contract compares serial and fused output byte for byte over 192
 cases spanning both fixture widths, all three reductions, all eight
 orientations, RGGB/GBRG calibration and 12/14-bit count domains, with crop,

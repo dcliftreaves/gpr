@@ -209,8 +209,8 @@ CODEC_ERROR vc5_decoder_process_wavelet_channel(
                                         wavelet_buffer, (int)channel);
 }
 
-CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *input,
-    gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3])
+static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,
+    gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3],int selected)
 {
     WAVELET *levels[3]={NULL,NULL,NULL};
     gpr_allocator allocator={mem_alloc,mem_free};
@@ -239,7 +239,7 @@ CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *inpu
         }
     }
     ComputeCubicTable(cubic,1025,255);
-    for (unsigned channel=0;channel<3;++channel) {
+    for (unsigned channel=selected<0 ? 0:(unsigned)selected;channel<(selected<0 ? 3:(unsigned)selected+1);++channel) {
         for (unsigned stage=0;stage<3;++stage) {
             unsigned scale=4u<<stage;
             levels[stage]=CreateWavelet(&allocator,(input->sensor_width+scale-1)/scale,
@@ -279,5 +279,19 @@ done:
         if (planes[channel].buffer) mem_free(planes[channel].buffer);
         memset(&planes[channel],0,sizeof(planes[channel]));
     }
+    return error;
+}
+CODEC_ERROR vc5_decoder_reconstruct_preview(const vc5_preview_coefficients *input,
+    gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer planes[3])
+{
+    return reconstruct_preview(input,mem_alloc,mem_free,planes,-1);
+}
+CODEC_ERROR vc5_decoder_reconstruct_preview_channel(const vc5_preview_coefficients *input,
+    unsigned channel,gpr_malloc mem_alloc,gpr_free mem_free,gpr_rgb_buffer *plane)
+{
+    gpr_rgb_buffer planes[3]={{0}};
+    if (channel>=3 || !plane || plane->buffer || plane->size) return CODEC_ERROR_BAD_ARGUMENT;
+    CODEC_ERROR error=reconstruct_preview(input,mem_alloc,mem_free,planes,(int)channel);
+    if (!error) *plane=planes[channel];
     return error;
 }

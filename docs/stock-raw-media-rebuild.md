@@ -94,6 +94,13 @@ python3 tools/benchmark_mission1.py \
   --quality 3 --downsample 4 --out-dir new-mission1-review --require-floor
 ```
 
+Add `--preview-from-encoder` to select the new quarter-scale retained-band
+preview. On Pi this reduces current capture-to-sink p95 from 96.50 ms to
+46.07 ms in a 600-frame replay, with all frames/pixels exact. Four late previews,
+five late writes and final storage flush still fail the strict sustained gate;
+`--require-floor` correctly returns status 2. See the
+[current Pi receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json).
+
 The reference app must honor `GPR_BENCH_QUALITY`; the historical codec may be
 instrumented at the sample-app boundary without changing its encoder. Repeat
 `--input` and `--metadata` in matching source order for alternating inputs.
@@ -240,7 +247,7 @@ Historical platform receipts remain bound to their recorded revisions.
 | Bounded capture API | Ownership, leases, backpressure, cancellation, flush and writer failures implemented; [capture contract](stock-capture-api.md) | Physical sensor/DMA/storage adapter integration |
 | Checked recording/recovery | Actual timestamps, CRC metadata/payloads, END3 and explicit prefix recovery implemented; [recording contract](stock-capture-api.md) | Live sensor/card interruption and durability evidence |
 | Native calibrated preview | Immutable plans, source color/GainMaps/orientation and bounded queue implemented; [preview contract](stock-calibrated-preview.md), [combined path](stock-capture-preview.md) | Rear-display backend and broader lens/look/temporal approval |
-| Mission 1 20-fps path | Mac: 1200/1200 recorded and previewed at 1024x768 over 60 seconds with no late deliveries/overruns and all 2400 payloads exact; [extended host receipt](stock-core-receipts/mission1-minute-mac.json). Pi 5: current parallel/fused reduced decoder delivers all 120/120 exact 1024x768 previews, up from 56/120, at a 49.01 ms render median; [current Pi receipt](stock-core-receipts/mission1-pi5-parallel-preview.json) | Same-frame latency remains 99.18 ms p95 because preview follows encode; final fsync lowers short-run durable average; actual camera proof; source is still replay, sink is memory |
+| Mission 1 20-fps path | Mac: 1200/1200 recorded and previewed over 60 seconds, no late deliveries/overruns; [host receipt](stock-core-receipts/mission1-minute-mac.json). Pi encoder-derived preview: 600/600 exact recorded frames and 1024x768 previews, no drops, 20.01 buffered fps, 46.07 ms end-to-end p95; [current Pi receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json) | Four late previews/five late writes in sustained replay; final fsync lowers durable average to 19.34 fps; actual sensor/display/card/thermal proof remains open |
 | Offline 1x reconstruction | Portable inference, editable/sequence export and [explicit still GPR re-encoding](stock-cnn-quality.md#optional-reconstructed-gpr) work; eight optional contracts; [fresh source-grouped Q3 experiment](stock-cleanup-training.md) rejects all 30 trained checkpoints | Model quality approval; identity fallback is not a quality improvement; re-encoding can erase the legacy gain; legacy Q5 scene regression remains |
 | Offline 2x/8K reconstruction | Explicit architecture/geometry/calibration paths and fresh training/evaluation implemented; [functional evidence](stock-cnn-portable.md), [frozen candidate](stock-sr-training.md) | Candidate selection/perceptual/temporal approval; current shadow regression |
 | Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |

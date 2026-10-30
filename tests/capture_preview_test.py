@@ -33,6 +33,7 @@ class Combined(unittest.TestCase):
         self.base=self.root/'base.gvid'
         self.capture(self.base,'--frames','24')
         self.profiles=self.root/'base-profiles'
+        self.downsample=8
         stock_preview.prepare(self.base,self.profiles,args.compiler,8)
         self.expected_payloads={}
         with self.base.open('rb') as file:
@@ -61,7 +62,7 @@ class Combined(unittest.TestCase):
         self.assertLessEqual(summary['inflight_high_water'],2)
         self.assertEqual(summary['offered'],summary['rendered']+summary['discarded'])
         self.assertEqual(summary['rendered'],len(previews));self.assertEqual(summary['error']!=0,failed)
-        directory=self.root/(output.stem+'-profiles');stock_preview.prepare(output,directory,args.compiler,8)
+        directory=self.root/(output.stem+'-profiles');stock_preview.prepare(output,directory,args.compiler,self.downsample)
         playback=subprocess.run([str(args.player),'--input',str(output),'--profile-dir',str(directory)],capture_output=True,text=True,timeout=60,check=True)
         offline={row['index']:row for row in map(json.loads,playback.stdout.splitlines()) if row['event']=='preview'}
         previous=-1
@@ -98,6 +99,25 @@ class Combined(unittest.TestCase):
         events=self.capture(output,'--frames','24','--preview-every','1','--preview-fail-after','1',preview=True,okay=False)
         final,summary,previews=self.verify(output,events,1,failed=True)
         self.assertEqual(final['written'],24);self.assertEqual(summary['error'],-7);self.assertEqual(len(previews),1)
+
+    def test_encoder_wavelets_match_offline_and_isolate_sink_failure(self):
+        self.downsample=4;self.profiles=self.root/'quarter-profiles'
+        stock_preview.prepare(self.base,self.profiles,args.compiler,4)
+        for failed in (False,True):
+            output=self.root/f'encoder-{failed}.gvid'
+            options=['--frames','24','--preview-every','1','--preview-from-encoder']
+            if failed:options+=['--preview-fail-after','1']
+            events=self.capture(output,*options,preview=True,okay=not failed)
+            final,summary,previews=self.verify(output,events,1,failed=failed)
+            self.assertEqual(final['written'],24)
+            self.assertEqual(summary['pipeline'],'encoder_wavelets')
+            self.assertTrue(previews)
+            if failed:self.assertEqual(len(previews),1)
+
+    def test_encoder_wavelets_reject_nonquarter_profile_before_output(self):
+        output=self.root/'invalid-encoder-profile.gvid'
+        self.capture(output,'--frames','2','--preview-from-encoder',preview=True,okay=False)
+        self.assertFalse(output.exists())
 
 
 if __name__=='__main__':

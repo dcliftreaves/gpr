@@ -53,6 +53,9 @@ static void public_observe(void *user,const vc5_preview_coefficients *input) {
     REQUIRE(allocation_attempts && !planes[0].buffer && !planes[1].buffer && !planes[2].buffer);
     REQUIRE(vc5_decoder_reconstruct_preview(input,malloc,free,planes)==CODEC_ERROR_OKAY);
     for (unsigned channel=0;channel<3;++channel) {
+        gpr_rgb_buffer one={0};
+        REQUIRE(vc5_decoder_reconstruct_preview_channel(input,channel,malloc,free,&one)==CODEC_ERROR_OKAY);
+        REQUIRE(one.size==planes[channel].size && !memcmp(one.buffer,planes[channel].buffer,one.size));free(one.buffer);
         REQUIRE(planes[channel].width==context->reference->width && planes[channel].height==context->reference->height);
         REQUIRE(!memcmp(planes[channel].buffer,context->reference->planes[channel],planes[channel].size));
         free(planes[channel].buffer);
