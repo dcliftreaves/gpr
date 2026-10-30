@@ -20,12 +20,22 @@ struct Sink {
     std::mutex mutex;
     std::condition_variable changed;
     std::vector<uint8_t> bytes;
+    std::vector<std::vector<uint8_t>> observed;
+    static void encoded(void *user,const gpr_capture_encoded_frame *frame) {
+        Sink &s=*static_cast<Sink *>(user);
+        std::lock_guard<std::mutex> lock(s.mutex);
+        check(frame->index==s.observed.size(),"observer frame order");
+        check(frame->timestamp_ns==900000000000ULL+frame->index*33410000,"observer timestamp");
+        check(frame->payload && frame->payload_size>=64 && !std::memcmp(frame->payload,"VC-5",4),"observer payload");
+        s.observed.emplace_back(frame->payload,frame->payload+frame->payload_size);
+    }
     bool block=false, entered=false, released=false, fail=false, fail_end=false;
     unsigned completions=0;
     static int write(void *user,const uint8_t *p,size_t n) {
         Sink &s=*static_cast<Sink *>(user);
         std::unique_lock<std::mutex> lock(s.mutex);
         bool frame=n==48 && !std::memcmp(p,"FRM3",4);
+        if (frame) check(get(p+8,8)<s.observed.size(),"storage started before observer returned");
         if (frame && s.block && !s.entered) {
             s.entered=true; s.changed.notify_all();
             s.changed.wait(lock,[&]{ return s.released; });
@@ -46,7 +56,7 @@ struct Capture {
     gpr_capture *p=nullptr;
     Capture(const gpr_capture_config &cfg,Sink &sink) {
         gpr_capture_callbacks callbacks={Sink::write,Sink::complete,&sink};
-        check(!gpr_capture_create(&cfg,&callbacks,&p),"create failed");
+        check(!gpr_capture_create_with_observer(&cfg,&callbacks,Sink::encoded,&sink,&p),"create failed");
     }
     ~Capture() { if (p) gpr_capture_destroy(p); }
 };
@@ -96,6 +106,7 @@ static void validate(const Sink &sink,const std::vector<std::vector<uint8_t>> &e
         check(!std::memcmp(p+48,"{\"exposure_us\":1000}",20),"frame metadata not copied");
         check(offset+48+metadata+n<=data.size(),"short payload");
         check(n==expected[i].size() && !std::memcmp(p+48+metadata,expected[i].data(),n),"source ownership/stock bytes changed");
+        check(i<sink.observed.size() && sink.observed[i]==expected[i],"observer differs from recorded/reference payload");
         check(get(p+36,4)==gpr_gvid_crc32(0,p+48+metadata,n),"payload crc");
         payload_total+=n; offset+=48+metadata+n;
     }

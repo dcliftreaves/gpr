@@ -67,6 +67,8 @@ struct Slot {
 struct gpr_capture {
     gpr_capture_config cfg;
     gpr_capture_callbacks callbacks;
+    gpr_capture_encoded_fn encoded=nullptr;
+    void *encoded_user=nullptr;
     std::vector<uint8_t> metadata;
     std::vector<Slot> slots;
     Workspace workspace;
@@ -154,6 +156,11 @@ struct gpr_capture {
                 p.mem_free(compressed.buffer);
                 workspace.reset();
                 release_input(slot);
+                if (okay && encoded) {
+                    gpr_capture_encoded_frame frame={slot.index,slot.timestamp,slot.encode_ns,
+                        slot.payload.data(),slot.payload_size};
+                    encoded(encoded_user,&frame);
+                }
                 {
                     std::lock_guard<std::mutex> lock(mutex);
                     stats.workspace_peak_bytes=workspace.peak;
@@ -261,6 +268,10 @@ struct gpr_capture {
 
 extern "C" int gpr_capture_create(const gpr_capture_config *cfg,
                                     const gpr_capture_callbacks *cb, gpr_capture **out) {
+    return gpr_capture_create_with_observer(cfg,cb,nullptr,nullptr,out);
+}
+extern "C" int gpr_capture_create_with_observer(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *cb,gpr_capture_encoded_fn encoded,void *encoded_user,gpr_capture **out) {
     if (!out) return GPR_CAPTURE_INVALID;
     *out=nullptr;
     uint8_t header[64];
@@ -271,6 +282,7 @@ extern "C" int gpr_capture_create(const gpr_capture_config *cfg,
         gpr_gvid_write_header(header,&cfg->video,cfg->metadata,cfg->metadata_size)) return GPR_CAPTURE_INVALID;
     try {
         std::unique_ptr<gpr_capture> capture(new gpr_capture(*cfg,*cb));
+        capture->encoded=encoded;capture->encoded_user=encoded_user;
         capture->encoder=std::thread(&gpr_capture::encode_loop,capture.get());
         try { capture->writer=std::thread(&gpr_capture::write_loop,capture.get()); }
         catch (...) { capture->fail(GPR_CAPTURE_NOMEM); capture->encoder.join(); throw; }

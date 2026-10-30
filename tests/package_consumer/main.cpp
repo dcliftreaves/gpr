@@ -90,7 +90,7 @@ int main(int argc,char **argv) {
         gpr_capture_config cfg={}; cfg.video={128,96,30,1,3,14,{'R','G','G','B'}};
         cfg.stride_bytes=256; cfg.max_inflight=2; cfg.workspace_bytes=4*1024*1024;
         gpr_capture_callbacks callbacks={Recording::write,nullptr,&recording}; gpr_capture *capture=nullptr;
-        check(!gpr_capture_create(&cfg,&callbacks,&capture),"capture create");
+        check(!gpr_capture_create_with_observer(&cfg,&callbacks,nullptr,nullptr,&capture),"capture create");
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture_owner(capture,gpr_capture_destroy);
         gpr_capture_frame frame={}; frame.data=capture_raw.data(); frame.size_bytes=capture_raw.size()*2; frame.timestamp_ns=123456;
         check(!gpr_capture_submit(capture,&frame,UINT32_MAX) && !gpr_capture_finish(capture),"capture submit/finish");

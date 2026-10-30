@@ -61,6 +61,23 @@ typedef struct {
 
 int gpr_capture_create(const gpr_capture_config *cfg, const gpr_capture_callbacks *callbacks,
                        gpr_capture **out);
+typedef struct {
+    uint64_t index,timestamp_ns,encode_ns;
+    const uint8_t *payload;
+    size_t payload_size;
+} gpr_capture_encoded_frame;
+/* Optional synchronous observer on the encoder thread, after input release and
+ * before enqueueing this frame for storage. Payload is borrowed until return;
+ * copy it for asynchronous use. Runs outside capture locks and may call
+ * get_stats, but not submit/flush/finish/destroy. Keep it short to avoid holding
+ * up encoding. It may overlap writer/completion callbacks for earlier frames.
+ * Observation does not guarantee successful recording: cancellation or storage
+ * failure can discard an observed frame. Finish joins all observer calls.
+ * Existing create/callback structures retain their ABI. NULL disables it. */
+typedef void (*gpr_capture_encoded_fn)(void *user,const gpr_capture_encoded_frame *frame);
+int gpr_capture_create_with_observer(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
+    gpr_capture **out);
 /* Thread-safe; submissions serialize in frame-index order. Input and metadata
  * are COPIED before success returns unless an input lease is supplied; copied
  * input includes repacking padded rows. Index is

@@ -62,6 +62,13 @@ currently requires another plan; these two-fixed-source tests do not establish
 rapid dynamic-calibration preparation cost.
 
 The frontend keeps the original source/profile association after overruns.
+It now offers preview through `gpr_capture_create_with_observer`: the encoder
+thread provides a borrowed completed payload before enqueueing that frame for
+storage. The bounded preview queue copies it before the observer returns.
+This removes the storage-write dependency; preview still waits for encoding.
+The original `gpr_capture_create` and callback-structure ABI remain available.
+An observed frame may subsequently be discarded on cancellation or writer
+failure, so a preview event alone does not prove that the frame was recorded.
 Its sink computes RGB CRCs in memory, with frame identity, geometry and render,
 capture-to-sink and overlap measurements. There is no physical display backend.
 Background priority is the default; `--preview-foreground` enables comparison.
@@ -108,6 +115,16 @@ median is down from 105.11 ms and 56/120 deliveries on the prior path. The
 same-frame latency gate remains open: preview begins only after encoding the
 compressed payload, so capture-to-sink p95 is 99.18 ms. See the
 [exact receipt](stock-core-receipts/mission1-pi5-parallel-preview.json).
+
+The subsequent encoder-observer handoff offers preview before storage begins.
+Its matched 120-frame Pi replay again records and previews all frames with
+exact stock payloads/calibrated pixels, zero replacements and zero capture
+deadline misses. Render median is 48.91 ms, capture-to-sink p95 96.50 ms and
+buffered capture 20.06 fps. The roughly 700 ms final fsync lowers short-run
+durable throughput to 17.96 fps. The change removes a storage dependency;
+single-run differences from 99.18 ms p95 do not establish a statistical latency
+improvement. Encoding plus reduced decode/render still exceeds the 50 ms
+same-frame gate. [Observer receipt](stock-core-receipts/mission1-pi5-encoded-observer.json).
 
 Neither baseline nor combined runs establish reliable live 30 fps. Both Pi HDMI
 connectors were disconnected. Sensor capture, physical presentation, microSD,

@@ -78,7 +78,6 @@ struct Output {
     size_t source_count=0;
     uint32_t preview_every=3,preview_delay_ms=0,preview_fail_after=0;
     uint64_t preview_setup_ns=0;
-    uint64_t current_index=0,current_timestamp=0,payload_bytes=0;
     int preview_offer_error=0;
     gpr_capture *capture=nullptr;
     std::atomic<bool> capture_finished{false};
@@ -113,24 +112,25 @@ struct Output {
         }
         if (n==48 && !std::memcmp(p,"FRM3",4)) {
             out.frame_remaining=get(p+24,8)+get(p+32,4);
-#if GPR_CAPTURE_HAS_PREVIEW
-            out.current_index=get(p+8,8);out.current_timestamp=get(p+16,8);out.payload_bytes=get(p+24,8);
-#endif
         }
         else if (out.frame_remaining) {
             if (n>out.frame_remaining) return -1;
             out.frame_remaining-=n;
             if (!out.frame_remaining && out.sync_each && fsync(out.fd)) return -1;
-#if GPR_CAPTURE_HAS_PREVIEW
-            if (!out.frame_remaining && out.preview && !out.preview_offer_error && out.current_index%out.preview_every==0) {
-                if (out.current_index>=out.source_count || n!=out.payload_bytes) return -1;
-                uint32_t source=out.source_for_frame[out.current_index].load(std::memory_order_acquire);
-                out.preview_offer_error=gpr_preview_queue_offer(out.preview.get(),out.plans[source].get(),out.current_index,
-                    out.current_timestamp,p,n);
-            }
-#endif
         }
         return 0;
+    }
+    static void encoded(void *user,const gpr_capture_encoded_frame *frame) {
+#if GPR_CAPTURE_HAS_PREVIEW
+        Output &out=*static_cast<Output *>(user);
+        if (!out.preview || out.preview_offer_error || frame->index%out.preview_every) return;
+        if (frame->index>=out.source_count) {out.preview_offer_error=GPR_PREVIEW_INVALID;return;}
+        uint32_t source=out.source_for_frame[frame->index].load(std::memory_order_acquire);
+        out.preview_offer_error=gpr_preview_queue_offer(out.preview.get(),out.plans[source].get(),frame->index,
+            frame->timestamp_ns,frame->payload,frame->payload_size);
+#else
+        (void)user;(void)frame;
+#endif
     }
     static void complete(void *user,const gpr_capture_completion *frame) {
         Output &out=*static_cast<Output *>(user);
@@ -258,7 +258,7 @@ int main(int argc,char **argv) {
         if (output.fd<0) throw std::runtime_error("cannot create new output file");
         gpr_capture_callbacks callbacks={Output::write,Output::complete,&output};
         uint64_t setup_begin=now_ns(); gpr_capture *created=nullptr;
-        if (gpr_capture_create(&cfg,&callbacks,&created)) throw std::runtime_error("capture create failed");
+        if (gpr_capture_create_with_observer(&cfg,&callbacks,Output::encoded,&output,&created)) throw std::runtime_error("capture create failed");
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture(created,gpr_capture_destroy);
 #if GPR_CAPTURE_HAS_PREVIEW
         output.capture=created;PreviewBeforeCaptureDestruction preview_guard{output};
