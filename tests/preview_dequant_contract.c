@@ -6,7 +6,7 @@
 int main(void)
 {
     static PIXEL input[65536],expected[65536];
-    int16_t cubic[1025],expanded[1025];
+    int16_t cubic[1025],expanded[1025],signed_table[2047];
     const int quants[]={1,2,3,4,7,12,24,48,96,144,255,511,1023,2047,8192,16384,32767};
     REQUIRE(!ComputeCubicTable(cubic,1025,255));
     for(int i=0;i<1025;++i){
@@ -21,8 +21,10 @@ int main(void)
     unsigned checks=0;
     for(unsigned q=0;q<sizeof(quants)/sizeof(quants[0]);++q){
         REQUIRE(!DequantizeBandRow16s(input,65536,quants[q],expected));
+        for(int value=-1023;value<=1023;++value)signed_table[value+1023]=gpr_preview_dequantize_sample(expanded,(int16_t)value,(uint32_t)quants[q]);
         for(int i=0;i<65536;++i){
             REQUIRE(gpr_preview_dequantize_sample(expanded,(int16_t)(i-32768),(uint32_t)quants[q])==expected[i]);
+            REQUIRE(gpr_preview_quantized_lookup_sample(signed_table,(int16_t)(i-32768))==expected[i]);
             ++checks;
         }
     }

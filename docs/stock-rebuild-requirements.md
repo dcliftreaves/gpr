@@ -375,3 +375,15 @@ in [run 41191796628](https://github.com/dcliftreaves/gpr/actions/runs/4119179662
 including native backends, FFmpeg and relocated packages. The subsequent
 weight-interpolation report adds evidence only; runtime and supplied models
 remain that validated source.
+
+The [quantizer-specific preview tables](stock-stream-quant-tables.md) add
+73,692 accounted bytes and reduce the final same-process encoder/inverse
+medians by 4.34%/3.62%, with every candidate block faster on both native sources.
+Final Mac/Pi/full-package checks and exact-capacity/preset-change tests pass.
+Two final 600-frame captures are exact but retain 1/22 late writes, 3/20 late
+previews and 19.9964/19.9987 durable fps; the strict combined floor stays open.
+
+The [CNN translation diagnostic](stock-cnn-translation.md) adds a synthetic
+spatial-consistency check, with independent transform/scoring and CPU controls.
+Its measured sampling-phase sensitivity supplies a concrete next model target;
+actual motion/rendered/temporal and restored-tier quality remain unapproved.

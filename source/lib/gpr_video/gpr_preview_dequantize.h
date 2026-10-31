@@ -16,4 +16,13 @@ static inline int16_t gpr_preview_dequantize_sample(const int16_t *lookup,
     if(value<0)return (int16_t)(scaled>32768?-32768:-scaled);
     return (int16_t)(scaled>32767?32767:scaled);
 }
+/* The signed table contains exact stock-dequantized values for -1023..1023. */
+static inline int16_t gpr_preview_quantized_lookup_sample(const int16_t *lookup,
+    int16_t coefficient)
+{
+    int32_t value=coefficient;
+    if(value < -1023)value=-1023;
+    if(value > 1023)value=1023;
+    return lookup[value+1023];
+}
 #endif

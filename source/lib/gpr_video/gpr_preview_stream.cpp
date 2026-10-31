@@ -18,6 +18,8 @@ static void require_rows(bool okay){if(!okay)throw InvalidRows{};}
 struct RowChannel {
  unsigned w1,h1,w2,h2,width,height,hp_mask;
  const int16_t *cubic;
+ std::array<int16_t,2*3*2047> dequantized{};
+ int cached_quant[2][3]={{0}};
  std::vector<int16_t> upper,hp,ll,scratch_upper,scratch_lower,plane;
  int quant[2][4]={{0}};unsigned prescale[2]={0,0};
  unsigned upper_received=0,upper_next=0,hp_received=0,ll_received=0,lower_next=0;
@@ -31,7 +33,18 @@ struct RowChannel {
  int16_t *u(unsigned row,unsigned band){return upper.data()+((row%3)*4+band)*w2;}
  int16_t *high(unsigned row,unsigned band){return hp.data()+((row&hp_mask)*3+band)*w1;}
  int16_t *low(unsigned row){return ll.data()+(row%4)*w1;}
- int16_t dequantize(int16_t value,int quantization)const{return gpr_preview_dequantize_sample(cubic,value,uint32_t(quantization));}
+ const int16_t *table(unsigned level,unsigned band){
+  int q=quant[level][band];auto *out=dequantized.data()+(level*3+band-1)*2047;
+  if(cached_quant[level][band-1]!=q){
+   for(int value=-1023;value<=1023;++value)out[value+1023]=gpr_preview_dequantize_sample(cubic,int16_t(value),uint32_t(q));
+   cached_quant[level][band-1]=q;
+  }
+  return out;
+ }
+ void dequantize_row(unsigned level,unsigned band,const int16_t *input,int16_t *out,unsigned width){
+  const int16_t *lookup=table(level,band);
+  for(unsigned x=0;x<width;++x)out[x]=gpr_preview_quantized_lookup_sample(lookup,input[x]);
+ }
  void drain_lower(){
   while(ready(lower_next,h1,std::min(hp_received,ll_received))){
    unsigned n=lower_next,start=n==0?0:n==h1-1?h1-3:n-1;const int16_t *llrows[3],*lhrows[3];
@@ -59,11 +72,11 @@ struct RowChannel {
   else {require_rows(prescale[row.level]==row.prescale);for(unsigned b=0;b<4;++b)require_rows(quant[row.level][b]==row.quant[b]);}
   if(!row.level){
    require_rows(row.row-oldest()<=hp_mask);max_hp_live=std::max(max_hp_live,row.row-oldest()+1);
-   for(unsigned b=1;b<4;++b){auto *out=high(row.row,b-1);for(unsigned x=0;x<w1;++x)out[x]=dequantize(row.bands[b][x],quant[0][b]);}
+   for(unsigned b=1;b<4;++b){auto *out=high(row.row,b-1);dequantize_row(0,b,row.bands[b],out,w1);}
    ++hp_received;drain_lower();
   }else{
    unsigned needed=upper_next==0?0:upper_next==h2-1?h2-3:upper_next-1;require_rows(row.row-needed<3);
-   for(unsigned b=0;b<4;++b){auto *out=u(row.row,b);for(unsigned x=0;x<w2;++x)out[x]=b?dequantize(row.bands[b][x],quant[1][b]):row.bands[b][x];}
+   for(unsigned b=0;b<4;++b){auto *out=u(row.row,b);if(b)dequantize_row(1,b,row.bands[b],out,w2);else std::copy(row.bands[b],row.bands[b]+w2,out);}
    ++upper_received;drain_upper();
   }
  }
@@ -77,9 +90,9 @@ struct gpr_preview_stream {
  size_t buffer_bytes;
  gpr_preview_stream(unsigned w,unsigned h,size_t bytes):channels{{RowChannel(w,h,cubic.data()),RowChannel(w,h,cubic.data()),RowChannel(w,h,cubic.data())}},buffer_bytes(bytes){
   require_rows(!ComputeCubicTable(cubic.data(),1025,255));
-  // Prepare the exact stock two-stage coefficient conversion once. Reuse the
-  // existing table allocation; incoming highpass rows need one lookup and one
-  // integer multiply/saturation, with no second pass or floating-point cubic.
+  // Prepare the stock inverse-companding map once for signed quantizer tables.
+  // Share this map read-only across channels; each channel owns its signed
+  // tables and refreshes them only when the corresponding quantizer changes.
   for(auto &value:cubic){int32_t expanded=UncompandedValue(value);require_rows(expanded>=0&&expanded<=1023);value=int16_t(expanded);}
  }
 };
@@ -88,7 +101,7 @@ extern "C" int gpr_preview_stream_create(uint32_t w,uint32_t h,size_t limit,gpr_
  if(w<48||h<48||w>UINT16_MAX||h>UINT16_MAX||(w&1)||(h&1)||uint64_t(w)*h>INT_MAX/2||!limit||limit>size_t(128)*1024*1024)return GPR_PREVIEW_INVALID;
  const uint64_t w1=(w+7)/8,h1=(h+7)/8,w2=(w+15)/16,pw=(w+3)/4,ph=(h+3)/4;
  const uint64_t hp_rows=(h1&1)?16:8;
- const uint64_t bytes=3*(3*4*w2+hp_rows*3*w1+4*w1+4*w2+4*w1+pw*ph)*2+1025*2;
+ const uint64_t bytes=3*(3*4*w2+hp_rows*3*w1+4*w1+4*w2+4*w1+pw*ph+2*3*2047)*2+1025*2;
  if(bytes>limit)return GPR_PREVIEW_CAPACITY;
  try{*out=new gpr_preview_stream(w,h,size_t(bytes));return 0;}catch(const std::bad_alloc&){return GPR_PREVIEW_NOMEM;}catch(...){return GPR_PREVIEW_INVALID;}
 }

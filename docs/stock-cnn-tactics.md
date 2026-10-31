@@ -165,3 +165,10 @@ tests actual parameter interpolation between supplied stock SR weights and
 two fine-tuned descendants. All ten settings improve pooled fidelity but fail
 Nikon shadows. Independent parameter checks and twelve repeated inference
 settings confirm the result; no replacement is selected.
+
+A new [Bayer-preserving translation diagnostic](stock-cnn-translation.md)
+finds spatial sampling-phase sensitivity in the supplied 2x model. Integer
+alignment leaves bicubic and sixteen-sensor-pixel CNN shifts exact, while
+two-pixel CNN shifts differ by RMS 1.86..2.62 counts with rare maxima83..207.
+A CPU control confirms this is larger than backend roundoff. This motivates
+phase-consistency/anti-aliasing comparisons, not a real-video quality claim.

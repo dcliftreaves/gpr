@@ -6,7 +6,10 @@ That revision corrects the synthetic inverse-row fixture to use valid cubic
 symbols; production codec arithmetic remains the measured streaming source.
 The experiments below are rejected. A separate
 [prepared coefficient lookup](stock-stream-dequantization.md) is adopted after
-exact-output checks and a faster matched native Pi comparison. None changes production code, defaults,
+exact-output checks and a faster matched native Pi comparison. Further
+[quantizer-specific tables](stock-stream-quant-tables.md) have a repeatable
+processing gain with explicit added storage, while paced deadline failures
+remain recorded. None changes production code, defaults,
 public APIs, models or the Pi capture executable. The native 12 MP combined
 zero-late deadline gate remains open.
 

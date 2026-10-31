@@ -87,3 +87,8 @@ scheduler launcher. Its output directory must not exist. The driver checks
 free space and unlinks only newly created clips after successful verification.
 The archived audit binds the candidate source bytes and saved measurements;
 deleted clips cannot be independently re-read later.
+
+The subsequent [quantizer-specific tables](stock-stream-quant-tables.md)
+further cache multiplication/saturation with explicit added storage. Their
+final-source CPU controls and paced recordings are separate from the results
+above; strict combined timing still fails.
