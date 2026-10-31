@@ -330,3 +330,20 @@ progressive color, the existing full-frame unpack fallback, trailing-zero
 batching and two shared-green cache layouts. Exact output checks and compact
 source-bound receipts remain available. None changes runtime or closes the
 strict native-input deadline gate.
+
+## Current supplied-checkpoint integration audit
+
+The original #95/#96 scope and adoption map were re-read alongside current
+code/tests and receipts. Old fork #95/#96 and upstream #71/#72 remain open at
+their frozen heads; #101 remains a separate draft based on #100/#99. All seven
+hosted jobs pass at evidence revision b09a6cb.
+
+The audit identifies and closes a concrete validation gap: the previously
+complete native export chain used an earlier checkpoint. A [fresh streaming
+recording with the supplied 2x model](stock-selected-video-chain.md) now passes
+independent pixels/calibration, matched native/Torch counts, historical Q5
+payloads, exact GVID/MOV recovery and actual-timing 8K ProRes checks. It also
+corrects missing native reconstruction settings in ProRes receipts, with a
+fresh contract pass. Hosted validation for that receipt fix must pass at its
+own revision. This two-frame chain does not close strict sustained Pi deadlines,
+broader useful-detail/restored-tier quality, temporal or physical camera gates.

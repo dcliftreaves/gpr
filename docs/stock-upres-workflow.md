@@ -78,13 +78,17 @@ That export renders the final GPR-derived frames without a second CNN pass.
 It remains a distinct calibrated rendering path rather than a Bayer master.
 
 Current scope requires RGGB14 and at least 96x96. Simulated source dimensions
-must be divisible by four. Simulation rejects nonempty stage-1/2 opcodes, black-level delta
-arrays and unrepresentable spatial calibration; opaque XMP is omitted with
-accounting. Timelapse additionally requires full dimensions divisible by eight
+must be divisible by four. Simulation requires an empty stage-1 opcode list. Stage 2 may contain the
+four checked full-frame, pitch-two Bayer GainMaps; other opcode combinations,
+black-level delta arrays and unrepresentable spatial calibration are rejected.
+Opaque XMP is omitted with accounting. Timelapse additionally requires full dimensions divisible by eight
 and at most 8192x6144. The original 8280-wide Nikon still references can be
 evaluated in regression mode but cannot be silently cropped into this video
-profile. Native CoreML/Metal, physical sensor capture, temporal model approval
-and automatic checkpoint selection remain separate work.
+profile. Standalone native Core ML/MPSGraph/hybrid inference is available for captured-GPR
+timelapse through the [native workflow](stock-native-runtime.md). Native
+simulation/regression analysis uses the existing analysis workflow. Physical
+sensor capture, temporal model approval and automatic checkpoint selection
+remain outside this delivery.
 
 Validation: `tests/stock_sequence_test.py` checks exact payloads/calibration,
 rational timestamps, native MOV round-trip and mismatched receipt/geometry
@@ -132,3 +136,10 @@ measure encoding loss, not reconstructed detail fidelity. These are two camera
 still replays, not motion footage, a live sensor test, real-time CNN evidence
 or a quality approval. The new path keeps CNN work offline; it does not change
 the existing recording/preview timing measurements.
+
+The [supplied-model video-chain check](stock-selected-video-chain.md) now starts
+with a fresh public streaming recording and verifies the currently supplied
+2x checkpoint through editable RAW, Q5 re-encoding, exact GVID/MOV and direct
+8K ProRes. Its native model counts agree across those paths. The direct movie
+retains actual capture-relative timing; this timelapse keeps its explicitly
+synthetic clock. No broader model or sustained-rate approval follows.

@@ -123,6 +123,7 @@ class Standalone(unittest.TestCase):
                             '--scale','2','--tile','16','--halo','8',*native_args]
                         rendered=json.loads(subprocess.run(command,check=True,capture_output=True,text=True).stdout)
                         self.assertTrue(rendered['complete']);self.assertEqual(rendered['cnn']['host_runtime'],'native')
+                        self.assertEqual(rendered['cnn_settings'],dict(tile=16,halo=8,device='cpu',scale=2))
                 # Artifact corruption is rejected before a native output appears.
                 bias=metal/'weights/intro_bias.bin';saved=bias.read_bytes();bias.write_bytes(saved[:-2])
                 with self.assertRaises(RuntimeError):stock_native.restore(raw,128,96,scale,checkpoint,

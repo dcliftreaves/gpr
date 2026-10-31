@@ -139,3 +139,14 @@ Every declared RAW region retains nonregression against the frozen MPS bicubic
 baseline. The diagnostic's small +0.00729 dB pooled benefit does not establish
 useful recovered detail or broader model/temporal approval. These results are
 checkpoint-specific and do not change the earlier candidate's recorded failure.
+
+## Supplied model in the complete video/export chain
+
+The [new two-frame integration](stock-selected-video-chain.md) uses the supplied
+2x checkpoint with a fresh native-geometry Pi streaming recording. It verifies
+native versus Torch counts, identical native counts across media workflows,
+supported calibration, independent Q5 payloads, exact private MOV recovery and
+a decodable 8192x6144 ProRes HQ movie with original relative capture timing.
+This supersedes the older-checkpoint integration as evidence for the supplied
+model's complete chain; it does not relabel that model's quality scope. Native
+ProRes receipts now include their actual reconstruction settings.
