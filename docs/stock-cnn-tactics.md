@@ -159,3 +159,9 @@ fidelity by +0.14394 dB versus supplied SR, exceeding both comparison arms,
 but all six checkpoints fail Nikon shadow guards. Independent re-inference
 and scoring confirm those results. No candidate advances to whole-image,
 rendered or final evaluation, and supplied weights remain unchanged.
+
+The [related-checkpoint interpolation study](stock-cnn-interpolation.md) now
+tests actual parameter interpolation between supplied stock SR weights and
+two fine-tuned descendants. All ten settings improve pooled fidelity but fail
+Nikon shadows. Independent parameter checks and twelve repeated inference
+settings confirm the result; no replacement is selected.

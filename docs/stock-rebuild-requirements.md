@@ -362,3 +362,16 @@ All 2,370 accepted frames are independently verified. Fresh Mac/Pi CTests,
 frontend checks and four relocated Mac package profiles pass. Late deliveries
 and durable fps below 20 keep the strict combined gate open. No CNN weights or
 quality scopes change.
+
+The [stock weight-interpolation comparison](stock-cnn-interpolation.md)
+recreates another historical selection tactic with related current SR
+checkpoints. All ten fixed blends fail Nikon shadow guards despite pooled
+improvements. Independent checks bind 1,530 parameter tensors and reproduce
+all twelve prediction/score controls. No model, inference backend or quality
+approval changes; useful broad 2x and temporal quality remain open.
+
+All seven hosted jobs pass for the prepared-lookup source revision `654775b`
+in [run 41191796628](https://github.com/dcliftreaves/gpr/actions/runs/41191796628),
+including native backends, FFmpeg and relocated packages. The subsequent
+weight-interpolation report adds evidence only; runtime and supplied models
+remain that validated source.

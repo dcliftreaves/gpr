@@ -26,8 +26,9 @@ packages and the full Mac package pass relocated C/C++ consumer checks. The
 first Mac frontend invocation accidentally supplied the decoder in place of
 the preview player and failed; its log is retained alongside the corrected
 invocation. No assertion or numeric tolerance was relaxed. The new target is
-included in the hosted workflow's explicit build list; hosted validation must
-be evaluated on the revision that introduces this change.
+included in the hosted workflow's explicit build list. All seven hosted jobs
+pass for source revision `654775b` in
+[run 41191796628](https://github.com/dcliftreaves/gpr/actions/runs/41191796628).
 
 ## Native Pi replay
 
