@@ -147,7 +147,7 @@ python3 tools/benchmark_stills.py --source original.dng --sample-bits 14 \
 # Use camera_gpr_replay for already-compressed GPR reference material.
 ```
 
-[Receipts](stock-still-quality-receipts) contain all nine results, deterministic
+[Receipts](https://github.com/dcliftreaves/gpr/tree/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-still-quality-receipts) contain all nine results, deterministic
 repeat hashes, source identities and validation/assembly-inspection notes.
 `plot.py` there regenerates the figures with matplotlib without source photos.
 The tests cover all six SDK presets against direct stock encodes for all

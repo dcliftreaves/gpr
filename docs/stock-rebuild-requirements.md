@@ -22,6 +22,11 @@ seven hosted jobs at `144a338`
 ([run 41176948842](https://github.com/dcliftreaves/gpr/actions/runs/41176948842)).
 Later evidence changes still require their own hosted results.
 
+All seven hosted jobs also pass at the subsequent joint-training evidence
+revision `ffe8385`
+([run 41177716051](https://github.com/dcliftreaves/gpr/actions/runs/41177716051)).
+New diagnostic-only evidence below does not change runtime source or models.
+
 ## Requirements and evidence
 
 | Requirement | Evidence inspected | Disposition |
@@ -297,3 +302,12 @@ has the largest pooled patch gain (+0.14394 dB versus supplied SR), but every
 checkpoint fails the unchanged Nikon shadow guard. All nine control/candidate
 settings are independently re-inferred and rescored; no model is selected or
 advanced. Broader quality and native combined timing remain open.
+
+The [upper-band recomputation study](stock-preview-recompute.md) rejects two
+payload/coefficient/plane-exact proposals after matched isolated Pi timing:
+both add 2.84–3.53 ms to retained-band reconstruction. A separate allocation-only
+control stays within about 0.1 ms of ordinary compact encoding despite matching
+the retained allocation extent. This narrows the material cost to retained-band
+processing rather than reservation alone. All 1,664 payloads and the 1,536
+actually reconstructed planes verify; no sustained capture test or timing
+gate closes, and production source/binary hashes are unchanged.

@@ -147,7 +147,7 @@ on Pi. V1 and v2 each pass all 27 Mac Release tests and all four relocated
 package profiles, including public C/C++ clients. V1's first Pi full run passes
 21/24; three Python tests fail at import because system Python lacks NumPy.
 Those original logs remain under
-[initial setup](stock-preview-retention-receipts/validation/initial-missing-numpy/).
+[initial setup](https://github.com/dcliftreaves/gpr/tree/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/validation/initial-missing-numpy).
 Using the existing project environment makes the three tests pass, with source
 and capture binary unchanged; the
 [correction](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/validation/pi-python-correction.json)
