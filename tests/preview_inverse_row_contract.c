@@ -12,7 +12,17 @@ int main(void){
  for(unsigned ox=0;ox<2;++ox)for(unsigned oy=0;oy<2;++oy)
  for(unsigned ps=0;ps<2;++ps)for(unsigned qi=0;qi<3;++qi){
   unsigned w=widths[wi],h=heights[hi],outw=2*w-ox,outh=2*h-oy;size_t size=(size_t)outw*outh;
-  PIXEL *bands[4];for(unsigned b=0;b<4;++b){bands[b]=malloc(w*h*2);REQUIRE(bands[b]);for(unsigned i=0;i<w*h;++i){random=random*1664525u+1013904223u;bands[b][i]=(int16_t)(random>>16);}}
+  PIXEL *bands[4];for(unsigned b=0;b<4;++b){
+   bands[b]=malloc(w*h*2);REQUIRE(bands[b]);
+   for(unsigned i=0;i<w*h;++i){
+    random=random*1664525u+1013904223u;
+    /* LL is already expanded. Highpass inputs are entropy-decoded cubic
+     * symbols, whose magnitude is at most 255, before UncompandedValue.
+     * Full int16 highpass values violate that legacy inverse contract. */
+    bands[b][i]=b?(PIXEL)((int)((random>>16)%511)-255):(int16_t)(random>>16);
+   }
+   if(b){bands[b][0]=-255;bands[b][1]=255;bands[b][2]=0;}
+  }
   PIXEL *expected=malloc((size+32)*2),*actual=malloc((size+32)*2),*scratch=malloc(9*w*2);REQUIRE(expected&&actual&&scratch);
   for(unsigned i=0;i<size+32;++i)expected[i]=actual[i]=0x5678;
   QUANT q[4];memcpy(q,quants[qi],sizeof(q));

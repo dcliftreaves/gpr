@@ -116,3 +116,17 @@ version is mixed/slower on the first source and remains archived, as does the
 initial eight-row odd-height guard failure. Across three versions, 1,536 payloads
 and 3,456 reconstructed planes compare exactly. These isolated results do not
 replace the full-workflow measurements above.
+
+## Inverse-row fixture correction
+
+Hosted run [41184451458](https://github.com/dcliftreaves/gpr/actions/runs/41184451458)
+found overflow in the original synthetic inverse-row fixture: arbitrary int16
+highpass values were passed as entropy-decoded cubic symbols. That legacy
+inverse input has magnitude at most 255; LL values are already expanded. The
+fixture now samples that valid highpass range and explicitly includes -255,
+255 and zero, retaining the large quantizers, full-range LL, odd dimensions,
+border filters, both prescales and trailing guards. All 840 exact comparisons
+pass locally, including a focused check with the affected legacy dequantizer
+instrumented. Production code, supported payloads, assertions and the Pi timing
+source are unchanged. The original fixture and its logs remain in the archive;
+new hosted validation must pass before the revision is called green.
