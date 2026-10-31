@@ -1,0 +1,6 @@
+{
+  "checked_at": "2026-10-31T00:11:46.742246+00:00",
+  "local_tracked_prototype_source_restored_to": "6efc5bd",
+  "production_pi_capture_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "scope": "production Pi executable hash rechecked after the comparisons; private local build directories remain experimental"
+}

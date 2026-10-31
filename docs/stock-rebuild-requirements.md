@@ -196,3 +196,15 @@ both inputs. Both are rejected without proceeding to capture timing. Prototype
 source is restored. All seven hosted checks pass at `950deda`
 ([receipt](stock-current-priority-receipts/passed-950deda.json)); later evidence
 commits require their own results. Production/model behavior is unchanged.
+
+Two [latency diagnostics](stock-latency-trace.md) preserve all 1,198 accepted
+payloads/previews from 1,200 attempts. A file-logged repeat still finds roughly
+30 ms unaccounted critical-worker intervals with involuntary switches. These
+are instrumented attribution results, not acceptance timing. A subsequent
+[uninstrumented affinity rotation](stock-affinity-offset.md) preserves all
+2,400 attempts exactly but does not consistently improve timing, so the
+proposal is rejected. The best default control still misses four writes/seven
+previews. Production and unresolved quality/timing gates are unchanged. All
+seven hosted checks pass at `6efc5bd`
+([receipt](stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
+commits require their own hosted results.

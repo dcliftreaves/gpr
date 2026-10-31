@@ -1,0 +1,42 @@
+[
+  {
+    "channel": 0,
+    "processors": [
+      0
+    ],
+    "median_wall_minus_cpu_ms": 0.030753000000001418,
+    "maximum_wall_minus_cpu_ms": 35.257236999999996,
+    "median_involuntary": 1.0,
+    "maximum_involuntary": 214.0
+  },
+  {
+    "channel": 1,
+    "processors": [
+      1
+    ],
+    "median_wall_minus_cpu_ms": 0.1393039999999981,
+    "maximum_wall_minus_cpu_ms": 7.488425999999996,
+    "median_involuntary": 4.0,
+    "maximum_involuntary": 188.0
+  },
+  {
+    "channel": 2,
+    "processors": [
+      2
+    ],
+    "median_wall_minus_cpu_ms": 0.1349374999999979,
+    "maximum_wall_minus_cpu_ms": 4.026198999999997,
+    "median_involuntary": 4.0,
+    "maximum_involuntary": 196.0
+  },
+  {
+    "channel": 3,
+    "processors": [
+      3
+    ],
+    "median_wall_minus_cpu_ms": 0.0963569999999983,
+    "maximum_wall_minus_cpu_ms": 3.7176599999999977,
+    "median_involuntary": 3.0,
+    "maximum_involuntary": 180.0
+  }
+]

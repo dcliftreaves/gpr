@@ -1,0 +1,33 @@
+Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-latency-trace-prototype/build-diagnostic
+      Start  1: preview_contract
+ 1/14 Test  #1: preview_contract .................   Passed    0.35 sec
+      Start  2: preview_wavelet_queue
+ 2/14 Test  #2: preview_wavelet_queue ............   Passed    0.16 sec
+      Start  3: preview_queue
+ 3/14 Test  #3: preview_queue ....................   Passed    0.13 sec
+      Start  4: preview_scalar_contract
+ 4/14 Test  #4: preview_scalar_contract ..........   Passed    0.15 sec
+      Start  5: preview_cli
+ 5/14 Test  #5: preview_cli ......................   Passed    0.23 sec
+      Start  6: encoder_preview_probe
+ 6/14 Test  #6: encoder_preview_probe ............   Passed    0.12 sec
+      Start  7: encoder_preview_probe_fast
+ 7/14 Test  #7: encoder_preview_probe_fast .......   Passed    0.01 sec
+      Start  8: encoder_preview_matrix
+ 8/14 Test  #8: encoder_preview_matrix ...........   Passed    0.09 sec
+      Start  9: encoder_preview_matrix_fast
+ 9/14 Test  #9: encoder_preview_matrix_fast ......   Passed    0.08 sec
+      Start 10: decoder_bounds
+10/14 Test #10: decoder_bounds ...................   Passed    0.19 sec
+      Start 11: encoder_bounds
+11/14 Test #11: encoder_bounds ...................   Passed    0.29 sec
+      Start 12: encoder_bounds_fast
+12/14 Test #12: encoder_bounds_fast ..............   Passed    0.16 sec
+      Start 13: bayer_formats
+13/14 Test #13: bayer_formats ....................   Passed    0.25 sec
+      Start 14: bayer_formats_fast
+14/14 Test #14: bayer_formats_fast ...............   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 14
+
+Total Test time (real) =   2.34 sec

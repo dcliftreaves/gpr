@@ -1,0 +1,31 @@
+[ 14%] Built target gpr_gvid
+[ 14%] Built target argument_parser
+[ 14%] Built target md5_lib
+[ 18%] Built target common
+[ 32%] Built target vc5_common
+[ 36%] Building C object source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/encoder.c.o
+[ 49%] Built target vc5_decoder
+[ 52%] Built target decoder_bounds_test
+[ 58%] Built target gpr_preview
+[ 58%] Built target vc5_decoder_app
+[ 65%] Built target preview_contract_test
+[ 66%] Built target gpr_preview_app
+[ 66%] Built target preview_wavelet_queue_test
+[ 69%] Built target preview_queue_test
+/mnt/ssd/gpr_work/stock-affinity-offset-prototype-20261030/source/lib/vc5_encoder/encoder.c: In function ‘SetImageFormatDefaults’:
+/mnt/ssd/gpr_work/stock-affinity-offset-prototype-20261030/source/lib/vc5_encoder/encoder.c:149:13: warning: statement will never be executed [-Wswitch-unreachable]
+  149 |         if (IsPartEnabled(encoder->enabled_parts, VC5_PART_COLOR_SAMPLING))
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 70%] Linking CXX static library libvc5_encoder.a
+[ 84%] Built target vc5_encoder
+[ 86%] Linking CXX executable encoder_preview_probe
+[ 86%] Linking CXX executable encoder_bounds_test
+[ 89%] Built target gpr_video
+[ 90%] Linking CXX executable bayer_formats_test
+[ 92%] Linking CXX executable vc5_encoder_app
+[ 93%] Built target vc5_encoder_app
+[ 94%] Linking CXX executable gpr_capture_app
+[ 96%] Built target encoder_bounds_test
+[ 97%] Built target bayer_formats_test
+[ 98%] Built target encoder_preview_probe
+[100%] Built target gpr_capture_app

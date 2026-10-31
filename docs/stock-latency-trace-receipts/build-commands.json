@@ -1,0 +1,29 @@
+[
+  [
+    "cmake",
+    "-S",
+    "/mnt/ssd/gpr_work/stock-latency-trace-prototype-20261030",
+    "-B",
+    "/mnt/ssd/gpr_work/stock-latency-trace-prototype-20261030/build-diagnostic",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DGPR_BUILD_SDK=OFF",
+    "-DGPR_BUILD_STILL_APPS=OFF",
+    "-DGPR_ENABLE_VIDEO=ON",
+    "-DGPR_BUILD_CAPTURE_APP=ON",
+    "-DGPR_BUILD_PREVIEW_TOOLS=ON",
+    "-DGPR_BUILD_PREVIEW_TESTS=ON",
+    "-DGPR_BUILD_CODEC_TESTS=ON"
+  ],
+  [
+    "cmake",
+    "--build",
+    "/mnt/ssd/gpr_work/stock-latency-trace-prototype-20261030/build-diagnostic",
+    "-j4"
+  ],
+  [
+    "ctest",
+    "--test-dir",
+    "/mnt/ssd/gpr_work/stock-latency-trace-prototype-20261030/build-diagnostic",
+    "--output-on-failure"
+  ]
+]
