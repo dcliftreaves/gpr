@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "low_plane_hw": [
+        97,
+        113
+      ],
+      "historical_identity": true,
+      "full_reflected_max_counts": 1,
+      "changed_counts": 13
+    },
+    {
+      "low_plane_hw": [
+        128,
+        160
+      ],
+      "historical_identity": true,
+      "full_reflected_max_counts": 0,
+      "changed_counts": 0
+    },
+    {
+      "low_plane_hw": [
+        160,
+        192
+      ],
+      "historical_identity": true,
+      "full_reflected_max_counts": 0,
+      "changed_counts": 0
+    }
+  ]
+}

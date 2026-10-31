@@ -274,3 +274,5 @@ benefit across native and older controls. All are discarded; runtime source
 is restored and the Pi executable again matches the original complete hash.
 Fresh 27 Mac/24 Pi restoration tests pass. No new optimization, quality approval
 or realtime floor is claimed.
+
+The [historical boundary/input-gate study](stock-sr-historical-boundary.md) now qualifies a frozen RAW-fidelity diagnostic: +0.53917 dB full validation, +0.12038 dB on historical references, and +1.13707 dB on GP011689. All declared regional and one-count CPU/MPS guards pass, with supported editable calibration verified. However, rendered RGB gains only +0.00373 dB versus supplied BIBO +0.28430 dB; sensor black-level/gate coverage differences remain. This does not replace the supplied weights or qualify visible detail, temporal behavior or native/Pi execution.

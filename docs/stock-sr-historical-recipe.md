@@ -4,7 +4,10 @@ The full historical width-96/depth-6 architecture produces substantially larger
 stock-pair fidelity gains after fine-tuning than the earlier small recipe
 adapters. It has not yet qualified as a replacement: the first shadow-constrained
 family passes patch checks but fails full-image shadows. Production weights and
-runtime remain unchanged.
+runtime remain unchanged. The subsequent
+[boundary/input-gate comparison](stock-sr-historical-boundary.md) qualifies a
+frozen RAW-fidelity diagnostic, but its rendered GoPro gain remains below the
+supplied model's; no replacement is promoted.
 
 ## What is reconstructed
 

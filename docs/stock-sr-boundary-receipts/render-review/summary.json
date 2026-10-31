@@ -1,0 +1,137 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_render.v1",
+  "complete": true,
+  "protocol_sha256": "c689fe21c58239e26125e8a10e2484f7e4f211ef87e8d1520aec38ce20f7efb6",
+  "scores": {
+    "stock": {
+      "rgb_mse": 854575.7223880953,
+      "y_prime_mse": 342600.8977711249,
+      "rgb_psnr_db": 37.01196056730868,
+      "y_prime_psnr_db": 40.98158110849242,
+      "rgb_bias_counts": [
+        1.3818818132082622,
+        117.63203134139378,
+        -329.2990694840749
+      ]
+    },
+    "cnn": {
+      "rgb_mse": 800424.4060746365,
+      "y_prime_mse": 314557.0351013509,
+      "rgb_psnr_db": 37.29626285110126,
+      "y_prime_psnr_db": 41.35247204858847,
+      "rgb_bias_counts": [
+        -1.9000094930330913,
+        3.3902194499969482,
+        -100.40788118044536
+      ]
+    },
+    "historical": {
+      "rgb_mse": 853842.2779087755,
+      "y_prime_mse": 340780.91920709045,
+      "rgb_psnr_db": 37.015689524854956,
+      "y_prime_psnr_db": 41.00471337501148,
+      "rgb_bias_counts": [
+        2.029254992802938,
+        121.30063760280609,
+        -333.0381402174632
+      ]
+    }
+  },
+  "new_rgb_gain_db": 0.0037289575462793323,
+  "new_y_prime_gain_db": 0.02313226651905609,
+  "supplied_rgb_gain_db": 0.2843022837925844,
+  "render_receipts": {
+    "reference": {
+      "baseline_exposure": 0,
+      "bits_per_component": 16,
+      "color_space": "ITU-R BT.709",
+      "decoder": "8.dng",
+      "draft": false,
+      "global_tone_amount": 0,
+      "height": 6144,
+      "lens_correction_enabled": false,
+      "lens_correction_supported": false,
+      "local_tone_amount": 0,
+      "native_height": 6144,
+      "native_width": 8192,
+      "neutral_temperature": 3858.78369140625,
+      "neutral_tint": 20.691444396972656,
+      "os_version": "Version 26.7.1 (Build 25G241)",
+      "schema": "gpr.raw_render.v1",
+      "source_orientation": 1,
+      "transfer": "BT.709",
+      "width": 8192
+    },
+    "stock": {
+      "baseline_exposure": 0,
+      "bits_per_component": 16,
+      "color_space": "ITU-R BT.709",
+      "decoder": "8.dng",
+      "draft": false,
+      "global_tone_amount": 0,
+      "height": 6144,
+      "lens_correction_enabled": false,
+      "lens_correction_supported": false,
+      "local_tone_amount": 0,
+      "native_height": 6144,
+      "native_width": 8192,
+      "neutral_temperature": 3858.78369140625,
+      "neutral_tint": 20.691444396972656,
+      "os_version": "Version 26.7.1 (Build 25G241)",
+      "schema": "gpr.raw_render.v1",
+      "source_orientation": 1,
+      "transfer": "BT.709",
+      "width": 8192
+    },
+    "cnn": {
+      "baseline_exposure": 0,
+      "bits_per_component": 16,
+      "color_space": "ITU-R BT.709",
+      "decoder": "8.dng",
+      "draft": false,
+      "global_tone_amount": 0,
+      "height": 6144,
+      "lens_correction_enabled": false,
+      "lens_correction_supported": false,
+      "local_tone_amount": 0,
+      "native_height": 6144,
+      "native_width": 8192,
+      "neutral_temperature": 3858.78369140625,
+      "neutral_tint": 20.691444396972656,
+      "os_version": "Version 26.7.1 (Build 25G241)",
+      "schema": "gpr.raw_render.v1",
+      "source_orientation": 1,
+      "transfer": "BT.709",
+      "width": 8192
+    },
+    "historical": {
+      "baseline_exposure": 0,
+      "bits_per_component": 16,
+      "color_space": "ITU-R BT.709",
+      "decoder": "8.dng",
+      "draft": false,
+      "global_tone_amount": 0,
+      "height": 6144,
+      "lens_correction_enabled": false,
+      "lens_correction_supported": false,
+      "local_tone_amount": 0,
+      "native_height": 6144,
+      "native_width": 8192,
+      "neutral_temperature": 3858.78369140625,
+      "neutral_tint": 20.691444396972656,
+      "os_version": "Version 26.7.1 (Build 25G241)",
+      "schema": "gpr.raw_render.v1",
+      "source_orientation": 1,
+      "transfer": "BT.709",
+      "width": 8192
+    }
+  },
+  "tiff_sha256": {
+    "reference": "873ba3570287bf5c84e18cea84d0fe9c6e41f2c2b46eeaa2de6f57d76bbc64d7",
+    "stock": "0be389b3db04ade1297d6ec9e64c4e855c0577a7c5c4ffc18b767321745b40d1",
+    "cnn": "ac20295e2d7804cffb2bc7f1e0256bbbb68632cb452bfb7cb53b893385d60d2a",
+    "historical": "63c971b5b7ca53e54e62c0382ce0ef1f3c6f0cf695c3949afe053d6d264e3f10"
+  },
+  "comparison_png_sha256": "5bd09e17954190a7b6bed5d7b275fdf4ed84f530c6878d5386ba071858da20fb",
+  "quality_approval": false
+}

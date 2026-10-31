@@ -1,0 +1,48 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_render_protocol.v1",
+  "driver_sha256": "0c28e491b8dfe9519ee075b50c1df7d10cda8a72f81cc5b609f07af377b06e6e",
+  "freeze_sha256": "baea21124ff385d9f87f46c8021bbf0fa787e923af706a6ff9286ce2f7a769e1",
+  "gopro_summary_sha256": "d68b223f702436e9026d57fcb59eaa521faefe44282dd5afe7b9e36400fdcf97",
+  "renderer_sha256": "6ed8dadf4736e7f5478ffc38051965efd6b31f894facda3c0ae1c6457b2c8670",
+  "inputs": {
+    "reference": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_cnn_supplied_gopro_shared_20261030/render-review/GP011689/reference.dng",
+      "sha256": "24aa22872856425298dc5fe0dcc567794d393ae7cab6ff6e0b5772ee641c05ed"
+    },
+    "stock": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_cnn_supplied_gopro_shared_20261030/render-review/GP011689/stock.dng",
+      "sha256": "4db8a0c1b2320a3ad67d185e8d67d68872d49f49d95b1095572a55f66fa9e2aa"
+    },
+    "cnn": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_cnn_supplied_gopro_shared_20261030/render-review/GP011689/cnn.dng",
+      "sha256": "c7a27cff573366389d14abac18370a58fca9db86d8daf4e1984412643577fbcf"
+    },
+    "historical": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_boundary_20261031/gopro/restored.dng",
+      "sha256": "a98e948cf31475ac1f211b37d34a31df5acd32d08b5590d3cf7e68859df233b3"
+    }
+  },
+  "crops": [
+    {
+      "name": "paper text",
+      "x": 1408,
+      "y": 3072,
+      "side": 384
+    },
+    {
+      "name": "furniture edges",
+      "x": 4608,
+      "y": 2816,
+      "side": 384
+    },
+    {
+      "name": "rug texture",
+      "x": 2560,
+      "y": 4864,
+      "side": 384
+    }
+  ],
+  "crop_selection": "Fixed from old reference-only overview before viewing new CNN render; no reference-adaptive inference or model selection.",
+  "comparison": "All four renders fresh with identical supported calibration; exposure0/no adjustable enhancement, 16bit RGBA Rec709. Chunked RGB/Y-prime error versus rendered already-compressed camera reference; alpha excluded, not scene-linear or sensor truth.",
+  "quality_approval": false
+}

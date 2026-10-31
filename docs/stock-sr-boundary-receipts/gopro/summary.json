@@ -1,0 +1,156 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_gopro.v1",
+  "complete": true,
+  "protocol_sha256": "c8ae20f29d4cc65e08347e16e7c257f976ca3864712807ec1f938341b8f58fea",
+  "source_sha256": "86b0e6448ae6aa31c9a9ddbe37ad03b2e324af4af0289f1ef38ac04583ae6265",
+  "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+  "baseline_metrics": {
+    "full_frame": {
+      "rmse_counts": 23.271339349245455,
+      "psnr_db": 56.951441040806856
+    },
+    "active": {
+      "rmse_counts": 23.271339349245455,
+      "psnr_db": 56.951441040806856
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 6.0,
+      "p90": 21.0,
+      "p99": 51.0,
+      "p99_9": 118.0
+    },
+    "active_max_abs_error": 5945,
+    "active_bias_counts": -2.356667399406433,
+    "detail_gradient_threshold_counts": 61.0,
+    "detail_top_decile": {
+      "rmse_counts": 65.14697659676226,
+      "psnr_db": 48.009983317857554
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 4.769868401165539,
+      "psnr_db": 70.71774068135021
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 63.677830859360775,
+      "psnr_db": 48.20810340421004
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 23.808923496114826,
+        "psnr_db": 56.75307343457579
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 26.32902239318123,
+        "psnr_db": 55.87917394744837
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 26.161165525263655,
+        "psnr_db": 55.9347268520024
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 14.890671595540217,
+        "psnr_db": 60.82958291229073
+      }
+    ]
+  },
+  "metrics": {
+    "full_frame": {
+      "rmse_counts": 20.41587218438552,
+      "psnr_db": 58.088509862995366
+    },
+    "active": {
+      "rmse_counts": 20.41587218438552,
+      "psnr_db": 58.088509862995366
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 6.0,
+      "p90": 21.0,
+      "p99": 50.0,
+      "p99_9": 112.0
+    },
+    "active_max_abs_error": 7498,
+    "active_bias_counts": -2.153767188390096,
+    "detail_gradient_threshold_counts": 61.0,
+    "detail_top_decile": {
+      "rmse_counts": 54.86536154746667,
+      "psnr_db": 49.50190371660476
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 4.769868401165539,
+      "psnr_db": 70.71774068135021
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 53.20898714478524,
+      "psnr_db": 49.76816878456019
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 20.617851151239442,
+        "psnr_db": 58.0030006261246
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 22.88811196342958,
+        "psnr_db": 57.0956692396627
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 23.070511750436143,
+        "psnr_db": 57.02672406201166
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 13.638965518854409,
+        "psnr_db": 61.59223999654054
+      }
+    ]
+  },
+  "regressions": [],
+  "active_gain_db": 1.1370688221885104,
+  "baseline_raw_sha256": "d975ae6cd31d6ba2bb697ba2495cf5de32cde2c8ec2dea1707f04cd0b3132175",
+  "output_raw_sha256": "2178a4bdc661d82bb6d1bee74ebb6f77ebfe4a486c05d658fb4f7b7faf0b65f8",
+  "editable_dng_sha256": "a98e948cf31475ac1f211b37d34a31df5acd32d08b5590d3cf7e68859df233b3",
+  "independent_editable_pixels_exact": true,
+  "supported_high_calibration_exact": true,
+  "simulation_metadata_omissions": [
+    {
+      "code": 700,
+      "reason": "opaque XMP may contain stale simulation geometry"
+    }
+  ],
+  "runtime": {
+    "tile": 512,
+    "overlap": 32,
+    "reflect_frame_edges": true,
+    "halo": 32,
+    "tile_count": 20,
+    "covered_all": true,
+    "inference_plus_copy_s": 0.6982880419818684
+  },
+  "quality_approval": false
+}

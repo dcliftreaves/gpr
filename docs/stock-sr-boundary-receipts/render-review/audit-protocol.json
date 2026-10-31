@@ -1,0 +1,7 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_render_audit_protocol.v1",
+  "script_sha256": "d56cea9074c2cfc93c4f0d79a85ee6168e17386f424c0f316b4fbae5b6c81378",
+  "summary_sha256": "c08349ba416174788636589c384840169dd33a6ad375be03ebf8d247efee2a93",
+  "method": "RGB channel sums separately; Y-prime square expanded into three diagonal and three cross terms, row chunks32, floating exceptions raised. Fixed frozen gate-zero count threshold; no new selection or tuning.",
+  "quality_approval": false
+}

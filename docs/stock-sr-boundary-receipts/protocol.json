@@ -1,0 +1,197 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_protocol.v1",
+  "created_utc": "2026-10-31T04:55:48.636734+00:00",
+  "driver_sha256": "9d1eb5680cd409c955a83b74e384c3c24f23b49dffb45719f0f939a0ef14809a",
+  "boundary_source_sha256": "32fa4ed8cf828e34b55796d661de27f247bd016ad134aef142ce5cbc237a80e7",
+  "model_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+  "model_config": "local_shadow-step-400",
+  "historical_model_source_sha256": "2a366df8044ff62a03ff11c3930ce93e1dd94f9a24485da4f4f57738bdb42f7c",
+  "historical_runtime_source_sha256": "6f9309ddfd9816f4581a243375095c7da84aada0df10cdf0a71cecc83e2fffa8",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "input_sha256": "4d04665fb31afac9d2065bf612d1acc8203b382c9f52bebe8ebf11727d6c8ec1",
+  "target_sha256": "22e70d5b539053131dfb509d462440f74e83907c0c0139230d1e4ed8f3d8a4e9",
+  "family": [
+    {
+      "name": "none-1.0",
+      "alpha": 1.0,
+      "ramps": null
+    },
+    {
+      "name": "none-0.5",
+      "alpha": 0.5,
+      "ramps": null
+    },
+    {
+      "name": "none-0.25",
+      "alpha": 0.25,
+      "ramps": null
+    },
+    {
+      "name": "none-0.125",
+      "alpha": 0.125,
+      "ramps": null
+    },
+    {
+      "name": "mild-1.0",
+      "alpha": 1.0,
+      "ramps": [
+        0.001,
+        0.01,
+        0.95,
+        0.999
+      ]
+    },
+    {
+      "name": "mild-0.5",
+      "alpha": 0.5,
+      "ramps": [
+        0.001,
+        0.01,
+        0.95,
+        0.999
+      ]
+    },
+    {
+      "name": "mild-0.25",
+      "alpha": 0.25,
+      "ramps": [
+        0.001,
+        0.01,
+        0.95,
+        0.999
+      ]
+    },
+    {
+      "name": "mild-0.125",
+      "alpha": 0.125,
+      "ramps": [
+        0.001,
+        0.01,
+        0.95,
+        0.999
+      ]
+    },
+    {
+      "name": "medium-1.0",
+      "alpha": 1.0,
+      "ramps": [
+        0.01,
+        0.05,
+        0.8,
+        0.98
+      ]
+    },
+    {
+      "name": "medium-0.5",
+      "alpha": 0.5,
+      "ramps": [
+        0.01,
+        0.05,
+        0.8,
+        0.98
+      ]
+    },
+    {
+      "name": "medium-0.25",
+      "alpha": 0.25,
+      "ramps": [
+        0.01,
+        0.05,
+        0.8,
+        0.98
+      ]
+    },
+    {
+      "name": "medium-0.125",
+      "alpha": 0.125,
+      "ramps": [
+        0.01,
+        0.05,
+        0.8,
+        0.98
+      ]
+    },
+    {
+      "name": "strong-1.0",
+      "alpha": 1.0,
+      "ramps": [
+        0.03,
+        0.15,
+        0.65,
+        0.9
+      ]
+    },
+    {
+      "name": "strong-0.5",
+      "alpha": 0.5,
+      "ramps": [
+        0.03,
+        0.15,
+        0.65,
+        0.9
+      ]
+    },
+    {
+      "name": "strong-0.25",
+      "alpha": 0.25,
+      "ramps": [
+        0.03,
+        0.15,
+        0.65,
+        0.9
+      ]
+    },
+    {
+      "name": "strong-0.125",
+      "alpha": 0.125,
+      "ramps": [
+        0.03,
+        0.15,
+        0.65,
+        0.9
+      ]
+    }
+  ],
+  "edge_policies": [
+    "historical",
+    "reflect32"
+  ],
+  "validation_sources": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+    }
+  ],
+  "gate": "Per-site current bicubic normalized counts only; same three fixed ramp arrays as earlier BIBO gate study. Float64 postblend of rounded bicubic/model counts and half-up output rounding; differs from old float-network BIBO gate.",
+  "reflect_policy": "Same historical tile512/overlap32 origins/crops; only actual frame-edge patches gain32 reflected low-plane samples. Coordinates extend linearly using original source dimensions.",
+  "selection": "Unchanged patch pooled+group four-region nonregression/strict overall improvement, then every qualifying setting crossed with both boundary policies on all four full validation sources. Strict every-image active/shadow/highlight/detail nonregression and pooled improvement. Lowest eligible pooled active MSE; freeze before historical finals.",
+  "checkpoint_retuned": false,
+  "final_pixels_used": false,
+  "quality_approval": false,
+  "torch": "2.12.0",
+  "limitations": [
+    "Reused Nikon validation; historical pretraining overlap not excluded.",
+    "No blind, temporal, native GoPro or restored-detail approval.",
+    "Analysis-only 6-channel architecture; standard native loaders do not support it."
+  ]
+}

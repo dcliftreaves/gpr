@@ -1,0 +1,16 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_gopro_protocol.v1",
+  "driver_sha256": "9e509f8e141d8a5bb4e4b71f057edd5ad221d644d18d540d1a008c0cbdef0920",
+  "freeze_sha256": "baea21124ff385d9f87f46c8021bbf0fa787e923af706a6ff9286ce2f7a769e1",
+  "parent_summary_sha256": "9bb675d6df27fe62b77c45a968fbda8cf6b6cc4dcad94a9b0dc9eaac3c4e1f0a",
+  "source_sha256": "86b0e6448ae6aa31c9a9ddbe37ad03b2e324af4af0289f1ef38ac04583ae6265",
+  "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+  "selection_or_retuning": false,
+  "quality_approval": false,
+  "reference_kind": "SDK decoded supplied camera GPR counts, already compressed; not lossless sensor truth",
+  "limitations": [
+    "Reused household scene/camera reference, not blind or lossless sensor truth.",
+    "Area simulation plus actual stockQ3, not synchronized native12/50MP capture.",
+    "Nikon-only current fine-tuning; camera transfer remains to establish."
+  ]
+}

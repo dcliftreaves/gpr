@@ -1,0 +1,27 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_freeze.v1",
+  "candidate": {
+    "name": "strong-1.0",
+    "id": "reflect32-strong-1.0",
+    "alpha": 1.0,
+    "ramps": [
+      0.03,
+      0.15,
+      0.65,
+      0.9
+    ],
+    "edge": "reflect32"
+  },
+  "checkpoint_path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_shadow/step-400.pt",
+  "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+  "boundary_source_sha256": "32fa4ed8cf828e34b55796d661de27f247bd016ad134aef142ce5cbc237a80e7",
+  "model_source_sha256": "2a366df8044ff62a03ff11c3930ce93e1dd94f9a24485da4f4f57738bdb42f7c",
+  "historical_runtime_source_sha256": "6f9309ddfd9816f4581a243375095c7da84aada0df10cdf0a71cecc83e2fffa8",
+  "protocol_sha256": "72c6dbbae312bb4346281568bed7af6568f1adf79df9b2cff82dd962f71e2eed",
+  "patch_selection_sha256": "9f3ad615e010da3734732e42ed3858a47aaf73e5d6777f7665c663107af38327",
+  "full_selection_sha256": "8a0a7641512f05bf11edced863ff138a69be49a735f1577cc72609a6e98c91b8",
+  "selection_audit_sha256": "c6d8daaf9aa7109016e64baf3eba6e6edba0f8c8455c221c0fa1b4d03f3878ad",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "scope": "Frozen analysis-only Nikon diagnostic; no model/backend/native/Pi/visible-detail promotion."
+}

@@ -564,3 +564,5 @@ floors fail. Runtime source/executable are restored, with fresh 27 Mac/24 Pi
 Release passes. Baseline 779bb47 passes all seven hosted jobs.
 
 The [historical-width/pretraining study](stock-sr-historical-recipe.md) adds three controlled comparisons on stock pairs: 2,400 updates and 40 complete-image candidate inferences. Old pretrained initialization is substantially better than fresh initialization under the matched budget. Shadow-constrained models improve full-image pooled fidelity by up to +0.57218 dB but fail regional guards; no replacement is selected. Border artifacts and interior overshoot both need further work.
+
+The [boundary/input-gate continuation](stock-sr-historical-boundary.md) adds 104 complete-image candidate outputs, a frozen diagnostic and CPU/MPS historical-reference checks. All RAW regional guards pass, including GP011689 at +1.13707 dB, but rendered RGB is less improved than the supplied model. Its diagnostic evidence and local 1:1 review remain separate from production/native/temporal quality approval.

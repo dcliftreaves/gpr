@@ -1,0 +1,35 @@
+{
+  "schema": "gpr.stock_sr_historical_boundary_render_audit.v1",
+  "complete": true,
+  "protocol_sha256": "5fd64f264a7728c3f5dcc245e4595524eedb02e2b1c4d8f356a5cc6f37aeb874",
+  "scores": {
+    "stock": {
+      "rgb_mse": 854575.7223880953,
+      "y_prime_mse": 342600.8977711249,
+      "independent_agreement": true
+    },
+    "cnn": {
+      "rgb_mse": 800424.4060746365,
+      "y_prime_mse": 314557.0351013504,
+      "independent_agreement": true
+    },
+    "historical": {
+      "rgb_mse": 853842.2779087755,
+      "y_prime_mse": 340780.91920709045,
+      "independent_agreement": true
+    }
+  },
+  "gate_zero_samples": 40260838,
+  "samples": 50331648,
+  "gate_zero_fraction": 0.7999109824498495,
+  "changed_samples": 4745579,
+  "changed_fraction": 0.0942861835161845,
+  "gate_zero_output_equals_bicubic": true,
+  "gopro_black_level": [
+    16.0,
+    16.0,
+    16.0,
+    16.0
+  ],
+  "quality_approval": false
+}

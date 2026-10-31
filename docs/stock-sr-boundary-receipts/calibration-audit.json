@@ -1,0 +1,120 @@
+{
+  "complete": true,
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "training_sources": [
+    {
+      "source_sha256": "4f24fa4e63809a2938971f9a256b82217b8b0506216f542bfda3acbdf23bcc7a",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "7d05454a11ec225e6d463297e742d02d4e342744844574a6ecaac80e3a210060",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "c7b9d2d8d8c3e4a982179937ea83c9685950b9b99a120b97c38f9c8483c2978c",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "46470ae0ee12390d9955f2e5c26667aae881af590727ac8ee4db40b420d158b7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "a264001d52e0980deed5e4ecdc13cb1d9455bcc4c73759845f45d290f07e62fd",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "07714d4bee69c1f2d006580209cd34e15b752fa090614ce3c00cbefca2136bc7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "e9adefd49d9104ac962e148ff6527d101b83f8ca37d6f6981e564176df59e5dc",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    },
+    {
+      "source_sha256": "a44049209d020807b8520e4db433f11bc13b302aecf4b65b3514d3203765bfd7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": [
+        15892
+      ]
+    }
+  ],
+  "gopro_black_level": [
+    16.0,
+    16.0,
+    16.0,
+    16.0
+  ],
+  "gate_black_level_normalized": false,
+  "gate_zero_fraction": 0.7999109824498495,
+  "gate_zero_output_equals_bicubic": true,
+  "quality_approval": false
+}
