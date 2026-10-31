@@ -1,8 +1,10 @@
 # Stock rebuild requirement ledger
 
 Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
-Published verification before this update: `2680e70` (all seven hosted jobs pass).
-The new shared Python GainMap simulation helper has separate focused Mac/Pi and real-camera receipts; its eventual commit needs its own CI.
+Published source verification: `3a52439` (all seven hosted jobs pass in
+[run 41162090861](https://github.com/dcliftreaves/gpr/actions/runs/41162090861)).
+The shared Python GainMap simulation helper also has focused Mac/Pi and real-camera receipts.
+New timing evidence below does not change production source.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
 is implemented in `f197f09`.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
@@ -22,7 +24,7 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
 | Bounded recording lifecycle | Public C/C++ API; `capture_lifecycle`, `capture_c_api`; [contract](stock-capture-api.md) | Copies/leases, backpressure, asynchronous writes, cancellation, flush/finish and latched errors implemented. Sensor/DMA/storage adapters unverified |
 | Checked RAW-video framing/recovery | `gvid3_conformance`, `gvid2_compatibility`, `video_format_matrix`; [contract](stock-capture-api.md) | Actual PTS, source/frame calibration, CRC/END3 and explicit prefix recovery implemented. Old fused GVID is a different profile |
 | Full-frame calibrated 1024x768 preview without camera CNN | Independent fixtures and 192-case plan/plane comparisons; preview/capture tests; [Pi evidence](stock-capture-preview.md) | Implemented. Quarter-scale encoder-derived route optional. Memory sink tested; rear-display integration unverified |
-| Relevant end-to-end Pi correctness/performance | Exact real-source replay; 600 recorded/previewed frames; [sustained receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json), [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json) | Correctness verified. Latest [fixed FIFO profile](stock-process-scheduling.md) passes two 600-frame validations at 20.0056/20.0065 durable fps with no late writes/previews. An earlier same-profile failure and default-scheduler misses leave broader reproducibility open; earlier receipts retain their failures |
+| Relevant end-to-end Pi correctness/performance | Exact real-source replay; 600 recorded/previewed frames; [sustained receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json), [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json) | Correctness verified. Latest [fixed FIFO profile](stock-process-scheduling.md) passes two 600-frame validations at 20.0056/20.0065 durable fps with no late writes/previews. The later [native 12 MP GoPro repeats](stock-native12-gopro-timing.md) both fail combined timing (600/570 accepted; 223/570 late previews), while all accepted bytes/calibration/previews remain exact. Broader reproducibility remains open; earlier receipts retain their results |
 | Exact MOV, large files, PCM/timecode | `stock_mov`; [contract](stock-mov.md), 4.42 GB boundary receipt, [real A/V receipt](stock-av-receipts/real-core.json) | Implemented for declared private stock profiles. Exact recovery does not imply standard CFHD or universal editor support |
 | Calibrated deep ProRes/editable outputs | `stock_prores`; [contract](stock-prores.md), real 120-frame outputs and [native integration](stock-native-receipts/real-integration.json) | Implemented on macOS with optional CNN and audio/timecode. Broader rendered look/motion approval open |
 | Optional FFmpeg decoder equivalent | Pinned n8.0 adapter; twelve CFA/depth checks, fixtures, malformed configuration and conversion on Mac/Pi/hosted Linux; [contract](stock-ffmpeg-decoder.md) | Implemented as an explicit patched build. Bayer output is not calibrated color rendering |
@@ -52,7 +54,7 @@ to their recorded revisions; this ledger does not retimestamp their evidence.
    promoting restored tiers. [Native artifacts for this checkpoint](stock-sr-native.md)
    now pass scoped execution/count and full-reference RAW-quality checks. Earlier failures remain recorded; the scoped 1x result does
    not approve other domains or video quality.
-3. Extend sustained Pi deadline robustness beyond the [scoped FIFO profile](stock-process-scheduling.md). Two fixed 600-frame validations now pass every deadline and durability criterion. An earlier same-profile failure and default-scheduler misses remain unresolved. The following chronology preserves earlier failures; those results are not the latest profile status.
+3. Extend sustained Pi deadline robustness beyond the [scoped FIFO profile](stock-process-scheduling.md). Two fixed 600-frame validations on the older downsampled sources pass every deadline and durability criterion. The later [supplied native-geometry GoPro test](stock-native12-gopro-timing.md) fails both fixed repeats with the same binary/profile. Native-input CPU margin and input/session robustness remain unresolved. The following chronology preserves earlier failures; those results are not the latest profile status.
    The [writeback follow-up](stock-capture-writeback.md) reaches 20.0047 durable
    fps with all 600 frames/previews exact, but 16 write/33 preview deadlines
    remain late. Poorer repeats and an unchanged-binary control also show

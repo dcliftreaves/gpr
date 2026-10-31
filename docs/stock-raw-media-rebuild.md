@@ -540,3 +540,11 @@ reserved bytes for distinct low cache-set offsets, keeping dense fallback and
 packed-row/int16 alignment contracts. Final source passes 27 Mac/24 Pi Release
 targets and four relocated profiles. Exact-frame and counter improvements do
 not close strict Pi deadlines or broader CNN/restored-tier quality.
+
+The [native 12 MP GoPro timing follow-up](stock-native12-gopro-timing.md) uses
+the unchanged production binary and FIFO1 profile on GP011728/GPAB1094 counts
+without downsampling. Both fixed 600-attempt runs fail the combined floor:
+600/570 accepted, 32/570 late writes and 223/570 late previews. All accepted
+payloads, calibration and preview pixels remain exact. Earlier scoped FIFO
+passes do not establish timing for these inputs. All seven hosted jobs pass
+at source revision `3a52439`; this follow-up changes evidence, not runtime.

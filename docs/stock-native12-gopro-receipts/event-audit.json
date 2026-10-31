@@ -1,0 +1,112 @@
+{
+  "schema": "gpr.stock_native12_event_audit.v1",
+  "complete": true,
+  "driver_sha256": "50f607cdeb30698239514ace7f84670a4172295f03cae20f469e88a51f03fa97",
+  "protocol_sha256": "172fab396354ad2e9e82c41ac2645729084075288f8ea1e1f1d98884ba69357a",
+  "receipt_sha256": "220327c08961a77968ada53dcfd8e4ad4f8327785db281f1470c94dccebe4e88",
+  "control_protocol_sha256": "d176a0968a109fccc5b01548217e750a120e74ecf315eecdb9b22f31064b8758",
+  "control_receipt_sha256": "6d435c778d3e464e92159c94ab06cafcbf4e02af64bc445998b5399265063119",
+  "note": "Source inferred from the two distinct, independently verified constant payload lengths. Capture encode interval includes retained-band preview reconstruction when enabled; differences are not isolated kernel costs.",
+  "rows": [
+    {
+      "mode": "recording-preview",
+      "index": 0,
+      "event_sha256": "c77d175d3038af029c9e3a4021463703b763ca9ed1ac40920276a5993ab582b5",
+      "per_source": {
+        "0": {
+          "frames": 300,
+          "encode_median_ms": 37.4787,
+          "encode_maximum_ms": 51.2017,
+          "late_writes": 24,
+          "previews": 300,
+          "late_previews": 200,
+          "render_median_ms": 9.98261,
+          "maximum_capture_to_sink_ms": 64.2823
+        },
+        "1": {
+          "frames": 300,
+          "encode_median_ms": 35.2295,
+          "encode_maximum_ms": 36.813,
+          "late_writes": 8,
+          "previews": 300,
+          "late_previews": 23,
+          "render_median_ms": 9.767,
+          "maximum_capture_to_sink_ms": 62.3304
+        }
+      }
+    },
+    {
+      "mode": "recording-preview",
+      "index": 1,
+      "event_sha256": "7b38259b7e0c60566b125a346cbac272740c75919bf1b653fdcaec308a89adb0",
+      "per_source": {
+        "0": {
+          "frames": 275,
+          "encode_median_ms": 42.2415,
+          "encode_maximum_ms": 43.0067,
+          "late_writes": 275,
+          "previews": 275,
+          "late_previews": 275,
+          "render_median_ms": 9.13581,
+          "maximum_capture_to_sink_ms": 213.835
+        },
+        "1": {
+          "frames": 295,
+          "encode_median_ms": 39.5952,
+          "encode_maximum_ms": 39.9662,
+          "late_writes": 295,
+          "previews": 295,
+          "late_previews": 295,
+          "render_median_ms": 9.10446,
+          "maximum_capture_to_sink_ms": 214.623
+        }
+      }
+    },
+    {
+      "mode": "recording",
+      "index": 0,
+      "event_sha256": "01daf6a889ec234b854c9af70b0f267863413e020a14e6b49e943ffb37e6e4eb",
+      "per_source": {
+        "0": {
+          "frames": 300,
+          "encode_median_ms": 25.4637,
+          "encode_maximum_ms": 26.3897,
+          "late_writes": 0,
+          "previews": 0,
+          "late_previews": 0
+        },
+        "1": {
+          "frames": 300,
+          "encode_median_ms": 23.7784,
+          "encode_maximum_ms": 24.1228,
+          "late_writes": 0,
+          "previews": 0,
+          "late_previews": 0
+        }
+      }
+    },
+    {
+      "mode": "recording",
+      "index": 1,
+      "event_sha256": "620e031aecb189ff77c5a4e8cbf255758f09235f19f4ebeffa48298cd8c8440b",
+      "per_source": {
+        "0": {
+          "frames": 300,
+          "encode_median_ms": 26.7386,
+          "encode_maximum_ms": 27.0944,
+          "late_writes": 0,
+          "previews": 0,
+          "late_previews": 0
+        },
+        "1": {
+          "frames": 300,
+          "encode_median_ms": 24.6889,
+          "encode_maximum_ms": 25.2736,
+          "late_writes": 0,
+          "previews": 0,
+          "late_previews": 0
+        }
+      }
+    }
+  ]
+}

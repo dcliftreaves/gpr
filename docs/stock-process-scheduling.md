@@ -7,6 +7,12 @@ late writes/previews and exact independent payload/calibration/preview checks.
 The first FIFO comparison run remains a failure, so broad timing reproducibility
 and default-scheduler approval remain open.
 
+A later [native 12 MP GoPro check](stock-native12-gopro-timing.md) uses the same
+binary/profile with different actual camera-file inputs. Both fixed repeats
+fail combined timing: 600/570 accepted frames, 32/570 late writes and 223/570
+late previews. All accepted payloads/calibration/previews remain exact. The
+passes below used downsampled 50 MP source images and retain only that scope.
+
 ## Controlled setup
 
 All runs use production executable SHA-256
