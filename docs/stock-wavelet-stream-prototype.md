@@ -130,3 +130,8 @@ pass locally, including a focused check with the affected legacy dequantizer
 instrumented. Production code, supported payloads, assertions and the Pi timing
 source are unchanged. The original fixture and its logs remain in the archive;
 new hosted validation must pass before the revision is called green.
+
+The corrected fixture and streaming source now pass all seven hosted jobs at
+`3b2c0f0` ([run 41184771455](https://github.com/dcliftreaves/gpr/actions/runs/41184771455)).
+[Post-streaming profiling and controls](stock-stream-followups.md) retain the
+rejected color, unpack and entropy experiments separately from production.

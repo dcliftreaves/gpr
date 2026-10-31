@@ -321,5 +321,12 @@ tests on each host and four relocated Mac package profiles. In the fixed native
 Pi ABBA comparison, both streamed runs record/preview all 600 frames exactly;
 controls record 548/599. The streamed runs retain 154/44 late writes and 171/47
 late previews at 19.9965/19.9980 durable fps. The strict combined gate remains
-open. No CNN weights or their quality scopes change. Hosted validation for this
-new source is pending publication; preceding ba2d89b passes all seven jobs.
+open. No CNN weights or their quality scopes change. All seven hosted jobs pass
+at source/test revision `3b2c0f0` in
+[run 41184771455](https://github.com/dcliftreaves/gpr/actions/runs/41184771455).
+
+The [post-streaming profile and controls](stock-stream-followups.md) reject
+progressive color, the existing full-frame unpack fallback, trailing-zero
+batching and two shared-green cache layouts. Exact output checks and compact
+source-bound receipts remain available. None changes runtime or closes the
+strict native-input deadline gate.
