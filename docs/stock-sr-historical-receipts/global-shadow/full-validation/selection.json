@@ -1,0 +1,2343 @@
+{
+  "schema": "gpr.stock_sr_historical_global_full.v1",
+  "complete": true,
+  "quality_approval": false,
+  "protocol_sha256": "a8c0cca8ab741f6fc9cf23d1e864d1ea8062ab2f7f31e6576054dbcef2085580",
+  "sources": [
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+        "group": "20250727_ForestFire",
+        "split": "validation",
+        "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b"
+      },
+      "cache_benchmark_sha256": "bb5ab607423f301887b1e74fe089056aa4ecbc641dab9767ecae6358f44cd572",
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 47.23074646983994,
+          "psnr_db": 50.80337243422626
+        },
+        "active": {
+          "rmse_counts": 47.23074646983994,
+          "psnr_db": 50.80337243422626
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 16.0,
+          "p90": 62.0,
+          "p99": 141.0,
+          "p99_9": 317.0
+        },
+        "active_max_abs_error": 12546,
+        "active_bias_counts": -3.844271205279003,
+        "detail_gradient_threshold_counts": 155.0,
+        "detail_top_decile": {
+          "rmse_counts": 120.34235697578859,
+          "psnr_db": 42.679498362072025
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 12.263833382366167,
+          "psnr_db": 62.51534379471805
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 98.57659655661509,
+          "psnr_db": 44.412392231504924
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 37.726001012815544,
+            "psnr_db": 52.755053183746284
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 47.6794368319809,
+            "psnr_db": 50.72124628366837
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 48.46786753130652,
+            "psnr_db": 50.578790380333125
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 53.64009336612961,
+            "psnr_db": 49.698078122810585
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "name": "local_shadow-step-200",
+          "checkpoint_sha256": "27e7737631e7b2ecf6c1349ddd9f7c778e94c689f8246e35846e351c825a5a27",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.847393238404834,
+              "psnr_db": 50.87416002208944
+            },
+            "active": {
+              "rmse_counts": 46.847393238404834,
+              "psnr_db": 50.87416002208944
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 62.0,
+              "p99": 143.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12553,
+            "active_bias_counts": -4.798910614891829,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 118.54647546344508,
+              "psnr_db": 42.810095697458785
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.420144067023887,
+              "psnr_db": 62.40533595603747
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 93.47594456806684,
+              "psnr_db": 44.87387137781106
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.711319060917255,
+                "psnr_db": 52.99186883990812
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.78379553202297,
+                "psnr_db": 50.885959567755236
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 46.87347123040906,
+                "psnr_db": 50.869326294452364
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 55.182843676022834,
+                "psnr_db": 49.45178709043081
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "9d9a40134ed32c745a605093e2622df3cfcb9b01b13c4413fc8a6bfb4fbada1b",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.8834233339875937,
+            "tile_time_s_mean": 0.051795924974915884,
+            "tile_time_s_median": 0.02318941697012633,
+            "tile_time_s_p95": 0.1525711001362647
+          }
+        },
+        {
+          "name": "local_shadow-step-200-weight-interp-half",
+          "checkpoint_sha256": "b33c42f9b53671e15ac48d4600416683b5019341169fd28df8b2cb41603975ba",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.76740472707094,
+              "psnr_db": 50.88900322136855
+            },
+            "active": {
+              "rmse_counts": 46.76740472707094,
+              "psnr_db": 50.88900322136855
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 62.0,
+              "p99": 143.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12547,
+            "active_bias_counts": -4.929438427676258,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 118.48414595792346,
+              "psnr_db": 42.814663775755065
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.570118877674235,
+              "psnr_db": 62.30108092711478
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 93.12448976866595,
+              "psnr_db": 44.906590500046384
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.834034621158864,
+                "psnr_db": 52.96288278575342
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.825310257801185,
+                "psnr_db": 50.87825535250689
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 46.88193054742149,
+                "psnr_db": 50.867758881955815
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 54.78585018558447,
+                "psnr_db": 49.514500513747485
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "1c4f2182077e0dc105e8f6b75aa51d88eb4956a68d6154f701e787ee8e14ea21",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4737155829789117,
+            "tile_time_s_mean": 0.02487716672476381,
+            "tile_time_s_median": 0.02311849989928305,
+            "tile_time_s_p95": 0.03103718743659553
+          }
+        },
+        {
+          "name": "local_shadow-step-400",
+          "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.65138280812561,
+              "psnr_db": 50.91057819848572
+            },
+            "active": {
+              "rmse_counts": 46.65138280812561,
+              "psnr_db": 50.91057819848572
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 62.0,
+              "p99": 142.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12570,
+            "active_bias_counts": -3.35449421952671,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 118.38767499983396,
+              "psnr_db": 42.82173879327454
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.456062885337744,
+              "psnr_db": 62.380252782447755
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 92.96896092897813,
+              "psnr_db": 44.92110908354872
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.66904259334562,
+                "psnr_db": 53.001877206287475
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.81275757217884,
+                "psnr_db": 50.88058413278091
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 46.89236025935495,
+                "psnr_db": 50.86582676759046
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 54.50192349563268,
+                "psnr_db": 49.55963202955361
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "c57ec5660b191e630c6622992ee86582a2710ca278009043240eba569d602583",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47209320799447596,
+            "tile_time_s_mean": 0.02486549720633775,
+            "tile_time_s_median": 0.02310762496199459,
+            "tile_time_s_p95": 0.031072962644975603
+          }
+        },
+        {
+          "name": "local_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "4ef10d77e9355651fd6a45d860e3b97530441654a2933a193d8cd0752b9b1cd5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 46.66539361195652,
+              "psnr_db": 50.90796995800853
+            },
+            "active": {
+              "rmse_counts": 46.66539361195652,
+              "psnr_db": 50.90796995800853
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 62.0,
+              "p99": 142.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12556,
+            "active_bias_counts": -4.131325483091787,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 118.40673815079059,
+              "psnr_db": 42.820340276953836
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.527434575557347,
+              "psnr_db": 62.33062575869549
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 92.88870272237138,
+              "psnr_db": 44.92861067325744
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.7721244987168,
+                "psnr_db": 52.9774941885015
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.82393935233696,
+                "psnr_db": 50.87850965317917
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 46.87197258444701,
+                "psnr_db": 50.86960400551553
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 54.48838035083919,
+                "psnr_db": 49.56179064839368
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "bca8b1fd8cd82aa3adbbef6925d99835867f7c36f18aa6797e895f14306e7e82",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47024712490383536,
+            "tile_time_s_mean": 0.024805991731894513,
+            "tile_time_s_median": 0.02307304204441607,
+            "tile_time_s_p95": 0.03090681617613879
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400",
+          "checkpoint_sha256": "77e39e3522281f14d8399de25895e14b1b968f03d03b03bb85f8f54c549afb1f",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 48.32777572972867,
+              "psnr_db": 50.60393247839289
+            },
+            "active": {
+              "rmse_counts": 48.32777572972867,
+              "psnr_db": 50.60393247839289
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 18.0,
+              "p90": 65.0,
+              "p99": 151.0,
+              "p99_9": 350.0
+            },
+            "active_max_abs_error": 12537,
+            "active_bias_counts": -10.57295537089547,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 119.90329275417848,
+              "psnr_db": 42.71124643012726
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.647529678255623,
+              "psnr_db": 62.247754481459964
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 97.4334630870131,
+              "psnr_db": 44.5137058452047
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.94481490481698,
+                "psnr_db": 52.93679872379687
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 47.31139374139461,
+                "psnr_db": 50.78855378365041
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.62315797181335,
+                "psnr_db": 50.73150480865817
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 58.915559291404996,
+                "psnr_db": 48.88326852833145
+              }
+            ]
+          },
+          "regressions": [
+            "active",
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "b05a5e1c3e7e104cc1d72edd5fc37b1cc38b0a33c7acceb8dd9e81d6e3ae1313",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4757648330414668,
+            "tile_time_s_mean": 0.025071674996676546,
+            "tile_time_s_median": 0.02308887499384582,
+            "tile_time_s_p95": 0.03202157043851909
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "a332a953c6bd35184c0cbbcfee411c66919e98cc6d61f568e5b53d55a8d9b87e",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 47.095059826055845,
+              "psnr_db": 50.828361566521274
+            },
+            "active": {
+              "rmse_counts": 47.095059826055845,
+              "psnr_db": 50.828361566521274
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 62.0,
+              "p99": 145.0,
+              "p99_9": 351.0
+            },
+            "active_max_abs_error": 12537,
+            "active_bias_counts": -6.528526373135896,
+            "detail_gradient_threshold_counts": 155.0,
+            "detail_top_decile": {
+              "rmse_counts": 118.76035988851127,
+              "psnr_db": 42.79443852507502
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 12.437572857397129,
+              "psnr_db": 62.39315586926811
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 94.25565234109901,
+              "psnr_db": 44.801720554827455
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 36.496691998489375,
+                "psnr_db": 53.042798575376224
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.959108575007576,
+                "psnr_db": 50.85347174303433
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.06127803687643,
+                "psnr_db": 50.83459428354997
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 55.855602625188624,
+                "psnr_db": 49.34653378970869
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "6ed7131b40a4ef970f21c9fd154a1f536ce154fdad103be53912de93431e0852",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4741490420419723,
+            "tile_time_s_mean": 0.024824400013312698,
+            "tile_time_s_median": 0.023104333085939288,
+            "tile_time_s_p95": 0.030920571414753767
+          }
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+        "group": "20250727_ForestFire",
+        "split": "validation",
+        "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081"
+      },
+      "cache_benchmark_sha256": "a6e07509e3e0ac9b2d3b84a82784ec81dde42a31c66e2364ad6bb33e8915d663",
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 135.40782915429196,
+          "psnr_db": 41.65499311357094
+        },
+        "active": {
+          "rmse_counts": 135.40782915429196,
+          "psnr_db": 41.65499311357094
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 57.0,
+          "p90": 193.0,
+          "p99": 386.0,
+          "p99_9": 862.0
+        },
+        "active_max_abs_error": 12543,
+        "active_bias_counts": -3.200815589336974,
+        "detail_gradient_threshold_counts": 523.0,
+        "detail_top_decile": {
+          "rmse_counts": 325.26445839460706,
+          "psnr_db": 34.043136413656306
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 62.18233843294471,
+          "psnr_db": 48.414527622704576
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 292.078336417174,
+          "psnr_db": 34.97788169812082
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 130.94827211563089,
+            "psnr_db": 41.9458731808906
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 147.51074489816318,
+            "psnr_db": 40.911395502885405
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 147.9295993949881,
+            "psnr_db": 40.88676700212985
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 112.03162311360894,
+            "psnr_db": 43.30105606362016
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "name": "local_shadow-step-200",
+          "checkpoint_sha256": "27e7737631e7b2ecf6c1349ddd9f7c778e94c689f8246e35846e351c825a5a27",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 130.1169484694558,
+              "psnr_db": 42.00119123386335
+            },
+            "active": {
+              "rmse_counts": 130.1169484694558,
+              "psnr_db": 42.00119123386335
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 56.0,
+              "p90": 191.0,
+              "p99": 382.0,
+              "p99_9": 773.0
+            },
+            "active_max_abs_error": 12688,
+            "active_bias_counts": -5.102153609185745,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 305.777132338343,
+              "psnr_db": 34.57976855692149
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 60.24221901485449,
+              "psnr_db": 48.68984941166381
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 269.7560342265637,
+              "psnr_db": 35.668445259433284
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 127.0560437335818,
+                "psnr_db": 42.20796206182074
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 140.89220090660626,
+                "psnr_db": 41.31012955737684
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 140.93075153489696,
+                "psnr_db": 41.30775326756795
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 108.9327951641921,
+                "psnr_db": 43.544695673758426
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "497829ede870bca534dd37d069fa6201fb528c9b32c385730f132a15345082b0",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47090620803646743,
+            "tile_time_s_mean": 0.024838049872778357,
+            "tile_time_s_median": 0.023061292013153434,
+            "tile_time_s_p95": 0.031104446353856445
+          }
+        },
+        {
+          "name": "local_shadow-step-200-weight-interp-half",
+          "checkpoint_sha256": "b33c42f9b53671e15ac48d4600416683b5019341169fd28df8b2cb41603975ba",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 130.08865271876886,
+              "psnr_db": 42.00308030748466
+            },
+            "active": {
+              "rmse_counts": 130.08865271876886,
+              "psnr_db": 42.00308030748466
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 56.0,
+              "p90": 191.0,
+              "p99": 382.0,
+              "p99_9": 774.0
+            },
+            "active_max_abs_error": 12688,
+            "active_bias_counts": -4.985649263985157,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 305.8878295947963,
+              "psnr_db": 34.576624665336624
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 60.30547323957835,
+              "psnr_db": 48.680734027449596
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 269.96063295587413,
+              "psnr_db": 35.66185987055773
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 127.1023142893711,
+                "psnr_db": 42.20479945919264
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 140.8800187950892,
+                "psnr_db": 41.31088060711747
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 140.92154907897873,
+                "psnr_db": 41.308320454824255
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 108.77117851940392,
+                "psnr_db": 43.55759194362832
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "267fc7a799be1831f428510f35dcf52e768e3f2df6e27e7c8aba9fe8ab48f40c",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47027670801617205,
+            "tile_time_s_mean": 0.024759258260019124,
+            "tile_time_s_median": 0.02308254106901586,
+            "tile_time_s_p95": 0.030680037499405417
+          }
+        },
+        {
+          "name": "local_shadow-step-400",
+          "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 130.02690458926133,
+              "psnr_db": 42.00720414731866
+            },
+            "active": {
+              "rmse_counts": 130.02690458926133,
+              "psnr_db": 42.00720414731866
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 56.0,
+              "p90": 191.0,
+              "p99": 382.0,
+              "p99_9": 773.0
+            },
+            "active_max_abs_error": 12692,
+            "active_bias_counts": -3.9785256292445563,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 305.6830240982489,
+              "psnr_db": 34.5824422022452
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 61.07318573581001,
+              "psnr_db": 48.57085713483222
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 269.634268294251,
+              "psnr_db": 35.67236689266535
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 126.97565518941829,
+                "psnr_db": 42.21345937612472
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 140.85774315279284,
+                "psnr_db": 41.31225410969426
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 140.87911629013638,
+                "psnr_db": 41.31093625080346
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 108.70757767832696,
+                "psnr_db": 43.562672255028744
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "50927ff86596d7bd2751526806d126d1f1d126bb87a701808cf7ab19e2b60b80",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47346079198177904,
+            "tile_time_s_mean": 0.024962252719948688,
+            "tile_time_s_median": 0.023096167016774416,
+            "tile_time_s_p95": 0.031496624974533885
+          }
+        },
+        {
+          "name": "local_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "4ef10d77e9355651fd6a45d860e3b97530441654a2933a193d8cd0752b9b1cd5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 130.0355370702057,
+              "psnr_db": 42.00662751059761
+            },
+            "active": {
+              "rmse_counts": 130.0355370702057,
+              "psnr_db": 42.00662751059761
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 56.0,
+              "p90": 191.0,
+              "p99": 382.0,
+              "p99_9": 773.0
+            },
+            "active_max_abs_error": 12690,
+            "active_bias_counts": -4.351927750647623,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 305.8130564903,
+              "psnr_db": 34.5787481572313
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 60.784517616330916,
+              "psnr_db": 48.6120091350584
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 269.85093737646935,
+              "psnr_db": 35.66539000500454
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 127.03234421188934,
+                "psnr_db": 42.20958237538294
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 140.85638202276368,
+                "psnr_db": 41.31233804318683
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 140.88962668184533,
+                "psnr_db": 41.31028825769027
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 108.67078662403684,
+                "psnr_db": 43.56561241000975
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "3b27a6aec24cbe7dcf187a0a7bb4a410c780137e18ce9c872eb92b8876515704",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47692950000055134,
+            "tile_time_s_mean": 0.024828672277120253,
+            "tile_time_s_median": 0.023089208989404142,
+            "tile_time_s_p95": 0.030988870665896655
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400",
+          "checkpoint_sha256": "77e39e3522281f14d8399de25895e14b1b968f03d03b03bb85f8f54c549afb1f",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 131.6398967025688,
+              "psnr_db": 41.90011796844622
+            },
+            "active": {
+              "rmse_counts": 131.6398967025688,
+              "psnr_db": 41.90011796844622
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 57.0,
+              "p90": 194.0,
+              "p99": 388.0,
+              "p99_9": 776.0
+            },
+            "active_max_abs_error": 12668,
+            "active_bias_counts": -15.290647973114892,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 306.87171668656214,
+              "psnr_db": 34.548731368229994
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 59.0653475528825,
+              "psnr_db": 48.861213349368796
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 274.84419641841276,
+              "psnr_db": 35.50613720747877
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 128.0033528904096,
+                "psnr_db": 42.143441712969846
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 141.80422629027254,
+                "psnr_db": 41.254085132677645
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 141.7204973134291,
+                "psnr_db": 41.25921527204798
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 112.86387071032398,
+                "psnr_db": 43.23676981535356
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "ad30a8ab31694d7fda9ea25c367313903e1094b8d1bcb8de05aa1c8f218f1c4c",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4747692089295015,
+            "tile_time_s_mean": 0.024858569392624,
+            "tile_time_s_median": 0.023093041963875294,
+            "tile_time_s_p95": 0.03106017931131643
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "a332a953c6bd35184c0cbbcfee411c66919e98cc6d61f568e5b53d55a8d9b87e",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 130.45373654054225,
+              "psnr_db": 41.97873816593109
+            },
+            "active": {
+              "rmse_counts": 130.45373654054225,
+              "psnr_db": 41.97873816593109
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 56.0,
+              "p90": 192.0,
+              "p99": 384.0,
+              "p99_9": 773.0
+            },
+            "active_max_abs_error": 12677,
+            "active_bias_counts": -8.779350932927256,
+            "detail_gradient_threshold_counts": 523.0,
+            "detail_top_decile": {
+              "rmse_counts": 306.039195468957,
+              "psnr_db": 34.57232759313392
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 59.95971644614956,
+              "psnr_db": 48.73067721768461
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 271.76180591177103,
+              "psnr_db": 35.60410022819211
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 127.20835039744074,
+                "psnr_db": 42.1975562082118
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 141.15803389114478,
+                "psnr_db": 41.29375661125101
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 141.13493896401704,
+                "psnr_db": 41.29517782968695
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 109.75465170246027,
+                "psnr_db": 43.47940990724949
+              }
+            ]
+          },
+          "regressions": [],
+          "output_sha256": "0a8d3c409d56c188c65713a2453f0f9de9bef6db73c70e17cbbdb6431000470f",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47028337500523776,
+            "tile_time_s_mean": 0.024623863864690065,
+            "tile_time_s_median": 0.02312066697049886,
+            "tile_time_s_p95": 0.030018345627468055
+          }
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+        "group": "LRT_20250730_05__ColoradoSky",
+        "split": "validation",
+        "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa"
+      },
+      "cache_benchmark_sha256": "3fbd3a3aa0344d12fb881a087ab35968f99c5be971f9cacab11f4ffa0afaa7cc",
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 62.3261000128749,
+          "psnr_db": 48.3944695802463
+        },
+        "active": {
+          "rmse_counts": 62.3261000128749,
+          "psnr_db": 48.3944695802463
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 15.0,
+          "p90": 50.0,
+          "p99": 110.0,
+          "p99_9": 395.0
+        },
+        "active_max_abs_error": 11928,
+        "active_bias_counts": -3.3604178043828328,
+        "detail_gradient_threshold_counts": 124.0,
+        "detail_top_decile": {
+          "rmse_counts": 176.82059757720413,
+          "psnr_db": 39.3372115458299
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 10.617470541516097,
+          "psnr_db": 63.7674473310723
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 168.3215260316946,
+          "psnr_db": 39.76507542751575
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 62.951359122038895,
+            "psnr_db": 48.307766405541884
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 65.41437807193554,
+            "psnr_db": 47.97440429133999
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 65.08928344486272,
+            "psnr_db": 48.01767881499316
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 55.314027859520664,
+            "psnr_db": 49.43116294316515
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "name": "local_shadow-step-200",
+          "checkpoint_sha256": "27e7737631e7b2ecf6c1349ddd9f7c778e94c689f8246e35846e351c825a5a27",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 53.69623662052276,
+              "psnr_db": 49.6889916530922
+            },
+            "active": {
+              "rmse_counts": 53.69623662052276,
+              "psnr_db": 49.6889916530922
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 50.0,
+              "p99": 109.0,
+              "p99_9": 346.0
+            },
+            "active_max_abs_error": 12279,
+            "active_bias_counts": -5.212930450535602,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 150.7045118562051,
+              "psnr_db": 40.725343533035655
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.37570208173088,
+              "psnr_db": 63.16830442918099
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 138.76833358719205,
+              "psnr_db": 41.44206116401916
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.48420056347618,
+                "psnr_db": 49.562456965947305
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 54.53723952808865,
+                "psnr_db": 49.554005589243786
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 54.44363638572143,
+                "psnr_db": 49.56892612933826
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 51.24641606534854,
+                "psnr_db": 50.09459865980406
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "e23ba7539fda14360cbcf48c023bb6802b2ed3848d8bbddc545d6336608bf81b",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4719743749592453,
+            "tile_time_s_mean": 0.02485619713552296,
+            "tile_time_s_median": 0.023072709096595645,
+            "tile_time_s_p95": 0.0311354625271633
+          }
+        },
+        {
+          "name": "local_shadow-step-200-weight-interp-half",
+          "checkpoint_sha256": "b33c42f9b53671e15ac48d4600416683b5019341169fd28df8b2cb41603975ba",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 53.67294896073605,
+              "psnr_db": 49.69275947613963
+            },
+            "active": {
+              "rmse_counts": 53.67294896073605,
+              "psnr_db": 49.69275947613963
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 50.0,
+              "p99": 109.0,
+              "p99_9": 346.0
+            },
+            "active_max_abs_error": 12277,
+            "active_bias_counts": -5.178966603654694,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 150.7463061117985,
+              "psnr_db": 40.72293504533366
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.224358481387373,
+              "psnr_db": 63.284638052006976
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 138.7113014528852,
+              "psnr_db": 41.44563169510564
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.59761830163107,
+                "psnr_db": 49.544394665155764
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 54.59024787650731,
+                "psnr_db": 49.545567299104
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 54.47896951202939,
+                "psnr_db": 49.563290941969875
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 50.93317773362829,
+                "psnr_db": 50.147853169859644
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "e0068b99abc7fde2eb118d59b1057ec9a837fa5314e2dc39ee5d6839922993b5",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.48271745804231614,
+            "tile_time_s_mean": 0.025424799998290837,
+            "tile_time_s_median": 0.023129165987484157,
+            "tile_time_s_p95": 0.03354027484310787
+          }
+        },
+        {
+          "name": "local_shadow-step-400",
+          "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 53.52542322686021,
+              "psnr_db": 49.71666642595646
+            },
+            "active": {
+              "rmse_counts": 53.52542322686021,
+              "psnr_db": 49.71666642595646
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 15.0,
+              "p90": 50.0,
+              "p99": 109.0,
+              "p99_9": 345.0
+            },
+            "active_max_abs_error": 12289,
+            "active_bias_counts": -3.9942727368199957,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 150.50488087561402,
+              "psnr_db": 40.73685693840401
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.104649294141105,
+              "psnr_db": 63.377771679930035
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 138.6377059429372,
+              "psnr_db": 41.45024135640042
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.442121351897065,
+                "psnr_db": 49.56916783985891
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 54.52173631737531,
+                "psnr_db": 49.55647506371216
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 54.361333620139995,
+                "psnr_db": 49.582066574578114
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 50.67706409355002,
+                "psnr_db": 50.19163969144589
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "b66f2a02e59eaa491f1f688c87f2f1da70604f170a12344544b592bcd966054e",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.473463041940704,
+            "tile_time_s_mean": 0.024835608263189594,
+            "tile_time_s_median": 0.023167624953202903,
+            "tile_time_s_p95": 0.030820254341233495
+          }
+        },
+        {
+          "name": "local_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "4ef10d77e9355651fd6a45d860e3b97530441654a2933a193d8cd0752b9b1cd5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 53.57241551895072,
+              "psnr_db": 49.70904405198679
+            },
+            "active": {
+              "rmse_counts": 53.57241551895072,
+              "psnr_db": 49.70904405198679
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 50.0,
+              "p99": 109.0,
+              "p99_9": 346.0
+            },
+            "active_max_abs_error": 12282,
+            "active_bias_counts": -4.497214564517258,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 150.60694693215373,
+              "psnr_db": 40.73096853114147
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.062396517331832,
+              "psnr_db": 63.41088420235275
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 138.6078812195589,
+              "psnr_db": 41.45211012740161
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.522268788022025,
+                "psnr_db": 49.556390235916844
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 54.567357069056634,
+                "psnr_db": 49.5492102341108
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 54.42345365408604,
+                "psnr_db": 49.57214666148482
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 50.673743291834576,
+                "psnr_db": 50.192208885080646
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "e7cc82b3cfe6f882c28e74cc674481fbb6db8dea5692c1f046e7c67af2aa5d43",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4718461249722168,
+            "tile_time_s_mean": 0.024847369516889255,
+            "tile_time_s_median": 0.023051041993312538,
+            "tile_time_s_p95": 0.031187625171150986
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400",
+          "checkpoint_sha256": "77e39e3522281f14d8399de25895e14b1b968f03d03b03bb85f8f54c549afb1f",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 55.30210681645962,
+              "psnr_db": 49.43303509075199
+            },
+            "active": {
+              "rmse_counts": 55.30210681645962,
+              "psnr_db": 49.43303509075199
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 17.0,
+              "p90": 55.0,
+              "p99": 114.0,
+              "p99_9": 349.0
+            },
+            "active_max_abs_error": 12264,
+            "active_bias_counts": -11.860230803227614,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 151.62520819247788,
+              "psnr_db": 40.6724404212429
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.187982645288805,
+              "psnr_db": 63.31283294458797
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 139.72002953512597,
+              "psnr_db": 41.38269524969963
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.6719731898481,
+                "psnr_db": 49.532573655413316
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 55.55839547220487,
+                "psnr_db": 49.39287472887166
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 55.76588146592662,
+                "psnr_db": 49.360497199382536
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 55.20596505602701,
+                "psnr_db": 49.44814850133397
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "d4e91ca9884bccd30d8467a90ce42ac1fffd627fa837c144d4d56113c14fa64b",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.475171290920116,
+            "tile_time_s_mean": 0.024942849933480223,
+            "tile_time_s_median": 0.02311612491030246,
+            "tile_time_s_p95": 0.031378562503959956
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "a332a953c6bd35184c0cbbcfee411c66919e98cc6d61f568e5b53d55a8d9b87e",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 54.0505920615218,
+              "psnr_db": 49.63185951495359
+            },
+            "active": {
+              "rmse_counts": 54.0505920615218,
+              "psnr_db": 49.63185951495359
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 16.0,
+              "p90": 51.0,
+              "p99": 110.0,
+              "p99_9": 347.0
+            },
+            "active_max_abs_error": 12268,
+            "active_bias_counts": -7.232651819470699,
+            "detail_gradient_threshold_counts": 124.0,
+            "detail_top_decile": {
+              "rmse_counts": 150.99883667734775,
+              "psnr_db": 40.7083965966652
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 11.198399348273657,
+              "psnr_db": 63.30474960722019
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 139.08459273465758,
+              "psnr_db": 41.42228816198838
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 54.288134585245984,
+                "psnr_db": 49.59377024594253
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 54.90017967421299,
+                "psnr_db": 49.496393309365835
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 54.89004721779148,
+                "psnr_db": 49.4979965376491
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 52.07415328381387,
+                "psnr_db": 49.955424282533485
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "dc0b4f40180557e05bc631bfb3bd0a5eb369398a5efd4526305353366bf7218a",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47372100001666695,
+            "tile_time_s_mean": 0.024915261124260724,
+            "tile_time_s_median": 0.023088041925802827,
+            "tile_time_s_p95": 0.031374283204786454
+          }
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+        "group": "LRT_20250730_05__ColoradoSky",
+        "split": "validation",
+        "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+      },
+      "cache_benchmark_sha256": "326f6100e444823a4295fdcd885ba5bf7426f94096d07fee60ce32a49c7396d6",
+      "bicubic_metrics": {
+        "full_frame": {
+          "rmse_counts": 52.25243174262561,
+          "psnr_db": 49.92573849295275
+        },
+        "active": {
+          "rmse_counts": 52.25243174262561,
+          "psnr_db": 49.92573849295275
+        },
+        "active_area": [
+          0,
+          0,
+          5520,
+          8280
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 8.0,
+          "p90": 24.0,
+          "p99": 58.0,
+          "p99_9": 357.0
+        },
+        "active_max_abs_error": 12611,
+        "active_bias_counts": -3.0023223193656796,
+        "detail_gradient_threshold_counts": 53.0,
+        "detail_top_decile": {
+          "rmse_counts": 154.7713409611331,
+          "psnr_db": 40.49405771712303
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 7.0147822988677095,
+          "psnr_db": 67.36758467695425
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 156.49989698995532,
+          "psnr_db": 40.39758750460605
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 48.325957197415335,
+            "psnr_db": 50.60425932704116
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 57.3179377429095,
+            "psnr_db": 49.1220574968738
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 57.9319526315425,
+            "psnr_db": 49.02950528701925
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 44.095478568910465,
+            "psnr_db": 51.39998741771644
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "name": "local_shadow-step-200",
+          "checkpoint_sha256": "27e7737631e7b2ecf6c1349ddd9f7c778e94c689f8246e35846e351c825a5a27",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 43.50397380271668,
+              "psnr_db": 51.51729005071513
+            },
+            "active": {
+              "rmse_counts": 43.50397380271668,
+              "psnr_db": 51.51729005071513
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 9.0,
+              "p90": 25.0,
+              "p99": 58.0,
+              "p99_9": 313.0
+            },
+            "active_max_abs_error": 12567,
+            "active_bias_counts": -4.8463190943779315,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 128.3830208517911,
+              "psnr_db": 42.11771681679785
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 8.251938423071879,
+              "psnr_db": 65.95674905396278
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 127.45494846663325,
+              "psnr_db": 42.180734590860666
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 39.79048763966401,
+                "psnr_db": 52.29228339436659
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.506220950874464,
+                "psnr_db": 50.93764761292678
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.3395293722416,
+                "psnr_db": 50.7833899039207
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 39.78995365152745,
+                "psnr_db": 52.29239995974238
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "1cc50f665bc93805008fdecd98cf49cbd78597df809c605b2aa9039d39abbad3",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4721767499577254,
+            "tile_time_s_mean": 0.024845624978964528,
+            "tile_time_s_median": 0.023082542000338435,
+            "tile_time_s_p95": 0.031045049929525677
+          }
+        },
+        {
+          "name": "local_shadow-step-200-weight-interp-half",
+          "checkpoint_sha256": "b33c42f9b53671e15ac48d4600416683b5019341169fd28df8b2cb41603975ba",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 43.50109160409158,
+              "psnr_db": 51.5178655220182
+            },
+            "active": {
+              "rmse_counts": 43.50109160409158,
+              "psnr_db": 51.5178655220182
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 9.0,
+              "p90": 25.0,
+              "p99": 58.0,
+              "p99_9": 314.0
+            },
+            "active_max_abs_error": 12559,
+            "active_bias_counts": -4.726739589897081,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 128.54134844406195,
+              "psnr_db": 42.10701159509409
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.907111512899397,
+              "psnr_db": 66.32751135239079
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 127.56833545852736,
+              "psnr_db": 42.17301084934403
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 39.97914241479377,
+                "psnr_db": 52.25119914687958
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.547639221863385,
+                "psnr_db": 50.9299154338662
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.36042435909585,
+                "psnr_db": 50.77955692310922
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 39.51399172654557,
+                "psnr_db": 52.35285053350245
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "6bc9be2c2e224fca32ce840dbf02392a19558b21b8a39321155081230644b594",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47621737502049655,
+            "tile_time_s_mean": 0.025058675083952646,
+            "tile_time_s_median": 0.02311966707929969,
+            "tile_time_s_p95": 0.03189002502476793
+          }
+        },
+        {
+          "name": "local_shadow-step-400",
+          "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 43.32871750647362,
+              "psnr_db": 51.55235193562575
+            },
+            "active": {
+              "rmse_counts": 43.32871750647362,
+              "psnr_db": 51.55235193562575
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 8.0,
+              "p90": 24.0,
+              "p99": 58.0,
+              "p99_9": 312.0
+            },
+            "active_max_abs_error": 12586,
+            "active_bias_counts": -3.8726639624028567,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 128.15819647188061,
+              "psnr_db": 42.13294088310697
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.6382869108747995,
+              "psnr_db": 66.62794927709054
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 127.34332654853709,
+              "psnr_db": 42.18834481289798
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 39.66454126179158,
+                "psnr_db": 52.3198199082884
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.52359592100239,
+                "psnr_db": 50.934403124657855
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.262644216466384,
+                "psnr_db": 50.79750831366901
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 39.21775992789255,
+                "psnr_db": 52.41821295205314
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "9516799ddc087468f3a1d32fe1169efe143279f47d7fd15b89979f8eb7d2aaae",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47279433405492455,
+            "tile_time_s_mean": 0.024862889060750605,
+            "tile_time_s_median": 0.023116459022276103,
+            "tile_time_s_p95": 0.031021141947712723
+          }
+        },
+        {
+          "name": "local_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "4ef10d77e9355651fd6a45d860e3b97530441654a2933a193d8cd0752b9b1cd5",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 43.393956249750794,
+              "psnr_db": 51.53928368930493
+            },
+            "active": {
+              "rmse_counts": 43.393956249750794,
+              "psnr_db": 51.53928368930493
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 8.0,
+              "p90": 24.0,
+              "p99": 58.0,
+              "p99_9": 313.0
+            },
+            "active_max_abs_error": 12569,
+            "active_bias_counts": -4.166022347371,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 128.3841801650749,
+              "psnr_db": 42.11763838258041
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.573952219808134,
+              "psnr_db": 66.70141740407162
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 127.46243833001307,
+              "psnr_db": 42.180224181370306
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 39.850021718832075,
+                "psnr_db": 52.27929737652607
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.53952213283745,
+                "psnr_db": 50.93143023222538
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.308359674798204,
+                "psnr_db": 50.78911082521242
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 39.244228996845074,
+                "psnr_db": 52.412352600471024
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "4fab606a5580af7774337cc3345fb0a43f8fb3a63acacbeddd3b80d62709eec5",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.4758792499778792,
+            "tile_time_s_mean": 0.02510273039806634,
+            "tile_time_s_median": 0.023083209060132504,
+            "tile_time_s_p95": 0.03222345419926566
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400",
+          "checkpoint_sha256": "77e39e3522281f14d8399de25895e14b1b968f03d03b03bb85f8f54c549afb1f",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 45.33404693130481,
+              "psnr_db": 51.159378827436186
+            },
+            "active": {
+              "rmse_counts": 45.33404693130481,
+              "psnr_db": 51.159378827436186
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 12.0,
+              "p90": 33.0,
+              "p99": 67.0,
+              "p99_9": 316.0
+            },
+            "active_max_abs_error": 12555,
+            "active_bias_counts": -11.283197529405587,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 129.32776504248983,
+              "psnr_db": 42.054033176177114
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.548252075022817,
+              "psnr_db": 66.73094072380096
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 128.61835420099047,
+              "psnr_db": 42.10180966400388
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 40.405317159340576,
+                "psnr_db": 52.1590982233805
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 47.54416446475512,
+                "psnr_db": 50.745924233823054
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 48.5398893544075,
+                "psnr_db": 50.565892984454464
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 44.40208504949155,
+                "psnr_db": 51.339801338024635
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "98e2ffb0cbe920d4a50251cafe9b1bd3db20ebbf94e4e0d2dc7005760912d327",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.46750012494158,
+            "tile_time_s_mean": 0.02449478319225212,
+            "tile_time_s_median": 0.02308950002770871,
+            "tile_time_s_p95": 0.02946572504006324
+          }
+        },
+        {
+          "name": "local_and_global_shadow-step-400-weight-interp-half",
+          "checkpoint_sha256": "a332a953c6bd35184c0cbbcfee411c66919e98cc6d61f568e5b53d55a8d9b87e",
+          "metrics": {
+            "full_frame": {
+              "rmse_counts": 43.90262244116369,
+              "psnr_db": 51.43805936936855
+            },
+            "active": {
+              "rmse_counts": 43.90262244116369,
+              "psnr_db": 51.43805936936855
+            },
+            "active_area": [
+              0,
+              0,
+              5520,
+              8280
+            ],
+            "active_abs_error_percentiles": {
+              "p50": 9.0,
+              "p90": 27.0,
+              "p99": 60.0,
+              "p99_9": 314.0
+            },
+            "active_max_abs_error": 12552,
+            "active_bias_counts": -6.790847467268781,
+            "detail_gradient_threshold_counts": 53.0,
+            "detail_top_decile": {
+              "rmse_counts": 128.71311720366404,
+              "psnr_db": 42.09541245952898
+            },
+            "shadow_bottom_decile": {
+              "rmse_counts": 7.800268626083831,
+              "psnr_db": 66.44567744099436
+            },
+            "highlight_top_decile": {
+              "rmse_counts": 127.87911015005747,
+              "psnr_db": 42.151876513878136
+            },
+            "sites": [
+              {
+                "site": 0,
+                "color": "R",
+                "rmse_counts": 39.75570681166514,
+                "psnr_db": 52.29987904252687
+              },
+              {
+                "site": 1,
+                "color": "G",
+                "rmse_counts": 46.83453819849696,
+                "psnr_db": 50.87654377863504
+              },
+              {
+                "site": 2,
+                "color": "G",
+                "rmse_counts": 47.682164671942935,
+                "psnr_db": 50.720749360032585
+              },
+              {
+                "site": 3,
+                "color": "B",
+                "rmse_counts": 40.769866429529166,
+                "psnr_db": 52.08108285277596
+              }
+            ]
+          },
+          "regressions": [
+            "shadow_bottom_decile"
+          ],
+          "output_sha256": "4a9edfc7d8d5c23b243f7975f5fa312e115aed56211d79d3fee8b2f0f92e1550",
+          "runtime": {
+            "tile": 512,
+            "overlap": 32,
+            "tile_count": 15,
+            "inference_plus_copy_s": 0.47271183296106756,
+            "tile_time_s_mean": 0.024773786123842,
+            "tile_time_s_median": 0.02308824995998293,
+            "tile_time_s_p95": 0.030701720714569065
+          }
+        }
+      ]
+    }
+  ],
+  "baseline_active_mse": 6795.220743552212,
+  "active_samples": 182822400,
+  "results": [
+    {
+      "name": "local_shadow-step-200",
+      "active_mse": 5975.245024017845,
+      "gain_db": 0.5584785051380231,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    },
+    {
+      "name": "local_shadow-step-200-weight-interp-half",
+      "active_mse": 5970.844532994862,
+      "gain_db": 0.5616780610199132,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    },
+    {
+      "name": "local_shadow-step-400",
+      "active_mse": 5956.424031836362,
+      "gain_db": 0.5721796223739459,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    },
+    {
+      "name": "local_shadow-step-400-weight-interp-half",
+      "active_mse": 5959.984751409018,
+      "gain_db": 0.5695842080403797,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    },
+    {
+      "name": "local_and_global_shadow-step-400",
+      "active_mse": 6194.533785088698,
+      "gain_db": 0.4019494346859316,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "active"
+        },
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    },
+    {
+      "name": "local_and_global_shadow-step-400-weight-interp-half",
+      "active_mse": 6021.25719920535,
+      "gain_db": 0.5251639082644524,
+      "regressions": [
+        {
+          "source_index": 0,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 2,
+          "region": "shadow_bottom_decile"
+        },
+        {
+          "source_index": 3,
+          "region": "shadow_bottom_decile"
+        }
+      ],
+      "eligible": false
+    }
+  ],
+  "selected": null,
+  "elapsed_s": 46.84744829102419
+}

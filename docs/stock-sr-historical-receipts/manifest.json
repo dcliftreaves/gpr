@@ -1,0 +1,181 @@
+{
+  "schema": "gpr.stock_sr_historical_manifest.v1",
+  "files": [
+    {
+      "path": "archive_stock_sr_historical.py",
+      "sha256": "2276f1f7498409aee4d803d6eee8593049f80111d5f37acf4012af79b3c2c860",
+      "bytes": 8359
+    },
+    {
+      "path": "audit.json",
+      "sha256": "c84353fbabb35e00f69972b2b1e07c54f486e87a04cd1343c3764fa8ad87ab87",
+      "bytes": 15207
+    },
+    {
+      "path": "diagnose_stock_sr_historical_shadows.py",
+      "sha256": "8f137e6760126342b9ab9e8d1529c95edcbcbce587ff19b5014a7355d711893c",
+      "bytes": 3678
+    },
+    {
+      "path": "global-shadow/full-validation/evaluate_stock_sr_historical_global_full.py",
+      "sha256": "3eb5d1548bae0ab62e0a22e15f8f5747d7a8a70a67c82c6cd3cb955f663421c3",
+      "bytes": 7167
+    },
+    {
+      "path": "global-shadow/full-validation/protocol.json",
+      "sha256": "a8c0cca8ab741f6fc9cf23d1e864d1ea8062ab2f7f31e6576054dbcef2085580",
+      "bytes": 9380
+    },
+    {
+      "path": "global-shadow/full-validation/selection.json",
+      "sha256": "8e1bbfda9213c0f84dc548861cae1c6b53d6e6cece13360c176de2b7ad4273e0",
+      "bytes": 74741
+    },
+    {
+      "path": "global-shadow/global-shadow-audit.json",
+      "sha256": "b93169a4de9bb6b4ad3bd6ac73b7d296c4cb6c98fb96ea0a0c836c88334e5a83",
+      "bytes": 2927
+    },
+    {
+      "path": "global-shadow/historical-receipt-extract.json",
+      "sha256": "76c54caf4e93f214984dd965a199788a955641ff9e31e47b72cc47cf93c8958d",
+      "bytes": 1013
+    },
+    {
+      "path": "global-shadow/protocol.json",
+      "sha256": "79d6f4c63de55d5c2ecf6d9553e047013b5be6d1c883e4796d62631f99c84e28",
+      "bytes": 7213
+    },
+    {
+      "path": "global-shadow/shadow-attribution-protocol.json",
+      "sha256": "22ae68cff4426054c725934c5f76b4bb923ec93172d313b4bc3560539c6db47e",
+      "bytes": 686
+    },
+    {
+      "path": "global-shadow/shadow-attribution.json",
+      "sha256": "6455d01f7f680d0e8124ec4524fc2c076c1507472f587475483764c27c3e2660",
+      "bytes": 15041
+    },
+    {
+      "path": "global-shadow/shadow-weight-audit.json",
+      "sha256": "e0320ec9d65a9c6d9be3e538e8d68822fdc67f98de45e9cbadffc24951714671",
+      "bytes": 413
+    },
+    {
+      "path": "global-shadow/train_stock_sr_historical_global_shadow.py",
+      "sha256": "762ab16609680991f7590dde4ac7cbeca814deaa173b9d6bd82e5b01e565327b",
+      "bytes": 20518
+    },
+    {
+      "path": "global-shadow/training.json",
+      "sha256": "da081ce9f72291eb6e7045ae573d64b9743782c500ad8a9d02737a5541c89a74",
+      "bytes": 13424
+    },
+    {
+      "path": "historical-code/mission1_sr_models.py",
+      "sha256": "2a366df8044ff62a03ff11c3930ce93e1dd94f9a24485da4f4f57738bdb42f7c",
+      "bytes": 15144
+    },
+    {
+      "path": "historical-code/mission1_sr_runtime.py",
+      "sha256": "6f9309ddfd9816f4581a243375095c7da84aada0df10cdf0a71cecc83e2fffa8",
+      "bytes": 5928
+    },
+    {
+      "path": "historical-code/train_mission1_sr.py",
+      "sha256": "b013da321fe35bbce1df72bc0b8068cda9fa9ae1c5350fefe4602902340481b6",
+      "bytes": 53004
+    },
+    {
+      "path": "initial-import-setup/setup-error.txt",
+      "sha256": "bd480098519011c91ed18ed8439f061644a49478adab4774311e37ad9e97b708",
+      "bytes": 156
+    },
+    {
+      "path": "initial-import-setup/train_stock_sr_historical_recipe.py",
+      "sha256": "221d1786fb5756e8e3aeddd73925258f49b846373282efabb3a7f02874f53322",
+      "bytes": 13805
+    },
+    {
+      "path": "initial-missing-imagecodecs/initial.stderr",
+      "sha256": "7dc727494b3ed308451c661ac57c2b3164b5370b9b91a5cf719312c96bb90280",
+      "bytes": 2680
+    },
+    {
+      "path": "initial-missing-imagecodecs/protocol.json",
+      "sha256": "95dd51fbaadf65b26fe2205af335fc37469de1f1623e2c752d97f1ae9e56b4e7",
+      "bytes": 7213
+    },
+    {
+      "path": "initial-missing-imagecodecs/train_stock_sr_historical_global_shadow.py",
+      "sha256": "762ab16609680991f7590dde4ac7cbeca814deaa173b9d6bd82e5b01e565327b",
+      "bytes": 20518
+    },
+    {
+      "path": "local-shadow/full-validation/evaluate_stock_sr_historical_full.py",
+      "sha256": "03ae9b103c0b0acc9d86aae3bcad311bc3971e94baf4948a29fe62cce576f7ab",
+      "bytes": 7102
+    },
+    {
+      "path": "local-shadow/full-validation/protocol.json",
+      "sha256": "5eb993351e90e4f9b157c9d431e0f93899b19b93e62268adda7fae94a917b75f",
+      "bytes": 7152
+    },
+    {
+      "path": "local-shadow/full-validation/selection.json",
+      "sha256": "0cacb733073639d45013648c530b3bf24fc56e03e4b1452e4087b04e581330b8",
+      "bytes": 52663
+    },
+    {
+      "path": "local-shadow/historical-receipt-extract.json",
+      "sha256": "76c54caf4e93f214984dd965a199788a955641ff9e31e47b72cc47cf93c8958d",
+      "bytes": 1013
+    },
+    {
+      "path": "local-shadow/protocol.json",
+      "sha256": "5a4746e3c4f9fc388b13a5af92dc94f0796f88d7bfa3f10a46cecf0da660a532",
+      "bytes": 6703
+    },
+    {
+      "path": "local-shadow/shadow-weight-audit.json",
+      "sha256": "e0320ec9d65a9c6d9be3e538e8d68822fdc67f98de45e9cbadffc24951714671",
+      "bytes": 413
+    },
+    {
+      "path": "local-shadow/train_stock_sr_historical_shadow.py",
+      "sha256": "3a24fda570e9cd0e1db0567d332a27dc3150ae4665153d66f04e8799f816a1c2",
+      "bytes": 16590
+    },
+    {
+      "path": "local-shadow/training.json",
+      "sha256": "709a0b27189d8c77eec03b9e4e2902e91429dfb7268ee563d14dd01dff26041c",
+      "bytes": 13632
+    },
+    {
+      "path": "passed-f292c4b.json",
+      "sha256": "adf80829e9167ee24846eab4c3b6459fae3169c6dd088ea25319213bb3cc1c9f",
+      "bytes": 27017
+    },
+    {
+      "path": "recipe/historical-receipt-extract.json",
+      "sha256": "76c54caf4e93f214984dd965a199788a955641ff9e31e47b72cc47cf93c8958d",
+      "bytes": 1013
+    },
+    {
+      "path": "recipe/protocol.json",
+      "sha256": "40e5d635eee4ffb6fa4d0887e160c8e41c102222a172bbee0755016c33d8794e",
+      "bytes": 5978
+    },
+    {
+      "path": "recipe/train_stock_sr_historical_recipe.py",
+      "sha256": "490f1e5d6c5c13695ff87eb9614783f0e48715368c70bb506bca522ac31242b7",
+      "bytes": 13838
+    },
+    {
+      "path": "recipe/training.json",
+      "sha256": "e882feea765dd7e54a916ea9f7f98fd5a8338d8acf267b57c7b3c84acbdbcfec",
+      "bytes": 16178
+    }
+  ],
+  "media_and_weights_uploaded": false
+}

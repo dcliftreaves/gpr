@@ -230,6 +230,16 @@ The frozen gate passes four historical references on CPU/MPS (+0.022879 dB poole
 
 The complete recipe-family follow-up evaluates all 48 patch-qualified settings across four full validation images: ten pass, but best gain is +0.00735 dB versus existing BIBO +0.02782 dB. The earlier shortlist missed weaker passing candidates. No quality replacement or final-reference promotion follows; the shadow overshoot and full-family receipts are retained.
 
+The [historical-width/pretraining comparison](stock-sr-historical-recipe.md)
+now reconstructs the 633,444-parameter old selected architecture and recorded
+structure losses on stock pairs. Starting from the old weights gains +0.97659 dB
+on patches versus -0.76376 dB from scratch under the same 400-update budget.
+Training-only shadow constraints yield patch-qualified families with up to
++0.57218 dB pooled full-image gain, but all fail complete-image regional guards.
+The audit covers 2,400 updates and every qualified candidate across four images
+(40 inferences). Border artifacts and interior shadow overshoot both remain;
+no new weights or quality approval are promoted.
+
 The [supplied-camera study](stock-cnn-gopro.md) closes a concrete quality-evidence
 gap: the exact supplied 1x checkpoint passes four RAW regions on each of two
 actual 12 MP GoPro files, and the 2x diagnostic passes one 50 MP GPR-derived

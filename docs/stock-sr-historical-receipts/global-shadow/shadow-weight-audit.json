@@ -1,0 +1,12 @@
+{
+  "complete": true,
+  "masks_sha256": "94130db4359509ffcabccbdff87a1ad6abb1ae59935fcfc3a4b568e2d8cb4ff5",
+  "norm_sha256": "472e469642f9090985efc3658dcd6c25cd7581129f169e2d755186cf1554899c",
+  "training_patches": 512,
+  "nontraining_patches": 128,
+  "nontraining_masks_zero": true,
+  "nontraining_norm_unset": true,
+  "denominator_floor_counts_squared": 1.0,
+  "mse_min": 1.0,
+  "mse_max": 147430.52975194034
+}

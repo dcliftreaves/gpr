@@ -1,0 +1,435 @@
+{
+  "schema": "gpr.stock_sr_historical_recipe.v1",
+  "complete": true,
+  "quality_approval": false,
+  "protocol_sha256": "40e5d635eee4ffb6fa4d0887e160c8e41c102222a172bbee0755016c33d8794e",
+  "cases": [
+    {
+      "initialization": "pretrained",
+      "initial_metrics": {
+        "pooled": {
+          "overall": 15813.402799367905,
+          "shadow": 5244.138248145866,
+          "highlight": 93546.31568423382,
+          "detail": 94322.81691985486
+        },
+        "group:20250727_ForestFire": {
+          "overall": 19539.135618448257,
+          "shadow": 10203.089417259464,
+          "highlight": 88361.49011672309,
+          "detail": 91408.34683765116
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 12087.669980287552,
+          "shadow": 427.1257465683453,
+          "highlight": 98662.58299006599,
+          "detail": 97191.69842511098
+        }
+      },
+      "checkpoints": [
+        {
+          "step": 1,
+          "sha256": "52bf20497bd7c9a086c6af0d084e84a2b91c9419d70fa9fba5eea4d22eca7926",
+          "loss": 0.042846277356147766,
+          "elapsed_s": 2.5137124579999996
+        },
+        {
+          "step": 200,
+          "sha256": "b921de6a2e9beee62599419e00116755a9dd7892efdbd5f4e71f5e2b61ba386a",
+          "loss": 0.031999338418245316,
+          "elapsed_s": 21.28827575
+        },
+        {
+          "step": 400,
+          "sha256": "f51ea221215ee3d704b23b08b7f2b7ce998f5ec207d7d4bf29928dd1dfd18b8a",
+          "loss": 0.037129320204257965,
+          "elapsed_s": 40.158190583
+        }
+      ],
+      "candidates": [
+        {
+          "name": "pretrained-step-200",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/pretrained/step-200.pt",
+          "checkpoint_sha256": "62ac71ecaa4c59abf7e7870252800d02e09da32cd138fbac7e8a9beb98eb4500",
+          "step": 200,
+          "weight_interpolation": false,
+          "metrics": {
+            "pooled": {
+              "overall": 7148.378420710564,
+              "shadow": 4563.442715150004,
+              "highlight": 39575.709680176165,
+              "detail": 43264.714716877876
+            },
+            "group:20250727_ForestFire": {
+              "overall": 8609.480086565018,
+              "shadow": 8860.800806219271,
+              "highlight": 31363.228953546477,
+              "detail": 38488.24046344971
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 5687.27675485611,
+              "shadow": 389.086698626428,
+              "highlight": 47679.59786201234,
+              "detail": 47966.47464560936
+            }
+          },
+          "regressions": [
+            "pooled:shadow",
+            "group:20250727_ForestFire:shadow",
+            "group:LRT_20250730_05__ColoradoSky:shadow"
+          ],
+          "eligible": false,
+          "gain_db": 0.886138124417647
+        },
+        {
+          "name": "pretrained-step-200-weight-interp-half",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/pretrained/step-200-weight-interp-half.pt",
+          "checkpoint_sha256": "b3296ff866e82fddeed3d5d508beadf9d9eb2c4fc58ce198a4e8f761dbb07115",
+          "step": 200,
+          "weight_interpolation": true,
+          "metrics": {
+            "pooled": {
+              "overall": 9038.891170501709,
+              "shadow": 4568.725545391382,
+              "highlight": 51592.201169764536,
+              "detail": 55000.42050912051
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10845.072873353958,
+              "shadow": 8884.024758099084,
+              "highlight": 43388.08705674929,
+              "detail": 49934.889276537564
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 7232.70946764946,
+              "shadow": 376.9419309186801,
+              "highlight": 59687.83336860982,
+              "detail": 59986.71594450413
+            }
+          },
+          "regressions": [
+            "pooled:overall",
+            "pooled:shadow",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:shadow"
+          ],
+          "eligible": false,
+          "gain_db": -0.13293809902615109
+        },
+        {
+          "name": "pretrained-step-400",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/pretrained/step-400.pt",
+          "checkpoint_sha256": "2c0b0f86cf26dff0f70c7053b521eeb41b4a1b7703a241d0c510d89188755cbb",
+          "step": 400,
+          "weight_interpolation": false,
+          "metrics": {
+            "pooled": {
+              "overall": 7001.040984511375,
+              "shadow": 4484.234874348196,
+              "highlight": 38474.85967976642,
+              "detail": 42376.74515559059
+            },
+            "group:20250727_ForestFire": {
+              "overall": 8544.877676486969,
+              "shadow": 8730.736456242345,
+              "highlight": 31203.783534314513,
+              "detail": 38117.758829353384
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 5457.204292535782,
+              "shadow": 359.27971541099083,
+              "highlight": 45649.79134849989,
+              "detail": 46569.11178068969
+            }
+          },
+          "regressions": [
+            "pooled:shadow",
+            "group:20250727_ForestFire:shadow",
+            "group:LRT_20250730_05__ColoradoSky:shadow"
+          ],
+          "eligible": false,
+          "gain_db": 0.9765872751114877
+        },
+        {
+          "name": "pretrained-step-400-weight-interp-half",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/pretrained/step-400-weight-interp-half.pt",
+          "checkpoint_sha256": "59d540058343e1673e3bfde99d3e71cfb4a00b3c27ba94bceb0b13fae5413355",
+          "step": 400,
+          "weight_interpolation": true,
+          "metrics": {
+            "pooled": {
+              "overall": 8730.299415826797,
+              "shadow": 4567.141605554671,
+              "highlight": 49305.27207795933,
+              "detail": 52991.39959142196
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10573.717356204987,
+              "shadow": 8866.910676432492,
+              "highlight": 41683.96957232965,
+              "detail": 48191.96428419886
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 6886.881475448608,
+              "shadow": 390.4436180209369,
+              "highlight": 56825.799110102176,
+              "detail": 57715.76141371061
+            }
+          },
+          "regressions": [
+            "pooled:shadow",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:shadow"
+          ],
+          "eligible": false,
+          "gain_db": 0.017922089582619607
+        }
+      ]
+    },
+    {
+      "initialization": "fresh",
+      "initial_metrics": {
+        "pooled": {
+          "overall": 10502.248838663101,
+          "shadow": 4573.113064694463,
+          "highlight": 72666.97361005585,
+          "detail": 72428.0399468638
+        },
+        "group:20250727_ForestFire": {
+          "overall": 10475.789634466171,
+          "shadow": 8969.531146719259,
+          "highlight": 50939.390367046,
+          "detail": 56667.198430022865
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 10528.708042860031,
+          "shadow": 302.532423534337,
+          "highlight": 94107.25589795715,
+          "detail": 87942.34802332516
+        }
+      },
+      "checkpoints": [
+        {
+          "step": 1,
+          "sha256": "bc5a132e071471875d6197e5f83c349de56ba6a4f597e8b94203e72e608827af",
+          "loss": 0.03909735754132271,
+          "elapsed_s": 42.426364916
+        },
+        {
+          "step": 200,
+          "sha256": "e2864d83336ab70a200035df8395959cb044414e596a0efbce130599ad374e36",
+          "loss": 0.032285839319229126,
+          "elapsed_s": 61.233529999999995
+        },
+        {
+          "step": 400,
+          "sha256": "402d96e9a2e58fbe6b32b521746aed9cfeffb670a0051e542b2318b6dc5856cb",
+          "loss": 0.03739291429519653,
+          "elapsed_s": 80.146882125
+        }
+      ],
+      "candidates": [
+        {
+          "name": "fresh-step-200",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/fresh/step-200.pt",
+          "checkpoint_sha256": "327008b8d1d71cc0f0fa3cb47c0a395a516e95d15a711f435f7f43a97e3f2865",
+          "step": 200,
+          "weight_interpolation": false,
+          "metrics": {
+            "pooled": {
+              "overall": 10484.009842514992,
+              "shadow": 4770.261254648321,
+              "highlight": 72263.09964656534,
+              "detail": 72326.50803415965
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10460.403371334076,
+              "shadow": 9303.421562266501,
+              "highlight": 50419.700390334045,
+              "detail": 56557.80144268169
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 10507.616313695908,
+              "shadow": 366.85232223994393,
+              "highlight": 93817.66652788664,
+              "detail": 87848.55815858416
+            }
+          },
+          "regressions": [
+            "pooled:overall",
+            "pooled:shadow",
+            "pooled:highlight",
+            "pooled:detail",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:overall",
+            "group:LRT_20250730_05__ColoradoSky:shadow",
+            "group:LRT_20250730_05__ColoradoSky:highlight",
+            "group:LRT_20250730_05__ColoradoSky:detail"
+          ],
+          "eligible": false,
+          "gain_db": -0.7770607243932715
+        },
+        {
+          "name": "fresh-step-200-weight-interp-half",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/fresh/step-200-weight-interp-half.pt",
+          "checkpoint_sha256": "c38fe09225419e67397e238f2d43b05694a001386d0600c314e12d13f7efd6e8",
+          "step": 200,
+          "weight_interpolation": true,
+          "metrics": {
+            "pooled": {
+              "overall": 10488.514511108398,
+              "shadow": 4853.547693902188,
+              "highlight": 72201.86501348062,
+              "detail": 72326.51056116918
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10462.833707332611,
+              "shadow": 9439.518591997301,
+              "highlight": 50279.552881306394,
+              "detail": 56536.66910492445
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 10514.195314884186,
+              "shadow": 398.8397537263004,
+              "highlight": 93834.30131623936,
+              "detail": 87869.3649556446
+            }
+          },
+          "regressions": [
+            "pooled:overall",
+            "pooled:shadow",
+            "pooled:highlight",
+            "pooled:detail",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:overall",
+            "group:LRT_20250730_05__ColoradoSky:shadow",
+            "group:LRT_20250730_05__ColoradoSky:highlight",
+            "group:LRT_20250730_05__ColoradoSky:detail"
+          ],
+          "eligible": false,
+          "gain_db": -0.7789263584104433
+        },
+        {
+          "name": "fresh-step-400",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/fresh/step-400.pt",
+          "checkpoint_sha256": "193b40d893db166b066d262c1bb5f39aa1e3dfddc03db6b412b62e1437a65a60",
+          "step": 400,
+          "weight_interpolation": false,
+          "metrics": {
+            "pooled": {
+              "overall": 10451.956379771233,
+              "shadow": 4731.8163200768195,
+              "highlight": 71999.91967702698,
+              "detail": 72146.17971586637
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10449.668004512787,
+              "shadow": 9223.43224783396,
+              "highlight": 50434.7529157199,
+              "detail": 56473.50398151859
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 10454.244755029678,
+              "shadow": 368.76265440455416,
+              "highlight": 93279.93309484878,
+              "detail": 87573.70111219141
+            }
+          },
+          "regressions": [
+            "pooled:overall",
+            "pooled:shadow",
+            "pooled:highlight",
+            "pooled:detail",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:overall",
+            "group:LRT_20250730_05__ColoradoSky:shadow",
+            "group:LRT_20250730_05__ColoradoSky:highlight",
+            "group:LRT_20250730_05__ColoradoSky:detail"
+          ],
+          "eligible": false,
+          "gain_db": -0.7637624101673708
+        },
+        {
+          "name": "fresh-step-400-weight-interp-half",
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_recipe_20261030/fresh/step-400-weight-interp-half.pt",
+          "checkpoint_sha256": "922573c948bc0495c335f829249305702472c5fff314e6a7677726b3f081c91b",
+          "step": 400,
+          "weight_interpolation": true,
+          "metrics": {
+            "pooled": {
+              "overall": 10478.080220937729,
+              "shadow": 4804.084448814808,
+              "highlight": 72192.97464378492,
+              "detail": 72277.96697580924
+            },
+            "group:20250727_ForestFire": {
+              "overall": 10458.605978250504,
+              "shadow": 9352.653262470985,
+              "highlight": 50392.19915286198,
+              "detail": 56525.327476957165
+            },
+            "group:LRT_20250730_05__ColoradoSky": {
+              "overall": 10497.554463624954,
+              "shadow": 385.7080437122165,
+              "highlight": 93705.48136820046,
+              "detail": 87784.20133147389
+            }
+          },
+          "regressions": [
+            "pooled:overall",
+            "pooled:shadow",
+            "pooled:highlight",
+            "pooled:detail",
+            "group:20250727_ForestFire:overall",
+            "group:20250727_ForestFire:shadow",
+            "group:20250727_ForestFire:highlight",
+            "group:20250727_ForestFire:detail",
+            "group:LRT_20250730_05__ColoradoSky:overall",
+            "group:LRT_20250730_05__ColoradoSky:shadow",
+            "group:LRT_20250730_05__ColoradoSky:highlight",
+            "group:LRT_20250730_05__ColoradoSky:detail"
+          ],
+          "eligible": false,
+          "gain_db": -0.7746037155819636
+        }
+      ]
+    }
+  ],
+  "torch": "2.8.0",
+  "baseline": {
+    "pooled": {
+      "overall": 8766.401301264763,
+      "shadow": 4388.140808040238,
+      "highlight": 55202.06661523387,
+      "detail": 57507.429135566286
+    },
+    "group:20250727_ForestFire": {
+      "overall": 9548.436923742294,
+      "shadow": 8581.813733366751,
+      "highlight": 40723.667219011346,
+      "detail": 46797.142849060605
+    },
+    "group:LRT_20250730_05__ColoradoSky": {
+      "overall": 7984.365678787231,
+      "shadow": 314.5022058606042,
+      "highlight": 69489.02005410095,
+      "detail": 68050.18352202454
+    }
+  },
+  "elapsed_s": 81.882880708
+}

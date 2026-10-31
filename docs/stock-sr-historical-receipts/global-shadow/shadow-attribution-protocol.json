@@ -1,0 +1,13 @@
+{
+  "schema": "gpr.stock_sr_historical_shadow_attribution_protocol.v1",
+  "driver_sha256": "8f137e6760126342b9ab9e8d1529c95edcbcbce587ff19b5014a7355d711893c",
+  "selection_sha256": "8e1bbfda9213c0f84dc548861cae1c6b53d6e6cece13360c176de2b7ad4273e0",
+  "names": [
+    "local_shadow-step-400",
+    "local_and_global_shadow-step-400",
+    "local_and_global_shadow-step-400-weight-interp-half"
+  ],
+  "frame_border_width_bayer_pixels": 64,
+  "purpose": "Quantify shadow regression from existing complete validation outputs at frame edges versus interior. Report E squared, R squared, and2E.R; no fitted gate, threshold sweep, final pixels or model selection.",
+  "quality_approval": false
+}

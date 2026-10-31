@@ -1,7 +1,9 @@
 # CNN tactics: historical evidence and research comparison
 
-The stock rebuild implements the CNN media paths but has not yet reproduced the
-specialized architecture/training recipe of the old selected 8K model. The
+The stock rebuild implements the CNN media paths. A new
+[historical-architecture study](stock-sr-historical-recipe.md) reconstructs the
+old selected model and documented losses on stock pairs; it does not replay
+the full historical training corpus or establish replacement quality. The
 current stock candidate is a width-16 BIBO U-Net with a bicubic residual; the old
 selected model is a width-96/depth-6 coordinate/detail/preclean adapter with a
 PixelShuffle head. Runtime parity alone does not establish quality parity.
@@ -21,7 +23,7 @@ not fresh stock results or a clean per-component ablation.
 | Match the actual codec input | Selected model trained on Mission 1 q4/t2 lows with a detail-residual sidecar and regenerated Nikon lows | Regenerate pairs through stock Q3; old weights/sidecar performance cannot be inherited |
 | Pre-clean before enlargement | Separate low-resolution correction feeds the SR adapter | Explicit preclean supervision is a justified next architecture comparison |
 | Give SR coordinates and detail | Two absolute coordinate channels and four deterministic same-site high-pass channels feed the adapter | Test these independently; coordinates must be global across tiles, and can also overfit position |
-| Preserve structure in the loss | Registry specifies gradient 0.4, Laplacian 0.05 and detail-phase 0.1 weights | Current regional MSE weighting does not reproduce these objectives; add controlled gradient/phase loss comparisons |
+| Preserve structure in the loss | Registry specifies gradient 0.4, but the selected-endpoint training receipt specifies 4.0; both give Laplacian 0.05 and detail-phase 0.1 | The historical-architecture reconstruction uses receipt 4.0 and records the discrepancy; regional MSE alone does not reproduce these objectives |
 | Balance hard examples against broad scenes | Historical current-contract summary says hard-only improvements regress Nikon; balanced/mixed training partly recovers it | Source-balanced mining with full-image validation, not repeated training on the worst crop alone |
 | Interpolate checkpoint weights | Selected alpha 0.5 is interpolation between step-1 and balanced step-200 weights | This differs from multiplying one model's output residual by alpha; test correlated checkpoint interpolation separately |
 | Check full images and rendered appearance | Broad receipts cover 42 Mission rows and 24 regenerated Nikon rows; 4K cleanup has separate RGB/CFA/tone review | RAW regional checks, calibrated render comparisons and temporal review need separate evidence |

@@ -1,0 +1,235 @@
+{
+  "schema": "gpr.stock_sr_historical_global_full_protocol.v1",
+  "created_utc": "2026-10-31T04:48:56.672242+00:00",
+  "driver_sha256": "3eb5d1548bae0ab62e0a22e15f8f5747d7a8a70a67c82c6cd3cb955f663421c3",
+  "training_sha256": "da081ce9f72291eb6e7045ae573d64b9743782c500ad8a9d02737a5541c89a74",
+  "training_protocol_sha256": "79d6f4c63de55d5c2ecf6d9553e047013b5be6d1c883e4796d62631f99c84e28",
+  "parent_full_protocol_sha256": "a0497a61980d806af9af86e48d82cede7ea16adae8bfa0174566d9f8b1abacab",
+  "candidates": [
+    {
+      "name": "local_shadow-step-200",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_shadow/step-200.pt",
+      "checkpoint_sha256": "27e7737631e7b2ecf6c1349ddd9f7c778e94c689f8246e35846e351c825a5a27",
+      "step": 200,
+      "weight_interpolation": false,
+      "metrics": {
+        "pooled": {
+          "overall": 7032.371569395065,
+          "shadow": 4136.795409271481,
+          "highlight": 38943.8942072539,
+          "detail": 42388.06052661429
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8578.18703365326,
+          "shadow": 8097.905094734278,
+          "highlight": 31806.48853747301,
+          "detail": 38130.28755804908
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5486.556105136871,
+          "shadow": 289.0634546120575,
+          "highlight": 45986.92290730967,
+          "detail": 46579.232773563584
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.9571953806816211
+    },
+    {
+      "name": "local_shadow-step-200-weight-interp-half",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_shadow/step-200-weight-interp-half.pt",
+      "checkpoint_sha256": "b33c42f9b53671e15ac48d4600416683b5019341169fd28df8b2cb41603975ba",
+      "step": 200,
+      "weight_interpolation": true,
+      "metrics": {
+        "pooled": {
+          "overall": 7027.279319047928,
+          "shadow": 4152.231466156996,
+          "highlight": 38912.45489113065,
+          "detail": 42415.737869243334
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8571.941114664078,
+          "shadow": 8145.561420932188,
+          "highlight": 31814.61090578241,
+          "detail": 38166.854977487565
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5482.617523431778,
+          "shadow": 273.20147391077813,
+          "highlight": 45916.44502566655,
+          "detail": 46598.15909929435
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.9603413141624493
+    },
+    {
+      "name": "local_shadow-step-400",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_shadow/step-400.pt",
+      "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+      "step": 400,
+      "weight_interpolation": false,
+      "metrics": {
+        "pooled": {
+          "overall": 7015.330725669861,
+          "shadow": 4262.246128419444,
+          "highlight": 38834.33586243794,
+          "detail": 42349.58619838837
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8562.693026781082,
+          "shadow": 8329.207328584713,
+          "highlight": 31697.696923055166,
+          "detail": 38133.15713679545
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5467.9684245586395,
+          "shadow": 311.6924172546307,
+          "highlight": 45876.60797047009,
+          "detail": 46500.06124594212
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.967731976448738
+    },
+    {
+      "name": "local_shadow-step-400-weight-interp-half",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_shadow/step-400-weight-interp-half.pt",
+      "checkpoint_sha256": "4ef10d77e9355651fd6a45d860e3b97530441654a2933a193d8cd0752b9b1cd5",
+      "step": 400,
+      "weight_interpolation": true,
+      "metrics": {
+        "pooled": {
+          "overall": 7016.057197570801,
+          "shadow": 4218.92306467138,
+          "highlight": 38831.9412354877,
+          "detail": 42376.105196565324
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8562.676761388779,
+          "shadow": 8268.693800637573,
+          "highlight": 31740.67159376974,
+          "detail": 38156.7967846114
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5469.437633752823,
+          "shadow": 285.06777987354127,
+          "highlight": 45829.443958068274,
+          "detail": 46529.41455525106
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.9672822664986692
+    },
+    {
+      "name": "local_and_global_shadow-step-400",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_and_global_shadow/step-400.pt",
+      "checkpoint_sha256": "77e39e3522281f14d8399de25895e14b1b968f03d03b03bb85f8f54c549afb1f",
+      "step": 400,
+      "weight_interpolation": false,
+      "metrics": {
+        "pooled": {
+          "overall": 7223.709299206734,
+          "shadow": 3447.5700231521555,
+          "highlight": 40209.87700614267,
+          "detail": 42822.84909976016
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8823.637120008469,
+          "shadow": 6735.745075902195,
+          "highlight": 33670.45543922009,
+          "detail": 38668.66530020509
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5623.781478404999,
+          "shadow": 253.51148207894684,
+          "highlight": 46662.828667921116,
+          "detail": 46912.05253497497
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.8406108703530312
+    },
+    {
+      "name": "local_and_global_shadow-step-400-weight-interp-half",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_historical_global_shadow_20261030/local_and_global_shadow/step-400-weight-interp-half.pt",
+      "checkpoint_sha256": "a332a953c6bd35184c0cbbcfee411c66919e98cc6d61f568e5b53d55a8d9b87e",
+      "step": 400,
+      "weight_interpolation": true,
+      "metrics": {
+        "pooled": {
+          "overall": 7074.473714590073,
+          "shadow": 3910.1978089704794,
+          "highlight": 39371.08399663306,
+          "detail": 42529.612119823054
+        },
+        "group:20250727_ForestFire": {
+          "overall": 8632.322334051132,
+          "shadow": 7636.410731476515,
+          "highlight": 32496.90346303612,
+          "detail": 38322.721112185005
+        },
+        "group:LRT_20250730_05__ColoradoSky": {
+          "overall": 5516.625095129013,
+          "shadow": 290.6392331477483,
+          "highlight": 46154.36815161291,
+          "detail": 46670.698309088504
+        }
+      },
+      "regressions": [],
+      "eligible": true,
+      "gain_db": 0.9312721026471773
+    }
+  ],
+  "validation_sources": [
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_001.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/20250727_ForestFire_010.dng",
+      "group": "20250727_ForestFire",
+      "split": "validation",
+      "sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_001.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa"
+    },
+    {
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+      "group": "LRT_20250730_05__ColoradoSky",
+      "split": "validation",
+      "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+    }
+  ],
+  "torch": "2.12.0",
+  "device": "mps",
+  "threads": 4,
+  "tile": 512,
+  "overlap": 32,
+  "coordinate_channels": true,
+  "model_source_sha256": "2a366df8044ff62a03ff11c3930ce93e1dd94f9a24485da4f4f57738bdb42f7c",
+  "runtime_source_sha256": "6f9309ddfd9816f4581a243375095c7da84aada0df10cdf0a71cecc83e2fffa8",
+  "metric_source_sha256": "11c8b0c1598c359150044549da105de48423893a7e9c8c38d06320598a4993b6",
+  "baseline_source_sha256": "0564742516b755ff04f148ec084b78f48cfdef1791a3bfa64f7ff45f39a560da",
+  "tiling": "Exact archived historical run_tiles: global coordinates; crop half-overlap; original zero-convolution frame edges. Current bicubic comparison keeps its original reflect-halo runtime.",
+  "selection": "Every candidate on all four complete validation sources; every per-image active/shadow/highlight/detail RMSE must not increase; strict pooled active MSE improvement; select lowest eligible pooled active MSE.",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "limitations": [
+    "Validation held out from these updates only; historical pretraining overlap not excluded.",
+    "Reused small Nikon dataset; not native GoPro/temporal or visible-detail approval.",
+    "No reference masks at inference; all region masks used only for scoring."
+  ]
+}

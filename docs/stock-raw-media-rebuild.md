@@ -562,3 +562,5 @@ proposal and two scratch-row variants are discarded after broader controls;
 all 4,605 accepted combined frames/previews remain exact, but all eight timing
 floors fail. Runtime source/executable are restored, with fresh 27 Mac/24 Pi
 Release passes. Baseline 779bb47 passes all seven hosted jobs.
+
+The [historical-width/pretraining study](stock-sr-historical-recipe.md) adds three controlled comparisons on stock pairs: 2,400 updates and 40 complete-image candidate inferences. Old pretrained initialization is substantially better than fresh initialization under the matched budget. Shadow-constrained models improve full-image pooled fidelity by up to +0.57218 dB but fail regional guards; no replacement is selected. Border artifacts and interior overshoot both need further work.
