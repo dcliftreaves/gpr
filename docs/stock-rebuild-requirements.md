@@ -1,7 +1,8 @@
 # Stock rebuild requirement ledger
 
 Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
-Published evidence head before this update: `cade228` (all seven hosted jobs pass).
+Published verification before this update: `2680e70` (all seven hosted jobs pass).
+The new shared Python GainMap simulation helper has separate focused Mac/Pi and real-camera receipts; its eventual commit needs its own CI.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
 is implemented in `f197f09`.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
@@ -226,3 +227,23 @@ The [CNN tactics audit](stock-cnn-tactics.md) checks the old selected preclean/d
 The frozen gate passes four historical references on CPU/MPS (+0.022879 dB pooled, at most one count cross-host), but remains analysis-only without useful-detail/native/Pi approval. Separately, the [eight-case older-recipe comparison](stock-sr-recipe-comparison.md) completes training and 72 full-image inferences; all 18 shortlisted candidates fail regional guards. No replacement model is promoted; broader quality remains open.
 
 The complete recipe-family follow-up evaluates all 48 patch-qualified settings across four full validation images: ten pass, but best gain is +0.00735 dB versus existing BIBO +0.02782 dB. The earlier shortlist missed weaker passing candidates. No quality replacement or final-reference promotion follows; the shadow overshoot and full-family receipts are retained.
+
+The [supplied-camera study](stock-cnn-gopro.md) closes a concrete quality-evidence
+gap: the exact supplied 1x checkpoint passes four RAW regions on each of two
+actual 12 MP GoPro files, and the 2x diagnostic passes one 50 MP GPR-derived
+reference simulation. Matched 16-bit rendered RGB/luma fidelity also improves
+on all three. New shared full-frame GainMap simulation support passes 23
+focused Mac/Pi test methods and exact roundtrips for all three actual camera
+metadata packets. Original noise, lost texture, broader/temporal quality and
+restored-tier promotion remain unresolved; decoded compressed references are
+not sensor truth. No weights or native encoder source change.
+
+A separate [four-case signal-conditioning study](stock-sr-signal-conditioning.md)
+improves full validation but fails six of 32 historical-reference regional
+checks and is not promoted. A [direct transfer](stock-old-sr-transfer.md) of the
+exact old selected SR checkpoint loses 5.36 dB on the current stock test, while
+a matched old-input control reproduces its original 60.30149 dB. The older
+weights are not a drop-in stock substitute. [Mission 1 source grouping](stock-sr-mission-sources.md)
+binds 42 cached RAW references and a conservative future scene split; original
+GPRs are unavailable for fresh redecoding and per-frame calibration remains to
+bind before new training claims. The old PRs remain untouched.

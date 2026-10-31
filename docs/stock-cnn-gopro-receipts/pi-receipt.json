@@ -1,0 +1,70 @@
+{
+  "schema": "gpr.stock_gainmap_pi_qa.v1",
+  "complete": true,
+  "uid": 1000,
+  "source_manifest_sha256": "e562607cf77cf56d963a308f1a59625d0ab3a63bc280c1ab9697f5913480397e",
+  "production_capture_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "binary_sha256": {
+    "sdk": "650ef7794ad0fa56805450366b125e4a9d37260baec1d64292da3e475e838a7b",
+    "decoder": "b61ba3a0835643244270c3a8e8f25762d135a4cf55830c88730bf449cfb2d514",
+    "capture": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+    "probe": "6105d336d038cdd09034885f1c477f5e47115a8f253fa9d8b4ef17fbc7ecf624",
+    "bridge": "a3319a851b9ec1593d187fd8911aa0c29c8239dc117a3a67350bb72472f799ff"
+  },
+  "tests": [
+    {
+      "name": "raw-media",
+      "returncode": 0,
+      "elapsed_s": 1.3207081016153097,
+      "log_sha256": "07624ab13c2d7f5bf3781abf8c65645444befb959d78c3db1aec59e3845eea92"
+    },
+    {
+      "name": "cnn",
+      "returncode": 0,
+      "elapsed_s": 10.80215074121952,
+      "log_sha256": "5d465f2add2715aa6868460778af96ebc065ebdefbc3117d6a4d337f30fb1fe8"
+    },
+    {
+      "name": "upres",
+      "returncode": 0,
+      "elapsed_s": 5.6726243030279875,
+      "log_sha256": "e73e03c311e7280a5f985c5c9b3d6e374d623fb6e38bd6c64c999536f4b921c5"
+    },
+    {
+      "name": "sequence",
+      "returncode": 0,
+      "elapsed_s": 0.33929664827883244,
+      "log_sha256": "aa3e57ae7be01669c483a9205961a3c36a3f8b42ee78c2e52381a9cea82fbc08"
+    }
+  ],
+  "metadata_roundtrips": [
+    {
+      "name": "GP011689.json",
+      "metadata_file_sha256": "e61985cc733e4c3fc03ef3bd0d63fe13ddf7fe6011a9c7a05cab0e3e05a96b7e",
+      "high_roundtrip_exact": true
+    },
+    {
+      "name": "GP011728.json",
+      "metadata_file_sha256": "82443c376a8a4fede9a335db8860ea0895e0e8ab9a786a1d0cea74e20019c9c2",
+      "high_roundtrip_exact": true
+    },
+    {
+      "name": "GPAB1094.json",
+      "metadata_file_sha256": "0bbb38c6acffd4ff21d1d06c44a7be9dbc67e8fabeaa2e40c5fb043813b50331",
+      "high_roundtrip_exact": true
+    }
+  ],
+  "passed": true,
+  "initial_receipt_sha256": "962f573469fb3b0fac980ad1f61ce352f047e4271e86ff0a4f1c877e8175a29e",
+  "reused_passed_tests": [
+    "cnn",
+    "upres",
+    "sequence"
+  ],
+  "recheck_driver_sha256": "f3a9053cf7698788f42a0e23e4032a484159ddef3e45482311ad5f1741ebcd21",
+  "fixture_fix": "copy original test fixtures into isolated snapshot; source/binaries unchanged",
+  "observer_uid": 1000,
+  "observer_policy": 0,
+  "observer_nice": 0,
+  "rt_runtime_us": "950000"
+}

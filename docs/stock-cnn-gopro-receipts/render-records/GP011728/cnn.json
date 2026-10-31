@@ -1,0 +1,21 @@
+{
+  "baseline_exposure": 0,
+  "bits_per_component": 16,
+  "color_space": "ITU-R BT.709",
+  "decoder": "8.dng",
+  "draft": false,
+  "global_tone_amount": 0,
+  "height": 3072,
+  "lens_correction_enabled": false,
+  "lens_correction_supported": false,
+  "local_tone_amount": 0,
+  "native_height": 3072,
+  "native_width": 4096,
+  "neutral_temperature": 3810.892822265625,
+  "neutral_tint": 14.979544639587402,
+  "os_version": "Version 26.7.1 (Build 25G241)",
+  "schema": "gpr.raw_render.v1",
+  "source_orientation": 1,
+  "transfer": "BT.709",
+  "width": 4096
+}

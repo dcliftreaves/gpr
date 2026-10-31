@@ -1,0 +1,1 @@
+{"complete": true, "gain_vs_bicubic_db": -5.360222094306216, "gain_vs_current_bibo_db": -5.443048671635516, "regressions": ["active", "shadow_bottom_decile", "highlight_top_decile", "detail_top_decile"]}

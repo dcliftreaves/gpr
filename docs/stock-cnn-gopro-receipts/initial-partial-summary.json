@@ -1,0 +1,306 @@
+{
+  "schema": "gpr.stock_cnn_supplied_camera.v1",
+  "complete": false,
+  "quality_approval": false,
+  "protocol_sha256": "5369d0cfc2533bdaa586025beace71c37475723139e997ea1ae994e908e186ad",
+  "torch": "2.8.0",
+  "host": "macOS-26.7.1-arm64-arm-64bit",
+  "cases": [
+    {
+      "source": "GP011728.GPR",
+      "source_sha256": "649c021e611b09c07c2c88395a2ad973930b710cb5407406c240b59cfa5dbfe4",
+      "source_width": 4096,
+      "source_height": 3072,
+      "output_scale": 1,
+      "reference_raw_sha256": "bc58754c48a16e232d7bc7de91f680b40cb2766b4350ae641427a0c9b9936d21",
+      "reference_kind": "SDK decoded supplied camera GPR counts, already compressed; not lossless sensor truth",
+      "source_dng_reader_matches_direct_sdk": true,
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+      "source_metadata_sha256": "917077fa6247e5f922829242f9e58e3abd94206b6da1ecf6bde70f9df35738ea",
+      "encoded_payload_sha256": "5ec51ef866e4fcf02796b8de02980f3aa2baae63a1cc8d8f2685d757ce483418",
+      "decoded_low_raw_sha256": "6555fcf0c4715b15e55e2e2b91c565b559b3701fcfa34201b09b37214af41472",
+      "baseline_metrics": {
+        "full_frame": {
+          "rmse_counts": 11.957288561294215,
+          "psnr_db": 62.73521442397956
+        },
+        "active": {
+          "rmse_counts": 11.957288561294215,
+          "psnr_db": 62.73521442397956
+        },
+        "active_area": [
+          0,
+          0,
+          3072,
+          4096
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 6.0,
+          "p90": 16.0,
+          "p99": 34.0,
+          "p99_9": 81.0
+        },
+        "active_max_abs_error": 1299,
+        "active_bias_counts": -2.2624874114990234,
+        "detail_gradient_threshold_counts": 92.0,
+        "detail_top_decile": {
+          "rmse_counts": 23.89684110283469,
+          "psnr_db": 56.721058708466245
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 5.9354796489094745,
+          "psnr_db": 68.8187522200918
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 26.166623576828776,
+          "psnr_db": 55.93291488805288
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 14.986786755327312,
+            "psnr_db": 60.77369806823231
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 11.242194060181662,
+            "psnr_db": 63.27084707083206
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 11.112675759034424,
+            "psnr_db": 63.37149576767566
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 9.870396744323934,
+            "psnr_db": 64.40117643208089
+          }
+        ]
+      },
+      "restored_metrics": {
+        "full_frame": {
+          "rmse_counts": 11.291195269571348,
+          "psnr_db": 63.23307026224211
+        },
+        "active": {
+          "rmse_counts": 11.291195269571348,
+          "psnr_db": 63.23307026224211
+        },
+        "active_area": [
+          0,
+          0,
+          3072,
+          4096
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 6.0,
+          "p90": 15.0,
+          "p99": 31.0,
+          "p99_9": 78.0
+        },
+        "active_max_abs_error": 1312,
+        "active_bias_counts": -0.9865679740905762,
+        "detail_gradient_threshold_counts": 92.0,
+        "detail_top_decile": {
+          "rmse_counts": 23.32633599713465,
+          "psnr_db": 56.9309380851429
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 5.474915451549846,
+          "psnr_db": 69.52032028895736
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 25.22124760669537,
+          "psnr_db": 56.25253730922728
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 13.951823596417341,
+            "psnr_db": 61.395249094989765
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 10.78949844396686,
+            "psnr_db": 63.62784349063089
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 10.637219332598226,
+            "psnr_db": 63.75130634099398
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 9.25998212712364,
+            "psnr_db": 64.95566565625825
+          }
+        ]
+      },
+      "active_gain_db": 0.4978558382625451,
+      "regional_regressions": [],
+      "changed_samples": 10464983,
+      "restored_raw_sha256": "d2cba4fd72c0bec6eb906073be8403908b99636fe457a334625c49892d3bff07",
+      "editable_calibration_verified": true,
+      "simulation_metadata_omissions": [],
+      "inference_s": 0.398132167,
+      "quality_approval": false
+    },
+    {
+      "source": "GPAB1094.GPR",
+      "source_sha256": "49677a517d9bb09abad73a274882c2732cb4a0650e8bbd65d3d1134b6e51afa5",
+      "source_width": 4096,
+      "source_height": 3072,
+      "output_scale": 1,
+      "reference_raw_sha256": "17777a9324025519e8c03497d0197beb98eb386ee0a5e447427013e3f3c2b054",
+      "reference_kind": "SDK decoded supplied camera GPR counts, already compressed; not lossless sensor truth",
+      "source_dng_reader_matches_direct_sdk": true,
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a",
+      "source_metadata_sha256": "77656696740c1490072a585c4cbdbab9a7da91a258a312ef7eabe268d03bf569",
+      "encoded_payload_sha256": "54ed9418b498bc7e05e10f0f84b3e7f7f26a51a176ebba816f86b81ab02eb0d5",
+      "decoded_low_raw_sha256": "1f421c6e09da0ad3a90376c702ac998d783578ed5d1cf881e22ff32e51b9ff85",
+      "baseline_metrics": {
+        "full_frame": {
+          "rmse_counts": 5.209864752375267,
+          "psnr_db": 69.95133964110792
+        },
+        "active": {
+          "rmse_counts": 5.209864752375267,
+          "psnr_db": 69.95133964110792
+        },
+        "active_area": [
+          0,
+          0,
+          3072,
+          4096
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 3.0,
+          "p90": 8.0,
+          "p99": 13.0,
+          "p99_9": 17.0
+        },
+        "active_max_abs_error": 1164,
+        "active_bias_counts": -2.131391922632853,
+        "detail_gradient_threshold_counts": 32.0,
+        "detail_top_decile": {
+          "rmse_counts": 5.778643605106064,
+          "psnr_db": 69.05135041706636
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 4.341280123265781,
+          "psnr_db": 71.53551242888511
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 5.7118578147486465,
+          "psnr_db": 69.15232086486304
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 6.020641134641683,
+            "psnr_db": 68.69501379525997
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 4.481521850739228,
+            "psnr_db": 71.25935825967278
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 4.451687300755762,
+            "psnr_db": 71.31737561214618
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 5.693951646937829,
+            "psnr_db": 69.17959312918482
+          }
+        ]
+      },
+      "restored_metrics": {
+        "full_frame": {
+          "rmse_counts": 4.891033882704381,
+          "psnr_db": 70.49985519685032
+        },
+        "active": {
+          "rmse_counts": 4.891033882704381,
+          "psnr_db": 70.49985519685032
+        },
+        "active_area": [
+          0,
+          0,
+          3072,
+          4096
+        ],
+        "active_abs_error_percentiles": {
+          "p50": 3.0,
+          "p90": 8.0,
+          "p99": 13.0,
+          "p99_9": 17.0
+        },
+        "active_max_abs_error": 1187,
+        "active_bias_counts": -1.1278355916341145,
+        "detail_gradient_threshold_counts": 32.0,
+        "detail_top_decile": {
+          "rmse_counts": 5.506457599062358,
+          "psnr_db": 69.47042263691864
+        },
+        "shadow_bottom_decile": {
+          "rmse_counts": 4.203539722317793,
+          "psnr_db": 71.81556551033589
+        },
+        "highlight_top_decile": {
+          "rmse_counts": 5.370300504136357,
+          "psnr_db": 69.68789686404871
+        },
+        "sites": [
+          {
+            "site": 0,
+            "color": "R",
+            "rmse_counts": 5.774515576983411,
+            "psnr_db": 69.05755748089314
+          },
+          {
+            "site": 1,
+            "color": "G",
+            "rmse_counts": 4.071738824838667,
+            "psnr_db": 72.0922703631327
+          },
+          {
+            "site": 2,
+            "color": "G",
+            "rmse_counts": 4.103552228500182,
+            "psnr_db": 72.02466931841363
+          },
+          {
+            "site": 3,
+            "color": "B",
+            "rmse_counts": 5.378254518753991,
+            "psnr_db": 69.67504160943778
+          }
+        ]
+      },
+      "active_gain_db": 0.548515555742398,
+      "regional_regressions": [],
+      "changed_samples": 9965354,
+      "restored_raw_sha256": "06f22ed56d734dcd3f4b96c795f396fe281663f3adcc5c499e088eb5fc97f218",
+      "editable_calibration_verified": true,
+      "simulation_metadata_omissions": [],
+      "inference_s": 0.1934139589999999,
+      "quality_approval": false
+    }
+  ]
+}

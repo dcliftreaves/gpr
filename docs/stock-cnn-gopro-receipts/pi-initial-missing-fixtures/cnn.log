@@ -1,0 +1,17 @@
+..{"source": "train.dng", "split": "train", "patches": 1, "total_written": 1}
+{"source": "validation.dng", "split": "validation", "patches": 1, "total_written": 2}
+{"checkpoint": "bad.pt", "bicubic_psnr_db": 70.35211659240825, "model_psnr_db": 44.287868625104124, "delta_db": -26.064247967304127}
+{"checkpoint": "identity.pt", "bicubic_psnr_db": 70.35211659240825, "model_psnr_db": 70.35211659240825, "delta_db": 0.0}
+{"checkpoint": "good.pt", "bicubic_psnr_db": 70.35211659240825, "model_psnr_db": null, "delta_db": null}
+{"selected": {"checkpoint": {"path": "/tmp/tmpyugebmwo/good.pt", "sha256": "dad7d03e493b7c9ead00f9ba5dffe7a356bed7dbfa0505a61dce27194739c97b"}, "active_mse_counts": 0.0, "regressions": [], "eligible": true, "active_psnr_gain_db": null}, "candidates": 3, "validation_sources": 1, "quality_approval": false, "elapsed_s": 0.3255810998380184}
+{"checkpoint": "bad.pt", "bicubic_psnr_db": 70.35211659240825, "model_psnr_db": 44.287868625104124, "delta_db": -26.064247967304127}
+{"checkpoint": "identity.pt", "bicubic_psnr_db": 70.35211659240825, "model_psnr_db": 70.35211659240825, "delta_db": 0.0}
+{"selected": null, "candidates": 2, "validation_sources": 1, "quality_approval": false, "elapsed_s": 0.21876568906009197}
+.....{"step": 1, "loss": 0.003021139884367585, "validation_mse_counts": 56.52288818359375, "validation_psnr_db": 66.76562517363783, "delta_vs_bicubic_db": 1.5626067373202048, "delta_vs_baseline_db": 1.5626067373202048, "validation_regions_mse": {}, "selection_eligible": true, "best_step": 1, "elapsed_s": 0.3601269442588091}
+{"step": 1, "loss": 3.283529849795741e-06, "validation_mse_counts": 1.0623779296875, "validation_psnr_db": 84.0250782261984, "delta_vs_bicubic_db": null, "delta_vs_baseline_db": null, "validation_regions_mse": {}, "selection_eligible": true, "best_step": 0, "elapsed_s": 0.2990810088813305}
+{"step": 1, "loss": 0.0, "validation_mse_counts": 0.0, "validation_psnr_db": null, "delta_vs_bicubic_db": 0.0, "delta_vs_baseline_db": 0.0, "validation_regions_mse": {"pooled": {"overall": 0.0, "shadow": 0.0, "highlight": 0.0, "detail": 0.0}, "group:validation": {"overall": 0.0, "shadow": 0.0, "highlight": 0.0, "detail": 0.0}}, "selection_eligible": true, "best_step": 0, "elapsed_s": 0.26964372023940086}
+..
+----------------------------------------------------------------------
+Ran 9 tests in 8.354s
+
+OK

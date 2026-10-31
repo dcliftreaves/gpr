@@ -121,6 +121,73 @@ class Media(unittest.TestCase):
         case['image'].append(media.record(50829,5,4,struct.pack('<8I',5,2,4,1,94,1,124,1)))
         with self.assertRaisesRegex(ValueError,'integral ActiveArea'): geometry.scaled(case,2)
 
+    def test_simulated_gain_map_centroids_and_rejections(self):
+        import copy
+        import stock_cnn_metadata as geometry
+        h,w=96,128
+        for origin in (0.,.125):
+            records=[]
+            for sy,sx in ((0,0),(0,1),(1,0),(1,1)):
+                phase=sy*2+sx
+                grid=[1.+phase*.125+y*.25+x*.0625 for y in range(3) for x in range(4)]
+                body=struct.pack('>8I',sy,sx,h,w,0,1,2,2)
+                body+=struct.pack('>2I4dI12f',3,4,.5,1/3,origin,.0625,1,*grid)
+                records.append(struct.pack('>4I',9,0x01040000,1,len(body))+body)
+            data=struct.pack('>I',4)+b''.join(records)
+            meta=metadata()
+            meta['image']=[t for t in meta['image'] if t['code']!=51009]
+            meta['image'] += [media.record(51009,7,len(data),data),
+                              media.record(50829,4,4,struct.pack('<4I',0,0,h,w))]
+            original=copy.deepcopy(meta)
+            low,omitted=geometry.simulated_half(meta)
+            self.assertEqual(meta,original);self.assertEqual(omitted,[])
+            self.assertEqual((low['height'],low['width']),(h//2,w//2))
+            low_data=media.unpack_record(next(t for t in low['image'] if t['code']==51009))
+            pos=4
+            for sy,sx in ((0,0),(0,1),(1,0),(1,1)):
+                op,version,flags,size=struct.unpack_from('>4I',low_data,pos);pos+=16
+                body=low_data[pos:pos+size];pos+=size
+                self.assertEqual((op,version,flags),(9,0x01040000,1))
+                self.assertEqual(struct.unpack_from('>8I',body),(sy,sx,h//2,w//2,0,1,2,2))
+                rows,cols,dy,dx,oy,ox,planes=struct.unpack_from('>2I4dI',body,32)
+                values=np.frombuffer(body,dtype='>f4',offset=76).reshape(rows,cols)
+                for j in (0,4,12,h//4-1):
+                    for i in (0,4,16,w//4-1):
+                        # Independent source-plane ramp, evaluated at the
+                        # centroid of the four original same-site samples.
+                        source_y=np.clip(((4*j+sy+1.5)/h-origin)/.5,0,2)
+                        source_x=np.clip(((4*i+sx+1.5)/w-.0625)/(1/3),0,3)
+                        expected=1.+(sy*2+sx)*.125+source_y*.25+source_x*.0625
+                        gy=np.clip(((2*j+sy+.5)/(h//2)-oy)/dy,0,rows-1)
+                        gx=np.clip(((2*i+sx+.5)/(w//2)-ox)/dx,0,cols-1)
+                        iy,ix=int(gy),int(gx);fy,fx=gy-int(gy),gx-int(gx)
+                        measured=(1-fy)*((1-fx)*values[iy,ix]+fx*values[iy,min(ix+1,cols-1)])
+                        measured+=fy*((1-fx)*values[min(iy+1,rows-1),ix]+fx*values[min(iy+1,rows-1),min(ix+1,cols-1)])
+                        self.assertAlmostEqual(measured,expected,places=12)
+            high,_=geometry.scaled(low,2)
+            high_data=media.unpack_record(next(t for t in high['image'] if t['code']==51009))
+            # Grid samples/headers stay exact; origin addition/subtraction can
+            # round at a nonzero origin, so compare those doubles numerically.
+            for index in range(4):
+                offset=4+index*len(records[0]);size=struct.unpack_from('>I',data,offset+12)[0]
+                a,b=data[offset+16:offset+16+size],high_data[offset+16:offset+16+size]
+                self.assertEqual(a[:32],b[:32]);self.assertEqual(a[76:],b[76:])
+                for original_value,restored_value in zip(struct.unpack_from('>2I4dI',a,32),struct.unpack_from('>2I4dI',b,32)):
+                    self.assertAlmostEqual(original_value,restored_value,places=14)
+        bad_cases=[data[:-1],data+b'\0']
+        for offset,value in ((4,8),(20,1),(28,h-2)):
+            changed=bytearray(data);struct.pack_into('>I',changed,offset,value);bad_cases.append(bytes(changed))
+        changed=bytearray(data);struct.pack_into('>f',changed,96,0.);bad_cases.append(bytes(changed))
+        for bad in bad_cases:
+            case=copy.deepcopy(meta)
+            case['image']=[media.record(51009,7,len(bad),bad) if t['code']==51009 else t for t in case['image']]
+            with self.assertRaises(ValueError):geometry.simulated_half(case)
+        cropped=copy.deepcopy(meta)
+        cropped['image']=[media.record(50829,4,4,struct.pack('<4I',0,0,h-4,w)) if t['code']==50829 else t for t in cropped['image']]
+        with self.assertRaisesRegex(ValueError,'full-frame active area'):geometry.simulated_half(cropped)
+        stage_one=copy.deepcopy(meta);stage_one['image'].append(media.record(51008,7,len(data),data))
+        with self.assertRaisesRegex(ValueError,'empty stage-1'):geometry.simulated_half(stage_one)
+
     def test_sdk_cli_quality_selection(self):
         def payload(path):
             with tifffile.TiffFile(path) as f:

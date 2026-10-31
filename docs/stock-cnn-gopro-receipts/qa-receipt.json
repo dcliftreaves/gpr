@@ -1,0 +1,25 @@
+{
+  "schema": "gpr.stock_gainmap_verification.v1",
+  "passed": true,
+  "mac_tests": {
+    "raw_media": 11,
+    "cnn": 9,
+    "upres": 2,
+    "sequence": 1
+  },
+  "pi_receipt_sha256": "625bdbea8ae884d7b8d387edf5b68af12d5140bc852b00c21ea87a6a834f9917",
+  "pi_tests": {
+    "raw_media": 11,
+    "cnn": 9,
+    "upres": 2,
+    "sequence": 1
+  },
+  "source_sha256": {
+    "tools/stock_cnn_metadata.py": "8a7780d66533790be0f2f163dc1fd86707cfb6aab2ecf93f837eaf7673120ba1",
+    "tools/benchmark_stock_sr.py": "2d5cf276ce71ea3aed4fe6c08bb604ed625c99055a88b5d7ba3f2e57a0a95f07",
+    "tests/raw_media_test.py": "466dcf8c6e972998594bf44377466be3f2f92d50f823fa6fd6102c27dd3b6016"
+  },
+  "public_private_camera_results_match_exactly": true,
+  "render_numeric_audit_sha256": "16312ea8e64808f3db8f393fd9469bd2af3bb8e9fd12454342fc290434d564a3",
+  "quality_approval": false
+}

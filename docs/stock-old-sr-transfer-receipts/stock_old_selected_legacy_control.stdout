@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/check_old_selected_sr_legacy_control.py", line 16, in <module>
+    metrics=quality(ref,value,dict(sample_bits=14,width=8192,height=6144,image=[]));report=dict(schema='gpr.stock_old_sr_legacy_control.v1',complete=True,protocol_sha256=sha(ROOT/'legacy-control-protocol.json'),metrics=metrics,expected_psnr_db=expected['model_psnr14_db'],actual_psnr_db=metrics['active']['psnr_db'],delta_from_recorded_db=metrics['active']['psnr_db']-expected['model_psnr14_db'],prior_compare_json=expected['compare_json'],runtime_stats=stats,output_sha256=sha(ROOT/'legacy-control.raw'),quality_approval=False)
+  File "/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/tools/benchmark_stills.py", line 43, in quality
+    for site,color in enumerate(meta['cfa']):
+KeyError: 'cfa'

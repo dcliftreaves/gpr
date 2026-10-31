@@ -165,3 +165,14 @@ separate source groups and a frozen validation-selected checkpoint. Its four
 final-image overall gains are modest and shadows regress; it remains unapproved. Functional
 2x packaging is implemented; stock-matched reconstruction quality, restored
 tiers, rendered color/noise/detail and temporal approval remain unfinished.
+
+## Full-frame GainMap simulation
+
+Same-site downsampling for synthetic SR pairs now shares one metadata helper
+across benchmark/training and UPRESABLE analysis workflows. It accepts the
+four full-frame pitch-two Bayer GainMaps found in the supplied Mission 1 files,
+using sampling-centroid coordinates; other stage-1 operations, cropped/partial
+maps and unsupported stage-2 operations remain errors. The simulation does not
+model physical sensor binning or exact commutation of varying gains with area
+averaging. [Actual GoPro checks](stock-cnn-gopro.md) document exact supported
+high-metadata roundtrips, independent geometry tests and scoped model quality.

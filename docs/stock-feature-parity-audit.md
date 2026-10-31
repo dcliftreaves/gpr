@@ -206,3 +206,14 @@ reproducibility or default-scheduler approval. No boot/device/global scheduling
 setting, codec source or model is changed. All seven hosted jobs pass at
 `cade228` ([receipt](stock-scheduler-receipts/passed-cade228.json)); new evidence
 heads need their own checks. Broader timing and model-quality gates remain open.
+
+The [actual supplied-GoPro study](stock-cnn-gopro.md) now supplies positive
+Q3 RAW and matched 16-bit rendered fidelity evidence for both frozen models,
+with exact supported calibration and focused Mac/Pi verification. It extends
+source-specific evidence without approving original-noise removal, useful
+recovered detail, temporal behavior or old restored tiers. The [exact older
+selected SR transfer](stock-old-sr-transfer.md) fails on current stock input;
+one matched old-profile control reproduces its recorded result. New
+[signal conditioning](stock-sr-signal-conditioning.md) also fails final regional
+guards. Existing checkpoints remain unchanged; further source-domain coverage
+can use the explicitly bounded [Mission 1 source audit](stock-sr-mission-sources.md).

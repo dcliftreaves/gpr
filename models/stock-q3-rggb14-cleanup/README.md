@@ -42,3 +42,11 @@ python3 tools/stock_still.py restore input.gpr --sample-bits 14 \
 Use `--device cpu` for CPU inference. Inputs must belong to the declared domain.
 See the [study and receipts](../../docs/stock-cleanup-strength.md) for provenance,
 source separation, selection criteria, measurements and remaining limits.
+
+A later [supplied-GoPro check](../../docs/stock-cnn-gopro.md) tests this exact
+checkpoint on GP011728/GPAB1094 after stock-Q3 re-encoding. All four RAW
+regions improve on both files (+0.498/+0.549 dB active PSNR), supported editable
+calibration is exact, and matched 16-bit Rec.709 renders improve RGB fidelity
+(+0.481/+0.200 dB). References are decoded camera-GPR counts, already compressed;
+this is not sensor-noise reduction or broad visual/temporal approval. Weights
+and `quality_approval=false` remain unchanged.

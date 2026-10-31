@@ -8,13 +8,10 @@ counts and with bicubic reconstruction of the very same decoded low-res RAW.
 This is a simulation/model-selection experiment, not a sensor/video approval.
 """
 import argparse
-import copy
-from fractions import Fraction
 import hashlib
 import json
 from pathlib import Path
 import platform
-import struct
 
 import numpy as np
 import tifffile
@@ -27,39 +24,8 @@ import stock_still
 import stock_video
 
 
-def half_tag(tag):
-    dtype=tag['type']; fmt={3:'H',4:'I',5:'I',10:'i'}.get(dtype)
-    if fmt is None: raise ValueError('unsupported simulated downsample metadata type')
-    data=struct.unpack('<'+fmt*(tag['count']*(2 if dtype in (5,10) else 1)),raw_media.unpack_record(tag))
-    result=[]
-    if dtype in (5,10):
-        for a,b in zip(data[::2],data[1::2]):
-            value=Fraction(a,b)/2; result.extend((value.numerator,value.denominator))
-    else:
-        if any(value%2 for value in data): raise ValueError('simulation requires even integral spatial calibration')
-        result=[value//2 for value in data]
-    return raw_media.record(tag['code'],dtype,tag['count'],struct.pack('<'+fmt*len(result),*result))
-
-
 def simulation_metadata(source):
-    result=copy.deepcopy(source); result['width']//=2; result['height']//=2
-    omitted=[]; image=[]
-    for tag in result['image']:
-        code=tag['code']
-        if code==700:
-            omitted.append(dict(code=code,reason='simulation changes pixel geometry; opaque source XMP omitted'))
-            continue
-        if code in (50715,50716): raise ValueError('simulation does not resample black-level delta arrays')
-        if code in (50719,50720,50829,50830): tag=half_tag(tag)
-        if code in (51008,51009) and raw_media.unpack_record(tag)!=bytes(4):
-            raise ValueError('simulation requires no nonempty stage-1/2 opcode list')
-        if code==51022:
-            stock_cnn_metadata.opcode_list(raw_media.unpack_record(tag),3,1,source['height'],source['width'])
-        image.append(tag)
-    result['image']=image
-    result['exif']=[half_tag(tag) if tag['code'] in (40962,40963,41486,41487,37390,37391) else tag for tag in result['exif']]
-    raw_media.validate(result)
-    return result,omitted
+    return stock_cnn_metadata.simulated_half(source)
 
 
 class Bicubic(torch.nn.Module):

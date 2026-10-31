@@ -1,0 +1,47 @@
+[
+  {
+    "path": "audit.json",
+    "bytes": 30941,
+    "sha256": "d2b2e8b9ccd06063ffcf5f3f8cc116d655778991deec608d6b95d6da8ce4923e"
+  },
+  {
+    "path": "audit_stock_sr_mission_sources.py",
+    "bytes": 3776,
+    "sha256": "9cce4481382a6dfb52f7387ed39410ac75275b3c57ffaa5385ea7a0f08755bb7"
+  },
+  {
+    "path": "initial-driver.py",
+    "bytes": 3594,
+    "sha256": "c8f915e92fdea8e6f8c2718fa0d643804054c8e568d545b827d90baf78def3c1"
+  },
+  {
+    "path": "initial-protocol.json",
+    "bytes": 619,
+    "sha256": "0b282a7b87bc20635db6b3863be38b1e9383718b627c350eb81c26ffb3543356"
+  },
+  {
+    "path": "initial.stderr",
+    "bytes": 585,
+    "sha256": "6b0238925dc0a561f6d70f2212400a20568c02f50a32cd3204a259dde25aea37"
+  },
+  {
+    "path": "inspect_stock_sr_mission_scenes.py",
+    "bytes": 2119,
+    "sha256": "84b1d9b7d5dadfe61fc1ac33b4db66436254d51e5b2a84806204d59a1be153a0"
+  },
+  {
+    "path": "protocol.json",
+    "bytes": 619,
+    "sha256": "aeb591d90a05bb8476939f94ee3eda2ca495a8ff9204162ff0f5fef1e5947a79"
+  },
+  {
+    "path": "scene-groups.json",
+    "bytes": 20131,
+    "sha256": "ee5d796507b11601f107906cb7a67d7406716a166b16ab126284256fdf57882a"
+  },
+  {
+    "path": "similarity-hints.json",
+    "bytes": 4527,
+    "sha256": "0b001ddea0196794dee1d037f7d7ae3ecafc0e3f0666be80247b94ce91905e7e"
+  }
+]

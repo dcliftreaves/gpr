@@ -1,0 +1,221 @@
+{
+  "schema": "gpr.stock_old_selected_transfer.v1",
+  "complete": true,
+  "quality_approval": false,
+  "protocol_sha256": "be5d2c9894bee81476d34d72036038643fff3ccb1ea5f7a4bcc864fdba50f1fe",
+  "config": {
+    "architecture": "coord_detail_preclean_adapter_pixelshuffle",
+    "width": 96,
+    "depth": 6,
+    "residual_scale": 0.3,
+    "coordinate_channels": true
+  },
+  "metrics": {
+    "full_frame": {
+      "rmse_counts": 43.135266338376006,
+      "psnr_db": 51.59121894650064
+    },
+    "active": {
+      "rmse_counts": 43.135266338376006,
+      "psnr_db": 51.59121894650064
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 8.0,
+      "p90": 35.0,
+      "p99": 114.0,
+      "p99_9": 293.0
+    },
+    "active_max_abs_error": 9470,
+    "active_bias_counts": -2.4251281023025513,
+    "detail_gradient_threshold_counts": 61.0,
+    "detail_top_decile": {
+      "rmse_counts": 122.12447715376732,
+      "psnr_db": 42.551814277010905
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 6.930862471937804,
+      "psnr_db": 67.47212299925474
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 117.28972189752062,
+      "psnr_db": 42.902669494262184
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 41.687651131130565,
+        "psnr_db": 51.88772011069365
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 49.749690927890484,
+        "psnr_db": 50.35206088476718
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 49.55588112402478,
+        "psnr_db": 50.38596457556138
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 27.81955157978972,
+        "psnr_db": 55.40086611772939
+      }
+    ]
+  },
+  "current_stock_bicubic_metrics": {
+    "full_frame": {
+      "rmse_counts": 23.271339349245455,
+      "psnr_db": 56.951441040806856
+    },
+    "active": {
+      "rmse_counts": 23.271339349245455,
+      "psnr_db": 56.951441040806856
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 6.0,
+      "p90": 21.0,
+      "p99": 51.0,
+      "p99_9": 118.0
+    },
+    "active_max_abs_error": 5945,
+    "active_bias_counts": -2.356667399406433,
+    "detail_gradient_threshold_counts": 61.0,
+    "detail_top_decile": {
+      "rmse_counts": 65.14697659676226,
+      "psnr_db": 48.009983317857554
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 4.769868401165539,
+      "psnr_db": 70.71774068135021
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 63.677830859360775,
+      "psnr_db": 48.20810340421004
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 23.808923496114826,
+        "psnr_db": 56.75307343457579
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 26.32902239318123,
+        "psnr_db": 55.87917394744837
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 26.161165525263655,
+        "psnr_db": 55.9347268520024
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 14.890671595540217,
+        "psnr_db": 60.82958291229073
+      }
+    ]
+  },
+  "current_stock_bibo_metrics": {
+    "full_frame": {
+      "rmse_counts": 23.05048407836216,
+      "psnr_db": 57.034267618136155
+    },
+    "active": {
+      "rmse_counts": 23.05048407836216,
+      "psnr_db": 57.034267618136155
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 6.0,
+      "p90": 21.0,
+      "p99": 51.0,
+      "p99_9": 117.0
+    },
+    "active_max_abs_error": 5865,
+    "active_bias_counts": -1.1646960775057476,
+    "detail_gradient_threshold_counts": 61.0,
+    "detail_top_decile": {
+      "rmse_counts": 64.51507131221088,
+      "psnr_db": 48.09464499189105
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 4.7451383662428395,
+      "psnr_db": 70.76289100924943
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 63.01324590144232,
+      "psnr_db": 48.299231598814174
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 23.617035944691406,
+        "psnr_db": 56.82336081344139
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 26.078180641037246,
+        "psnr_db": 55.962322838752854
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 25.913823545740225,
+        "psnr_db": 56.017238680860565
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 14.694799143511066,
+        "psnr_db": 60.94459553957315
+      }
+    ]
+  },
+  "active_gain_vs_stock_bicubic_db": -5.360222094306216,
+  "active_gain_vs_current_stock_bibo_db": -5.443048671635516,
+  "regional_regressions": [
+    "active",
+    "shadow_bottom_decile",
+    "highlight_top_decile",
+    "detail_top_decile"
+  ],
+  "runtime_stats": {
+    "tile": 512,
+    "overlap": 32,
+    "tile_count": 20,
+    "inference_plus_copy_s": 0.978908875,
+    "tile_time_s_mean": 0.042330843650000026,
+    "tile_time_s_median": 0.023122666500000055,
+    "tile_time_s_p95": 0.04375225030000035
+  },
+  "output_raw_sha256": "f6549e327da3659db8e041775a9e95c356a9f44e8c475de0aa44904d67a6f230",
+  "editable_supported_calibration_verified": true
+}

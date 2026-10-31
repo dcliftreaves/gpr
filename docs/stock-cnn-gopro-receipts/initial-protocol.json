@@ -1,0 +1,36 @@
+{
+  "schema": "gpr.stock_cnn_supplied_camera_protocol.v1",
+  "created_utc": "2026-10-31T01:55:16.170045+00:00",
+  "script_sha256": "43a128aaf32dbd8818f9b448bc0149436df302ed8a4ac7f2e18390054029d560",
+  "sdk_sha256": "4a0be5618f2b0ba58b0776bd5575e55e2285d8235d88c8cae96321dfe5ca66a8",
+  "cases": [
+    {
+      "source": "GP011728.GPR",
+      "scale": 1,
+      "checkpoint": "stock-q3-rggb14-cleanup",
+      "source_sha256": "649c021e611b09c07c2c88395a2ad973930b710cb5407406c240b59cfa5dbfe4",
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a"
+    },
+    {
+      "source": "GPAB1094.GPR",
+      "scale": 1,
+      "checkpoint": "stock-q3-rggb14-cleanup",
+      "source_sha256": "49677a517d9bb09abad73a274882c2732cb4a0650e8bbd65d3d1134b6e51afa5",
+      "checkpoint_sha256": "9de03f8203f4cb1bb264087cd922b04c1b0e1169684a064d0aeb3a2a6c97f48a"
+    },
+    {
+      "source": "GP011689.GPR",
+      "scale": 2,
+      "checkpoint": "stock-q3-rggb14-sr-diagnostic",
+      "source_sha256": "86b0e6448ae6aa31c9a9ddbe37ad03b2e324af4af0289f1ef38ac04583ae6265",
+      "checkpoint_sha256": "f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4"
+    }
+  ],
+  "quality": 3,
+  "device": "mps",
+  "tile": 256,
+  "halo": 64,
+  "reference_kind": "SDK decoded supplied camera GPR counts, already compressed; not lossless sensor truth",
+  "model_selection_or_retuning": false,
+  "quality_approval": false
+}

@@ -1,0 +1,65 @@
+{
+  "schema": "gpr.stock_sr_signal_conditioning_protocol.v1",
+  "created_utc": "2026-10-31T01:35:07.817225+00:00",
+  "script_sha256": "1196079035eccc0b75a9d0c99fa2a56ccb5653d6c012253f9d02db7c0f69122d",
+  "parent_protocol_sha256": "27c924ff28e1337069ac9fff4657a2783a414f38555e29d29def2f95978d08b2",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "weight_audit_sha256": "f403d3c00ba923cb6ac7c2e2bb8cb35dbf072da2cb01e5695a982ece275de056",
+  "configs": [
+    {
+      "name": "n0g0",
+      "normalized_input": false,
+      "signal_gate": false
+    },
+    {
+      "name": "n0g1",
+      "normalized_input": false,
+      "signal_gate": true
+    },
+    {
+      "name": "n1g0",
+      "normalized_input": true,
+      "signal_gate": false
+    },
+    {
+      "name": "n1g1",
+      "normalized_input": true,
+      "signal_gate": true
+    }
+  ],
+  "steps": 3000,
+  "checkpoint_steps": [
+    1000,
+    2000,
+    3000
+  ],
+  "seed": 20261103,
+  "batch": 8,
+  "learning_rate": 0.0003,
+  "width": 16,
+  "device": "mps",
+  "strengths": [
+    1.0,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    0.015625,
+    0.0078125
+  ],
+  "source_sampling": "one patch from each of eight train sources per step; same indices across variants",
+  "loss": "unchanged audited training-source full-image region MSE ratio",
+  "feature_normalization": "optional (input_counts-1008)/(15892-1008), no signal clipping",
+  "output_gate": "optional s/(s+0.02), s=max((bicubic_counts-1008)/(15892-1008),0); fixed raw-domain residual scale0.01",
+  "calibration_audit_sha256": "3127f32fb294ec109d5b08e9c09e8b657665fdfc2d31ae6926eee62ca3afc1c0",
+  "selection": "unchanged exact pooled/group patch regional nonregression plus strict pooled overall improvement; ALL patch-qualified settings to complete-image validation",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "limitations": [
+    "exploratory one-seed comparison",
+    "fixed audited black1008/white15892; no other camera-domain claim",
+    "reused validation sources",
+    "no temporal or visual approval"
+  ]
+}

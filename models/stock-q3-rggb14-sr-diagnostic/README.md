@@ -50,3 +50,12 @@ See the [study and receipts](../../docs/stock-sr-source-regions.md) for the
 source-wide mask/loss audit, fixed candidate families, frozen selection,
 full-reference and cross-host results. Source photos and training arrays remain
 external; broader quality and restored-tier approval remain open.
+
+The later [supplied-GoPro study](../../docs/stock-cnn-gopro.md) simulates a
+stock-Q3 12 MP input from GP011689's decoded 50 MP counts. This unchanged
+checkpoint improves all four RAW regions (+0.08283 dB active PSNR) and matched
+16-bit rendered RGB fidelity (+0.28430 dB). Supported high calibration, including
+four GainMaps, roundtrips exactly. The GPR-derived reference is already
+compressed and the low input is synthetic. The displayed result remains
+softer than its high reference; useful restored detail and general video
+quality are not approved. Research status and weights remain unchanged.

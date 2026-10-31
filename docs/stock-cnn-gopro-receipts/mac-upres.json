@@ -1,0 +1,26 @@
+{
+  "schema": "gpr.stock_upres.tests.v1",
+  "passed": true,
+  "tests": 2,
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "torch": "2.8.0",
+  "sdk_sha256": "4a0be5618f2b0ba58b0776bd5575e55e2285d8235d88c8cae96321dfe5ca66a8",
+  "bridge_sha256": "be6108e2ac5cc38a03ac63ba263c6a82f64a27252fb015b8744fe81bcfe1c8a6",
+  "tool_sha256": {
+    "stock_upres.py": "55af58b9504fdabd8394bb677d6c14d828fac278a23500d7197bc65c1c61bcfa",
+    "stock_sequence.py": "25b48e554d4d814235f10a5ae96005259eeccb2f3101d946a031fe3af38116c9",
+    "stock_cnn_metadata.py": "8a7780d66533790be0f2f163dc1fd86707cfb6aab2ecf93f837eaf7673120ba1"
+  },
+  "tested_modes": [
+    "regression",
+    "timelapse",
+    "both"
+  ],
+  "tested_inputs": [
+    "simulated",
+    "captured_gpr"
+  ],
+  "prores_tested": false,
+  "quality_approval": false
+}

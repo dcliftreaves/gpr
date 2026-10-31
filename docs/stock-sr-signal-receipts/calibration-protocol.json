@@ -1,0 +1,22 @@
+{
+  "schema": "gpr.stock_sr_calibration_protocol.v1",
+  "created_utc": "2026-10-31T01:33:18.631608+00:00",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "script_sha256": "833c38cb51d706360e61bdb92c6e67b05bbd0b803eae71451de550dd21e883f0",
+  "splits": [
+    "train",
+    "validation"
+  ],
+  "final_source_pixels_or_calibration_read": false,
+  "count_domain": "packed same-CFA planes, nominal 14bit; current model divides counts by16383, no metadata black subtraction",
+  "quantiles": [
+    0,
+    1,
+    10,
+    50,
+    90,
+    99,
+    100
+  ],
+  "quality_approval": false
+}

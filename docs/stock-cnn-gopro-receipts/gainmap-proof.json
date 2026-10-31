@@ -1,0 +1,46 @@
+{
+  "complete": true,
+  "proof": [
+    {
+      "phase": [
+        0,
+        0
+      ],
+      "centroid_checks": 16,
+      "max_gain_error": 0.0
+    },
+    {
+      "phase": [
+        0,
+        1
+      ],
+      "centroid_checks": 16,
+      "max_gain_error": 0.0
+    },
+    {
+      "phase": [
+        1,
+        0
+      ],
+      "centroid_checks": 16,
+      "max_gain_error": 0.0
+    },
+    {
+      "phase": [
+        1,
+        1
+      ],
+      "centroid_checks": 16,
+      "max_gain_error": 0.0
+    }
+  ],
+  "high_metadata_roundtrip_exact": true,
+  "source_opcode_sha256": "85ebe602179ee6e599f35f464cadf19a50a65da48ed7df32a58c81fd270e511e",
+  "low_opcode_sha256": "d5ccc0ad898961eaeae48b741c353fa4381ebbe494db2e154b9ae09811a123c4",
+  "omissions": [
+    {
+      "code": 700,
+      "reason": "simulation changes pixel geometry; opaque source XMP omitted"
+    }
+  ]
+}

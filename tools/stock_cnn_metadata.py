@@ -13,7 +13,11 @@ import raw_media as media
 
 
 def simulated_half(source):
-    """Calibration for same-site 2x2 averaged sensor simulation, not a crop."""
+    """Geometry for same-site 2x2 simulation, not native sensor binning.
+
+    Full-frame GainMaps represent sample centroids. Applying a spatially
+    varying gain and averaging do not in general commute.
+    """
     media.validate(source)
     if source['width']%4 or source['height']%4:
         raise ValueError('simulation requires dimensions divisible by four')
@@ -37,8 +41,15 @@ def simulated_half(source):
             omitted.append(dict(code=code,reason='opaque XMP may contain stale simulation geometry'));continue
         if code in (50715,50716): raise ValueError('simulation does not resample black-level delta arrays')
         if code in (50719,50720,50829,50830):tag=half(tag)
-        if code in (51008,51009) and media.unpack_record(tag)!=bytes(4):
-            raise ValueError('simulation requires empty stage-1/2 opcode lists')
+        if code==51008 and media.unpack_record(tag)!=bytes(4):
+            raise ValueError('simulation requires an empty stage-1 opcode list')
+        if code==51009 and media.unpack_record(tag)!=bytes(4):
+            active=next((t for t in source['image'] if t['code']==50829),None)
+            if active is not None and (active['type'] not in (3,4) or
+                    media.values(active)!=(0,0,source['height'],source['width'])):
+                raise ValueError('GainMap simulation requires a full-frame active area')
+            data=_half_full_frame_gain_maps(media.unpack_record(tag),source['height'],source['width'])
+            tag=media.record(code,7,len(data),data)
         if code==51022:opcode_list(media.unpack_record(tag),3,1,source['height'],source['width'])
         image.append(tag)
     result['image']=image
@@ -84,6 +95,42 @@ def gain_maps(body, factor, height, width):
             origin_x=ox-(factor-1)*(sx-.5)/(width*factor)
             outputs.append(struct.pack('>8I',*area)+struct.pack('>2I4dI',rows,cols,dy,dx,origin_y,origin_x,1)+body[76:])
     return outputs
+
+
+def _half_full_frame_gain_maps(data, height, width):
+    """Center-sampled calibration for same-site 2x2 simulation.
+
+    Only four full-frame, pitch-two Bayer-site maps are supported. A low
+    sample represents the centroid of its four high samples. This coordinate
+    transform does not make spatially varying gains commute with averaging.
+    """
+    if len(data)<4 or struct.unpack_from('>I',data)[0]!=4:
+        raise ValueError('simulation requires four full-frame Bayer GainMaps')
+    pos=4;result=[];phases=set()
+    for _ in range(4):
+        if pos+16>len(data): raise ValueError('truncated simulation opcode header')
+        op,version,flags,size=struct.unpack_from('>4I',data,pos);pos+=16
+        if op!=9 or flags&~3 or version>0x01040000:
+            raise ValueError('simulation supports only full-frame Bayer GainMaps')
+        if pos+size>len(data): raise ValueError('truncated simulation GainMap')
+        body=data[pos:pos+size];pos+=size
+        # Reuse full grid/value validation, without changing source coordinates.
+        gain_maps(body,1,height,width)
+        top,left,bottom,right,plane,planes,rp,cp=struct.unpack_from('>8I',body)
+        if (top not in (0,1) or left not in (0,1) or
+                (bottom,right,plane,planes,rp,cp)!=(height,width,0,1,2,2) or
+                (top,left) in phases):
+            raise ValueError('simulation requires four distinct full-frame Bayer GainMaps')
+        phases.add((top,left))
+        rows,cols,dy,dx,oy,ox,map_planes=struct.unpack_from('>2I4dI',body,32)
+        # Low site (2*j+s) averages high sites (4*j+s, 4*j+s+2).
+        # With normalized pixel centers, shift origin by (s-.5)/high_size.
+        low=struct.pack('>8I',top,left,height//2,width//2,0,1,2,2)
+        low+=struct.pack('>2I4dI',rows,cols,dy,dx,oy+(top-.5)/height,
+                         ox+(left-.5)/width,map_planes)+body[76:]
+        result.append(struct.pack('>4I',op,version,flags,len(low))+low)
+    if pos!=len(data): raise ValueError('simulation opcode list has trailing bytes')
+    return struct.pack('>I',4)+b''.join(result)
 
 
 def opcode_list(data, stage, factor, height, width):

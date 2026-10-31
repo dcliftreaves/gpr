@@ -1,0 +1,76 @@
+{
+  "schema": "gpr.stock_old_sr_legacy_control.v1",
+  "complete": true,
+  "protocol_sha256": "a34de66eebe88bd2d5f940561c8fb80c2b76887933d7d9d9ffc5bf1dbf57cc54",
+  "metrics_driver_sha256": "63b4a96e7bbbbbb7ab28d322639fa94a7bf79bca647564b366e25b979ca43592",
+  "metrics": {
+    "full_frame": {
+      "rmse_counts": 15.824100845815483,
+      "psnr_db": 60.30148778533827
+    },
+    "active": {
+      "rmse_counts": 15.824100845815483,
+      "psnr_db": 60.30148778533827
+    },
+    "active_area": [
+      0,
+      0,
+      6144,
+      8192
+    ],
+    "active_abs_error_percentiles": {
+      "p50": 5.0,
+      "p90": 14.0,
+      "p99": 31.0,
+      "p99_9": 142.0
+    },
+    "active_max_abs_error": 2583,
+    "active_bias_counts": -0.06789090236028035,
+    "detail_gradient_threshold_counts": 39.0,
+    "detail_top_decile": {
+      "rmse_counts": 43.88184133435685,
+      "psnr_db": 51.442171769123355
+    },
+    "shadow_bottom_decile": {
+      "rmse_counts": 4.298850763149704,
+      "psnr_db": 71.6208212527271
+    },
+    "highlight_top_decile": {
+      "rmse_counts": 44.502998594714626,
+      "psnr_db": 51.320083133906294
+    },
+    "sites": [
+      {
+        "site": 0,
+        "color": "R",
+        "rmse_counts": 15.075907402817444,
+        "psnr_db": 60.722199398675784
+      },
+      {
+        "site": 1,
+        "color": "G",
+        "rmse_counts": 17.490776326529783,
+        "psnr_db": 59.43168690454644
+      },
+      {
+        "site": 2,
+        "color": "G",
+        "rmse_counts": 17.637206445472902,
+        "psnr_db": 59.3592726570251
+      },
+      {
+        "site": 3,
+        "color": "B",
+        "rmse_counts": 12.543021110996413,
+        "psnr_db": 62.319825560581904
+      }
+    ]
+  },
+  "expected_psnr_db": 60.30148693129095,
+  "actual_psnr_db": 60.30148778533827,
+  "delta_from_recorded_db": 8.540473146467775e-07,
+  "output_sha256": "accb7ad2255fc421f0824db874df9e538bdf4686fd2e725597aa953af9c37eea",
+  "archived_prediction_comparison": null,
+  "initial_metric_error": "diagnostic metadata lacked cfa site labels; prediction had completed and is reused",
+  "quality_approval": false
+}
