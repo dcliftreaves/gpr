@@ -1,5 +1,10 @@
 # Rebuild the RAW-media feature suite on the stock encoder
 
+Start with the [feature overview](stock-raw-media-overview.md) for user workflows,
+current scope and the finish line, or the [review plan](stock-review-plan.md) for
+the proposed commit sequence. This page retains build commands and the
+historical integration record.
+
 ## Objective and source revisions
 
 Recreate the high-level workflows of fork PR #95 / upstream PR #71 using
