@@ -475,12 +475,21 @@ extern "C" int gpr_preview_plan_render_wavelets(const gpr_preview_plan *p,
         SetupDecoderLogCurve();
         const uint8_t *gamma=srgb_table();
         if (size_t(p->columns)*p->rows>=500000) {
-            constexpr uint32_t workers=4;
+            constexpr uint32_t workers=4,chunk_rows=32;
+            std::atomic<uint32_t> next{0};
+            auto render_chunks=[&] {
+                for (;;) {
+                    uint32_t first=next.fetch_add(chunk_rows,std::memory_order_relaxed);
+                    if (first>=p->rows) return;
+                    display_wavelet_rows(p,planes,gamma,rgb,pitch,first,std::min(p->rows,first+chunk_rows));
+                }
+            };
+            // Keep the claim counter alive until every future has joined, also
+            // when launching a later worker throws. Output row ranges are disjoint.
             std::future<void> done[workers-1];
             for (uint32_t i=1;i<workers;++i)
-                done[i-1]=std::async(std::launch::async,display_wavelet_rows,p,planes,gamma,rgb,pitch,
-                    p->rows*i/workers,p->rows*(i+1)/workers);
-            display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows/workers);
+                done[i-1]=std::async(std::launch::async,render_chunks);
+            render_chunks();
             for (auto &worker:done) worker.get();
         } else display_wavelet_rows(p,planes,gamma,rgb,pitch,0,p->rows);
         *out=p->info;return GPR_PREVIEW_OK;

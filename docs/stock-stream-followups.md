@@ -162,3 +162,9 @@ and [instruction sets/alignment](https://github.com/FFmpeg/asm-lessons/blob/main
 Their examples use x86. These experiments use AArch64 assembly controls, NEON
 intrinsics and C register packing, with output checks and Pi measurements.
 They make no speedup claim based on instruction count or vectorization alone.
+
+A subsequent [color-worker timing study](stock-preview-scheduling.md) separates
+loop CPU time from a delayed fourth worker's start. Three fixed partitions do
+not qualify; four workers sharing row blocks improve the matched preview
+results and are adopted with unchanged pixel math, APIs and reservations.
+All deadline failures and both control families remain archived.

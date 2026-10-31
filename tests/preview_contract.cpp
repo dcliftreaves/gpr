@@ -271,38 +271,38 @@ static void profile_parser_tests() {
     real(52,std::numeric_limits<float>::quiet_NaN()); put(140,gpr_gvid_crc32(0,bytes.data(),140));
     check(gpr_preview_plan_from_profile(&v,bytes.data(),bytes.size(),&plan)==GPR_PREVIEW_INVALID,"CRC-valid nonfinite profile accepted");
 }
-static void large_wavelet_rows() {
-    gpr_gvid_config video={4096,3072,20,1,3,14,{'R','G','G','B'}};
+static void large_wavelet_rows(unsigned height) {
+    gpr_gvid_config video={4096,height,20,1,3,14,{'R','G','G','B'}};
     gpr_preview_calibration calibration={};gpr_preview_calibration_identity(&video,&calibration);
     for (unsigned i=0;i<4;++i) calibration.black[i]=float(20+i*7);
     calibration.exposure=.8f;calibration.camera_to_srgb[1]=.1f;
     float values[4]={1.1f,1.3f,1.5f,1.2f};
     gpr_preview_gain_map map={};map.phase_mask=15;map.rows=map.cols=2;
-    map.spacing_x=map.spacing_y=1;map.area[2]=4096;map.area[3]=3072;
+    map.spacing_x=map.spacing_y=1;map.area[2]=4096;map.area[3]=float(height);
     map.values=values;map.value_count=4;
     calibration.gain_maps=&map;calibration.gain_map_count=1;
     gpr_preview_plan *created=nullptr;
     check(!gpr_preview_plan_create(&video,&calibration,&created),"large plan create");
     std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)> plan(created,gpr_preview_plan_destroy);
-    std::vector<int16_t> storage[3];gpr_preview_wavelet_planes planes={};planes.width=1024;planes.height=768;
+    std::vector<int16_t> storage[3];gpr_preview_wavelet_planes planes={};planes.width=1024;planes.height=height/4;
     for (unsigned c=0;c<3;++c) {
-        storage[c].resize(1024*768);
+        storage[c].resize(1024*(height/4));
         for (size_t i=0;i<storage[c].size();++i) storage[c][i]=int16_t(int((i*17+c*101)%7000)-1500);
         planes.samples[c]=storage[c].data();planes.sample_count[c]=storage[c].size();
     }
     gpr_preview_info info={};check(!gpr_preview_plan_info(plan.get(),&info),"large plan info");
     size_t pitch=info.row_bytes+13;
     std::vector<uint8_t> expected(pitch*info.height,0xcd),actual(expected.size(),0xcd);
-    for (unsigned strip=0;strip<4;++strip) {
-        auto crop=calibration;crop.crop[1]=float(strip*768);crop.crop[3]=float((strip+1)*768);
+    for (unsigned strip=0;strip<3;++strip) {
+        auto crop=calibration;crop.crop[1]=float(strip*(height/3));crop.crop[3]=float((strip+1)*(height/3));
         gpr_preview_plan *part=nullptr;check(!gpr_preview_plan_create(&video,&crop,&part),"strip plan create");
         std::unique_ptr<gpr_preview_plan,decltype(&gpr_preview_plan_destroy)> holder(part,gpr_preview_plan_destroy);
         gpr_preview_info part_info={};
         // Each strip is below the parallel-display threshold and uses the same
         // global source coordinates. Stitching checks actual row partitioning.
-        check(!gpr_preview_plan_render_wavelets(part,&planes,expected.data()+strip*192*pitch,
-            expected.size()-strip*192*pitch,pitch,&part_info),"serial strip render");
-        check(part_info.height==192 && part_info.width==1024,"strip geometry");
+        check(!gpr_preview_plan_render_wavelets(part,&planes,expected.data()+strip*(height/12)*pitch,
+            expected.size()-strip*(height/12)*pitch,pitch,&part_info),"serial strip render");
+        check(part_info.height==height/12 && part_info.width==1024,"strip geometry");
     }
     for (unsigned repeat=0;repeat<3;++repeat) {
         check(!gpr_preview_plan_render_wavelets(plan.get(),&planes,actual.data(),actual.size(),pitch,&info),"parallel large render");
@@ -340,7 +340,7 @@ int main(int argc,char **argv) {
         for (unsigned width:{128u,72u}) for (unsigned scale:{4u,8u,16u}) for (bool unaligned:{false,true}) render(root,width,scale,unaligned);
         invalid_preview(root);
         shared_calibrated_plan(root);
-        large_wavelet_rows();
+        large_wavelet_rows(3072);large_wavelet_rows(3048);
         for (unsigned width:{128u,72u}) for (unsigned scale:{4u,8u,16u}) for (unsigned orientation=1;orientation<=8;++orientation)
             for (unsigned phase=0;phase<4;++phase) for (unsigned bits:{12u,14u,16u})
                 calibrated_preview(root,width,scale,orientation,orientation%2,orientation%3==0,phase,bits);

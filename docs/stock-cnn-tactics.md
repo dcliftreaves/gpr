@@ -172,3 +172,9 @@ alignment leaves bicubic and sixteen-sensor-pixel CNN shifts exact, while
 two-pixel CNN shifts differ by RMS 1.86..2.62 counts with rare maxima83..207.
 A CPU control confirms this is larger than backend roundoff. This motivates
 phase-consistency/anti-aliasing comparisons, not a real-video quality claim.
+
+The [matched phase-consistency training study](stock-cnn-phase-training.md)
+reduces pooled synthetic shift MSE by up to 84.7%/88.1%, but all six checkpoints
+fail RAW fidelity guards and the regularized cases regress the Nikon tone
+proxy. Independent replicated-edge checks reproduce phase results exactly;
+no model, inference default or restored-tier approval changes.

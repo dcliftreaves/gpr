@@ -387,3 +387,18 @@ The [CNN translation diagnostic](stock-cnn-translation.md) adds a synthetic
 spatial-consistency check, with independent transform/scoring and CPU controls.
 Its measured sampling-phase sensitivity supplies a concrete next model target;
 actual motion/rendered/temporal and restored-tier quality remain unapproved.
+
+The [preview scheduling study](stock-preview-scheduling.md) identifies a late
+fourth color task, rejects three fixed partitions and adopts four workers
+sharing 32-row blocks. All 2,400 candidate/control frames are exact. Candidate
+runs retain 1/15 late previews versus controls 24/30, at 19.9969/19.9977 durable
+fps; the strict combined gate remains open. Fresh 30 Mac/24 Pi Release CTests,
+eight frontend checks per host and all four relocated Mac package profiles pass.
+
+The [phase-training study](stock-cnn-phase-training.md) tests three matched
+600-update arms on actual stock inputs. Phase MSE improves, but every candidate
+fails RAW guards, so supplied weights and quality scopes remain unchanged.
+No whole-image/rendered/final/backend/Pi approval is inferred for those models.
+The preceding published source `eb3062b` passes all seven hosted jobs in
+[run 41193609961](https://github.com/dcliftreaves/gpr/actions/runs/41193609961).
+New row-scheduling source requires its own hosted result.
