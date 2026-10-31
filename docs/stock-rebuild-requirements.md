@@ -220,3 +220,5 @@ reproducibility or default-scheduler approval. No boot/device/global scheduling
 setting, codec source or model is changed. All seven hosted jobs pass at
 `cade228` ([receipt](stock-scheduler-receipts/passed-cade228.json)); new evidence
 heads need their own checks. Broader timing and model-quality gates remain open.
+
+The [CNN tactics audit](stock-cnn-tactics.md) checks the old selected preclean/detail/coordinate recipe, structure losses and checkpoint interpolation against primary research. A new validation-only spatial gate improves full-validation gain from +0.02782 to +0.08716 dB without regional regressions. It is frozen for further evaluation, has no final/native approval and does not replace the supplied model. Reproducing the specialized older training recipe remains an explicit quality task.

@@ -1,0 +1,1056 @@
+{
+  "schema": "gpr.current_goal.mission1_sr_current_contract_retrain_summary.v1",
+  "created_utc": "2026-06-19T01:28:08Z",
+  "decision": "no_current_contract_sr_candidate_promoted",
+  "decision_reason": "Current-contract pair generation is reproducible, but no retrain/fine-tune candidate clears both Mission hard rows and regenerated Z8 guardrails. Hardfocus training improves GP017346/GP017349 RMSE but overfits Mission and regresses Z8. Balanced 128-tile Mission hard2 + Z8 train19 training recovers Z8 RMSE/PSNR versus hardfocus-only, but still misses Mission detail floors. Residual-scale sweeps show the failure is not merely under-amplified residual output. The remaining blocker is full-image detail/gradient placement under the current model/loss/data-balance contract, not codec invalidity. A later mixed hard-tile + balanced corpus run improves over hard-only and over balanced128 on Z8, but remains below production detail floors on GP017346/GP017600 and just below the GP017349 RMSE floor, so it is also not promoted.",
+  "thresholds_reference": {
+    "rmse_improvement_pct_min": 30.0,
+    "mae_improvement_pct_min": 20.0,
+    "gradient_mae_improvement_pct_min": 8.0
+  },
+  "artifacts": {
+    "tailflush_probe": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_tailflush_refresh_GP017346_GP017349_20260618/summary.json",
+      "sha256": "bb9d44b0b2ed03c55b600ab797a577c5223f6c709df35d58216230513283be5d",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_tailflush_refresh_GP017346_GP017349_20260618/summary.json.json",
+      "sidecar_sha256": null
+    },
+    "mission_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_mission1_all42_20260618/mission1_sr_pairs_current_contract_t233_gaussian_area_96t_w96.npz",
+      "sha256": "e7aaedc60cbf523c067e7f9f622f2df68cb87f6264fe800641e956071b91e943",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_mission1_all42_20260618/mission1_sr_pairs_current_contract_t233_gaussian_area_96t_w96.npz.json",
+      "sidecar_sha256": "8033bcf5f859987f859710c13fa3fc6f58cadc069241bcb77cb0490b3b7a3711"
+    },
+    "z8_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_z8_all24_20260618/z8_sr_pairs_current_contract_t233_gaussian_area_96t_w96.npz",
+      "sha256": "70f022d116026886d070c138e87d338aedbbddead944bafac378457e13467e93",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_z8_all24_20260618/z8_sr_pairs_current_contract_t233_gaussian_area_96t_w96.npz.json",
+      "sidecar_sha256": "1914cff70d3bc54de02011fb466a680e6f2433eceabd257cc461bcf229a24be1"
+    },
+    "merged_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_mission42_z8_20260618/mission42_z8_current_contract_t233_gaussian_area_96t_w96.npz",
+      "sha256": "c4f9c0efd51b26e06d886f15bcda62991f393dc6a8cd1eee057690aff23c0566",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_mission42_z8_20260618/mission42_z8_current_contract_t233_gaussian_area_96t_w96.npz.json",
+      "sidecar_sha256": "718d491457314e7423c31c1940985eda2cd1d16c9934a0c37b0457b1ac3b53b1"
+    },
+    "hard2_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus_pairs_20260618/mission_hard2_current_contract_t233_gaussian_area_1024t_w96.npz",
+      "sha256": "423f0c456b3eb14ae72d4e0f61e1d83945eaa256202484e5c8cd4a2b09a438cc",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus_pairs_20260618/mission_hard2_current_contract_t233_gaussian_area_1024t_w96.npz.json",
+      "sidecar_sha256": "b7dcfe66b5f7f8f4f99aabcc6579b5040714b5069ecf7a7334eeafd97d3b3c23"
+    },
+    "hard2_128_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_pairs_20260618/mission_hard2_current_contract_t233_gaussian_area_1024t_w128.npz",
+      "sha256": "02e50644c5ca848a86a891ed086698603e57957daec713b5e7fcc34d9d62aa01",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_pairs_20260618/mission_hard2_current_contract_t233_gaussian_area_1024t_w128.npz.json",
+      "sidecar_sha256": "0f2921818ed6afa5de46eb469452626c76f4a8f7e047943e0aadfb785606986e"
+    },
+    "z8_train19_128_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_z8_train19_128_pairs_20260618/z8_train19_current_contract_t233_gaussian_area_128t_w128.npz",
+      "sha256": "5e17d01efd5228973cbfe08f13ee95db013f7d4bd42d3c126b3520ff1f8b3866",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_z8_train19_128_pairs_20260618/z8_train19_current_contract_t233_gaussian_area_128t_w128.npz.json",
+      "sidecar_sha256": "c0ae05f1b9bd66db9d0f32531e8b8d79de9fe39c0f7f4900ede02e296a844bdd"
+    },
+    "hard2_z8train19_128_merged_pairs": {
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hard2_z8train19_128_merged_20260618/mission_hard2_z8train19_current_contract_t233_gaussian_area_w128.npz",
+      "sha256": "0d4341dd68f910c8322eb3f3089604179883d42cb54547cfad596fb1c58c6265",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hard2_z8train19_128_merged_20260618/mission_hard2_z8train19_current_contract_t233_gaussian_area_w128.npz.json",
+      "sidecar_sha256": "a662acbe066e329125b86a8ef0891bf9d2f004cd3c336d83339a3162f421cb85"
+    }
+  },
+  "candidates": {
+    "current_contract_finetune": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_finetune_w48_d6_rs03_20260618/mission42_z8_current_contract_from_guardrail_light_w48_d6_rs03_1200.pt",
+      "checkpoint_sha256": "48d15435c5edb2d4c6257847b4ffaec7dee7498ca35bad1ba322f9448c8dc680",
+      "mission_key8": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_finetune_w48_d6_rs03_20260618/mission_key8_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_finetune_w48_d6_rs03_20260618/mission_key8_fullframe/index.html",
+        "image_count": 8,
+        "rmse_min": 28.611413809949905,
+        "rmse_median": 51.56001664366084,
+        "mae_min": 15.81781206130954,
+        "gradient_min": 3.400542040636312,
+        "psnr14_min": 46.3508011697759,
+        "fps_median": 2.501591374279518,
+        "rows": {
+          "GP017346": {
+            "rmse": 51.56001664366084,
+            "mae": 15.81781206130954,
+            "gradient": 3.400542040636312,
+            "psnr14": 58.10778987344719,
+            "fps": 2.5625663916337187
+          },
+          "GP017347": {
+            "rmse": 46.01263836733474,
+            "mae": 22.070168783299902,
+            "gradient": 6.533911368788741,
+            "psnr14": 53.61235661405901,
+            "fps": 2.2508138091536014
+          },
+          "GP017348": {
+            "rmse": 46.99544308436269,
+            "mae": 23.02899048097238,
+            "gradient": 8.714450636631188,
+            "psnr14": 54.614277168904195,
+            "fps": 2.0669929618849427
+          },
+          "GP017349": {
+            "rmse": 28.611413809949905,
+            "mae": 23.516017179387248,
+            "gradient": 10.430486773869095,
+            "psnr14": 53.44523200884542,
+            "fps": 2.367472113785631
+          },
+          "GP017350": {
+            "rmse": 58.80134417530068,
+            "mae": 42.30158743502822,
+            "gradient": 20.92425632755646,
+            "psnr14": 54.38546716713493,
+            "fps": 2.3388001514157826
+          },
+          "GP017351": {
+            "rmse": 53.7114555323912,
+            "mae": 38.97740042237814,
+            "gradient": 19.197010134894153,
+            "psnr14": 52.816504531429615,
+            "fps": 2.6479556278863208
+          },
+          "GP017600": {
+            "rmse": 60.781426573416766,
+            "mae": 21.51772467955253,
+            "gradient": 6.539934382127729,
+            "psnr14": 59.64318380009304,
+            "fps": 2.6304831995390283
+          },
+          "GP017604": {
+            "rmse": 41.8278554800332,
+            "mae": 30.869117584498394,
+            "gradient": 13.830257456738565,
+            "psnr14": 46.3508011697759,
+            "fps": 2.501591374279518
+          }
+        }
+      },
+      "z8_holdout5": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_finetune_w48_d6_rs03_20260618/z8_holdout5_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_finetune_w48_d6_rs03_20260618/z8_holdout5_fullframe/index.html",
+        "image_count": 5,
+        "rmse_min": 43.59135425763,
+        "rmse_median": 43.80702927886138,
+        "mae_min": 6.990142696503222,
+        "gradient_min": 2.0893688391778165,
+        "psnr14_min": 53.958557629738344,
+        "fps_median": 2.6288952816260647,
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 43.80702927886138,
+            "mae": 7.087993573086129,
+            "gradient": 2.1169322319820716,
+            "psnr14": 53.958557629738344,
+            "fps": 1.9049322894379246
+          },
+          "Z8Z_1350": {
+            "rmse": 43.817250529185834,
+            "mae": 7.06076935917331,
+            "gradient": 2.1191162338695015,
+            "psnr14": 54.01287898266784,
+            "fps": 2.847450338183578
+          },
+          "Z8Z_1351": {
+            "rmse": 43.59135425763,
+            "mae": 6.990142696503222,
+            "gradient": 2.0893688391778165,
+            "psnr14": 54.021339197523076,
+            "fps": 2.395695415168266
+          },
+          "Z8Z_1352": {
+            "rmse": 43.6379697987572,
+            "mae": 7.036217232398938,
+            "gradient": 2.108505472527833,
+            "psnr14": 54.01340179425236,
+            "fps": 2.852323788053287
+          },
+          "Z8Z_1353": {
+            "rmse": 44.35685339650726,
+            "mae": 7.06570349795187,
+            "gradient": 2.128186812702276,
+            "psnr14": 54.1520332432198,
+            "fps": 2.6288952816260647
+          }
+        }
+      },
+      "promotion_failures": [
+        "mission_key8: rmse_min 28.611<30",
+        "mission_key8: mae_min 15.818<20",
+        "mission_key8: gradient_min 3.401<8",
+        "z8_holdout5: mae_min 6.990<20",
+        "z8_holdout5: gradient_min 2.089<8"
+      ],
+      "promoted": false
+    },
+    "focus_gw08": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_focus_gw08_20260618/mission42_z8_current_contract_focus_gw08_from_step1000_w48_d6_rs03_1000.pt",
+      "checkpoint_sha256": "780d008371f9f7d3595299585b9158bfce67934e56db472b41404e8a1ce1cc60",
+      "mission_key8": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_focus_gw08_20260618/mission_key8_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_focus_gw08_20260618/mission_key8_fullframe/index.html",
+        "image_count": 8,
+        "rmse_min": 28.794085601190897,
+        "rmse_median": 51.795457136903906,
+        "mae_min": 15.93185898877578,
+        "gradient_min": 3.662623512120111,
+        "psnr14_min": 46.31331930862242,
+        "fps_median": 2.5147508436006722,
+        "rows": {
+          "GP017346": {
+            "rmse": 51.795457136903906,
+            "mae": 15.93185898877578,
+            "gradient": 3.662623512120111,
+            "psnr14": 58.15011020479432,
+            "fps": 2.0117718788715133
+          },
+          "GP017347": {
+            "rmse": 46.63072271196963,
+            "mae": 22.22587128116634,
+            "gradient": 6.948080235454151,
+            "psnr14": 53.71237225867254,
+            "fps": 2.5147508436006722
+          },
+          "GP017348": {
+            "rmse": 46.07898786548601,
+            "mae": 22.97192318644562,
+            "gradient": 8.92932279876435,
+            "psnr14": 54.46538062541222,
+            "fps": 2.4186680063542694
+          },
+          "GP017349": {
+            "rmse": 28.794085601190897,
+            "mae": 23.634937227965434,
+            "gradient": 10.529542102583404,
+            "psnr14": 53.46748627363291,
+            "fps": 2.4828438094227234
+          },
+          "GP017350": {
+            "rmse": 59.02787885635432,
+            "mae": 42.638867358197,
+            "gradient": 21.334465941126062,
+            "psnr14": 54.433359137891756,
+            "fps": 2.38666617435583
+          },
+          "GP017351": {
+            "rmse": 53.63398054206851,
+            "mae": 39.22316539870325,
+            "gradient": 19.498964579760365,
+            "psnr14": 52.801978762941204,
+            "fps": 2.667732870200283
+          },
+          "GP017600": {
+            "rmse": 61.532571586429135,
+            "mae": 21.60814210811764,
+            "gradient": 6.684754678404837,
+            "psnr14": 59.811156558672266,
+            "fps": 2.6813710068599512
+          },
+          "GP017604": {
+            "rmse": 41.57628522011779,
+            "mae": 31.172021386437674,
+            "gradient": 14.100520137223807,
+            "psnr14": 46.31331930862242,
+            "fps": 2.672273987601851
+          }
+        }
+      },
+      "z8_holdout5": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_focus_gw08_20260618/z8_holdout5_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_focus_gw08_20260618/z8_holdout5_fullframe/index.html",
+        "image_count": 5,
+        "rmse_min": 43.443523067624554,
+        "rmse_median": 43.613441939429,
+        "mae_min": 7.051594916119027,
+        "gradient_min": 2.2405884042420596,
+        "psnr14_min": 53.92868577041987,
+        "fps_median": 2.91249269983571,
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 43.613441939429,
+            "mae": 7.140774513292169,
+            "gradient": 2.26185257865236,
+            "psnr14": 53.92868577041987,
+            "fps": 2.4821250762324496
+          },
+          "Z8Z_1350": {
+            "rmse": 43.69371419086095,
+            "mae": 7.118765778603056,
+            "gradient": 2.2679078976350198,
+            "psnr14": 53.99380115113186,
+            "fps": 2.8472729786470508
+          },
+          "Z8Z_1351": {
+            "rmse": 43.443523067624554,
+            "mae": 7.051594916119027,
+            "gradient": 2.2405884042420596,
+            "psnr14": 53.9986057005986,
+            "fps": 2.9786202139667033
+          },
+          "Z8Z_1352": {
+            "rmse": 43.48016524189123,
+            "mae": 7.088589895112324,
+            "gradient": 2.248228001140282,
+            "psnr14": 53.989116691260534,
+            "fps": 2.91249269983571
+          },
+          "Z8Z_1353": {
+            "rmse": 44.19889875155498,
+            "mae": 7.115498621817804,
+            "gradient": 2.267194695830374,
+            "psnr14": 54.127411469390765,
+            "fps": 3.117349906831319
+          }
+        }
+      },
+      "promotion_failures": [
+        "mission_key8: rmse_min 28.794<30",
+        "mission_key8: mae_min 15.932<20",
+        "mission_key8: gradient_min 3.663<8",
+        "z8_holdout5: mae_min 7.052<20",
+        "z8_holdout5: gradient_min 2.241<8"
+      ],
+      "promoted": false
+    },
+    "hardfocus128_long": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_long_20260618/mission_hard2_w128_current_contract_long_w48_d6_rs03_5000.pt",
+      "checkpoint_sha256": "57aad01d61434e5b1d6b6e589c1e8b1502f85c121991adfd860f4b3b32ca05f0",
+      "mission_key8": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_long_20260618/mission_key8_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_long_20260618/mission_key8_fullframe/index.html",
+        "image_count": 8,
+        "rmse_min": 29.954727125952093,
+        "rmse_median": 52.87988623677254,
+        "mae_min": 19.03182954260242,
+        "gradient_min": 5.618685339799231,
+        "psnr14_min": 45.833051803119574,
+        "fps_median": 2.4657041088472016,
+        "rows": {
+          "GP017346": {
+            "rmse": 63.431834783999335,
+            "mae": 19.03182954260242,
+            "gradient": 5.618685339799231,
+            "psnr14": 60.54980616964501,
+            "fps": 2.082031703249437
+          },
+          "GP017347": {
+            "rmse": 48.613012753570516,
+            "mae": 23.94589338199141,
+            "gradient": 7.732963426866855,
+            "psnr14": 54.04113556763769,
+            "fps": 2.261889055480349
+          },
+          "GP017348": {
+            "rmse": 49.02286557231647,
+            "mae": 24.43905603965946,
+            "gradient": 9.614796840114549,
+            "psnr14": 54.95303296023156,
+            "fps": 2.4657041088472016
+          },
+          "GP017349": {
+            "rmse": 29.954727125952093,
+            "mae": 24.88579069815249,
+            "gradient": 11.438462719068504,
+            "psnr14": 53.61023100068109,
+            "fps": 2.4311687902955676
+          },
+          "GP017350": {
+            "rmse": 58.26159630391498,
+            "mae": 41.480433561067336,
+            "gradient": 20.78353271040418,
+            "psnr14": 54.272411395483914,
+            "fps": 2.336763896609072
+          },
+          "GP017351": {
+            "rmse": 52.87988623677254,
+            "mae": 37.99339279634289,
+            "gradient": 18.914482931860313,
+            "psnr14": 52.66184841946453,
+            "fps": 2.677265660844105
+          },
+          "GP017600": {
+            "rmse": 59.27434247094237,
+            "mae": 21.472717084431068,
+            "gradient": 6.532405951873119,
+            "psnr14": 59.315657546452904,
+            "fps": 2.6505290646875608
+          },
+          "GP017604": {
+            "rmse": 38.25489368877191,
+            "mae": 28.585176092069126,
+            "gradient": 12.30582753690755,
+            "psnr14": 45.833051803119574,
+            "fps": 2.6992899828464694
+          }
+        }
+      },
+      "z8_holdout5": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_long_20260618/z8_holdout5_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_long_20260618/z8_holdout5_fullframe/index.html",
+        "image_count": 5,
+        "rmse_min": 38.96001859867092,
+        "rmse_median": 39.135192842998656,
+        "mae_min": 5.04322505715831,
+        "gradient_min": 0.8717764016612984,
+        "psnr14_min": 53.26487246877487,
+        "fps_median": 3.1634745345144526,
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 39.135192842998656,
+            "mae": 5.123772519275569,
+            "gradient": 0.8777358594906969,
+            "psnr14": 53.26487246877487,
+            "fps": 2.4385711256120435
+          },
+          "Z8Z_1350": {
+            "rmse": 39.294266985442164,
+            "mae": 5.127306415015898,
+            "gradient": 0.9025303523344334,
+            "psnr14": 53.340344609688024,
+            "fps": 2.59499941412382
+          },
+          "Z8Z_1351": {
+            "rmse": 38.96001859867092,
+            "mae": 5.04322505715831,
+            "gradient": 0.8752905984295491,
+            "psnr14": 53.33596481149435,
+            "fps": 3.1634745345144526
+          },
+          "Z8Z_1352": {
+            "rmse": 39.02263281636503,
+            "mae": 5.080481637493961,
+            "gradient": 0.8717764016612984,
+            "psnr14": 53.32976098217064,
+            "fps": 3.2170740767716763
+          },
+          "Z8Z_1353": {
+            "rmse": 39.57218166469248,
+            "mae": 5.116523385805062,
+            "gradient": 0.8963810601420062,
+            "psnr14": 53.43552856967379,
+            "fps": 3.210879753339879
+          }
+        }
+      },
+      "promotion_failures": [
+        "mission_key8: rmse_min 29.955<30",
+        "mission_key8: mae_min 19.032<20",
+        "mission_key8: gradient_min 5.619<8",
+        "z8_holdout5: mae_min 5.043<20",
+        "z8_holdout5: gradient_min 0.872<8"
+      ],
+      "promoted": false
+    },
+    "balanced128_hard2_z8train19": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_hard2_z8train19_balanced128_from_hardfocus_long_w48_d6_rs03_3000.pt",
+      "checkpoint_sha256": "7abf188ef4cc2437c126e3cdc6f974d7f981a2c65ce21948dcbded29973fe146",
+      "sidecar": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_hard2_z8train19_balanced128_from_hardfocus_long_w48_d6_rs03_3000.pt.json",
+      "sidecar_sha256": "b0e519695e2fcd913fc451ed2bd312b0f27067b823dfa12cb1e5a7e7a28725e5",
+      "mission_key8": {
+        "fps_median": 2.6413686527705558,
+        "rmse_min": 29.85819001195694,
+        "rmse_median": 50.965523400491904,
+        "mae_min": 18.869234071841664,
+        "gradient_min": 5.59729314396367,
+        "psnr14_min": 46.222130969125566,
+        "image_count": 8,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_key8_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_key8_fullframe/index.html",
+        "rows": {
+          "GP017346": {
+            "rmse": 62.54701893148387,
+            "mae": 18.869234071841664,
+            "gradient": 5.59729314396367,
+            "psnr14": 60.34214175719288,
+            "fps": 2.5753645557623193
+          },
+          "GP017347": {
+            "rmse": 48.848371887435405,
+            "mae": 23.802909313120725,
+            "gradient": 7.780593618372488,
+            "psnr14": 54.08100946382899,
+            "fps": 2.688818948944439
+          },
+          "GP017348": {
+            "rmse": 49.729250565299196,
+            "mae": 24.356049065802353,
+            "gradient": 9.638961997318177,
+            "psnr14": 55.074234143127576,
+            "fps": 2.640142038485701
+          },
+          "GP017349": {
+            "rmse": 29.85819001195694,
+            "mae": 24.830426842759024,
+            "gradient": 11.405826895626152,
+            "psnr14": 53.59826826012663,
+            "fps": 2.6264728776582875
+          },
+          "GP017350": {
+            "rmse": 57.65793522000238,
+            "mae": 41.455737810760745,
+            "gradient": 20.71134937397207,
+            "psnr14": 54.14768745560406,
+            "fps": 2.636512290972775
+          },
+          "GP017351": {
+            "rmse": 52.20179623568461,
+            "mae": 37.98375657544865,
+            "gradient": 18.854648705396016,
+            "psnr14": 52.53774349919871,
+            "fps": 2.642595267055411
+          },
+          "GP017600": {
+            "rmse": 59.15748795302051,
+            "mae": 21.529830137629673,
+            "gradient": 6.676669960200378,
+            "psnr14": 59.29077072734146,
+            "fps": 2.7122480992237454
+          },
+          "GP017604": {
+            "rmse": 40.959696080614144,
+            "mae": 29.75655069067045,
+            "gradient": 13.18379597433606,
+            "psnr14": 46.222130969125566,
+            "fps": 2.745003887114881
+          }
+        },
+        "worst_rmse_image": "GP017349",
+        "worst_mae_image": "GP017346",
+        "worst_gradient_image": "GP017346"
+      },
+      "mission_hard2": {
+        "fps_median": 2.2801445473950794,
+        "rmse_min": 29.85819001195694,
+        "rmse_median": 46.202604471720406,
+        "mae_min": 18.869234071841664,
+        "gradient_min": 5.59729314396367,
+        "psnr14_min": 53.59826826012663,
+        "image_count": 2,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_hard2_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/mission_hard2_fullframe/index.html",
+        "rows": {
+          "GP017346": {
+            "rmse": 62.54701893148387,
+            "mae": 18.869234071841664,
+            "gradient": 5.59729314396367,
+            "psnr14": 60.34214175719288,
+            "fps": 2.071094278560274
+          },
+          "GP017349": {
+            "rmse": 29.85819001195694,
+            "mae": 24.830426842759024,
+            "gradient": 11.405826895626152,
+            "psnr14": 53.59826826012663,
+            "fps": 2.4891948162298845
+          }
+        },
+        "worst_rmse_image": "GP017349",
+        "worst_mae_image": "GP017346",
+        "worst_gradient_image": "GP017346"
+      },
+      "z8_holdout5": {
+        "fps_median": 3.221106411049005,
+        "rmse_min": 44.589237886728,
+        "rmse_median": 44.924911325217124,
+        "mae_min": 7.3414462031886165,
+        "gradient_min": 2.460061344041445,
+        "psnr14_min": 54.13833911260746,
+        "image_count": 5,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/z8_holdout5_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_balanced128_train_20260618/z8_holdout5_fullframe/index.html",
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 44.958163218888465,
+            "mae": 7.446052922181174,
+            "gradient": 2.4995439048199164,
+            "psnr14": 54.13833911260746,
+            "fps": 2.4965622895104405
+          },
+          "Z8Z_1350": {
+            "rmse": 44.924911325217124,
+            "mae": 7.42977776437976,
+            "gradient": 2.5059623680632184,
+            "psnr14": 54.18583465899474,
+            "fps": 2.9803394468020414
+          },
+          "Z8Z_1351": {
+            "rmse": 44.589237886728,
+            "mae": 7.3414462031886165,
+            "gradient": 2.460061344041445,
+            "psnr14": 54.176370195120434,
+            "fps": 3.221106411049005
+          },
+          "Z8Z_1352": {
+            "rmse": 44.708629745253184,
+            "mae": 7.387158219498848,
+            "gradient": 2.4790429762504913,
+            "psnr14": 54.17998730175317,
+            "fps": 3.3525827475884995
+          },
+          "Z8Z_1353": {
+            "rmse": 45.38044945342327,
+            "mae": 7.4034192411208695,
+            "gradient": 2.4874352258674595,
+            "psnr14": 54.31330442609096,
+            "fps": 3.295666154956951
+          }
+        },
+        "worst_rmse_image": "Z8Z_1351",
+        "worst_mae_image": "Z8Z_1351",
+        "worst_gradient_image": "Z8Z_1351"
+      },
+      "promotion_failures": [
+        "mission_key8: rmse_min 29.86 < 30.00",
+        "mission_key8: mae_min 18.87 < 20.00",
+        "mission_key8: gradient_min 5.60 < 8.00",
+        "z8_holdout5: mae_min 7.34 < 20.00",
+        "z8_holdout5: gradient_min 2.46 < 8.00"
+      ],
+      "promoted": false,
+      "interpretation": "Balanced 128-tile Mission hard2 + Z8 train19 improves Z8 RMSE/PSNR versus the hardfocus-only long run, but still misses Mission hard/detail floors: GP017346 remains below MAE and gradient floors, GP017349 remains just below the RMSE floor, and GP017600/GP017347 remain below the broad-holdout gradient floor."
+    },
+    "hard4_mined_tiles_from_balanced128": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_from_balanced128_w48_d6_rs03_gw12_lap02_1200.pt",
+      "checkpoint_sha256": "49d81d31072a9787db50c114800c2e944d8404457b99428d95b177bb82cd2653",
+      "training_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_from_balanced128_w48_d6_rs03_gw12_lap02_1200.pt.json",
+      "mission_hard4": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_fullframe_eval/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_fullframe_eval/index.html",
+        "image_count": 4,
+        "rmse_min": 29.735891513951103,
+        "rmse_median": 57.69482440036276,
+        "mae_min": 19.176726022352568,
+        "gradient_min": 5.812130644985041,
+        "psnr14_min": 53.583134109589814,
+        "fps_median": 2.638204319146111,
+        "rows": {
+          "GP017346": {
+            "rmse": 63.03862236549312,
+            "mae": 19.176726022352568,
+            "gradient": 5.812130644985041,
+            "psnr14": 60.45689869956361
+          },
+          "GP017347": {
+            "rmse": 52.78757302551756,
+            "mae": 25.435946026400085,
+            "gradient": 9.043243125172747,
+            "psnr14": 54.77707060170608
+          },
+          "GP017349": {
+            "rmse": 29.735891513951103,
+            "mae": 24.640383823202793,
+            "gradient": 11.285059259671218,
+            "psnr14": 53.583134109589814
+          },
+          "GP017600": {
+            "rmse": 62.602075775207965,
+            "mae": 22.39832293307046,
+            "gradient": 7.478818383632951,
+            "psnr14": 60.056075787502046
+          }
+        }
+      },
+      "z8_holdout5": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_z8_holdout5_eval/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/hard4_mined_z8_holdout5_eval/index.html",
+        "image_count": 5,
+        "rmse_min": 43.22684360490814,
+        "rmse_median": 43.44992732155929,
+        "mae_min": 6.593813178745813,
+        "gradient_min": 2.0823912030934295,
+        "psnr14_min": 53.903531292872565,
+        "fps_median": 3.225118087940925,
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 43.44992732155929,
+            "mae": 6.683313904458878,
+            "gradient": 2.1003620703980443,
+            "psnr14": 53.903531292872565
+          },
+          "Z8Z_1350": {
+            "rmse": 43.538434021067495,
+            "mae": 6.678682298686571,
+            "gradient": 2.1181390411087406,
+            "psnr14": 53.96987980464098
+          },
+          "Z8Z_1351": {
+            "rmse": 43.22684360490814,
+            "mae": 6.593813178745813,
+            "gradient": 2.0823912030934295,
+            "psnr14": 53.96539701856248
+          },
+          "Z8Z_1352": {
+            "rmse": 43.241595645265015,
+            "mae": 6.625065195629233,
+            "gradient": 2.085597089379053,
+            "psnr14": 53.95253309613003
+          },
+          "Z8Z_1353": {
+            "rmse": 43.92136991656685,
+            "mae": 6.663089044901257,
+            "gradient": 2.103026167962341,
+            "psnr14": 54.08431378366398
+          }
+        }
+      },
+      "promotion_failures": [
+        "GP017346 remains below MAE and gradient floors",
+        "GP017349 regresses below the RMSE floor",
+        "Z8 holdout RMSE/MAE/gradient regress versus balanced128"
+      ],
+      "promoted": false,
+      "interpretation": "Hard full-frame tile mining is useful as a data-selection tool, but this first hard4-only finetune is not promotable. It improves GP017347 and GP017600 gradient/detail and slightly improves GP017346, but GP017346 still misses MAE/gradient floors, GP017349 regresses below the RMSE floor, and Z8 holdout RMSE/MAE/gradient regress versus the balanced128 checkpoint.",
+      "summary": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/summary.json"
+    },
+    "mixed_hard_balanced_step1600": {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/eval_checkpoints/mixed_hard_balanced_from_balanced128_w48_d6_rs03_gw08_lap01_1600_step001600.pt",
+      "checkpoint_sha256": "f80ee206884ef9eee389ce19df212e3c52349faef6f18589c6e510167ee6bbb2",
+      "training_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/mixed_hard_balanced_from_balanced128_w48_d6_rs03_gw08_lap01_1600.pt.json",
+      "mission_key8": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_mission_key8_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_mission_key8_fullframe/index.html",
+        "image_count": 8,
+        "rmse_min": 29.87637516692936,
+        "rmse_median": 51.53754459691518,
+        "mae_min": 18.8911237710843,
+        "gradient_min": 5.646181153406557,
+        "psnr14_min": 46.28116041486294,
+        "fps_median": 2.662673525967671,
+        "rows": {
+          "GP017346": {
+            "rmse": 62.28471909584401,
+            "mae": 18.8911237710843,
+            "gradient": 5.646181153406557,
+            "psnr14": 60.28151476543886,
+            "fps": 2.6488238918979934
+          },
+          "GP017347": {
+            "rmse": 49.933652740922376,
+            "mae": 24.208523687201893,
+            "gradient": 8.151537607350253,
+            "psnr14": 54.26727897768871,
+            "fps": 2.69180603934905
+          },
+          "GP017348": {
+            "rmse": 50.409939974699284,
+            "mae": 24.554967475231454,
+            "gradient": 9.78933711338893,
+            "psnr14": 55.192651541346464,
+            "fps": 2.640344203768315
+          },
+          "GP017349": {
+            "rmse": 29.87637516692936,
+            "mae": 24.828606130730446,
+            "gradient": 11.404603591147715,
+            "psnr14": 53.60051776390448,
+            "fps": 2.6718667092184534
+          },
+          "GP017350": {
+            "rmse": 58.18272820884384,
+            "mae": 41.86871766631961,
+            "gradient": 20.78564626585962,
+            "psnr14": 54.25601419040593,
+            "fps": 2.710346922504161
+          },
+          "GP017351": {
+            "rmse": 52.665149219131074,
+            "mae": 38.39066292573423,
+            "gradient": 18.881180304371526,
+            "psnr14": 52.622361328931355,
+            "fps": 2.6534803427168883
+          },
+          "GP017600": {
+            "rmse": 60.52385094145386,
+            "mae": 21.784348760812918,
+            "gradient": 6.92306750896181,
+            "psnr14": 59.58633013053404,
+            "fps": 2.699712042372358
+          },
+          "GP017604": {
+            "rmse": 41.3595944080959,
+            "mae": 30.00408374003256,
+            "gradient": 13.261828816098985,
+            "psnr14": 46.28116041486294,
+            "fps": 2.632349609398296
+          }
+        }
+      },
+      "mission_hard4": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_mission_hard4_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_mission_hard4_fullframe/index.html",
+        "image_count": 4,
+        "rmse_min": 29.87637516692936,
+        "rmse_median": 55.228751841188114,
+        "mae_min": 18.8911237710843,
+        "gradient_min": 5.646181153406557,
+        "psnr14_min": 53.60051776390448,
+        "fps_median": 2.636579521205433,
+        "rows": {
+          "GP017346": {
+            "rmse": 62.28471909584401,
+            "mae": 18.8911237710843,
+            "gradient": 5.646181153406557,
+            "psnr14": 60.28151476543886,
+            "fps": 2.5819219650398697
+          },
+          "GP017347": {
+            "rmse": 49.933652740922376,
+            "mae": 24.208523687201893,
+            "gradient": 8.151537607350253,
+            "psnr14": 54.26727897768871,
+            "fps": 2.645079873450803
+          },
+          "GP017349": {
+            "rmse": 29.87637516692936,
+            "mae": 24.828606130730446,
+            "gradient": 11.404603591147715,
+            "psnr14": 53.60051776390448,
+            "fps": 2.628079168960063
+          },
+          "GP017600": {
+            "rmse": 60.52385094145386,
+            "mae": 21.784348760812918,
+            "gradient": 6.92306750896181,
+            "psnr14": 59.58633013053404,
+            "fps": 2.6888105189707816
+          }
+        }
+      },
+      "z8_holdout5": {
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_z8_holdout5_fullframe/summary.json",
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/step1600_z8_holdout5_fullframe/index.html",
+        "image_count": 5,
+        "rmse_min": 45.2743186807342,
+        "rmse_median": 45.60885603283306,
+        "mae_min": 7.561792511755688,
+        "gradient_min": 2.5671349928915173,
+        "psnr14_min": 54.24432089841943,
+        "fps_median": 3.2818457351599752,
+        "rows": {
+          "Z8Z_1349": {
+            "rmse": 45.62569898177087,
+            "mae": 7.672351269252173,
+            "gradient": 2.6087624207983713,
+            "psnr14": 54.24432089841943,
+            "fps": 3.12526206267784
+          },
+          "Z8Z_1350": {
+            "rmse": 45.60885603283306,
+            "mae": 7.650989233444191,
+            "gradient": 2.6160366359865406,
+            "psnr14": 54.294374328153864,
+            "fps": 3.2818457351599752
+          },
+          "Z8Z_1351": {
+            "rmse": 45.2743186807342,
+            "mae": 7.561792511755688,
+            "gradient": 2.5671349928915173,
+            "psnr14": 54.284434280178964,
+            "fps": 3.306414973575504
+          },
+          "Z8Z_1352": {
+            "rmse": 45.380090046446135,
+            "mae": 7.608443677508294,
+            "gradient": 2.5863412822348018,
+            "psnr14": 54.28611705291209,
+            "fps": 3.25187389240294
+          },
+          "Z8Z_1353": {
+            "rmse": 46.066853703675065,
+            "mae": 7.618359152338141,
+            "gradient": 2.594051099153729,
+            "psnr14": 54.42314657318609,
+            "fps": 3.3351778749439185
+          }
+        }
+      },
+      "promotion_failures": [
+        "GP017346: MAE and gradient floors remain below target",
+        "GP017349: RMSE remains just below 30% target",
+        "GP017600: gradient floor remains below target"
+      ],
+      "promoted": false,
+      "interpretation": "The mixed hard-tile + balanced Mission/Z8 run is the best current-contract candidate in this pass and improves over hard-only overfit. It improves Z8 versus balanced128 and crosses the GP017347 gradient floor, but it is still not promotable because GP017346 remains below MAE/gradient floors, GP017349 remains just below the RMSE floor, and GP017600 remains below the gradient floor. Phase-2 stronger detail training was worse.",
+      "summary": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/summary.json"
+    }
+  },
+  "rejected_capacity_probe": {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_hardfocus128_w64d10_probe_20260618",
+    "decision": "stopped_after_baseline_stall",
+    "reason": "w64/d10 scratch lowres_pixelshuffle stayed at bilinear baseline through 2000 steps and was interrupted to avoid wasting compute"
+  },
+  "next_steps": [
+    "Add gate-aligned full-frame checkpoint selection around GP017346, GP017349, GP017600, and regenerated Z8 instead of relying on tile validation.",
+    "Try targeted detail/edge residual training that preserves GP017349 RMSE and Z8 RMSE/PSNR while raising GP017346/GP017600 gradient floors.",
+    "If the lowres pixelshuffle architecture cannot raise those floors, test a small edge/detail residual head and measure 8K throughput before considering promotion."
+  ],
+  "balanced128_checkpoint_sweep": [
+    {
+      "step": 1,
+      "mission_hard2": {
+        "rmse_min": 29.920995407687595,
+        "mae_min": 18.443107543638817,
+        "gradient_min": 4.8184813608311154,
+        "psnr14_min": 53.60604914164703
+      },
+      "z8_holdout5": {
+        "rmse_min": 39.02641131372514,
+        "mae_min": 5.210964488218655,
+        "gradient_min": 0.7126899504562824,
+        "psnr14_min": 53.27394041066903
+      }
+    },
+    {
+      "step": 900,
+      "mission_hard2": {
+        "rmse_min": 29.873977331441253,
+        "mae_min": 18.84295307051908,
+        "gradient_min": 5.5426657649063635,
+        "psnr14_min": 53.60022347555562
+      },
+      "z8_holdout5": {
+        "rmse_min": 42.82234435243874,
+        "mae_min": 7.048793854958171,
+        "gradient_min": 2.1958741796860184,
+        "psnr14_min": 53.85225287475565
+      }
+    },
+    {
+      "step": 1800,
+      "mission_hard2": {
+        "rmse_min": 29.88109725621858,
+        "mae_min": 18.934827888336123,
+        "gradient_min": 5.578775555207715,
+        "psnr14_min": 53.60110540238068
+      },
+      "z8_holdout5": {
+        "rmse_min": 43.54795251954118,
+        "mae_min": 7.212444277121319,
+        "gradient_min": 2.3160220665138485,
+        "psnr14_min": 53.96854755248171
+      }
+    },
+    {
+      "step": 2700,
+      "mission_hard2": {
+        "rmse_min": 29.91083525158383,
+        "mae_min": 18.785439190683007,
+        "gradient_min": 5.495283970816831,
+        "psnr14_min": 53.604789940001
+      },
+      "z8_holdout5": {
+        "rmse_min": 44.279664777829886,
+        "mae_min": 7.3414462031886165,
+        "gradient_min": 2.4228051351248827,
+        "psnr14_min": 54.08742584412413
+      }
+    }
+  ],
+  "residual_scale_probe": {
+    "decision": "rejected",
+    "reason": "Increasing residual scale does not close the Mission detail floors; it steadily worsens Mission MAE/gradient and eventually damages both Mission and Z8 metrics. The missing detail is not a simple residual amplitude knob.",
+    "results": [
+      {
+        "scale": 0.35,
+        "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_residual_scale_probe_20260618/balanced128_residual_scale_0p35.pt",
+        "checkpoint_sha256": "6141ff5735d280bcb007f94f2ef3cb3ea09be07ae78917d3d61435627a08249e",
+        "mission_hard2": {
+          "rmse_min": 29.14888606783905,
+          "mae_min": 17.185823804150818,
+          "gradient_min": 4.817447683627833,
+          "psnr14_min": 53.5108739770227
+        },
+        "z8_holdout5": {
+          "rmse_min": 45.40441121883127,
+          "mae_min": 7.126503037259968,
+          "gradient_min": 2.325966087366487,
+          "psnr14_min": 54.273201106539155
+        }
+      },
+      {
+        "scale": 0.4,
+        "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_residual_scale_probe_20260618/balanced128_residual_scale_0p4.pt",
+        "checkpoint_sha256": "8101f022efb8839075ba00f0b06d37a4363c448fcb1b86eab1bc98b1a383179b",
+        "mission_hard2": {
+          "rmse_min": 26.660663838027105,
+          "mae_min": 14.136681565772964,
+          "gradient_min": 3.5545894775598526,
+          "psnr14_min": 53.21106813897948
+        },
+        "z8_holdout5": {
+          "rmse_min": 44.40490093191985,
+          "mae_min": 6.545683641307456,
+          "gradient_min": 2.0495927557672613,
+          "psnr14_min": 54.117343082560254
+        }
+      },
+      {
+        "scale": 0.45,
+        "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_residual_scale_probe_20260618/balanced128_residual_scale_0p45.pt",
+        "checkpoint_sha256": "10d2e51ea431cdbf72d15668f177f58e376bc9d63fbcfebd80062fcf0e028c26",
+        "mission_hard2": {
+          "rmse_min": 22.570458533315815,
+          "mae_min": 10.255422491086886,
+          "gradient_min": 1.9272173114351279,
+          "psnr14_min": 52.73967388258352
+        },
+        "z8_holdout5": {
+          "rmse_min": 41.9767330521228,
+          "mae_min": 5.723639740302902,
+          "gradient_min": 1.6718554404903188,
+          "psnr14_min": 53.74741165343111
+        }
+      },
+      {
+        "scale": 0.5,
+        "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_residual_scale_probe_20260618/balanced128_residual_scale_0p5.pt",
+        "checkpoint_sha256": "5edb9c85080210129f04ca476980e9ef0be8da106df56ccf0b28fbdd5b51ce0f",
+        "mission_hard2": {
+          "rmse_min": 17.12028507209686,
+          "mae_min": 5.84770040443158,
+          "gradient_min": 0.020260073184345993,
+          "psnr14_min": 52.14884265847456
+        },
+        "z8_holdout5": {
+          "rmse_min": 38.57571821561775,
+          "mae_min": 4.742646876704223,
+          "gradient_min": 1.2246319086559043,
+          "psnr14_min": 53.25457849492896
+        }
+      },
+      {
+        "scale": 0.6,
+        "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_current_contract_residual_scale_probe_20260618/balanced128_residual_scale_0p6.pt",
+        "checkpoint_sha256": "55061b0f43fd779103ebb8dc06d56c7f385a051a4fb0c6af0505ff2c75b2205f",
+        "mission_hard2": {
+          "rmse_min": 3.2259355334969015,
+          "mae_min": -3.9080702555794242,
+          "gradient_min": -4.405630685839902,
+          "psnr14_min": 50.80262799860507
+        },
+        "z8_holdout5": {
+          "rmse_min": 30.217257473403816,
+          "mae_min": 2.4912511871860907,
+          "gradient_min": 0.1958457294901183,
+          "psnr14_min": 52.134036599949745
+        }
+      }
+    ]
+  },
+  "hard_tile_mining_probe": {
+    "summary": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_hard_tile_mining_20260618/summary.json",
+    "summary_sha256": "e1cf8d525c815cf8b334ae40d120c47606f8b8bea5919e83026be887ac8875b8",
+    "decision": "reject_do_not_register"
+  },
+  "mixed_hard_balanced_probe": {
+    "summary": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_mixed_hard_balanced_20260618/summary.json",
+    "summary_sha256": "e04bd04971bc494f94064636bda1fa95fafadb6216069097eb54b2b0f8702d1d",
+    "decision": "reject_do_not_register",
+    "best_candidate": "mixed_hard_balanced_step1600"
+  }
+}

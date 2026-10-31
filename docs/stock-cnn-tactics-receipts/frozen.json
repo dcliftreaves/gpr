@@ -1,0 +1,51 @@
+{
+  "schema": "gpr.stock_sr_spatial_gate_frozen.v1",
+  "checkpoint_sha256": "c2bee2fa6cf31b01e8338f88934b8873d766be567cda50de8b79d2c248adeede",
+  "patch_selection_sha256": "e23cd4cd40d94e245cdf5be005f4309ff5fc00634728e1404f138ffc9307577e",
+  "full_selection_sha256": "a593dbd6a4ebe5bc5ea99ec4690cf1a887e0439b5229629425c2cfc9914dc95b",
+  "candidate": {
+    "name": "strong-0.125",
+    "alpha": 0.125,
+    "ramps": [
+      0.03,
+      0.15,
+      0.65,
+      0.9
+    ],
+    "metrics": {
+      "pooled": {
+        "overall": 8506.870604634285,
+        "shadow": 4382.394976236147,
+        "highlight": 52729.31584930267,
+        "detail": 55159.0195542126
+      },
+      "group:20250727_ForestFire": {
+        "overall": 9412.30595755577,
+        "shadow": 8570.561238232876,
+        "highlight": 39358.51259628711,
+        "detail": 45552.219688361896
+      },
+      "group:LRT_20250730_05__ColoradoSky": {
+        "overall": 7601.435251712799,
+        "shadow": 314.1054217073065,
+        "highlight": 65923.31874204826,
+        "detail": 64615.54841965792
+      }
+    },
+    "changed_samples": 2377360,
+    "regressions": [],
+    "eligible": true,
+    "delta_db": 0.13051520619617862
+  },
+  "full_validation": {
+    "name": "strong-0.125",
+    "active_mse": 6660.201733244941,
+    "gain_db": 0.08716185534213557,
+    "regressions": [],
+    "eligible": true
+  },
+  "quality_approval": false,
+  "final_evaluation_complete": false,
+  "runtime_support": "analysis wrapper only; standard loader does not implement gate",
+  "final_references_used_for_selection": false
+}

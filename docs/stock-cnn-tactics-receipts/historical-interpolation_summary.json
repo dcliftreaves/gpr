@@ -1,0 +1,153 @@
+{
+  "schema": "checkpoint_interpolation_sweep.v1",
+  "rows": [
+    {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35.pt",
+      "decision_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35_decision.json",
+      "deltas": {
+        "mission_psnr14_min": 0.02969441680215823,
+        "mission_rmse_median": 0.043175363360937524,
+        "mission_rmse_min": 0.221769313493283,
+        "z8_psnr14_min": 0.05662196980396317,
+        "z8_rmse_min": 0.37959927846848984
+      },
+      "mission": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35_mission_fullframe/index.html",
+        "fps_with_write_median": 1.0778384862610215,
+        "gradient_improvement_min": 7.978812011833908,
+        "image_count": 3,
+        "mae_improvement_min": 23.033689794397706,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35_mission_fullframe/summary.json",
+        "psnr14_min": 54.3793843713376,
+        "rmse_improvement_median": 62.21806294113809,
+        "rmse_improvement_min": 35.241260476431,
+        "sha256": "20263b3a0d0e012b32e527d98266d3eea3274a324dfc1a0dfe571d63b9efac4d",
+        "worst_rmse_image": "GP017349"
+      },
+      "z8": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35_z8_fullframe/index.html",
+        "fps_with_write_median": 1.3940721268062206,
+        "gradient_improvement_min": 2.4830821948856165,
+        "image_count": 3,
+        "mae_improvement_min": 8.296039651161108,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p35_z8_fullframe/summary.json",
+        "psnr14_min": 53.595721332660005,
+        "rmse_improvement_median": 41.96774319320712,
+        "rmse_improvement_min": 41.95853133425141,
+        "sha256": "2d0f21ab9c0badd45b5263db2bf26273e860749c466633d86d7f3278efa5b196",
+        "worst_rmse_image": "Z8Z_1346"
+      }
+    },
+    {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5.pt",
+      "decision_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5_decision.json",
+      "deltas": {
+        "mission_psnr14_min": 0.04110295675538822,
+        "mission_rmse_median": 0.030385615786599374,
+        "mission_rmse_min": 0.3067712784778749,
+        "z8_psnr14_min": 0.07839751122909178,
+        "z8_rmse_min": 0.5249271033354646
+      },
+      "mission": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5_mission_fullframe/index.html",
+        "fps_with_write_median": 1.0825994999205204,
+        "gradient_improvement_min": 7.938171516027819,
+        "image_count": 3,
+        "mae_improvement_min": 22.984985963939454,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5_mission_fullframe/summary.json",
+        "psnr14_min": 54.39079291129083,
+        "rmse_improvement_median": 62.205273193563755,
+        "rmse_improvement_min": 35.326262441415594,
+        "sha256": "ecea04ad787e22e13ae451676b35661c9c49cd0ae36fd4bff5e8cfa07f5ac44c",
+        "worst_rmse_image": "GP017349"
+      },
+      "z8": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5_z8_fullframe/index.html",
+        "fps_with_write_median": 1.3903217742680554,
+        "gradient_improvement_min": 2.510702822968611,
+        "image_count": 3,
+        "mae_improvement_min": 8.348562630656213,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5_z8_fullframe/summary.json",
+        "psnr14_min": 53.617496874085134,
+        "rmse_improvement_median": 42.10952590847002,
+        "rmse_improvement_min": 42.103859159118386,
+        "sha256": "a54e39699069f3985db65a61cb9474527f3b258a3793ac5fc528ea0066ead4b9",
+        "worst_rmse_image": "Z8Z_1346"
+      }
+    },
+    {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65.pt",
+      "decision_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65_decision.json",
+      "deltas": {
+        "mission_psnr14_min": 0.05179875300595427,
+        "mission_rmse_median": -0.0011024466297371305,
+        "mission_rmse_min": 0.38636144379709947,
+        "z8_psnr14_min": 0.09956073679808242,
+        "z8_rmse_min": 0.6658197076375032
+      },
+      "mission": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65_mission_fullframe/index.html",
+        "fps_with_write_median": 1.0829718422073038,
+        "gradient_improvement_min": 7.888873519890856,
+        "image_count": 3,
+        "mae_improvement_min": 22.92424967725725,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65_mission_fullframe/summary.json",
+        "psnr14_min": 54.4014887075414,
+        "rmse_improvement_median": 62.17378513114742,
+        "rmse_improvement_min": 35.40585260673482,
+        "sha256": "cf4515965df3dde7824b2ea8d70f04702f232bc3e77a026f1c6adb6bcf8583d1",
+        "worst_rmse_image": "GP017349"
+      },
+      "z8": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65_z8_fullframe/index.html",
+        "fps_with_write_median": 1.395226268407658,
+        "gradient_improvement_min": 2.534956079315919,
+        "image_count": 3,
+        "mae_improvement_min": 8.392648368887622,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p65_z8_fullframe/summary.json",
+        "psnr14_min": 53.638660099654125,
+        "rmse_improvement_median": 42.2473039476458,
+        "rmse_improvement_min": 42.244751763420425,
+        "sha256": "7e2a9004cd8dfbe30b062dbd0abf3db96ed618e59cc34a44ec2a7b57f7830f6c",
+        "worst_rmse_image": "Z8Z_1346"
+      }
+    },
+    {
+      "checkpoint": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8.pt",
+      "decision_receipt": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8_decision.json",
+      "deltas": {
+        "mission_psnr14_min": 0.06176799206375705,
+        "mission_rmse_median": -0.05181043603312929,
+        "mission_rmse_min": 0.4604569153641904,
+        "z8_psnr14_min": 0.1201703798498528,
+        "z8_rmse_min": 0.8017091021103582
+      },
+      "mission": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8_mission_fullframe/index.html",
+        "fps_with_write_median": 1.070866128665012,
+        "gradient_improvement_min": 7.83048017283157,
+        "image_count": 3,
+        "mae_improvement_min": 22.85037624440074,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8_mission_fullframe/summary.json",
+        "psnr14_min": 54.4114579465992,
+        "rmse_improvement_median": 62.12307714174403,
+        "rmse_improvement_min": 35.47994807830191,
+        "sha256": "89f7376755a5849b2acfb280ea17bfdb37a360cb1a6de4f204308c799cf4f074",
+        "worst_rmse_image": "GP017349"
+      },
+      "z8": {
+        "dashboard": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8_z8_fullframe/index.html",
+        "fps_with_write_median": 1.3961854936890252,
+        "gradient_improvement_min": 2.556823545971952,
+        "image_count": 3,
+        "mae_improvement_min": 8.427402426071094,
+        "path": "/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p8_z8_fullframe/summary.json",
+        "psnr14_min": 53.659269742705895,
+        "rmse_improvement_median": 42.381629394004044,
+        "rmse_improvement_min": 42.38064115789328,
+        "sha256": "78dd2f8a2040c336048afd69b3e8fc175cdc90063e921446ba877d5a82b88c7c",
+        "worst_rmse_image": "Z8Z_1351"
+      }
+    }
+  ]
+}
