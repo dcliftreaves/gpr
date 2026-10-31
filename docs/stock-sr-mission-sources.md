@@ -15,7 +15,7 @@ model and ISO records are historical metadata, not newly extracted originals.
 A contact sheet of sampled grayscale count previews was inspected for repeated
 content. The 42 files represent approximately three coarse venues, with bursts
 and repeated playground/home dates; they are not 42 independent scenes. A
-conservative split for **future stock training** groups all playground dates
+conservative split for stock-pair training groups all playground dates
 together, all home-interior dates together, and the lake sequence together:
 
 | Group | Proposed split | References |
@@ -27,8 +27,9 @@ together, all home-interior dates together, and the lake sequence together:
 All count hashes are unique; eleven conservative dHash similarity hints remain
 inside these splits. This is not exhaustive near-duplicate exclusion. The same
 people can appear across venues, and the contact sheet/count ranges were
-inspected before the split; no pristine blind-test claim is made. No model has
-been trained using this proposed split yet.
+inspected before the split; no pristine blind-test claim is made. The [calibrated mixed-camera follow-up](stock-sr-calibrated-mixed.md) now
+uses this split for actual stock-Q3 pairs and controlled training; none of its
+eight checkpoints qualifies for promotion.
 
 The three actually supplied GPRs separately have freshly extracted RGGB14
 metadata with black level 16 and white level 16383. The recent Nikon-only
@@ -47,3 +48,5 @@ Photos and the visually inspected contact sheet stay external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_sources_20261030`.
 Camera GPR-derived arrays are compressed count references, not lossless sensor
 truth. The existing supplied models are unchanged.
+
+The [calibration recovery and CLI correction](stock-sr-calibrated-mixed.md) now binds per-frame archived CFA/black/white/WB/profile records for all 42 references, corroborates ten against separate source-GPR parameter archives, and independently audits all 1,088 regenerated non-test patches. This is recovered archived calibration at printed precision, without fresh original-file decoding or original binary-opcode identity.

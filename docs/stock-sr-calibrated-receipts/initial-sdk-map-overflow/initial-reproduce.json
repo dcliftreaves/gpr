@@ -1,0 +1,9 @@
+{
+  "returncode": -6,
+  "sdk_sha256": "54f1e30f417c957e2fedbdacd10e1e17b4f5f9cdd8381fc6e4665f6736916d66",
+  "source_sha256": "c23e21ab37585d5e8e3510028839bf7b8a95535d4d0cb7351e55523b78b25159",
+  "params_sha256": "3ef651cb4eeb2388a8062c791a80b2035003436f4f70f3c2b1a263a6ed5bc718",
+  "fixed_buffer_bytes": 16000,
+  "required_map_buffer_bytes": 16988,
+  "output_exists": false
+}

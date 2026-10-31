@@ -1,0 +1,987 @@
+{
+  "schema": "gpr.stock_sr_calibrated_mixed_protocol.v1",
+  "created_utc": "2026-10-31T05:18:40.041846+00:00",
+  "driver_sha256": "415707c403f39236594349a7492d0d652a8f93a26f551f9e910507d6437be196",
+  "checkpoint_sha256": "61a5b1102ac35fc212f0a4e29ba0bd39ad09fd6e4037c8c9f6ca31a212aaef16",
+  "config": {
+    "architecture": "coord_detail_preclean_adapter_pixelshuffle",
+    "width": 96,
+    "depth": 6,
+    "residual_scale": 0.3,
+    "coordinate_channels": true
+  },
+  "sources": [
+    {
+      "domain": "nikon",
+      "source_sha256": "4f24fa4e63809a2938971f9a256b82217b8b0506216f542bfda3acbdf23bcc7a",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.2167985439300537,
+        1.0,
+        1.0,
+        1.1054682731628418
+      ],
+      "patches": 64,
+      "group": "20250727_BarnAndSky"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "7d05454a11ec225e6d463297e742d02d4e342744844574a6ecaac80e3a210060",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        1.7929693460464478,
+        1.0,
+        1.0,
+        1.636717438697815
+      ],
+      "patches": 64,
+      "group": "20250727_BarnAndSky"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "c7b9d2d8d8c3e4a982179937ea83c9685950b9b99a120b97c38f9c8483c2978c",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.1660163402557373,
+        1.0,
+        1.0,
+        1.087890625
+      ],
+      "patches": 64,
+      "group": "20250729_05__FieldAndSky"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "46470ae0ee12390d9955f2e5c26667aae881af590727ac8ee4db40b420d158b7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.0175771713256836,
+        1.0,
+        1.0,
+        1.2871090173721313
+      ],
+      "patches": 64,
+      "group": "20250729_05__FieldAndSky"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "a264001d52e0980deed5e4ecdc13cb1d9455bcc4c73759845f45d290f07e62fd",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.335935592651367,
+        1.0,
+        1.0,
+        1.0859378576278687
+      ],
+      "patches": 64,
+      "group": "118NCZ_8"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "07714d4bee69c1f2d006580209cd34e15b752fa090614ce3c00cbefca2136bc7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        1.6582043170928955,
+        1.0,
+        1.0,
+        1.8574206829071045
+      ],
+      "patches": 64,
+      "group": "118NCZ_8"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "e9adefd49d9104ac962e148ff6527d101b83f8ca37d6f6981e564176df59e5dc",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.1621108055114746,
+        1.0,
+        1.0,
+        1.2851554155349731
+      ],
+      "patches": 64,
+      "group": "2026-01-18"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "a44049209d020807b8520e4db433f11bc13b302aecf4b65b3514d3203765bfd7",
+      "split": "train",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        1.6953117847442627,
+        1.0,
+        1.0,
+        1.6503911018371582
+      ],
+      "patches": 64,
+      "group": "2026-01-18"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "4b4fbd443497326256a7d2db838e8fee1d37a1c54061bf030bf96a4c1fa6051b",
+      "split": "validation",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.1621108055114746,
+        1.0,
+        1.0,
+        1.1249998807907104
+      ],
+      "patches": 32,
+      "group": "20250727_ForestFire"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "fea0ac05dc1f31c7e8774fffbdcde71b5758589a04ac5d9778b1aaf10ce5d081",
+      "split": "validation",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        1.55859375,
+        1.0,
+        1.0,
+        1.9121079444885254
+      ],
+      "patches": 32,
+      "group": "20250727_ForestFire"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "6c064dbe152e47f43e2ea43565b03333f2aaeb45772eb253605a64e464d8c1aa",
+      "split": "validation",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        2.197266101837158,
+        1.0,
+        1.0,
+        1.1347659826278687
+      ],
+      "patches": 32,
+      "group": "LRT_20250730_05__ColoradoSky"
+    },
+    {
+      "domain": "nikon",
+      "source_sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79",
+      "split": "validation",
+      "black_level": [
+        1008.0,
+        1008.0,
+        1008.0,
+        1008.0
+      ],
+      "white_level": 15892.0,
+      "wb_gains": [
+        1.6582043170928955,
+        1.0,
+        1.0,
+        1.749998688697815
+      ],
+      "patches": 32,
+      "group": "LRT_20250730_05__ColoradoSky"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "284587204ea7a6014016c4eee9792cbfed681e34ef8a119c8ba6728f9e3373a5",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        1.679689884185791,
+        1.0,
+        1.0,
+        2.312502384185791
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "8c5bb9de6b7a66fc8d4084c48624c4b01686da57de0247c25c8bdb2a53dd764e",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        1.6093807220458984,
+        1.0,
+        1.0,
+        2.472658634185791
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "09a9a8e280d9308684ba3a82af7d5883a63d95f6105737611318e3ec2d21cf04",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        1.6093807220458984,
+        1.0,
+        1.0,
+        2.445310592651367
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "146748f1ba8133b8bd73cadd9c288203685b634d9de832d323b9e97b4e1e4d15",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        1.59375,
+        1.0,
+        1.0,
+        2.3593809604644775
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "f7aa5e1a05f6b4ef41ac97747cc973a06ca0a82f7be284f79453f79203b441c5",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3867201805114746,
+        1.0,
+        1.0,
+        1.7226588726043701
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "a36db96fd9c0ae64b0271eae071c3463605180f1540800e618486cdc835bfabe",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.406252384185791,
+        1.0,
+        1.0,
+        1.6953089237213135
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "c86e965ff3e79d41260ce6a5c0e830a957eaad22b9143a3c1f442d72fc41c771",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.285160541534424,
+        1.0,
+        1.0,
+        1.7656209468841553
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "d595e52a7300a04f4cf209bd5a43a1bfa9e10ca7c47172f059db2ef78c7f5a93",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.300781011581421,
+        1.0,
+        1.0,
+        1.785159707069397
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "5f4ac257eb98c8626110837d7d29e96bc758283ac0ef23a116bbd1b7eaf46adc",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.343748092651367,
+        1.0,
+        1.0,
+        1.7890592813491821
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "66dc973c2025f4c1e8d3756b05270270b53f575841f84380183c734c43366212",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.374997854232788,
+        1.0,
+        1.0,
+        1.679689884185791
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "08eb6a9c90df223be4f7e81133445b97c63c85326d17b90bcea86096added955",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.1835920810699463,
+        1.0,
+        1.0,
+        1.8906199932098389
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "eee482782b885321f5764b17c0c73293dfa01bb236f40ae570e27727d58e2f16",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.246100664138794,
+        1.0,
+        1.0,
+        1.8320286273956299
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "0e81ba2b9eaa96345db528dbd3db8029411f6f3d05827f0ec9cc7938b3b8d853",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.191411018371582,
+        1.0,
+        1.0,
+        1.8789010047912598
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "f09e105d1e82957013f3df638fd5171864b63c94ec3a149f938a594d33cce04e",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.0976498126983643,
+        1.0,
+        1.0,
+        2.0117201805114746
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "07abc41ca411758a30b61a770c18a9e1d439f65c0dcdfeef212b17209b8d1b71",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.0976498126983643,
+        1.0,
+        1.0,
+        2.007810354232788
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "011ec8019ecabe4441a2115d2b5a56adb884b4a9572e11ee45adcf666d233ba0",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3906173706054688,
+        1.0,
+        1.0,
+        1.6757800579071045
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "b87b58754637a025e1aee98cc1a4371031561806217c7accbe7249ee3c156e3c",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.355468511581421,
+        1.0,
+        1.0,
+        1.7343707084655762
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "3a59256f6e400ade9a9aae9033320eaa7a9faea9e54a564505b6113aba7d42e5",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.289057493209839,
+        1.0,
+        1.0,
+        1.7539089918136597
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "4499da5314c02d8a83674418ad29d9bcda42e9c540091909733a1f860ea101bb",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3046891689300537,
+        1.0,
+        1.0,
+        1.7539089918136597
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "05e643b996148b6b25471a21af9ca8dd4dee1bb77d80abb0efbc16f0af8f0570",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.2304699420928955,
+        1.0,
+        1.0,
+        1.8125003576278687
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "1b4c67d528a961cd4e2f5bdccd93c71fee4cab605966e1a5ceac328ec9d43181",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.355468511581421,
+        1.0,
+        1.0,
+        1.7539089918136597
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "826d73f68fce08175e6fb43fe11ca1ced2c5caa8b5d3a4298733d49b575acde4",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.371100902557373,
+        1.0,
+        1.0,
+        1.7265609502792358
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "5a60fde53311c6f4e243b85c1def395cbdf524235666862d767e8668fcc6f3d7",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3789076805114746,
+        1.0,
+        1.0,
+        1.7304691076278687
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "8fa93273fc797cedd70a36ee275b54516e4ef72dce58a55fc90553715ed42df4",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3164126873016357,
+        1.0,
+        1.0,
+        1.749998688697815
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "ad90d69a5c465c059811be96129f759d1b73f7f3e913443c45b0356fd6d40af1",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3359410762786865,
+        1.0,
+        1.0,
+        1.749998688697815
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "3e5a64da993db4a0e2f926b6937fdee93031f07458a4abb08974d51e4d525084",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.234382152557373,
+        1.0,
+        1.0,
+        1.7890592813491821
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "966184f241b268869fe2d9ef7e49c1bedf606aaa0562c040c1cce93a12833070",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3203094005584717,
+        1.0,
+        1.0,
+        1.773439645767212
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "d3c431d16273593f2d6a4c739af92e0ab209389802ff12dd334fb4ad1bbbfbd2",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.269529342651367,
+        1.0,
+        1.0,
+        1.7773386240005493
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "7b9a9ebff0a7424bcbba681b2f0f3998246f1661b1ef1b7ed488908f108d2a72",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.277338981628418,
+        1.0,
+        1.0,
+        1.8007797002792358
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "782d4ad0fd44beb1be2934544bc260e87b812b668cffcd3c9bb9f49cb4f9dce4",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.7656168937683105,
+        1.0,
+        1.0,
+        1.4570293426513672
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "55442b6506a1a627bb690c86f2bb4c3ff547d6217775c040c7c3017b13875175",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.2382781505584717,
+        1.0,
+        1.0,
+        1.8125003576278687
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "12f0ef4239d4031fdfddc9991552750c1eb5146e2dd85bc2f2be5a0bf70bea54",
+      "split": "train",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.3789076805114746,
+        1.0,
+        1.0,
+        1.7109400033950806
+      ],
+      "patches": 32,
+      "group": "mission1_playground"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "eb2e0f58ae79d91ef0360aa5bad1161fae39fca0db4466c77195412790286c9e",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.199218511581421,
+        1.0,
+        1.0,
+        2.214839458465576
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    },
+    {
+      "domain": "mission1",
+      "source_sha256": "5fdc0e0a8d85e2c7de3fa3e7baa1bc71ded22a9cb2c2a45875c2c2ca87b3b681",
+      "split": "validation",
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383.0,
+      "wb_gains": [
+        2.2109415531158447,
+        1.0,
+        1.0,
+        2.1523382663726807
+      ],
+      "patches": 32,
+      "group": "mission1_home_interior"
+    }
+  ],
+  "nikon_dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "camera_dataset_sha256": "718f8b87ba56ac4d3117c71ef2ba88130160c615f862b2f3e61a8ab889be4a07",
+  "camera_calibration_audit_sha256": "61801d7c69a1ee3cd4120ee6e9159b720006c2414a95b6e43bcb589c492ca7c1",
+  "code_sha256": {
+    "mission1_sr_models.py": "2a366df8044ff62a03ff11c3930ce93e1dd94f9a24485da4f4f57738bdb42f7c",
+    "mission1_sr_runtime.py": "6f9309ddfd9816f4581a243375095c7da84aada0df10cdf0a71cecc83e2fffa8",
+    "train_mission1_sr.py": "b013da321fe35bbce1df72bc0b8068cda9fa9ae1c5350fefe4602902340481b6"
+  },
+  "family": [
+    {
+      "name": "canonical0-tone0",
+      "canonical": false,
+      "tone_weight": 0.0
+    },
+    {
+      "name": "canonical0-tone1",
+      "canonical": false,
+      "tone_weight": 0.1
+    },
+    {
+      "name": "canonical1-tone0",
+      "canonical": true,
+      "tone_weight": 0.0
+    },
+    {
+      "name": "canonical1-tone1",
+      "canonical": true,
+      "tone_weight": 0.1
+    }
+  ],
+  "seed": 20261108,
+  "steps": 800,
+  "batch": 8,
+  "learning_rate": 3e-05,
+  "weight_decay": 0.0001,
+  "checkpoints": [
+    400,
+    800
+  ],
+  "sampling": "Each step4distinctNikon+4distinctMission1 training sources; one uniform patch per source; identical RNG sequence across all four cases",
+  "canonicalization": "After actual native-count stockQ3 decode: gain=(15892-1008)/(white-black), offset=(1008-black*gain)/16383; affine all four raw input planes before old network, inverse affine+clip output to sensor counts. Nikon gain1/offset0 exact. Coordinates unchanged. No re-encoding normalized inputs.",
+  "base_losses": "Original Charbonnier+4gradient+0.05Laplacian+0.1detailphase +0.02precleanAux+0.03precleanDetailAux. Preclean target rounded same-site2x2 sensor target, mapped to network domain for canonicalized cases. No hinge/gate/output-strength/interpolation sweep.",
+  "tone_proxy": "Normalized (counts-black)/(white-black), per-source AsShotNeutral-derived white balance, 2x2 Bayer RGB proxy (mean green), clip0..1 and sqrt(signal+1e-4); Charbonnier error, weight0.1 in tone cases. Not actual demosaicing/CIRAWFilter, color-matrix conversion or perceptual/temporal approval.",
+  "selection": "All pooled/per-source-group patch RAW overall/shadow/highlight/detail MSE nonincrease vs identical current bicubic, strict pooled overall improvement, plus tone-proxy MSE nonincrease in every group. Every qualified checkpoint must pass all complete validation images and matched actual rendering before any freeze/final evaluation.",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "limitations": [
+    "Mission1 reference counts from archived compressed GPR, per-frame recovered calibration; not fresh originals or sensor truth.",
+    "Conservative venue splits, but old pretraining overlaps these historical sources; no blind/generalization claim.",
+    "Reused Nikon validation and previously observed GoPro final/reference results motivate this separate training study; no final pixels in arrays or losses.",
+    "Single seed, fixed budget, tone/WB proxy is approximate; direct renderer validation remains mandatory."
+  ]
+}

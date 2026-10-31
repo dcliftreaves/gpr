@@ -1,0 +1,115 @@
+{
+  "schema": "gpr.stock_sr_calibrated_mixed_delivery_audit.v1",
+  "complete": true,
+  "source_calibration_archives": 42,
+  "direct_source_corroborated": 10,
+  "regenerated_non_test_references": 34,
+  "independently_verified_camera_patches": 1088,
+  "training_updates": 3200,
+  "patch_checkpoints": 8,
+  "eligible": 0,
+  "full_or_final_evaluation": false,
+  "nikon_baseline_groups_exact": true,
+  "corrected_profile_carrier_verified": true,
+  "v1_v2_training_arrays_and_used_features_identical": true,
+  "verdicts": [
+    {
+      "case": "canonical0-tone0",
+      "step": 400,
+      "gain_db": 1.4014983495711129,
+      "tone_proxy_gain_db": 0.35997558657637185,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical0-tone0",
+      "step": 800,
+      "gain_db": 1.449397509958113,
+      "tone_proxy_gain_db": 0.39160995678678023,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical0-tone1",
+      "step": 400,
+      "gain_db": 1.4034726907035797,
+      "tone_proxy_gain_db": 0.3565744286159904,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical0-tone1",
+      "step": 800,
+      "gain_db": 1.4502451157828355,
+      "tone_proxy_gain_db": 0.3954047669521094,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical1-tone0",
+      "step": 400,
+      "gain_db": 1.4659752774130206,
+      "tone_proxy_gain_db": 0.2472730938268538,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical1-tone0",
+      "step": 800,
+      "gain_db": 1.5069846300377063,
+      "tone_proxy_gain_db": 0.3028313448524472,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical1-tone1",
+      "step": 400,
+      "gain_db": 1.4687511174444592,
+      "tone_proxy_gain_db": 0.2524448053840633,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    },
+    {
+      "case": "canonical1-tone1",
+      "step": 800,
+      "gain_db": 1.508793617242988,
+      "tone_proxy_gain_db": 0.30337935402345095,
+      "raw_regressions": [
+        "nikon:20250727_ForestFire:shadow",
+        "nikon:LRT_20250730_05__ColoradoSky:shadow"
+      ],
+      "tone_proxy_regressions": [],
+      "eligible": false
+    }
+  ],
+  "quality_approval": false,
+  "original_gprs_freshly_decoded": false
+}

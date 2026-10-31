@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -19,6 +20,38 @@ from raw_media_test import metadata
 
 
 class Stills(unittest.TestCase):
+    def test_sdk_parameter_roundtrip_large_gain_maps(self):
+        # Real Mission 1 maps are 65x65: 16,988 bytes per channel, beyond
+        # the old parameter reader's fixed 16 KB backing buffer.
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            raw=(np.arange(128*96,dtype=np.uint16).reshape(96,128)*7)&16383
+            raw.tofile(root/'input.raw')
+            for side in (9,65,97):
+                with self.subTest(map_side=side):
+                    records=[]
+                    for site in range(4):
+                        body=struct.pack('>8I2I4dI',site//2,site%2,96,128,0,1,2,2,
+                                         side,side,1/128,1/128,0.,0.,1)
+                        values=[1+site+((row+col)%3)/4 for row in range(side) for col in range(side)]
+                        body+=struct.pack('>'+str(len(values))+'f',*values)
+                        records.append(struct.pack('>4I',9,0x01040000,3,len(body))+body)
+                    opcodes=struct.pack('>I',4)+b''.join(records)
+                    meta=metadata();meta['image']=[r for r in meta['image'] if r['code']!=51009]
+                    meta['image'].append(media.record(51009,7,len(opcodes),opcodes))
+                    source=root/f'source-{side}.dng';media.write(source,meta,raw.astype('<u2').tobytes())
+                    dumped=subprocess.run([str(args.sdk),'-i',str(source),'-d','1'],capture_output=True,text=True)
+                    self.assertEqual(dumped.returncode,0,dumped.stderr)
+                    params=json.loads(dumped.stdout);self.assertEqual(params['tuning_info']['gain_map']['size'],88+4*side*side)
+                    parameter_file=root/f'params-{side}.json';parameter_file.write_text(dumped.stdout)
+                    restored=root/f'restored-{side}.dng'
+                    result=subprocess.run([str(args.sdk),'-i',str(root/'input.raw'),'-a',str(parameter_file),
+                                           '--no-preview','-o',str(restored)],capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    with tifffile.TiffFile(restored) as f:self.assertTrue(np.array_equal(f.asarray(),raw))
+                    tags={t['code']:t for t in media.extract(restored,14)['image']}
+                    self.assertEqual(media.unpack_record(tags[51009]),opcodes)
+
     def test_copy_fallback_and_partial_repeats(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp); source=root/'staged'; source.write_bytes(b'encoded bytes')

@@ -1,0 +1,29 @@
+{
+  "schema": "gpr.stock_sdk_gainmap_fix_validation.v1",
+  "complete": true,
+  "parser_source_sha256": "d5a471e216aedb87a9e29e5405972c388adaed712710836131d81d28eab4fa02",
+  "test_source_sha256": "eba178a79e977a3ccb420465b8e2b2ba9e4d0f5fe0ed320dcfc71f5c45530f5c",
+  "mac_sdk_sha256": "084254d12eec0cf86decdd2dd313102ff5b032554285496af485b1297c3aaeaf",
+  "pi_hashes": {
+    "source/app/gpr_tools/gpr_parse_utils.cpp": "d5a471e216aedb87a9e29e5405972c388adaed712710836131d81d28eab4fa02",
+    "tests/stock_still_test.py": "eba178a79e977a3ccb420465b8e2b2ba9e4d0f5fe0ed320dcfc71f5c45530f5c",
+    "build-runtime/source/app/gpr_tools/gpr_tools": "adc1a5369e8b0e53b14cd1b9cdef2d208e832b0f1325d057c249415b9fe4a524",
+    "build-runtime/gpr_capture_app": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c"
+  },
+  "focused_ctests": [
+    "sdk_c_api",
+    "raw_media",
+    "stock_still"
+  ],
+  "mac_and_pi_all_three_passed": true,
+  "large_gainmap_sides": [
+    9,
+    65,
+    97
+  ],
+  "exact_tested_pixels_and_opcode_bytes": true,
+  "dataset_producer_sdk_sha256": "ef9499e1d8178e8ebc6f9de3786090e705ce2a748bd341290c70cc1f680bf3eb",
+  "dataset_producer_source_sha256": "cdf7cd869d65097e3bcbc8f955478117b0895282db0f8de681404517a36fb064",
+  "producer_executable_retained_external": true,
+  "producer_note": "Dataset used vector-buffer fix before JSON ownership cleanup. Exact producer executable/source retained externally; final shipped CLI adds JSON cleanup and reruns all focused tests."
+}

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/build_stock_sr_mission_calibrated.py", line 91, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/build_stock_sr_mission_calibrated.py", line 63, in main
+    result=subprocess.run(command,capture_output=True,text=True);(work/'pack.stdout').write_text(result.stdout);(work/'pack.stderr').write_text(result.stderr);assert result.returncode==0,(stem,result.stderr)
+                                                                                                                                                                      ^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('GP017346', '[    0-ms]  GPR Tools Version 1.0.0 [feature/stock-raw-media-runtime @ 779bb47] [Mac OS X][GCC 4.2.1][64 bit] \n[    0-ms]  Input File: /Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017346.raw \n[    0-ms]  Output File: /Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031/dataset/source-000/reference.dng \n')

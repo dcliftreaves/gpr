@@ -1,0 +1,5950 @@
+{
+  "schema": "gpr.stock_sr_dataset.v1",
+  "complete": true,
+  "protocol_sha256": "38a6b7ffede610c6406ed8f8dd8f23fd66c8e3beb89d1322d6813e2db68dc7f7",
+  "seed": 20261107,
+  "patch_plane_pixels": 128,
+  "input_shape": [
+    1088,
+    4,
+    128,
+    128
+  ],
+  "target_shape": [
+    1088,
+    4,
+    256,
+    256
+  ],
+  "dtype": "<u2",
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "stock_quality": 3,
+  "output_scale": 2,
+  "source_contract": "Cached historical SDK camera-GPR count references plus recovered per-frame archived parameters; not freshly decoded originals or lossless sensor truth. New uncompressed DNG packaging checked independently; ten separate source-GPR parameter archives corroborate core calibration.",
+  "split_contract": "Preserve previous conservative venue split:28playground train,6home validation,8lake historical-test. Final/test counts hashed only; no final/test DNG packaging or patch extraction.",
+  "sources": [
+    {
+      "stem": "GP017346",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-000/reference.dng",
+      "sha256": "674bc87afd371ed7c820b658d370eaca1781cdd26e810fc4bb65ff14d7d83134",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "733b9042063c1b590c88894fad497e00299b84a3e547580e4e7888a235b3e946",
+      "archived_params_sha256": "3ef651cb4eeb2388a8062c791a80b2035003436f4f70f3c2b1a263a6ed5bc718",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 1.67969,
+        "g_gain": 1,
+        "b_gain": 2.3125
+      },
+      "patch_start": 0,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          232,
+          1512
+        ],
+        [
+          288,
+          1320
+        ],
+        [
+          576,
+          280
+        ],
+        [
+          288,
+          1744
+        ],
+        [
+          720,
+          280
+        ],
+        [
+          1160,
+          32
+        ],
+        [
+          1120,
+          1768
+        ],
+        [
+          392,
+          1816
+        ],
+        [
+          920,
+          96
+        ],
+        [
+          888,
+          1008
+        ],
+        [
+          944,
+          1744
+        ],
+        [
+          120,
+          1688
+        ],
+        [
+          1240,
+          1712
+        ],
+        [
+          1208,
+          104
+        ],
+        [
+          888,
+          304
+        ],
+        [
+          728,
+          1672
+        ],
+        [
+          1040,
+          1632
+        ],
+        [
+          1288,
+          432
+        ],
+        [
+          40,
+          1664
+        ],
+        [
+          232,
+          1552
+        ],
+        [
+          264,
+          328
+        ],
+        [
+          1064,
+          888
+        ],
+        [
+          64,
+          568
+        ],
+        [
+          224,
+          544
+        ],
+        [
+          560,
+          1336
+        ],
+        [
+          400,
+          664
+        ],
+        [
+          488,
+          336
+        ],
+        [
+          464,
+          144
+        ],
+        [
+          1032,
+          464
+        ],
+        [
+          1256,
+          1896
+        ],
+        [
+          392,
+          1576
+        ],
+        [
+          24,
+          1144
+        ]
+      ],
+      "reference_raw_sha256": "733b9042063c1b590c88894fad497e00299b84a3e547580e4e7888a235b3e946",
+      "low_input_raw_sha256": "92fdb82931bc50f0d22c4468fd0c58cfb91daa42fc709f1f8dbd96d6d6f1e871",
+      "low_gpr_sha256": "aaceb4ba938c2d347d09468c21d68d37ec4abacf19e8d99373ada34011cfd648",
+      "low_decoded_raw_sha256": "23b4f2d3aa1ba9dea4254b4a3130c9faa37b46e4835954f0eda17e82b2f60aab",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017347",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-001/reference.dng",
+      "sha256": "e27e63465324372052ecfade500226807276f4c61a8f4bcaefce3f10787b62f4",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "9a1f4543c973548e1ce6ccfbe013de661dad8b892aefbae0df6e83be6da101b3",
+      "archived_params_sha256": "68a0b2d21554242df753b80bd7022f2487f57b4067a276b3b6c0cadb3e66f3cb",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 1.60938,
+        "g_gain": 1,
+        "b_gain": 2.47266
+      },
+      "patch_start": 32,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1232,
+          520
+        ],
+        [
+          1224,
+          656
+        ],
+        [
+          712,
+          1720
+        ],
+        [
+          400,
+          872
+        ],
+        [
+          24,
+          760
+        ],
+        [
+          488,
+          456
+        ],
+        [
+          904,
+          472
+        ],
+        [
+          520,
+          1624
+        ],
+        [
+          432,
+          984
+        ],
+        [
+          472,
+          152
+        ],
+        [
+          880,
+          1856
+        ],
+        [
+          1032,
+          1856
+        ],
+        [
+          560,
+          632
+        ],
+        [
+          272,
+          864
+        ],
+        [
+          1240,
+          864
+        ],
+        [
+          88,
+          376
+        ],
+        [
+          1096,
+          1720
+        ],
+        [
+          576,
+          264
+        ],
+        [
+          592,
+          1296
+        ],
+        [
+          248,
+          1704
+        ],
+        [
+          336,
+          880
+        ],
+        [
+          776,
+          1072
+        ],
+        [
+          944,
+          488
+        ],
+        [
+          952,
+          1072
+        ],
+        [
+          608,
+          1504
+        ],
+        [
+          176,
+          504
+        ],
+        [
+          944,
+          1632
+        ],
+        [
+          904,
+          1504
+        ],
+        [
+          152,
+          1488
+        ],
+        [
+          248,
+          1280
+        ],
+        [
+          824,
+          496
+        ],
+        [
+          1200,
+          760
+        ]
+      ],
+      "reference_raw_sha256": "9a1f4543c973548e1ce6ccfbe013de661dad8b892aefbae0df6e83be6da101b3",
+      "low_input_raw_sha256": "f45df0ba828132f4db12ce0951977db8f44d84b116abec424ca2db6ee76794c6",
+      "low_gpr_sha256": "eb49af5970b9e1f00ba804c8d288d146c109896763617c4242dc760f28dc68d0",
+      "low_decoded_raw_sha256": "636fedef13abd73316a1f9dd0223bbb0eba6d300e9dfbd4d13366879d79cc41a",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017348",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-002/reference.dng",
+      "sha256": "e2061621e835eee5a6e5644f266eb2393805ec52d6954069343d44b53aa28009",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "facb8f177e71968db473afe2e0f0a03bfc371c178d48d04ab39de8c0ae0a68e8",
+      "archived_params_sha256": "2e1ccd7cb7b03d09c1b3783ceeb9388dce3e326f95c6ae3582bd4062974e6236",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 1.60938,
+        "g_gain": 1,
+        "b_gain": 2.44531
+      },
+      "patch_start": 64,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          872,
+          1616
+        ],
+        [
+          240,
+          1232
+        ],
+        [
+          184,
+          1512
+        ],
+        [
+          304,
+          1352
+        ],
+        [
+          272,
+          672
+        ],
+        [
+          696,
+          1584
+        ],
+        [
+          216,
+          1392
+        ],
+        [
+          560,
+          160
+        ],
+        [
+          1112,
+          264
+        ],
+        [
+          1336,
+          1184
+        ],
+        [
+          1128,
+          1920
+        ],
+        [
+          256,
+          400
+        ],
+        [
+          1176,
+          224
+        ],
+        [
+          1272,
+          1616
+        ],
+        [
+          368,
+          592
+        ],
+        [
+          688,
+          1816
+        ],
+        [
+          744,
+          192
+        ],
+        [
+          576,
+          712
+        ],
+        [
+          216,
+          1880
+        ],
+        [
+          1256,
+          656
+        ],
+        [
+          152,
+          1296
+        ],
+        [
+          992,
+          368
+        ],
+        [
+          1112,
+          752
+        ],
+        [
+          520,
+          1848
+        ],
+        [
+          1176,
+          456
+        ],
+        [
+          472,
+          1432
+        ],
+        [
+          208,
+          552
+        ],
+        [
+          888,
+          1824
+        ],
+        [
+          472,
+          1008
+        ],
+        [
+          1000,
+          0
+        ],
+        [
+          512,
+          896
+        ],
+        [
+          128,
+          1224
+        ]
+      ],
+      "reference_raw_sha256": "facb8f177e71968db473afe2e0f0a03bfc371c178d48d04ab39de8c0ae0a68e8",
+      "low_input_raw_sha256": "058f6d1652228fd2d765af37a5befcd252846a1ae8134bac92e3cccdf0f80d7d",
+      "low_gpr_sha256": "b179bbeeee857913154a3cff1f290f7e983563e230f5f866b8489fcc944f03e4",
+      "low_decoded_raw_sha256": "49868265ddb72f24e1b30f4bdaa74f8a2f060d98d88dda8036400b69c876c215",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017349",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-003/reference.dng",
+      "sha256": "19d80e9b0d5691b977c0979b8867a8b4ba6c7e1aebc21f827bbfd4250964d9f1",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "2cf64c62fb4646382e03ce086bf99bf3defe3ef502aadb6baf95e317eb4b41d0",
+      "archived_params_sha256": "dd91064f3afd51bcc2beef273e6b3bac2b4b8a400fea10811996c01592b3e867",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 1.59375,
+        "g_gain": 1,
+        "b_gain": 2.35938
+      },
+      "patch_start": 96,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          888,
+          1280
+        ],
+        [
+          208,
+          1872
+        ],
+        [
+          344,
+          904
+        ],
+        [
+          728,
+          112
+        ],
+        [
+          232,
+          1392
+        ],
+        [
+          960,
+          1488
+        ],
+        [
+          544,
+          1864
+        ],
+        [
+          288,
+          144
+        ],
+        [
+          1328,
+          1688
+        ],
+        [
+          1072,
+          1544
+        ],
+        [
+          56,
+          568
+        ],
+        [
+          360,
+          1112
+        ],
+        [
+          672,
+          712
+        ],
+        [
+          1280,
+          1896
+        ],
+        [
+          1400,
+          984
+        ],
+        [
+          1048,
+          1800
+        ],
+        [
+          240,
+          1616
+        ],
+        [
+          832,
+          1416
+        ],
+        [
+          784,
+          600
+        ],
+        [
+          728,
+          824
+        ],
+        [
+          1072,
+          856
+        ],
+        [
+          720,
+          160
+        ],
+        [
+          88,
+          368
+        ],
+        [
+          1072,
+          1568
+        ],
+        [
+          872,
+          1664
+        ],
+        [
+          160,
+          1776
+        ],
+        [
+          1256,
+          344
+        ],
+        [
+          656,
+          48
+        ],
+        [
+          1136,
+          1512
+        ],
+        [
+          968,
+          888
+        ],
+        [
+          728,
+          432
+        ],
+        [
+          1072,
+          80
+        ]
+      ],
+      "reference_raw_sha256": "2cf64c62fb4646382e03ce086bf99bf3defe3ef502aadb6baf95e317eb4b41d0",
+      "low_input_raw_sha256": "04a8aa54647b7ed5aceb7cdf01762603a0f4ea23f26ac9f518098345f343d278",
+      "low_gpr_sha256": "ac759e163851b9a8e0b50d819e6d2064f0a056127b8b86b739db572c05dcd795",
+      "low_decoded_raw_sha256": "43edb5d48be491c0536b18f58a835fa5df10f7d6ecae095badb675772f8ecaec",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017350",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-004/reference.dng",
+      "sha256": "63c4bad91e9b39c73d06e2f24685139aa7949dbaa2b92173d8074d9f2084681b",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "526ff1bfecbfb5dd719a1cd2dfae1ab40bc4637725421274d2f66542f032bc5b",
+      "archived_params_sha256": "fe1040137b9b5ca8af73c767e99a6f2b99d717912352698b6d93cb40c00aa064",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.38672,
+        "g_gain": 1,
+        "b_gain": 1.72266
+      },
+      "patch_start": 128,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          800,
+          1088
+        ],
+        [
+          1016,
+          600
+        ],
+        [
+          32,
+          1096
+        ],
+        [
+          1168,
+          1152
+        ],
+        [
+          352,
+          624
+        ],
+        [
+          448,
+          1184
+        ],
+        [
+          360,
+          448
+        ],
+        [
+          480,
+          1048
+        ],
+        [
+          488,
+          200
+        ],
+        [
+          152,
+          1496
+        ],
+        [
+          392,
+          440
+        ],
+        [
+          224,
+          256
+        ],
+        [
+          144,
+          280
+        ],
+        [
+          48,
+          272
+        ],
+        [
+          320,
+          1360
+        ],
+        [
+          968,
+          1480
+        ],
+        [
+          808,
+          1104
+        ],
+        [
+          936,
+          1168
+        ],
+        [
+          392,
+          488
+        ],
+        [
+          224,
+          152
+        ],
+        [
+          1104,
+          1736
+        ],
+        [
+          200,
+          1120
+        ],
+        [
+          1048,
+          520
+        ],
+        [
+          608,
+          120
+        ],
+        [
+          272,
+          736
+        ],
+        [
+          1232,
+          1800
+        ],
+        [
+          616,
+          1168
+        ],
+        [
+          992,
+          392
+        ],
+        [
+          888,
+          1536
+        ],
+        [
+          40,
+          1592
+        ],
+        [
+          512,
+          1480
+        ],
+        [
+          352,
+          184
+        ]
+      ],
+      "reference_raw_sha256": "526ff1bfecbfb5dd719a1cd2dfae1ab40bc4637725421274d2f66542f032bc5b",
+      "low_input_raw_sha256": "1bb991769a8dea9f37727bf398a8d218853c069f18f2f043e02ba67d04ce3737",
+      "low_gpr_sha256": "322fd1a2d2038bb222909a8c97abd8a53ba4ea118612520316f0dec92e97e243",
+      "low_decoded_raw_sha256": "4fd4ee5dbd637483f48e4ac6c51bc2ebfb5bab3b07a6150d4ab8557a74f2bdad",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017351",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-005/reference.dng",
+      "sha256": "7352e234d60da38163e7f6f40bc35b87bd010007ab40fba58e86eeaa007f6915",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "a25ab6b4ca213e36de03ed944c916c953a1be54c7be19b14a0e794eedd0f2ace",
+      "archived_params_sha256": "ad499deba2426d47a03de4e74a74bdb31e913d82233fcdc94be57d6183756276",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.40625,
+        "g_gain": 1,
+        "b_gain": 1.69531
+      },
+      "patch_start": 160,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          832,
+          96
+        ],
+        [
+          888,
+          1680
+        ],
+        [
+          1128,
+          1136
+        ],
+        [
+          1256,
+          112
+        ],
+        [
+          1384,
+          1008
+        ],
+        [
+          320,
+          1416
+        ],
+        [
+          336,
+          640
+        ],
+        [
+          720,
+          1120
+        ],
+        [
+          392,
+          472
+        ],
+        [
+          840,
+          1576
+        ],
+        [
+          688,
+          704
+        ],
+        [
+          800,
+          56
+        ],
+        [
+          472,
+          1712
+        ],
+        [
+          1384,
+          1360
+        ],
+        [
+          992,
+          1392
+        ],
+        [
+          608,
+          1008
+        ],
+        [
+          576,
+          1048
+        ],
+        [
+          144,
+          336
+        ],
+        [
+          1248,
+          1152
+        ],
+        [
+          560,
+          1864
+        ],
+        [
+          224,
+          856
+        ],
+        [
+          304,
+          784
+        ],
+        [
+          704,
+          1736
+        ],
+        [
+          400,
+          1768
+        ],
+        [
+          824,
+          1120
+        ],
+        [
+          256,
+          712
+        ],
+        [
+          216,
+          1120
+        ],
+        [
+          1296,
+          880
+        ],
+        [
+          432,
+          1480
+        ],
+        [
+          768,
+          128
+        ],
+        [
+          960,
+          1184
+        ],
+        [
+          408,
+          1440
+        ]
+      ],
+      "reference_raw_sha256": "a25ab6b4ca213e36de03ed944c916c953a1be54c7be19b14a0e794eedd0f2ace",
+      "low_input_raw_sha256": "b4c297a35dfc74e7f83ca76e68605bf97f98e83d673c8dbdf343447062c3787c",
+      "low_gpr_sha256": "59fe17e245b058106d00721feec7d33551ff5e24a1fdecfc2e88112e35a10dda",
+      "low_decoded_raw_sha256": "61960f7e96937ea9daee2fe57ea8a23e7eb5d3606a0fc0d9e1a0ba35ff67d398",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017352",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-006/reference.dng",
+      "sha256": "a6f4bc61c0c704b4cdc47ea24296cc55148536d1767cf030c7ec51035c1ea276",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "2b957c14b1777a26c5bdaf06de81aa9a5ce54a3ea53d3d0276177d7bad467c3f",
+      "archived_params_sha256": "88e39f019a00b9725078708176a8c39a637caa126e7238b1dc5da085e5f65e23",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.28516,
+        "g_gain": 1,
+        "b_gain": 1.76562
+      },
+      "patch_start": 192,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          176,
+          1224
+        ],
+        [
+          16,
+          856
+        ],
+        [
+          80,
+          48
+        ],
+        [
+          944,
+          680
+        ],
+        [
+          848,
+          1816
+        ],
+        [
+          1232,
+          800
+        ],
+        [
+          656,
+          832
+        ],
+        [
+          824,
+          1448
+        ],
+        [
+          856,
+          1656
+        ],
+        [
+          752,
+          1464
+        ],
+        [
+          64,
+          144
+        ],
+        [
+          512,
+          1696
+        ],
+        [
+          592,
+          808
+        ],
+        [
+          1168,
+          1520
+        ],
+        [
+          304,
+          352
+        ],
+        [
+          1304,
+          504
+        ],
+        [
+          936,
+          1816
+        ],
+        [
+          792,
+          1376
+        ],
+        [
+          656,
+          1488
+        ],
+        [
+          560,
+          1192
+        ],
+        [
+          784,
+          1464
+        ],
+        [
+          952,
+          560
+        ],
+        [
+          608,
+          1008
+        ],
+        [
+          752,
+          328
+        ],
+        [
+          256,
+          32
+        ],
+        [
+          264,
+          1872
+        ],
+        [
+          856,
+          1448
+        ],
+        [
+          32,
+          1248
+        ],
+        [
+          1304,
+          680
+        ],
+        [
+          1184,
+          984
+        ],
+        [
+          432,
+          1080
+        ],
+        [
+          1312,
+          1016
+        ]
+      ],
+      "reference_raw_sha256": "2b957c14b1777a26c5bdaf06de81aa9a5ce54a3ea53d3d0276177d7bad467c3f",
+      "low_input_raw_sha256": "86b822dc52740024e37744fe57e485151be1922277e94a1b1dd72c2a359795ce",
+      "low_gpr_sha256": "3d2e961cbccc43e85a4f47567e2b488300050fd759d50923fdf35c644ff15de0",
+      "low_decoded_raw_sha256": "c0ea78712b9834b917823b42ed492094910a80c2a31bba5ce4db2840bbe67b2c",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017359",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-007/reference.dng",
+      "sha256": "e9ba01d1bfdae6bdc07a02183dcdf6f9849052411a8d724c5351675d84b949ad",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "eeba76bbe0a6bc5afe327f381877a5301c9000d54a2cdb2e0b58d921f47df42d",
+      "archived_params_sha256": "7bad3cea1e2566f28a203d2e0e6f13541e1cc65d6b9ae848b31cf1f31ccefa86",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.30078,
+        "g_gain": 1,
+        "b_gain": 1.78516
+      },
+      "patch_start": 224,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1312,
+          1512
+        ],
+        [
+          1184,
+          1080
+        ],
+        [
+          48,
+          1904
+        ],
+        [
+          472,
+          1376
+        ],
+        [
+          576,
+          1048
+        ],
+        [
+          144,
+          1328
+        ],
+        [
+          48,
+          784
+        ],
+        [
+          824,
+          1136
+        ],
+        [
+          584,
+          1680
+        ],
+        [
+          960,
+          328
+        ],
+        [
+          592,
+          616
+        ],
+        [
+          72,
+          1224
+        ],
+        [
+          568,
+          1496
+        ],
+        [
+          696,
+          1792
+        ],
+        [
+          456,
+          880
+        ],
+        [
+          912,
+          976
+        ],
+        [
+          1144,
+          720
+        ],
+        [
+          984,
+          48
+        ],
+        [
+          88,
+          72
+        ],
+        [
+          472,
+          984
+        ],
+        [
+          1408,
+          480
+        ],
+        [
+          112,
+          120
+        ],
+        [
+          1128,
+          1240
+        ],
+        [
+          912,
+          936
+        ],
+        [
+          64,
+          1064
+        ],
+        [
+          600,
+          128
+        ],
+        [
+          664,
+          280
+        ],
+        [
+          592,
+          1496
+        ],
+        [
+          88,
+          336
+        ],
+        [
+          1008,
+          456
+        ],
+        [
+          1128,
+          1824
+        ],
+        [
+          456,
+          544
+        ]
+      ],
+      "reference_raw_sha256": "eeba76bbe0a6bc5afe327f381877a5301c9000d54a2cdb2e0b58d921f47df42d",
+      "low_input_raw_sha256": "80d0906069b48083d9949c044d7b87573239782a6dda42c256ae2ed6ce02dfed",
+      "low_gpr_sha256": "41ccf540dbfd61354ee1d3616f4a1b81dddc41e8e3988ffc5d4177c6dd449fa0",
+      "low_decoded_raw_sha256": "ea644d2d8380fe5006c7af0648039c8bc7858be5d1b9cbb824539bd58d8860ae",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017360",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-008/reference.dng",
+      "sha256": "83471e0f8ee1d7d3fca6f718f2d7e01c5a72364ec4baf2d4bd95788283fa9871",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "b24931014a37e8629fba79613f2ed3d67af142563775510959adcc54781c1ed8",
+      "archived_params_sha256": "152dec805e9b328bea2c442db5026e1b1a8648b005a2907fb4b5c948b420bb84",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.34375,
+        "g_gain": 1,
+        "b_gain": 1.78906
+      },
+      "patch_start": 256,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1008,
+          328
+        ],
+        [
+          1040,
+          1400
+        ],
+        [
+          840,
+          1504
+        ],
+        [
+          904,
+          800
+        ],
+        [
+          1280,
+          752
+        ],
+        [
+          1264,
+          1360
+        ],
+        [
+          1104,
+          1640
+        ],
+        [
+          1120,
+          1136
+        ],
+        [
+          64,
+          472
+        ],
+        [
+          520,
+          776
+        ],
+        [
+          960,
+          920
+        ],
+        [
+          600,
+          1040
+        ],
+        [
+          440,
+          1896
+        ],
+        [
+          776,
+          32
+        ],
+        [
+          944,
+          400
+        ],
+        [
+          968,
+          1424
+        ],
+        [
+          720,
+          1752
+        ],
+        [
+          1056,
+          944
+        ],
+        [
+          400,
+          1248
+        ],
+        [
+          1336,
+          512
+        ],
+        [
+          1088,
+          1408
+        ],
+        [
+          752,
+          592
+        ],
+        [
+          600,
+          1336
+        ],
+        [
+          512,
+          296
+        ],
+        [
+          1368,
+          296
+        ],
+        [
+          944,
+          296
+        ],
+        [
+          688,
+          1208
+        ],
+        [
+          240,
+          400
+        ],
+        [
+          280,
+          1304
+        ],
+        [
+          824,
+          56
+        ],
+        [
+          1368,
+          640
+        ],
+        [
+          224,
+          232
+        ]
+      ],
+      "reference_raw_sha256": "b24931014a37e8629fba79613f2ed3d67af142563775510959adcc54781c1ed8",
+      "low_input_raw_sha256": "8b53892e2ac56f1d54465ce7e00b6fc8e26a44cd64038a7913cb98bd2180dd3e",
+      "low_gpr_sha256": "3f8c0da06b768d859a803555287c49feda708f63bbf654be332892bec2e1cb45",
+      "low_decoded_raw_sha256": "c0adb36f526b0810db9118c2336fa3b4233a113c9136ad35cbb72f1ebdc42599",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017361",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-009/reference.dng",
+      "sha256": "f2650d2767349bb731c2693127af329e8d4dd93d118864637cf48de82e4a55c9",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "fa48a08b5b452d62dc36b6c32590c2db199f33833a4294c6743d24e69d7119d6",
+      "archived_params_sha256": "ffc55f1c2f3a761252fabf23e65a3cf5730f2a9e9884e33c17aa4952ef8a142f",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.375,
+        "g_gain": 1,
+        "b_gain": 1.67969
+      },
+      "patch_start": 288,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          560,
+          848
+        ],
+        [
+          1008,
+          1448
+        ],
+        [
+          1192,
+          1136
+        ],
+        [
+          440,
+          1872
+        ],
+        [
+          832,
+          1704
+        ],
+        [
+          1016,
+          1160
+        ],
+        [
+          1272,
+          704
+        ],
+        [
+          648,
+          368
+        ],
+        [
+          808,
+          1904
+        ],
+        [
+          368,
+          152
+        ],
+        [
+          1104,
+          1800
+        ],
+        [
+          688,
+          1584
+        ],
+        [
+          880,
+          1104
+        ],
+        [
+          1240,
+          608
+        ],
+        [
+          816,
+          1920
+        ],
+        [
+          1008,
+          328
+        ],
+        [
+          1256,
+          1200
+        ],
+        [
+          224,
+          816
+        ],
+        [
+          840,
+          760
+        ],
+        [
+          1312,
+          0
+        ],
+        [
+          1352,
+          656
+        ],
+        [
+          352,
+          1752
+        ],
+        [
+          600,
+          1048
+        ],
+        [
+          1152,
+          272
+        ],
+        [
+          680,
+          1144
+        ],
+        [
+          1096,
+          672
+        ],
+        [
+          600,
+          136
+        ],
+        [
+          664,
+          1168
+        ],
+        [
+          488,
+          168
+        ],
+        [
+          264,
+          1448
+        ],
+        [
+          496,
+          352
+        ],
+        [
+          192,
+          1728
+        ]
+      ],
+      "reference_raw_sha256": "fa48a08b5b452d62dc36b6c32590c2db199f33833a4294c6743d24e69d7119d6",
+      "low_input_raw_sha256": "75420436dc1f155c9f8b6343630491fb3f299878bee6310963a0aec1e6245a1f",
+      "low_gpr_sha256": "d4eff3e4bc74ac4fc7c68468e8e7f0dcc21e00875033eb0aff29a191635cf014",
+      "low_decoded_raw_sha256": "abe64497fc06f003d54aed181480c2aefc42281a7a77a40d784750e04130458e",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017388",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-010/reference.dng",
+      "sha256": "041d616217cb26c5df8e316585168ebf2b44731d6b8e23380ddaa472929ff918",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "283b5892f3f939ef37b32a7e98a9e6be72a864984aac208bfe5e99f7c2913d72",
+      "archived_params_sha256": "ac0aeb46d7d5e2e9b648ec4eb5e028fd8c7fb704738ab32ec00330ca42e47410",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.18359,
+        "g_gain": 1,
+        "b_gain": 1.89062
+      },
+      "patch_start": 320,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1392,
+          112
+        ],
+        [
+          144,
+          576
+        ],
+        [
+          1296,
+          1528
+        ],
+        [
+          928,
+          632
+        ],
+        [
+          232,
+          336
+        ],
+        [
+          1336,
+          1824
+        ],
+        [
+          1280,
+          1640
+        ],
+        [
+          160,
+          1072
+        ],
+        [
+          528,
+          552
+        ],
+        [
+          760,
+          496
+        ],
+        [
+          256,
+          376
+        ],
+        [
+          336,
+          176
+        ],
+        [
+          752,
+          696
+        ],
+        [
+          184,
+          1552
+        ],
+        [
+          1176,
+          1248
+        ],
+        [
+          616,
+          1096
+        ],
+        [
+          104,
+          288
+        ],
+        [
+          920,
+          576
+        ],
+        [
+          848,
+          1624
+        ],
+        [
+          144,
+          1696
+        ],
+        [
+          1344,
+          168
+        ],
+        [
+          304,
+          256
+        ],
+        [
+          320,
+          1784
+        ],
+        [
+          552,
+          1144
+        ],
+        [
+          104,
+          248
+        ],
+        [
+          680,
+          1464
+        ],
+        [
+          1264,
+          1144
+        ],
+        [
+          360,
+          384
+        ],
+        [
+          1040,
+          1560
+        ],
+        [
+          344,
+          1688
+        ],
+        [
+          1056,
+          1496
+        ],
+        [
+          576,
+          1904
+        ]
+      ],
+      "reference_raw_sha256": "283b5892f3f939ef37b32a7e98a9e6be72a864984aac208bfe5e99f7c2913d72",
+      "low_input_raw_sha256": "d3e6e25ba8da72304cea7e170153e300986550f4cace4e95e61fc7f8adc98eef",
+      "low_gpr_sha256": "3e9070672135c83153ceddd376ac5e82da036e556011b2aef85f8944bc7b82f0",
+      "low_decoded_raw_sha256": "4bb6a39ff3a3a6e3c6173d4cb4d3177194739e3754c4eaab2e033a3a92ec9392",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017389",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-011/reference.dng",
+      "sha256": "28e880ff4340f29418ab2c50b8cfac0964453647e5c9fb9d028c74159920103d",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "41dfe4484a37bd0e3466d0244e04974d5090c5694b1262b3ea69f0bff5732955",
+      "archived_params_sha256": "1e1db09f2ea261c80b4e6a162123f6f5c7b0d9a5a1410edc140c96ecfcd1a14a",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.2461,
+        "g_gain": 1,
+        "b_gain": 1.83203
+      },
+      "patch_start": 352,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1312,
+          1520
+        ],
+        [
+          136,
+          896
+        ],
+        [
+          1088,
+          80
+        ],
+        [
+          312,
+          1752
+        ],
+        [
+          608,
+          392
+        ],
+        [
+          552,
+          80
+        ],
+        [
+          624,
+          928
+        ],
+        [
+          1272,
+          480
+        ],
+        [
+          1280,
+          648
+        ],
+        [
+          1016,
+          368
+        ],
+        [
+          936,
+          40
+        ],
+        [
+          1264,
+          1688
+        ],
+        [
+          584,
+          880
+        ],
+        [
+          1344,
+          328
+        ],
+        [
+          904,
+          1248
+        ],
+        [
+          1056,
+          784
+        ],
+        [
+          160,
+          576
+        ],
+        [
+          368,
+          1560
+        ],
+        [
+          1184,
+          1496
+        ],
+        [
+          656,
+          1072
+        ],
+        [
+          1400,
+          664
+        ],
+        [
+          992,
+          1192
+        ],
+        [
+          1016,
+          1400
+        ],
+        [
+          136,
+          1872
+        ],
+        [
+          296,
+          720
+        ],
+        [
+          904,
+          584
+        ],
+        [
+          224,
+          48
+        ],
+        [
+          1080,
+          920
+        ],
+        [
+          1296,
+          576
+        ],
+        [
+          336,
+          536
+        ],
+        [
+          832,
+          1040
+        ],
+        [
+          544,
+          608
+        ]
+      ],
+      "reference_raw_sha256": "41dfe4484a37bd0e3466d0244e04974d5090c5694b1262b3ea69f0bff5732955",
+      "low_input_raw_sha256": "2c6619219319eb2b90dea04dfebcc7acaf38b82234d074614e5ce79d335b8969",
+      "low_gpr_sha256": "71c0fd3b1fcf0e19b39fa02f68a5a04591beac9451a62d7ba6e9ea7cb8a8d536",
+      "low_decoded_raw_sha256": "40429e89de2975654171fcd44a826455ab21788005571da51f9fdf2b1a1fd7ee",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017390",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-012/reference.dng",
+      "sha256": "92707b65c1080d3c8421725e09d1bd40d4cea4eefff448f766dade3d9aa5e33a",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "5145299abd67c04998212dd226f7be8f7e74d185dac2c122a5e7ebc07d625991",
+      "archived_params_sha256": "f8db252130009211d6a8aae7757de5fb2a789e7361dd05903770b01a2aa69730",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.19141,
+        "g_gain": 1,
+        "b_gain": 1.8789
+      },
+      "patch_start": 384,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          784,
+          280
+        ],
+        [
+          1192,
+          904
+        ],
+        [
+          328,
+          832
+        ],
+        [
+          600,
+          1400
+        ],
+        [
+          1016,
+          1056
+        ],
+        [
+          432,
+          160
+        ],
+        [
+          712,
+          424
+        ],
+        [
+          480,
+          1240
+        ],
+        [
+          728,
+          240
+        ],
+        [
+          80,
+          960
+        ],
+        [
+          1032,
+          512
+        ],
+        [
+          8,
+          296
+        ],
+        [
+          904,
+          488
+        ],
+        [
+          568,
+          312
+        ],
+        [
+          240,
+          1640
+        ],
+        [
+          1184,
+          768
+        ],
+        [
+          8,
+          1040
+        ],
+        [
+          0,
+          72
+        ],
+        [
+          952,
+          1776
+        ],
+        [
+          600,
+          1920
+        ],
+        [
+          232,
+          1360
+        ],
+        [
+          616,
+          1152
+        ],
+        [
+          1144,
+          1272
+        ],
+        [
+          48,
+          1240
+        ],
+        [
+          440,
+          328
+        ],
+        [
+          48,
+          712
+        ],
+        [
+          672,
+          888
+        ],
+        [
+          448,
+          952
+        ],
+        [
+          208,
+          648
+        ],
+        [
+          888,
+          512
+        ],
+        [
+          1000,
+          136
+        ],
+        [
+          880,
+          776
+        ]
+      ],
+      "reference_raw_sha256": "5145299abd67c04998212dd226f7be8f7e74d185dac2c122a5e7ebc07d625991",
+      "low_input_raw_sha256": "563f81008812dc874c5c28d5ede8a5c951394d0b2543cec4f004c4a12370af73",
+      "low_gpr_sha256": "a11ab89f4227a7339d018c8631c1adc70796e5cafaf6cff2662b191e652ac857",
+      "low_decoded_raw_sha256": "3a5e163cb79e739f64e193c42fa638c27da25a821de537a78ad14a5ce7e97ff5",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017391",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-013/reference.dng",
+      "sha256": "f86f2c605d4de61712c483684356b2c10d3c888608b895feeebc078d1a6e76ef",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "f8683ee973f48e1b17ed575b574dd7b56df228ded8191ec7f57ca510fee7850a",
+      "archived_params_sha256": "c9e5c7b02b1f368270a589c93c0fc77738fc92ce5b79fead0692520287b6302d",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.09765,
+        "g_gain": 1,
+        "b_gain": 2.01172
+      },
+      "patch_start": 416,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          432,
+          736
+        ],
+        [
+          272,
+          488
+        ],
+        [
+          448,
+          1408
+        ],
+        [
+          408,
+          1864
+        ],
+        [
+          168,
+          1912
+        ],
+        [
+          1008,
+          1248
+        ],
+        [
+          968,
+          1472
+        ],
+        [
+          1152,
+          1016
+        ],
+        [
+          568,
+          160
+        ],
+        [
+          400,
+          864
+        ],
+        [
+          432,
+          1544
+        ],
+        [
+          808,
+          1816
+        ],
+        [
+          968,
+          624
+        ],
+        [
+          680,
+          776
+        ],
+        [
+          728,
+          1808
+        ],
+        [
+          1208,
+          1312
+        ],
+        [
+          1264,
+          288
+        ],
+        [
+          48,
+          1392
+        ],
+        [
+          1104,
+          760
+        ],
+        [
+          336,
+          432
+        ],
+        [
+          208,
+          616
+        ],
+        [
+          424,
+          240
+        ],
+        [
+          896,
+          1448
+        ],
+        [
+          80,
+          1072
+        ],
+        [
+          1360,
+          1136
+        ],
+        [
+          1304,
+          40
+        ],
+        [
+          312,
+          144
+        ],
+        [
+          208,
+          1752
+        ],
+        [
+          112,
+          560
+        ],
+        [
+          920,
+          1232
+        ],
+        [
+          384,
+          592
+        ],
+        [
+          104,
+          496
+        ]
+      ],
+      "reference_raw_sha256": "f8683ee973f48e1b17ed575b574dd7b56df228ded8191ec7f57ca510fee7850a",
+      "low_input_raw_sha256": "8122fca52e20d7f23e28834742ad0de8cf83a6b64272f90870416373e7422c68",
+      "low_gpr_sha256": "59d4f0535d588adc77e7f3c6fec9a5dcbaf40d336b5aba945360abb9e2e040be",
+      "low_decoded_raw_sha256": "5482873a41cb74526e6ea972cceb4ca54e452821f823ea9adfe81e348db77e5d",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017392",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-014/reference.dng",
+      "sha256": "c47c704e3a6a0faad2d381caa84ec9cd207d04f3f7c0b59a8e217cc8c2d7542e",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "7ef47429b118738d7ad4c2cfb493f4ebe2aba03ab03b9cfb7c8e8b2ad4aeb0a6",
+      "archived_params_sha256": "71a65892ace672bd67fc59ee714f444ef7005b995de1ce958f6ee97ac9612387",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.09765,
+        "g_gain": 1,
+        "b_gain": 2.00781
+      },
+      "patch_start": 448,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          440,
+          1864
+        ],
+        [
+          1048,
+          792
+        ],
+        [
+          808,
+          1296
+        ],
+        [
+          704,
+          424
+        ],
+        [
+          1064,
+          56
+        ],
+        [
+          272,
+          760
+        ],
+        [
+          936,
+          200
+        ],
+        [
+          1240,
+          1080
+        ],
+        [
+          992,
+          1504
+        ],
+        [
+          1088,
+          264
+        ],
+        [
+          1304,
+          248
+        ],
+        [
+          160,
+          880
+        ],
+        [
+          816,
+          1848
+        ],
+        [
+          680,
+          1248
+        ],
+        [
+          656,
+          1824
+        ],
+        [
+          512,
+          1824
+        ],
+        [
+          1160,
+          1424
+        ],
+        [
+          56,
+          824
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          920,
+          1272
+        ],
+        [
+          1376,
+          1688
+        ],
+        [
+          32,
+          808
+        ],
+        [
+          896,
+          1152
+        ],
+        [
+          688,
+          1648
+        ],
+        [
+          168,
+          16
+        ],
+        [
+          400,
+          1368
+        ],
+        [
+          816,
+          840
+        ],
+        [
+          240,
+          488
+        ],
+        [
+          736,
+          1224
+        ],
+        [
+          456,
+          1792
+        ],
+        [
+          736,
+          1312
+        ],
+        [
+          832,
+          1136
+        ]
+      ],
+      "reference_raw_sha256": "7ef47429b118738d7ad4c2cfb493f4ebe2aba03ab03b9cfb7c8e8b2ad4aeb0a6",
+      "low_input_raw_sha256": "642baf976a2758125bbd5cbdada8bf688bbae54107d6670c01f683b6ca1b6b17",
+      "low_gpr_sha256": "7c8551047cab807ffa3cb47231916fb6e5852e304f41a2508d85567a219670d9",
+      "low_decoded_raw_sha256": "0eb37a5628cbad32c94ab25fdece7aa949686c07c0197c219e01299815b4b709",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017393",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-015/reference.dng",
+      "sha256": "5f01b4de1dc89587fed2f8992d587e02194a82886c0b2ec40c17232f92096282",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "ddee5a6373c5475e28ea3512f27e978a24c4db0c280ad1cef6e4518185775481",
+      "archived_params_sha256": "c4a60de2bc781f7cf7e7237bcdd401a6ecd8550741a11597bb9997fbbe481188",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39062,
+        "g_gain": 1,
+        "b_gain": 1.67578
+      },
+      "patch_start": 480,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          936,
+          704
+        ],
+        [
+          368,
+          1600
+        ],
+        [
+          432,
+          536
+        ],
+        [
+          736,
+          1768
+        ],
+        [
+          40,
+          592
+        ],
+        [
+          584,
+          688
+        ],
+        [
+          984,
+          1080
+        ],
+        [
+          168,
+          456
+        ],
+        [
+          1032,
+          1752
+        ],
+        [
+          16,
+          640
+        ],
+        [
+          512,
+          408
+        ],
+        [
+          904,
+          1560
+        ],
+        [
+          928,
+          720
+        ],
+        [
+          224,
+          1184
+        ],
+        [
+          1408,
+          632
+        ],
+        [
+          976,
+          584
+        ],
+        [
+          448,
+          280
+        ],
+        [
+          720,
+          1200
+        ],
+        [
+          968,
+          408
+        ],
+        [
+          1200,
+          96
+        ],
+        [
+          1344,
+          1136
+        ],
+        [
+          1056,
+          264
+        ],
+        [
+          16,
+          992
+        ],
+        [
+          1264,
+          768
+        ],
+        [
+          288,
+          952
+        ],
+        [
+          176,
+          1880
+        ],
+        [
+          1000,
+          1432
+        ],
+        [
+          104,
+          944
+        ],
+        [
+          1056,
+          584
+        ],
+        [
+          352,
+          344
+        ],
+        [
+          1280,
+          984
+        ],
+        [
+          712,
+          240
+        ]
+      ],
+      "reference_raw_sha256": "ddee5a6373c5475e28ea3512f27e978a24c4db0c280ad1cef6e4518185775481",
+      "low_input_raw_sha256": "f648be6598276a61bdb60f6b9f9ff24e9b2464648d447de360ccb1922af2cdbf",
+      "low_gpr_sha256": "95d55c23bc01674bb197e99edb19464aeaa8d57cef12dc41fe3e456b3dea72ca",
+      "low_decoded_raw_sha256": "8ff455243b6258c510b693b2a691ee99101ada87796747d007454698330b336c",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017394",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-016/reference.dng",
+      "sha256": "c15e2ef6c6bfb0abcb716e8c14208f8aac22f52c925fa351e7e9bc8e823b7c21",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "507eed3961145e9ca2fdf8f814da842f93fb3b8d77514feccfd55f13930453e2",
+      "archived_params_sha256": "3bce21171cebfed2b47468fa19676ba97773210f330b66cdb6b28a451efffbbd",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.35547,
+        "g_gain": 1,
+        "b_gain": 1.73437
+      },
+      "patch_start": 512,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1216,
+          1816
+        ],
+        [
+          912,
+          1368
+        ],
+        [
+          1288,
+          384
+        ],
+        [
+          712,
+          1392
+        ],
+        [
+          616,
+          1192
+        ],
+        [
+          288,
+          384
+        ],
+        [
+          1112,
+          1168
+        ],
+        [
+          640,
+          1000
+        ],
+        [
+          376,
+          1432
+        ],
+        [
+          456,
+          488
+        ],
+        [
+          336,
+          1832
+        ],
+        [
+          1048,
+          1496
+        ],
+        [
+          480,
+          1304
+        ],
+        [
+          1296,
+          624
+        ],
+        [
+          560,
+          160
+        ],
+        [
+          48,
+          624
+        ],
+        [
+          800,
+          184
+        ],
+        [
+          352,
+          1816
+        ],
+        [
+          248,
+          192
+        ],
+        [
+          392,
+          448
+        ],
+        [
+          408,
+          848
+        ],
+        [
+          392,
+          920
+        ],
+        [
+          952,
+          640
+        ],
+        [
+          496,
+          48
+        ],
+        [
+          1320,
+          624
+        ],
+        [
+          368,
+          1856
+        ],
+        [
+          888,
+          1736
+        ],
+        [
+          1344,
+          624
+        ],
+        [
+          1072,
+          480
+        ],
+        [
+          272,
+          192
+        ],
+        [
+          232,
+          656
+        ],
+        [
+          896,
+          1240
+        ]
+      ],
+      "reference_raw_sha256": "507eed3961145e9ca2fdf8f814da842f93fb3b8d77514feccfd55f13930453e2",
+      "low_input_raw_sha256": "488f65e075be4cde290b19650c53a301879e69b4e322fb04936f86b08739a879",
+      "low_gpr_sha256": "6d85cb12987934787fcf39be7cd4bfe800fa4b4434ceaa70acd170c7c0ef49ec",
+      "low_decoded_raw_sha256": "602e3a39f91dbd4513405b1692a59fbb8235be7a879cc0bc558b4dd7fd7ae7b0",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017395",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-017/reference.dng",
+      "sha256": "bb6d957080e3b67b8f118ea5f3462ad4d11e7e75e86c98b629694acec1755daa",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "c68df83b35a7f8c25f1d80091bc20e8367d0500d9e0c2b9220c5c984e2fedb6b",
+      "archived_params_sha256": "a17b2ba04f00fd3c8dbda1bdca594674d718d7ece8653889432bff0064c602c6",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.28906,
+        "g_gain": 1,
+        "b_gain": 1.75391
+      },
+      "patch_start": 544,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1288,
+          768
+        ],
+        [
+          32,
+          1744
+        ],
+        [
+          32,
+          1120
+        ],
+        [
+          1360,
+          568
+        ],
+        [
+          1184,
+          408
+        ],
+        [
+          920,
+          40
+        ],
+        [
+          736,
+          200
+        ],
+        [
+          696,
+          992
+        ],
+        [
+          144,
+          976
+        ],
+        [
+          864,
+          1504
+        ],
+        [
+          184,
+          448
+        ],
+        [
+          1288,
+          1184
+        ],
+        [
+          624,
+          1616
+        ],
+        [
+          760,
+          72
+        ],
+        [
+          384,
+          600
+        ],
+        [
+          1392,
+          632
+        ],
+        [
+          128,
+          448
+        ],
+        [
+          288,
+          608
+        ],
+        [
+          760,
+          1224
+        ],
+        [
+          896,
+          528
+        ],
+        [
+          200,
+          488
+        ],
+        [
+          1080,
+          568
+        ],
+        [
+          1192,
+          704
+        ],
+        [
+          344,
+          1032
+        ],
+        [
+          984,
+          1448
+        ],
+        [
+          40,
+          136
+        ],
+        [
+          1400,
+          560
+        ],
+        [
+          152,
+          1672
+        ],
+        [
+          608,
+          160
+        ],
+        [
+          168,
+          888
+        ],
+        [
+          520,
+          1192
+        ],
+        [
+          624,
+          1104
+        ]
+      ],
+      "reference_raw_sha256": "c68df83b35a7f8c25f1d80091bc20e8367d0500d9e0c2b9220c5c984e2fedb6b",
+      "low_input_raw_sha256": "e2a9c3376a15fc951db445487ca02864748e9f8749766e078e65b180d2092f8d",
+      "low_gpr_sha256": "04d73fb5eeb41ee578203e99bc455548500d8e8647869359a62f51b771c6b0df",
+      "low_decoded_raw_sha256": "f6d8f07f870c953affccb8ccc9a668b14ef2a027460f3c542ab4922cc3166d94",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017396",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-018/reference.dng",
+      "sha256": "66c7b910fa45ddbc11a7259f821db734ee592639bc5c26badae738a2a86d958d",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "e2a346c92e26482a60a1ebde51ad363b0cc6cb906e4ccf34e03e3ea20b038653",
+      "archived_params_sha256": "f76564bca97326923a8abd5bd0257e76346769eb62287b2902cd7e11125abf65",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.30469,
+        "g_gain": 1,
+        "b_gain": 1.75391
+      },
+      "patch_start": 576,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          888,
+          440
+        ],
+        [
+          664,
+          856
+        ],
+        [
+          256,
+          80
+        ],
+        [
+          1136,
+          776
+        ],
+        [
+          1376,
+          1544
+        ],
+        [
+          1200,
+          184
+        ],
+        [
+          472,
+          1392
+        ],
+        [
+          136,
+          1080
+        ],
+        [
+          1152,
+          1496
+        ],
+        [
+          1408,
+          248
+        ],
+        [
+          992,
+          8
+        ],
+        [
+          224,
+          1864
+        ],
+        [
+          304,
+          1128
+        ],
+        [
+          1280,
+          1800
+        ],
+        [
+          264,
+          1632
+        ],
+        [
+          1088,
+          48
+        ],
+        [
+          608,
+          184
+        ],
+        [
+          1136,
+          136
+        ],
+        [
+          1096,
+          1600
+        ],
+        [
+          248,
+          120
+        ],
+        [
+          768,
+          320
+        ],
+        [
+          680,
+          664
+        ],
+        [
+          312,
+          552
+        ],
+        [
+          1168,
+          320
+        ],
+        [
+          136,
+          472
+        ],
+        [
+          1272,
+          168
+        ],
+        [
+          1104,
+          1176
+        ],
+        [
+          176,
+          208
+        ],
+        [
+          16,
+          512
+        ],
+        [
+          120,
+          1232
+        ],
+        [
+          1008,
+          1272
+        ],
+        [
+          1224,
+          600
+        ]
+      ],
+      "reference_raw_sha256": "e2a346c92e26482a60a1ebde51ad363b0cc6cb906e4ccf34e03e3ea20b038653",
+      "low_input_raw_sha256": "1de144f67f0e564aa1e492a7d96ac4ed97f08d5aeb06c88b6449e3e0041ccb3f",
+      "low_gpr_sha256": "4b535b1b67593feffef3b40d553e45a28aee4c62a236345fc767a086844b9f10",
+      "low_decoded_raw_sha256": "4db69f148ef1fa1d246c3f0f44982afb5905fc28188f1391597c4f01830a1170",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017451",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017451.raw",
+      "sha256": "73986d9036e6b3b229635ea94ccbdeb4503b3724505f980beff03ff16bc566cf",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "73986d9036e6b3b229635ea94ccbdeb4503b3724505f980beff03ff16bc566cf",
+      "archived_params_sha256": "7b9daa076b5397de44ef336fdf41ed376bce96cf0752f64e6d7eaae736cfd94d",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39062,
+        "g_gain": 1,
+        "b_gain": 1.76172
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017452",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017452.raw",
+      "sha256": "b8c86b1567284dd609658547fb216c3dcc5f5d28d5a40ccbf9d66872f0e6ceaa",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "b8c86b1567284dd609658547fb216c3dcc5f5d28d5a40ccbf9d66872f0e6ceaa",
+      "archived_params_sha256": "0a54eebc0bab1c8c002119a4b0ffaf51c6cd8620a4835aafd2ed7751489c7828",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39062,
+        "g_gain": 1,
+        "b_gain": 1.75391
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017453",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017453.raw",
+      "sha256": "cc79be6840572e3195fa62a51f05ac1e5d846eb03e94766cf79a56053b9c6c05",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "cc79be6840572e3195fa62a51f05ac1e5d846eb03e94766cf79a56053b9c6c05",
+      "archived_params_sha256": "06d9eb3c1b23edc157fc33eebefd9258b3297044f17228f9132a7de4f40bf3d4",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39453,
+        "g_gain": 1,
+        "b_gain": 1.75391
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017454",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017454.raw",
+      "sha256": "d4d647bae8ad2670e11cf1df842cb13b1a9bf21824e312f7bba8aa66e3a16d12",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "d4d647bae8ad2670e11cf1df842cb13b1a9bf21824e312f7bba8aa66e3a16d12",
+      "archived_params_sha256": "195c28b894e1e90e4de3a86b8f0720b5fbd8667b5dc4ddb03ef18d817e73eff1",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39453,
+        "g_gain": 1,
+        "b_gain": 1.74609
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017455",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017455.raw",
+      "sha256": "ca3876f97458b1e3c65dd26d84bf8eed7cbc8862f5f05990ebb2b26c362b1a42",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "ca3876f97458b1e3c65dd26d84bf8eed7cbc8862f5f05990ebb2b26c362b1a42",
+      "archived_params_sha256": "31c14992d592ddcd043723ac141db876d7aec10828371e879089828b7e404103",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39453,
+        "g_gain": 1,
+        "b_gain": 1.74609
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017456",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017456.raw",
+      "sha256": "e6abd9177124d0b9681b38ee49a7461f8c5c2e7f5adbb7ae6e92c764d72488e5",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "e6abd9177124d0b9681b38ee49a7461f8c5c2e7f5adbb7ae6e92c764d72488e5",
+      "archived_params_sha256": "c76e59eddc8782c10cb513b57edfd1a5c2ab3851eb5736b463c0e90056fbba68",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.39062,
+        "g_gain": 1,
+        "b_gain": 1.75
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017457",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017457.raw",
+      "sha256": "da968c90085479eb14c204fc465fd1d4c13094221d91b44cf1cf22a8c588b21d",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "da968c90085479eb14c204fc465fd1d4c13094221d91b44cf1cf22a8c588b21d",
+      "archived_params_sha256": "9156a63b587f4871427670cbe8934613dace3bfae863bcf3730d36183b138441",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.3711,
+        "g_gain": 1,
+        "b_gain": 1.76172
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017458",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/mission1p_source_scan_20260616/raw50_decode/GP017458.raw",
+      "sha256": "78bed54402a7fe12832f62afc28fddc2fd3decc312e7226f255a55b012cee545",
+      "group": "mission1_lake",
+      "split": "test",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "78bed54402a7fe12832f62afc28fddc2fd3decc312e7226f255a55b012cee545",
+      "archived_params_sha256": "ab1802d75cbe143416258eff0a280c81267c2e9cf89a3d7d1300780f1d50c873",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.35547,
+        "g_gain": 1,
+        "b_gain": 1.77344
+      },
+      "patch_start": null,
+      "patch_count": 0
+    },
+    {
+      "stem": "GP017497",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-027/reference.dng",
+      "sha256": "ac136fce922988d2dda359e4260cd2b2ec4b96a6c81de2215a5e87c4e9a9af3f",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "4dbeaeefc22cb53bb7a940453cb01287e4094eb7cc2263889cbfbacbcb890f21",
+      "archived_params_sha256": "a2435f0ab0edab0eef56d768aa8fac57ada29eaa542716e078aeca457ead895a",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.23047,
+        "g_gain": 1,
+        "b_gain": 1.8125
+      },
+      "patch_start": 608,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1184,
+          1192
+        ],
+        [
+          680,
+          760
+        ],
+        [
+          416,
+          808
+        ],
+        [
+          848,
+          928
+        ],
+        [
+          488,
+          880
+        ],
+        [
+          744,
+          640
+        ],
+        [
+          280,
+          1592
+        ],
+        [
+          504,
+          1800
+        ],
+        [
+          296,
+          1320
+        ],
+        [
+          880,
+          784
+        ],
+        [
+          168,
+          1536
+        ],
+        [
+          480,
+          1624
+        ],
+        [
+          1312,
+          1688
+        ],
+        [
+          128,
+          760
+        ],
+        [
+          1056,
+          1016
+        ],
+        [
+          400,
+          1544
+        ],
+        [
+          808,
+          1856
+        ],
+        [
+          360,
+          0
+        ],
+        [
+          776,
+          1048
+        ],
+        [
+          32,
+          96
+        ],
+        [
+          1152,
+          288
+        ],
+        [
+          592,
+          728
+        ],
+        [
+          768,
+          592
+        ],
+        [
+          160,
+          1136
+        ],
+        [
+          224,
+          1888
+        ],
+        [
+          720,
+          464
+        ],
+        [
+          384,
+          176
+        ],
+        [
+          312,
+          1264
+        ],
+        [
+          896,
+          200
+        ],
+        [
+          256,
+          1144
+        ],
+        [
+          16,
+          1576
+        ],
+        [
+          1232,
+          1488
+        ]
+      ],
+      "reference_raw_sha256": "4dbeaeefc22cb53bb7a940453cb01287e4094eb7cc2263889cbfbacbcb890f21",
+      "low_input_raw_sha256": "74e88181662c459204f29eb529053d92c9223b25bc494e2bbf58aec2ec4e8f69",
+      "low_gpr_sha256": "a8b5e03f0170f5ab0cffa8c255db1e05a0d974be50930c03f1049db769a0729a",
+      "low_decoded_raw_sha256": "079c2d9bce35ad00618b526e8a72c1f6494bf3dda1f17c8b9cbdba78e20aa5d0",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017498",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-028/reference.dng",
+      "sha256": "93adfcf330eb87cf12dfff8dfa9234eb7bf1be34aca12404e804febe52fe8d2e",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "624dbd57844c6d45d205d225e8889eedd635f76bf48d368f92fafbe1b9f9cf73",
+      "archived_params_sha256": "9dfb7ee5106486027a6176dfcad481b22f713edcde76cf1a14b93a5a15333671",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.35547,
+        "g_gain": 1,
+        "b_gain": 1.75391
+      },
+      "patch_start": 640,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1064,
+          1088
+        ],
+        [
+          296,
+          920
+        ],
+        [
+          24,
+          1520
+        ],
+        [
+          1024,
+          392
+        ],
+        [
+          552,
+          1512
+        ],
+        [
+          1248,
+          1760
+        ],
+        [
+          968,
+          600
+        ],
+        [
+          1352,
+          992
+        ],
+        [
+          848,
+          168
+        ],
+        [
+          344,
+          1512
+        ],
+        [
+          1256,
+          56
+        ],
+        [
+          872,
+          464
+        ],
+        [
+          1048,
+          1192
+        ],
+        [
+          928,
+          1840
+        ],
+        [
+          544,
+          1064
+        ],
+        [
+          880,
+          96
+        ],
+        [
+          592,
+          48
+        ],
+        [
+          112,
+          976
+        ],
+        [
+          1080,
+          976
+        ],
+        [
+          1152,
+          1600
+        ],
+        [
+          896,
+          1360
+        ],
+        [
+          536,
+          1560
+        ],
+        [
+          1168,
+          1560
+        ],
+        [
+          696,
+          1512
+        ],
+        [
+          568,
+          1384
+        ],
+        [
+          680,
+          1088
+        ],
+        [
+          312,
+          128
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          1024,
+          1776
+        ],
+        [
+          1024,
+          24
+        ],
+        [
+          1144,
+          1336
+        ],
+        [
+          1072,
+          832
+        ]
+      ],
+      "reference_raw_sha256": "624dbd57844c6d45d205d225e8889eedd635f76bf48d368f92fafbe1b9f9cf73",
+      "low_input_raw_sha256": "de1e352b2a57f0cfa4890200c34c7eb5744c64610c39b3c05a4e87c3a32aa5df",
+      "low_gpr_sha256": "24c23a35046dee58652dd3dbace68bc598a4040f28146add60b8c64e92e2f79e",
+      "low_decoded_raw_sha256": "c060687e9ad838d38ff5f545355186a44a9a5199c669af6657c82999f1c16154",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017499",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-029/reference.dng",
+      "sha256": "db0c771385c6a8fd2b106e3bc41ec0e2afff54993017b53daa6d43176f841959",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "20e37dc2ac331266e97dcb42fa158df61976bd4f4bab97aa35ea32e4a6814076",
+      "archived_params_sha256": "836da1488fb6f676392344bcbf620297ed069beb445df8f946b36b7a09ca9bdf",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.3711,
+        "g_gain": 1,
+        "b_gain": 1.72656
+      },
+      "patch_start": 672,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          536,
+          1832
+        ],
+        [
+          1160,
+          144
+        ],
+        [
+          1152,
+          432
+        ],
+        [
+          144,
+          1504
+        ],
+        [
+          0,
+          672
+        ],
+        [
+          184,
+          872
+        ],
+        [
+          1104,
+          576
+        ],
+        [
+          1392,
+          472
+        ],
+        [
+          472,
+          216
+        ],
+        [
+          504,
+          400
+        ],
+        [
+          784,
+          376
+        ],
+        [
+          32,
+          1728
+        ],
+        [
+          1240,
+          1488
+        ],
+        [
+          672,
+          680
+        ],
+        [
+          344,
+          1064
+        ],
+        [
+          608,
+          624
+        ],
+        [
+          1136,
+          1024
+        ],
+        [
+          64,
+          1672
+        ],
+        [
+          392,
+          944
+        ],
+        [
+          112,
+          688
+        ],
+        [
+          464,
+          1272
+        ],
+        [
+          920,
+          1656
+        ],
+        [
+          752,
+          640
+        ],
+        [
+          960,
+          696
+        ],
+        [
+          1296,
+          416
+        ],
+        [
+          704,
+          56
+        ],
+        [
+          600,
+          288
+        ],
+        [
+          320,
+          424
+        ],
+        [
+          952,
+          488
+        ],
+        [
+          1160,
+          536
+        ],
+        [
+          504,
+          1696
+        ],
+        [
+          120,
+          600
+        ]
+      ],
+      "reference_raw_sha256": "20e37dc2ac331266e97dcb42fa158df61976bd4f4bab97aa35ea32e4a6814076",
+      "low_input_raw_sha256": "2685b166263c2264b441eaff5f929d1ca81e559fb3b98406c69fc0c35475c511",
+      "low_gpr_sha256": "981f75e643682ce09e07a17623c10999cdd6380b02b9b86a5ef49572ee8bca49",
+      "low_decoded_raw_sha256": "a52e31fc1123d3bc82e442e08166d6a65d0e31fb09e2a6d7458f5e91a5deee68",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017500",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-030/reference.dng",
+      "sha256": "e20386eb14eb7a175642b16f655feb3c115f109f382241c669cd402543d20bce",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "793d0077a23f29470ba25368abd0e85088efce31dce54eb97fc3aee6944824e6",
+      "archived_params_sha256": "72b03a8b9f0b212e28026366fdc0e39fa7fdeb8276b8677f573449281db44e29",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.37891,
+        "g_gain": 1,
+        "b_gain": 1.73047
+      },
+      "patch_start": 704,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1032,
+          56
+        ],
+        [
+          1208,
+          1000
+        ],
+        [
+          360,
+          760
+        ],
+        [
+          336,
+          632
+        ],
+        [
+          368,
+          896
+        ],
+        [
+          8,
+          400
+        ],
+        [
+          1120,
+          1328
+        ],
+        [
+          296,
+          408
+        ],
+        [
+          976,
+          856
+        ],
+        [
+          248,
+          1632
+        ],
+        [
+          360,
+          664
+        ],
+        [
+          1312,
+          1504
+        ],
+        [
+          168,
+          1808
+        ],
+        [
+          1208,
+          944
+        ],
+        [
+          944,
+          712
+        ],
+        [
+          192,
+          1568
+        ],
+        [
+          48,
+          608
+        ],
+        [
+          1000,
+          664
+        ],
+        [
+          648,
+          432
+        ],
+        [
+          696,
+          1096
+        ],
+        [
+          1104,
+          1056
+        ],
+        [
+          152,
+          1104
+        ],
+        [
+          336,
+          968
+        ],
+        [
+          416,
+          1808
+        ],
+        [
+          944,
+          440
+        ],
+        [
+          1080,
+          1416
+        ],
+        [
+          1232,
+          24
+        ],
+        [
+          752,
+          464
+        ],
+        [
+          688,
+          400
+        ],
+        [
+          920,
+          840
+        ],
+        [
+          1344,
+          848
+        ],
+        [
+          1400,
+          1152
+        ]
+      ],
+      "reference_raw_sha256": "793d0077a23f29470ba25368abd0e85088efce31dce54eb97fc3aee6944824e6",
+      "low_input_raw_sha256": "319c39958ca528b4549e6d0ec3ea40cc766e5d0870b99ffab4591e7c497b516f",
+      "low_gpr_sha256": "7fe9a2b93591f4c5c8d60b55cfd9d40e3cc943fa3a4895774f2199efc1a47038",
+      "low_decoded_raw_sha256": "7e1e540eaa4da69c12d240e0c8feee2215f7169be40515a635cc1931fee8bccb",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017501",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-031/reference.dng",
+      "sha256": "6bfd6b6994a54d15e0a4bc721508f6c9d3f522b14da478e7c87f435b6c8f2c32",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "9628661a05bbdbe891558860ddbc42f4ba5b0bced44aba8979c4a9de47043b35",
+      "archived_params_sha256": "300844e23cda9088120fbc0f05aa45a6d4cef74365993192347994f343e5d4ce",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.31641,
+        "g_gain": 1,
+        "b_gain": 1.75
+      },
+      "patch_start": 736,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1072,
+          1704
+        ],
+        [
+          848,
+          1168
+        ],
+        [
+          1296,
+          1624
+        ],
+        [
+          1296,
+          528
+        ],
+        [
+          1392,
+          1168
+        ],
+        [
+          264,
+          1088
+        ],
+        [
+          376,
+          1376
+        ],
+        [
+          1272,
+          1736
+        ],
+        [
+          768,
+          256
+        ],
+        [
+          264,
+          808
+        ],
+        [
+          1192,
+          1232
+        ],
+        [
+          176,
+          1712
+        ],
+        [
+          592,
+          1328
+        ],
+        [
+          1304,
+          1624
+        ],
+        [
+          16,
+          792
+        ],
+        [
+          88,
+          1024
+        ],
+        [
+          192,
+          1880
+        ],
+        [
+          448,
+          992
+        ],
+        [
+          1400,
+          1800
+        ],
+        [
+          64,
+          1600
+        ],
+        [
+          920,
+          1480
+        ],
+        [
+          1288,
+          1480
+        ],
+        [
+          928,
+          1584
+        ],
+        [
+          440,
+          1848
+        ],
+        [
+          16,
+          168
+        ],
+        [
+          656,
+          224
+        ],
+        [
+          56,
+          752
+        ],
+        [
+          792,
+          488
+        ],
+        [
+          1192,
+          432
+        ],
+        [
+          16,
+          1224
+        ],
+        [
+          528,
+          1856
+        ],
+        [
+          792,
+          1512
+        ]
+      ],
+      "reference_raw_sha256": "9628661a05bbdbe891558860ddbc42f4ba5b0bced44aba8979c4a9de47043b35",
+      "low_input_raw_sha256": "d29e999a9bbe9396bba715792682f37e5894f1598d3cd7b53eef3fd000d0cc50",
+      "low_gpr_sha256": "953431169ad1e8da6722704fbfd66a802683022ac237bdd428fcc5c9861270ad",
+      "low_decoded_raw_sha256": "b69516ecf36fc480501a526258d97a7bac879556a2de5e71cfde62332ba90bb9",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017502",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-032/reference.dng",
+      "sha256": "de8db8b14780740184ceb02c9159a2f6bad679f2e4147c8c52cae4052c0c7622",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "062d949f4a5dd70e90992a6810d46e6318e766f7f5af616b2059c8bbb68abf7b",
+      "archived_params_sha256": "f41540dfbd4dceccef78b0b8db92d5a95d57f2e775ce0084027a2276c4440e61",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.33594,
+        "g_gain": 1,
+        "b_gain": 1.75
+      },
+      "patch_start": 768,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          328,
+          160
+        ],
+        [
+          1208,
+          1488
+        ],
+        [
+          128,
+          720
+        ],
+        [
+          1088,
+          1224
+        ],
+        [
+          1296,
+          1632
+        ],
+        [
+          1144,
+          1216
+        ],
+        [
+          424,
+          1152
+        ],
+        [
+          336,
+          288
+        ],
+        [
+          24,
+          752
+        ],
+        [
+          952,
+          808
+        ],
+        [
+          704,
+          1744
+        ],
+        [
+          176,
+          1160
+        ],
+        [
+          808,
+          944
+        ],
+        [
+          80,
+          600
+        ],
+        [
+          64,
+          1208
+        ],
+        [
+          616,
+          88
+        ],
+        [
+          832,
+          1264
+        ],
+        [
+          1400,
+          712
+        ],
+        [
+          336,
+          1032
+        ],
+        [
+          544,
+          1832
+        ],
+        [
+          624,
+          1448
+        ],
+        [
+          992,
+          1576
+        ],
+        [
+          680,
+          816
+        ],
+        [
+          952,
+          448
+        ],
+        [
+          640,
+          632
+        ],
+        [
+          1352,
+          560
+        ],
+        [
+          832,
+          920
+        ],
+        [
+          712,
+          96
+        ],
+        [
+          760,
+          1648
+        ],
+        [
+          1288,
+          1512
+        ],
+        [
+          712,
+          864
+        ],
+        [
+          584,
+          504
+        ]
+      ],
+      "reference_raw_sha256": "062d949f4a5dd70e90992a6810d46e6318e766f7f5af616b2059c8bbb68abf7b",
+      "low_input_raw_sha256": "7093ee5456f745765d28fcdc32531515207519f0b32062a485ede612dc592483",
+      "low_gpr_sha256": "2f81c25d60e0fb64d2721311ccd4f8ac44b0cae7364f23af18da98de04d783cd",
+      "low_decoded_raw_sha256": "d61582d1e673d2d500186e0dbd6376790689c9517b73bf384cfd42946f1bcfe7",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017503",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-033/reference.dng",
+      "sha256": "4f3ee3bbb9295341b26db2cd896a57554af2f2f75d22cac6ee71dcdf5224b50e",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "df22f0be443832e54aea2fb7e9159c19045c5a00453dcf50b597ee9fde83f2ef",
+      "archived_params_sha256": "4e96897b1788a58df6905f8fb6b7aadddd518206b1a3e99baa1fe00182023802",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.23438,
+        "g_gain": 1,
+        "b_gain": 1.78906
+      },
+      "patch_start": 800,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          520,
+          832
+        ],
+        [
+          672,
+          296
+        ],
+        [
+          1208,
+          704
+        ],
+        [
+          1208,
+          160
+        ],
+        [
+          984,
+          776
+        ],
+        [
+          1112,
+          56
+        ],
+        [
+          968,
+          240
+        ],
+        [
+          768,
+          1664
+        ],
+        [
+          376,
+          152
+        ],
+        [
+          536,
+          584
+        ],
+        [
+          216,
+          1272
+        ],
+        [
+          648,
+          1264
+        ],
+        [
+          888,
+          440
+        ],
+        [
+          1272,
+          80
+        ],
+        [
+          1152,
+          512
+        ],
+        [
+          1136,
+          856
+        ],
+        [
+          1320,
+          272
+        ],
+        [
+          56,
+          416
+        ],
+        [
+          32,
+          784
+        ],
+        [
+          616,
+          1784
+        ],
+        [
+          784,
+          64
+        ],
+        [
+          680,
+          1680
+        ],
+        [
+          864,
+          1136
+        ],
+        [
+          816,
+          472
+        ],
+        [
+          816,
+          1536
+        ],
+        [
+          1352,
+          784
+        ],
+        [
+          168,
+          752
+        ],
+        [
+          400,
+          1392
+        ],
+        [
+          560,
+          1752
+        ],
+        [
+          1032,
+          424
+        ],
+        [
+          1232,
+          800
+        ],
+        [
+          1368,
+          64
+        ]
+      ],
+      "reference_raw_sha256": "df22f0be443832e54aea2fb7e9159c19045c5a00453dcf50b597ee9fde83f2ef",
+      "low_input_raw_sha256": "261dd3b4b34f1d1f92b8a6fe4ccf230c75f186a7ea785a0adbc8f40dcd2f246a",
+      "low_gpr_sha256": "0e056834250f8d98d5c4662d6143e91911db8ab39232e4dbedc483aabcbdb2b1",
+      "low_decoded_raw_sha256": "f8fa9eb74b0bc2f9d5a3373e4dfa532b2efd4c44980caf85a620c29f6aa348a9",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017504",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-034/reference.dng",
+      "sha256": "c524705dd6733257e71eab557a7532c9198f4ac9727a1407241ed2f508dfeced",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "2fec4eeb07f9090832abb32382a9ce9d726cceddc1d251128a556e9c493c06c5",
+      "archived_params_sha256": "034622fa5ebdce06821498b4cd6371ab1aa9375d9a8f6a9a20dfe98e42c1185e",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.32031,
+        "g_gain": 1,
+        "b_gain": 1.77344
+      },
+      "patch_start": 832,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          32,
+          1072
+        ],
+        [
+          672,
+          1744
+        ],
+        [
+          8,
+          144
+        ],
+        [
+          1144,
+          840
+        ],
+        [
+          168,
+          1504
+        ],
+        [
+          376,
+          1064
+        ],
+        [
+          1376,
+          1608
+        ],
+        [
+          488,
+          192
+        ],
+        [
+          216,
+          1696
+        ],
+        [
+          224,
+          1096
+        ],
+        [
+          680,
+          1336
+        ],
+        [
+          456,
+          784
+        ],
+        [
+          344,
+          1904
+        ],
+        [
+          1048,
+          1408
+        ],
+        [
+          520,
+          488
+        ],
+        [
+          128,
+          1784
+        ],
+        [
+          496,
+          1304
+        ],
+        [
+          856,
+          624
+        ],
+        [
+          888,
+          800
+        ],
+        [
+          512,
+          1200
+        ],
+        [
+          328,
+          1688
+        ],
+        [
+          40,
+          392
+        ],
+        [
+          296,
+          424
+        ],
+        [
+          592,
+          1224
+        ],
+        [
+          576,
+          120
+        ],
+        [
+          1224,
+          552
+        ],
+        [
+          600,
+          1280
+        ],
+        [
+          592,
+          288
+        ],
+        [
+          384,
+          400
+        ],
+        [
+          960,
+          848
+        ],
+        [
+          56,
+          1800
+        ],
+        [
+          544,
+          1112
+        ]
+      ],
+      "reference_raw_sha256": "2fec4eeb07f9090832abb32382a9ce9d726cceddc1d251128a556e9c493c06c5",
+      "low_input_raw_sha256": "22943275f56dab292977a02e9e11b24be4153ca884d5845babc9d4af1f7c6527",
+      "low_gpr_sha256": "ccdfbf2e8bb93720860c88a0a78b7ac6ff7c2e4ef5876aeb7327b895760b2157",
+      "low_decoded_raw_sha256": "f2c98a49b7a211071889551c502779c3010a6c3150d9a24ea6311e15dd5b6c83",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017505",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-035/reference.dng",
+      "sha256": "9982a4b2e65f2c6622addbf6358dfcef741576e78e95140995dacb8ef1724369",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "1557d78cb248377e515c4826cb63b4a8e77d22b146f3a3f788094f42162953a2",
+      "archived_params_sha256": "5771515ec821a582ce9af6137c8a94035d627b667bb5a873cb596a51071730a4",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.26953,
+        "g_gain": 1,
+        "b_gain": 1.77734
+      },
+      "patch_start": 864,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          328,
+          360
+        ],
+        [
+          1336,
+          1688
+        ],
+        [
+          232,
+          1120
+        ],
+        [
+          1088,
+          704
+        ],
+        [
+          696,
+          1312
+        ],
+        [
+          608,
+          632
+        ],
+        [
+          1400,
+          1520
+        ],
+        [
+          1336,
+          1232
+        ],
+        [
+          200,
+          816
+        ],
+        [
+          696,
+          312
+        ],
+        [
+          1152,
+          424
+        ],
+        [
+          576,
+          32
+        ],
+        [
+          392,
+          624
+        ],
+        [
+          1064,
+          1648
+        ],
+        [
+          920,
+          1176
+        ],
+        [
+          112,
+          1232
+        ],
+        [
+          544,
+          1392
+        ],
+        [
+          1384,
+          960
+        ],
+        [
+          416,
+          896
+        ],
+        [
+          1168,
+          760
+        ],
+        [
+          40,
+          1040
+        ],
+        [
+          912,
+          376
+        ],
+        [
+          176,
+          200
+        ],
+        [
+          1400,
+          1016
+        ],
+        [
+          64,
+          1704
+        ],
+        [
+          512,
+          280
+        ],
+        [
+          624,
+          1576
+        ],
+        [
+          376,
+          1232
+        ],
+        [
+          992,
+          352
+        ],
+        [
+          1360,
+          1392
+        ],
+        [
+          464,
+          656
+        ],
+        [
+          1224,
+          1040
+        ]
+      ],
+      "reference_raw_sha256": "1557d78cb248377e515c4826cb63b4a8e77d22b146f3a3f788094f42162953a2",
+      "low_input_raw_sha256": "f62cd793944abc7b1436d96ce120004aada4c7baec9377884923be208261ed16",
+      "low_gpr_sha256": "14b1d2500d17ce8f28d7b648e75a3418432c2cb05dadf551f7d352ef34fd9b32",
+      "low_decoded_raw_sha256": "9ff73a0950e251e8a1d93821e364fe0aa5c2bf867c8a7e54dd31ffcc6ddc231f",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017506",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-036/reference.dng",
+      "sha256": "9fff898c678e01d6203c1749bfab272ba832fe967f55fb080bb096cb32135e78",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "e4932fed80ff5fd7fa9abe1b3f3eda4d31c0939e64b7cd43f38aeaa64e5fbea0",
+      "archived_params_sha256": "7968885749cea0572056e95a6e39a54fca6c1bf186ea77865662cdd4e22f3f27",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.27734,
+        "g_gain": 1,
+        "b_gain": 1.80078
+      },
+      "patch_start": 896,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          960,
+          1616
+        ],
+        [
+          1176,
+          1288
+        ],
+        [
+          464,
+          528
+        ],
+        [
+          1072,
+          248
+        ],
+        [
+          496,
+          160
+        ],
+        [
+          1048,
+          416
+        ],
+        [
+          256,
+          856
+        ],
+        [
+          504,
+          1744
+        ],
+        [
+          96,
+          1552
+        ],
+        [
+          496,
+          232
+        ],
+        [
+          664,
+          1624
+        ],
+        [
+          1040,
+          1176
+        ],
+        [
+          64,
+          984
+        ],
+        [
+          456,
+          56
+        ],
+        [
+          808,
+          1184
+        ],
+        [
+          880,
+          552
+        ],
+        [
+          824,
+          920
+        ],
+        [
+          0,
+          448
+        ],
+        [
+          936,
+          1792
+        ],
+        [
+          640,
+          1224
+        ],
+        [
+          40,
+          1104
+        ],
+        [
+          920,
+          224
+        ],
+        [
+          16,
+          1600
+        ],
+        [
+          976,
+          200
+        ],
+        [
+          96,
+          1904
+        ],
+        [
+          1384,
+          640
+        ],
+        [
+          408,
+          1120
+        ],
+        [
+          1144,
+          1856
+        ],
+        [
+          1176,
+          336
+        ],
+        [
+          1304,
+          1624
+        ],
+        [
+          1088,
+          152
+        ],
+        [
+          656,
+          32
+        ]
+      ],
+      "reference_raw_sha256": "e4932fed80ff5fd7fa9abe1b3f3eda4d31c0939e64b7cd43f38aeaa64e5fbea0",
+      "low_input_raw_sha256": "2df4e64ca13dd5cc4798251e18dc639daa77ee52bae5889d0de4deb1f6aa5777",
+      "low_gpr_sha256": "f0f20982a817bed6186f07af2d3e0ec3ee3ba32acac7b6b7596b3d7bbc90e84e",
+      "low_decoded_raw_sha256": "d9b83e8cd70dfd88b0764cd35050fbe13796f0b0c1d131db729c7c37fd39fd32",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017507",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-037/reference.dng",
+      "sha256": "7f2056a37edff44a5c41038e2cd652ba7f47053c575bec6d5b098e382088be9b",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "2653a85826dad5bc98a7d64569fbd4300a8d06a4bf3aa45e62d4d2c748845f80",
+      "archived_params_sha256": "6fc6c5a22fa9ed087b29d587d1b50f1bd72c166fecc297f28b8f73e2aa38faf8",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.76562,
+        "g_gain": 1,
+        "b_gain": 1.45703
+      },
+      "patch_start": 928,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          432,
+          1336
+        ],
+        [
+          48,
+          1128
+        ],
+        [
+          1080,
+          344
+        ],
+        [
+          1112,
+          80
+        ],
+        [
+          648,
+          632
+        ],
+        [
+          120,
+          1120
+        ],
+        [
+          1056,
+          1552
+        ],
+        [
+          1240,
+          72
+        ],
+        [
+          1104,
+          712
+        ],
+        [
+          1184,
+          1648
+        ],
+        [
+          888,
+          1184
+        ],
+        [
+          536,
+          1712
+        ],
+        [
+          1144,
+          1440
+        ],
+        [
+          728,
+          1360
+        ],
+        [
+          1256,
+          1104
+        ],
+        [
+          1392,
+          1472
+        ],
+        [
+          792,
+          1056
+        ],
+        [
+          1400,
+          1056
+        ],
+        [
+          1136,
+          1712
+        ],
+        [
+          536,
+          1456
+        ],
+        [
+          600,
+          1064
+        ],
+        [
+          1304,
+          392
+        ],
+        [
+          472,
+          1784
+        ],
+        [
+          208,
+          384
+        ],
+        [
+          200,
+          128
+        ],
+        [
+          144,
+          168
+        ],
+        [
+          224,
+          1656
+        ],
+        [
+          1008,
+          1768
+        ],
+        [
+          536,
+          336
+        ],
+        [
+          1128,
+          1560
+        ],
+        [
+          800,
+          1048
+        ],
+        [
+          1128,
+          1496
+        ]
+      ],
+      "reference_raw_sha256": "2653a85826dad5bc98a7d64569fbd4300a8d06a4bf3aa45e62d4d2c748845f80",
+      "low_input_raw_sha256": "379bf8b60e29d000f6657049fd9544ac7382c65c179c52969fc96cb3dc369018",
+      "low_gpr_sha256": "6907e59d4b9c1afcd3849b2e62ada9eb64f67515359ae3e7810025266c5a8f88",
+      "low_decoded_raw_sha256": "bed2f662ec5c0325e3f483d6ddbf12f76fbaf026096b3215de94442ec61a4537",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017508",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-038/reference.dng",
+      "sha256": "149c18cedee3fe7145ff31f11e3586270bb9f34c0ca4046f290e6d9d8e5ab2c2",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "f8382ee3e05b7e0056636ece9022f4d58731b4d10138a2faaba876bc0e5f4e92",
+      "archived_params_sha256": "a5fe011d36561f3090478eb1d77fac1670c29ed752d26f73fb311aed92834944",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.23828,
+        "g_gain": 1,
+        "b_gain": 1.8125
+      },
+      "patch_start": 960,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          1168,
+          296
+        ],
+        [
+          1128,
+          1520
+        ],
+        [
+          1048,
+          712
+        ],
+        [
+          1224,
+          624
+        ],
+        [
+          128,
+          1400
+        ],
+        [
+          152,
+          56
+        ],
+        [
+          944,
+          480
+        ],
+        [
+          208,
+          280
+        ],
+        [
+          1048,
+          1272
+        ],
+        [
+          720,
+          80
+        ],
+        [
+          336,
+          944
+        ],
+        [
+          240,
+          552
+        ],
+        [
+          1096,
+          1160
+        ],
+        [
+          168,
+          1608
+        ],
+        [
+          272,
+          624
+        ],
+        [
+          152,
+          1144
+        ],
+        [
+          1376,
+          856
+        ],
+        [
+          1384,
+          216
+        ],
+        [
+          1024,
+          864
+        ],
+        [
+          680,
+          1216
+        ],
+        [
+          328,
+          1040
+        ],
+        [
+          1168,
+          1256
+        ],
+        [
+          464,
+          424
+        ],
+        [
+          1080,
+          592
+        ],
+        [
+          1288,
+          1360
+        ],
+        [
+          1128,
+          1384
+        ],
+        [
+          1056,
+          1344
+        ],
+        [
+          544,
+          1496
+        ],
+        [
+          1368,
+          1536
+        ],
+        [
+          1408,
+          1080
+        ],
+        [
+          688,
+          1344
+        ],
+        [
+          1368,
+          1400
+        ]
+      ],
+      "reference_raw_sha256": "f8382ee3e05b7e0056636ece9022f4d58731b4d10138a2faaba876bc0e5f4e92",
+      "low_input_raw_sha256": "6b72f7d09eed84498024fa36fae7f92bc50f1e8940ad209bd93743d8a2d7b0e8",
+      "low_gpr_sha256": "71eb042f6314fb2dd70bf8fdd0cb96804fcf0a1b2543289bcae19be58c03294c",
+      "low_decoded_raw_sha256": "f677553b18407eed5a4a505ce9765839f006f497a85dedd6225472a4d59d062f",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017517",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-039/reference.dng",
+      "sha256": "801529a06e4ae07b00e89156d62c4e7d9501ec258999473a1b01566b42de7b97",
+      "group": "mission1_playground",
+      "split": "train",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "8ab2a9772cc813b2036e30c122315ae605111ef2c14be6dab004c5de5ad44f03",
+      "archived_params_sha256": "787829718da481900d2f562b4a4a4206514e8ff2c6165433ba050a1362e34c56",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.37891,
+        "g_gain": 1,
+        "b_gain": 1.71094
+      },
+      "patch_start": 992,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          648,
+          1280
+        ],
+        [
+          704,
+          1616
+        ],
+        [
+          824,
+          1832
+        ],
+        [
+          64,
+          784
+        ],
+        [
+          280,
+          976
+        ],
+        [
+          760,
+          56
+        ],
+        [
+          544,
+          960
+        ],
+        [
+          288,
+          1664
+        ],
+        [
+          896,
+          848
+        ],
+        [
+          1128,
+          576
+        ],
+        [
+          360,
+          48
+        ],
+        [
+          8,
+          256
+        ],
+        [
+          856,
+          1648
+        ],
+        [
+          840,
+          632
+        ],
+        [
+          360,
+          1344
+        ],
+        [
+          256,
+          1888
+        ],
+        [
+          1224,
+          264
+        ],
+        [
+          1368,
+          1208
+        ],
+        [
+          264,
+          1720
+        ],
+        [
+          1320,
+          896
+        ],
+        [
+          584,
+          80
+        ],
+        [
+          48,
+          224
+        ],
+        [
+          104,
+          1872
+        ],
+        [
+          600,
+          1504
+        ],
+        [
+          856,
+          816
+        ],
+        [
+          232,
+          592
+        ],
+        [
+          464,
+          1256
+        ],
+        [
+          112,
+          336
+        ],
+        [
+          584,
+          360
+        ],
+        [
+          904,
+          1048
+        ],
+        [
+          368,
+          1472
+        ],
+        [
+          656,
+          376
+        ]
+      ],
+      "reference_raw_sha256": "8ab2a9772cc813b2036e30c122315ae605111ef2c14be6dab004c5de5ad44f03",
+      "low_input_raw_sha256": "86bf0c2cf9514ada7fc43d1eee14264546ad24ed7be3975c94e195da83ae4b2b",
+      "low_gpr_sha256": "fcb383c0ee6a521f91b5e7ed3854986104fd129e12227d0d711b9bac115cb141",
+      "low_decoded_raw_sha256": "bad6c9d107e07d9505219975fba66d96fd4fb8d598c72fc97bd0985dac298c9f",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017600",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-040/reference.dng",
+      "sha256": "cda69262100917985c3ea2fefd01ec64e3559bb9a9cac6377a261a47c996a355",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "0b8c8b9570a30a1006fac2d382759a25ede91754ee6db1ec8eb8f130a0dec15b",
+      "archived_params_sha256": "3b03ac977221801d16c65a432a728e92e7ca6592fe8dbe5b95c3f4b08ab77b6a",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.19922,
+        "g_gain": 1,
+        "b_gain": 2.21484
+      },
+      "patch_start": 1024,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          744,
+          1264
+        ],
+        [
+          224,
+          816
+        ],
+        [
+          592,
+          1680
+        ],
+        [
+          584,
+          448
+        ],
+        [
+          400,
+          1568
+        ],
+        [
+          1192,
+          544
+        ],
+        [
+          40,
+          1792
+        ],
+        [
+          424,
+          520
+        ],
+        [
+          384,
+          1456
+        ],
+        [
+          496,
+          792
+        ],
+        [
+          976,
+          168
+        ],
+        [
+          56,
+          456
+        ],
+        [
+          104,
+          1520
+        ],
+        [
+          112,
+          344
+        ],
+        [
+          192,
+          1792
+        ],
+        [
+          8,
+          1816
+        ],
+        [
+          696,
+          1632
+        ],
+        [
+          1264,
+          88
+        ],
+        [
+          320,
+          1120
+        ],
+        [
+          96,
+          1360
+        ],
+        [
+          592,
+          1384
+        ],
+        [
+          64,
+          1576
+        ],
+        [
+          1296,
+          328
+        ],
+        [
+          1176,
+          136
+        ],
+        [
+          1176,
+          704
+        ],
+        [
+          528,
+          1464
+        ],
+        [
+          104,
+          112
+        ],
+        [
+          1296,
+          728
+        ],
+        [
+          24,
+          1672
+        ],
+        [
+          224,
+          680
+        ],
+        [
+          168,
+          304
+        ],
+        [
+          464,
+          264
+        ]
+      ],
+      "reference_raw_sha256": "0b8c8b9570a30a1006fac2d382759a25ede91754ee6db1ec8eb8f130a0dec15b",
+      "low_input_raw_sha256": "ef8cde58fdb2623bf5687a096fa9e8b63df3d275e3c048842fb983be82b5a03d",
+      "low_gpr_sha256": "c9005efed432455e3593b88e7c034a0078891832d1e39ccc03c17b3015b3f357",
+      "low_decoded_raw_sha256": "91fce7e4af13441dc85c6c955a554045342f1c4d9ae247f2dcdbb372b5396aa0",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    },
+    {
+      "stem": "GP017604",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_calibrated_20261031-metadata-v2/dataset/source-041/reference.dng",
+      "sha256": "ed47f3251df942eb704e1bc07d9df77857e1c4ed574b06a355ec3421515a0bd7",
+      "group": "mission1_home_interior",
+      "split": "validation",
+      "width": 8192,
+      "height": 6144,
+      "archived_raw_sha256": "2bb41a2eb9109a04c7b55bf84c1232b952ef839f9c60f3cc919fe52f8463bc1b",
+      "archived_params_sha256": "d5537f5015c263a595e717c7013efe8924c3d3348bf2341567369d749aa3e050",
+      "archived_metadata_only": true,
+      "black_level": [
+        16.0,
+        16.0,
+        16.0,
+        16.0
+      ],
+      "white_level": 16383,
+      "wb_gains": {
+        "r_gain": 2.21094,
+        "g_gain": 1,
+        "b_gain": 2.15234
+      },
+      "patch_start": 1056,
+      "patch_count": 32,
+      "low_plane_yx": [
+        [
+          768,
+          1280
+        ],
+        [
+          800,
+          936
+        ],
+        [
+          1264,
+          1160
+        ],
+        [
+          720,
+          744
+        ],
+        [
+          480,
+          1536
+        ],
+        [
+          1256,
+          1920
+        ],
+        [
+          608,
+          1320
+        ],
+        [
+          528,
+          632
+        ],
+        [
+          1008,
+          1864
+        ],
+        [
+          648,
+          680
+        ],
+        [
+          1120,
+          24
+        ],
+        [
+          528,
+          1880
+        ],
+        [
+          752,
+          1640
+        ],
+        [
+          976,
+          1272
+        ],
+        [
+          1336,
+          1184
+        ],
+        [
+          1272,
+          1544
+        ],
+        [
+          88,
+          1024
+        ],
+        [
+          416,
+          880
+        ],
+        [
+          264,
+          952
+        ],
+        [
+          640,
+          568
+        ],
+        [
+          480,
+          1528
+        ],
+        [
+          384,
+          520
+        ],
+        [
+          952,
+          1688
+        ],
+        [
+          1072,
+          456
+        ],
+        [
+          1064,
+          928
+        ],
+        [
+          624,
+          1096
+        ],
+        [
+          736,
+          56
+        ],
+        [
+          728,
+          688
+        ],
+        [
+          1264,
+          1664
+        ],
+        [
+          256,
+          1888
+        ],
+        [
+          1000,
+          368
+        ],
+        [
+          1216,
+          536
+        ]
+      ],
+      "reference_raw_sha256": "2bb41a2eb9109a04c7b55bf84c1232b952ef839f9c60f3cc919fe52f8463bc1b",
+      "low_input_raw_sha256": "4638c298dc2e9736cdf305a0f2a4f527d127b839f8d515401842bfe61c3bc874",
+      "low_gpr_sha256": "ba6675c82167db0a7199af627a34dd25575ad1f03d37e49aa61c4f6b196947c2",
+      "low_decoded_raw_sha256": "f23a947594af5cdb09bb73f8bd53d4299f043ec980f0b58aa7222f4f12d52d09",
+      "simulation_metadata_omissions": [
+        {
+          "code": 700,
+          "reason": "opaque XMP may contain stale simulation geometry"
+        }
+      ],
+      "independent_repackaged_pixels_verified": true,
+      "supported_simulated_calibration_roundtrip_exact": true
+    }
+  ],
+  "input_sha256": "50e9683aa3704e507c959f99198717177d405cbdeaa093cf5535fc1ff337b068",
+  "target_sha256": "5411d008a1e23743f953db72f4b35dc25efb7ada48399174e4d5d4129b741f4d"
+}

@@ -1,0 +1,15 @@
+[  5%] Built target md5_lib
+[  6%] Built target cJSON
+[  6%] Built target expat_lib
+[ 10%] Built target common
+[ 12%] Built target tiny_jpeg
+[ 19%] Built target vc5_common
+[ 20%] Built target argument_parser
+[ 46%] Built target vc5_decoder
+[ 46%] Built target vc5_encoder
+[ 47%] Built target xmp_core
+[ 91%] Built target dng_sdk
+[ 97%] Built target gpr_sdk
+[ 97%] Building CXX object source/app/gpr_tools/CMakeFiles/gpr_tools.dir/gpr_parse_utils.cpp.o
+[ 97%] Linking CXX executable gpr_tools
+[100%] Built target gpr_tools
