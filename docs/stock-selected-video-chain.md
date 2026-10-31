@@ -95,3 +95,30 @@ For commands, start with [native runtime](stock-native-runtime.md) and
 [UPRESABLE](stock-upres-workflow.md), then use the archived driver to reproduce
 this exact chain with fresh output paths and the hash-bound inputs/artifact.
 This is a two-frame integration example, not a temporal-quality demonstration.
+
+## Fresh-recording Pi CPU follow-up
+
+Both newly recorded native inputs now also pass the supplied checkpoint's Pi
+CPU path, with four Torch threads, tile 256 and halo 64. Pi Torch 2.14.1 CPU
+outputs differ from the matching Mac Torch 2.12 MPS reference by at most
+**one count**, preserving the preregistered one-count portability bound.
+Only 196 and 223 of 50,331,648 samples differ per frame. Pi output also differs
+from the native Mac hybrid output by at most one count in these two cases.
+The native backend's separate 32-count budget is not substituted for the
+stricter CPU/MPS comparison.
+
+Pi inference takes **97.996 and 98.949 seconds per frame**; the two-frame
+command takes 200.923 seconds including model setup, decoding and publication.
+These are offline costs, not camera recording or sustained inference claims.
+Independent TIFF reads on the Pi confirm both DNGs' count hashes and supported
+scale-two calibration. Source payload, original PTS, decoded input and model
+hashes match the Mac comparison exactly. Earlier Pi evidence used different
+prepared inputs; it is not relabeled as this fresh native-input run.
+
+The [comparison](stock-selected-chain-receipts/pi-comparison.json) and
+[Pi DNG audit](stock-selected-chain-receipts/pi-dng-audit.json), plus their
+predeclared protocol, actual driver and output identities in the archive,
+retain the result. Source revision 589bc29 passes all seven hosted jobs in
+[run 41188343975](https://github.com/dcliftreaves/gpr/actions/runs/41188343975).
+This closes the fresh-input execution/count check; strict recording deadlines,
+model-quality scope and physical camera limitations remain unchanged.

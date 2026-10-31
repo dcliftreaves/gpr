@@ -1,7 +1,7 @@
 {
   "schema": "gpr.selected_chain_evidence.v1",
   "archive": "evidence.tar.gz",
-  "archive_sha256": "9e1bf63998654e2436e529c3b30b1db7ae6397eeb5217fdea81b97a9283b0c46",
+  "archive_sha256": "078d9db7af863449e5bec33e918e883996cc1dd33448573b24caedea2941f4d7",
   "members": {
     "reference/source/app/vc5_encoder_app/main.cpp": {
       "bytes": 11046,
@@ -15,9 +15,17 @@
       "bytes": 4225,
       "sha256": "87c408a944062547d0475b545c35d05d50e51e9de128ea17e274bc5ec8ca618a"
     },
+    "run/audit_stock_selected_chain_pi_dng.py": {
+      "bytes": 2241,
+      "sha256": "c467b932d592d208e8be943e55e8d5b2bee80efc004bbb527278d25a2157f1d7"
+    },
     "run/capture.stderr": {
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run/compare_stock_selected_chain_pi.py": {
+      "bytes": 2629,
+      "sha256": "04152253fcb075549623355f74e57116e51d0d5da133001aa7774f5c7710e817"
     },
     "run/decode-prores-child.json": {
       "bytes": 19,
@@ -150,6 +158,46 @@
     "run/native-upres.stdout": {
       "bytes": 9928,
       "sha256": "4df568806266ea91b045a7fcc0be68346550bfc190a02d2bc847d9fe1492a85e"
+    },
+    "run/pi-child.json": {
+      "bytes": 21,
+      "sha256": "92c83a881ef4a20cc087826e0e7ca7c9c78b4cae4203c1d13a87a752f6c6b9db"
+    },
+    "run/pi-comparison.json": {
+      "bytes": 1280,
+      "sha256": "70aa391e98c3238ad4c0d15e148ff703130bdaa09ade7dfb7da2566934c5acd3"
+    },
+    "run/pi-complete.json": {
+      "bytes": 436,
+      "sha256": "726d673d8999c184828de09275054e0133bdcda4fe2c3552a951d9f278f1d1ed"
+    },
+    "run/pi-dng-audit.json": {
+      "bytes": 1320,
+      "sha256": "e578da2725fe28a10519251c9a5d0367d576ad450f19f734da82ab9e699c93ff"
+    },
+    "run/pi-driver-initial-setup.py": {
+      "bytes": 2846,
+      "sha256": "f54eecf48e8f84e4958100930d9a7ae04094a99bc349bbf74927c528ae40903b"
+    },
+    "run/pi-portable-2x/receipt.json": {
+      "bytes": 29552,
+      "sha256": "59ed6849b4bcf185bc9761fd175b7e98f947c7b34b8428c62618b0683374f0e8"
+    },
+    "run/pi-protocol.json": {
+      "bytes": 2205,
+      "sha256": "0a8b2aebe9c416359b788a5bed0eaa2b9096b5ad7ab1bdec2d8b2fe893a955e6"
+    },
+    "run/pi-restore.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run/pi-restore.stdout": {
+      "bytes": 29552,
+      "sha256": "59ed6849b4bcf185bc9761fd175b7e98f947c7b34b8428c62618b0683374f0e8"
+    },
+    "run/pi-setup-initial.stderr": {
+      "bytes": 1566,
+      "sha256": "62e2b863e72fd153076c79cf5c5cd9bee2bdf75de5852d45bb4b23347c07d1b3"
     },
     "run/protocol.json": {
       "bytes": 1779,
@@ -299,6 +347,10 @@
       "bytes": 1210,
       "sha256": "5b0b950cc477a5c86c7a5e37b6325e4bffe7e89f0f9299936e6578db21013a08"
     },
+    "run/validate_stock_selected_chain_pi.py": {
+      "bytes": 2897,
+      "sha256": "7da34065607ce28b540eb58f466f4c47f9ba0f47fb770c952c6f620cef536d36"
+    },
     "run/verified.json": {
       "bytes": 2168,
       "sha256": "50c20659613c561fc8c07c8cedd8d70caa9899cfc2fa57edb17a7e72119e75f7"
@@ -342,6 +394,10 @@
     "source/tools/stock_video.py": {
       "bytes": 23593,
       "sha256": "0564742516b755ff04f148ec084b78f48cfdef1791a3bfa64f7ff45f39a560da"
+    },
+    "validation/589bc29-ci-passed.json": {
+      "bytes": 17897,
+      "sha256": "cbbd3b4aacb931f34f1a0c888d0a0014a5714f69889e749f2215161f9a661d9f"
     },
     "validation/audit_stock_selected_video_chain.py": {
       "bytes": 6966,

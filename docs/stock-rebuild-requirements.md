@@ -344,6 +344,12 @@ recording with the supplied 2x model](stock-selected-video-chain.md) now passes
 independent pixels/calibration, matched native/Torch counts, historical Q5
 payloads, exact GVID/MOV recovery and actual-timing 8K ProRes checks. It also
 corrects missing native reconstruction settings in ProRes receipts, with a
-fresh contract pass. Hosted validation for that receipt fix must pass at its
-own revision. This two-frame chain does not close strict sustained Pi deadlines,
+fresh contract pass. All seven hosted jobs pass for that receipt fix at 589bc29 in
+[run 41188343975](https://github.com/dcliftreaves/gpr/actions/runs/41188343975). This two-frame chain does not close strict sustained Pi deadlines,
 broader useful-detail/restored-tier quality, temporal or physical camera gates.
+
+The fresh-recording selected-model CPU follow-up on Pi also passes its existing
+one-count Mac MPS agreement bound, with independent pixels/calibration checks
+and 97.996/98.949 seconds of offline inference per frame. This extends the
+current chain's input-specific execution evidence; the strict recording
+floor and broader model/temporal acceptance remain open.
