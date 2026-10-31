@@ -17,8 +17,10 @@ Generated receipts are consolidated in the [evidence archive](stock-evidence/REA
 with exact Git-object comparisons, per-file hashes, readable immutable links
 and an offline verifier/restoration command. This corrects the reviewability
 problem of roughly 688,000 added lines dominated by loose generated receipts.
-The archive change needs its own package and hosted checks; `170802d` is the
-preceding verified source revision, not a hosted result for this change.
+The archive change passes fresh capture/preview/camera package checks and all
+seven hosted jobs at `144a338`
+([run 41176948842](https://github.com/dcliftreaves/gpr/actions/runs/41176948842)).
+Later evidence changes still require their own hosted results.
 
 ## Requirements and evidence
 
@@ -288,3 +290,10 @@ The [historical boundary/input-gate study](stock-sr-historical-boundary.md) now 
 The [calibrated camera-pair study](stock-sr-calibrated-mixed.md) verifies 1,088 source/stock-decode patch pairs using recovered archival metadata and preserves the existing venue split. Four matched training cases fail Nikon shadows and do not advance. It also fixes actual 65x65 GainMap parameter import: capacity-matched storage and JSON cleanup, with exact pixel/opcode regressions at 9x9/65x65/97x97 and three focused SDK/raw/still CTests passing on both Mac and Pi. Capture/preview code and Pi capture executable are unchanged.
 
 The [sensor-gate and frozen-cascade follow-ups](stock-cnn-followups.md) complete the bounded comparisons without a replacement: 18 patch settings, 20 full gate outputs, ten complete cascade outputs and actual rendered comparisons. The only gate survivor is worse than supplied BIBO in pooled RGB; the cascade improves rendered Nikon fidelity but regresses every camera validation image. No thresholds or failed guards are relaxed. A separate [JSON boundary correction](stock-sdk-parameter-json.md) fixes the specific new hosted parameter-import failure, with fresh focused Mac/Pi passes.
+
+The [matched joint-training follow-up](stock-cnn-joint.md) completes 1,200
+updates across SR-only, frozen-cleanup and joint-cleanup arms. Joint training
+has the largest pooled patch gain (+0.14394 dB versus supplied SR), but every
+checkpoint fails the unchanged Nikon shadow guard. All nine control/candidate
+settings are independently re-inferred and rescored; no model is selected or
+advanced. Broader quality and native combined timing remain open.

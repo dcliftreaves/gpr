@@ -150,3 +150,12 @@ The [boundary/input-gate follow-up](stock-sr-historical-boundary.md) crosses eve
 The [calibrated mixed-camera study](stock-sr-calibrated-mixed.md) recovers archived per-frame metadata, builds actual stock camera pairs, and compares sensor canonicalization/tone-WB loss in four matched cases. All 3,200 updates complete, but eight checkpoints fail Nikon shadow guards despite improved pooled RAW/proxy scores. The associated real-camera parameter-import overflow is fixed and checked on Mac/Pi; no new CNN is promoted.
 
 The [sensor-gate and frozen-cascade follow-ups](stock-cnn-followups.md) complete the bounded comparisons without a replacement: 18 patch settings, 20 full gate outputs, ten complete cascade outputs and actual rendered comparisons. The only gate survivor is worse than supplied BIBO in pooled RGB; the cascade improves rendered Nikon fidelity but regresses every camera validation image. No thresholds or failed guards are relaxed. A separate [JSON boundary correction](stock-sdk-parameter-json.md) fixes the specific new hosted parameter-import failure, with fresh focused Mac/Pi passes.
+
+The [matched BIBO joint-training study](stock-cnn-joint.md) now compares SR-only,
+frozen-cleanup and jointly trained cleanup/SR on the same balanced stock pairs.
+It preserves batch-normalization statistics and extends real input context
+for the two-stage receptive field. Joint training improves pooled patch RAW
+fidelity by +0.14394 dB versus supplied SR, exceeding both comparison arms,
+but all six checkpoints fail Nikon shadow guards. Independent re-inference
+and scoring confirm those results. No candidate advances to whole-image,
+rendered or final evaluation, and supplied weights remain unchanged.
