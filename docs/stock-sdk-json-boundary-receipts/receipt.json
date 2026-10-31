@@ -1,0 +1,24 @@
+{
+  "schema": "gpr.stock_sdk_json_boundary_validation.v1",
+  "complete": true,
+  "parent_head": "19b5dda2a179dd065e30581ca659ffbba0e94f48",
+  "failed_run": 41173393945,
+  "failed_job": 124455876611,
+  "diagnosis": "Binary file reader returns exact bytes without zero terminator; cJSON ParseWithOpts reads C string length. Consumer now uses size-bounded std::string and c_str.",
+  "source_sha256": "cf26dac189172961c24c1d084fd04eb7d3e4f6e5010dd69af305776bcf290e2f",
+  "test_sha256": "eba178a79e977a3ccb420465b8e2b2ba9e4d0f5fe0ed320dcfc71f5c45530f5c",
+  "mac_sdk_sha256": "5138323e95b4d6db1293988f69afef52bcc1f0a12b3f2f51f194d3252fb57b94",
+  "pi_hashes": {
+    "source/app/gpr_tools/gpr_parse_utils.cpp": "cf26dac189172961c24c1d084fd04eb7d3e4f6e5010dd69af305776bcf290e2f",
+    "tests/stock_still_test.py": "eba178a79e977a3ccb420465b8e2b2ba9e4d0f5fe0ed320dcfc71f5c45530f5c",
+    "build-runtime/source/app/gpr_tools/gpr_tools": "fc73958764523427cc78ba10b4c30dcb962ffee119a85875bb7207fd8b58ec5e",
+    "build-runtime/gpr_capture_app": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c"
+  },
+  "focused_ctests": [
+    "sdk_c_api",
+    "raw_media",
+    "stock_still"
+  ],
+  "mac_and_pi_passed": true,
+  "camera_capture_unchanged": true
+}

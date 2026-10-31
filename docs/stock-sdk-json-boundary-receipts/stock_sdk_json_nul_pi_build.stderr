@@ -1,0 +1,22 @@
+In file included from /mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/gpr_parse_utils.cpp:20:
+/mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/stdcpp_utils.h: In function ‘std::string& ltrim(std::string&)’:
+/mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/stdcpp_utils.h:37:63: warning: ‘std::pointer_to_unary_function<_Arg, _Result> std::ptr_fun(_Result (*)(_Arg)) [with _Arg = int; _Result = int]’ is deprecated: use 'std::function' instead [-Wdeprecated-declarations]
+   37 |                                         std::ptr_fun<int, int>(std::isgraph)));
+      |                                         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+In file included from /usr/include/c++/12/string:48,
+                 from /usr/include/c++/12/bits/locale_classes.h:40,
+                 from /usr/include/c++/12/bits/ios_base.h:41,
+                 from /usr/include/c++/12/ios:42,
+                 from /usr/include/c++/12/ostream:38,
+                 from /usr/include/c++/12/iostream:39,
+                 from /mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/stdcpp_utils.h:22:
+/usr/include/c++/12/bits/stl_function.h:1126:5: note: declared here
+ 1126 |     ptr_fun(_Result (*__x)(_Arg))
+      |     ^~~~~~~
+/mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/stdcpp_utils.h: In function ‘std::string& rtrim(std::string&)’:
+/mnt/ssd/gpr_work/stock-raw-media-runtime/source/app/gpr_tools/stdcpp_utils.h:44:52: warning: ‘std::pointer_to_unary_function<_Arg, _Result> std::ptr_fun(_Result (*)(_Arg)) [with _Arg = int; _Result = int]’ is deprecated: use 'std::function' instead [-Wdeprecated-declarations]
+   44 |                              std::ptr_fun<int, int>(std::isgraph)).base(), s.end());
+      |                              ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_function.h:1126:5: note: declared here
+ 1126 |     ptr_fun(_Result (*__x)(_Arg))
+      |     ^~~~~~~

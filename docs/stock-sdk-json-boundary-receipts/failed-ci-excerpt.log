@@ -1,0 +1,234 @@
+2026-10-31T05:40:07.1803635Z 14/23 Test #14: stock_still ......................***Failed    6.84 sec
+2026-10-31T05:40:07.1804228Z ....FFF
+2026-10-31T05:40:07.1804516Z ======================================================================
+2026-10-31T05:40:07.1805487Z FAIL: test_sdk_parameter_roundtrip_large_gain_maps (__main__.Stills.test_sdk_parameter_roundtrip_large_gain_maps) (map_side=9)
+2026-10-31T05:40:07.1806519Z ----------------------------------------------------------------------
+2026-10-31T05:40:07.1807067Z Traceback (most recent call last):
+2026-10-31T05:40:07.1814402Z   File "/home/runner/work/gpr/gpr/tests/stock_still_test.py", line 50, in test_sdk_parameter_roundtrip_large_gain_maps
+2026-10-31T05:40:07.1815078Z     self.assertEqual(result.returncode,0,result.stderr)
+2026-10-31T05:40:07.1815859Z AssertionError: 1 != 0 : [    0-ms]  GPR Tools Version 1.0.0 [HEAD @ ec59fa3] [Linux][GCC 15.2.0][64 bit] 
+2026-10-31T05:40:07.1816333Z [    0-ms]  Input File: /tmp/tmp7hqtpxuj/input.raw 
+2026-10-31T05:40:07.1816681Z [    0-ms]  Output File: /tmp/tmp7hqtpxuj/restored-9.dng 
+2026-10-31T05:40:07.1817000Z =================================================================
+2026-10-31T05:40:07.1817583Z ==14148==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x741d9f3e14b6 at pc 0x75fda108a2c8 bp 0x7fff6a8f1730 sp 0x7fff6a8f0ed8
+2026-10-31T05:40:07.1818162Z READ of size 5047 at 0x741d9f3e14b6 thread T0
+2026-10-31T05:40:07.1818643Z     #0 0x75fda108a2c7 in strlen ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:425
+2026-10-31T05:40:07.1819304Z     #1 0x5ae42884028c in cJSON_ParseWithOpts /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944
+2026-10-31T05:40:07.1819967Z     #2 0x5ae427f1fda4 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:508
+2026-10-31T05:40:07.1820836Z     #3 0x5ae427f67646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1821396Z     #4 0x5ae427f59a87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1822019Z     #5 0x75fda002a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1822776Z     #6 0x75fda002a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1823690Z     #7 0x5ae427f12824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1824236Z 
+2026-10-31T05:40:07.1824470Z 0x741d9f3e14b6 is located 0 bytes after 5046-byte region [0x741d9f3e0100,0x741d9f3e14b6)
+2026-10-31T05:40:07.1825034Z allocated by thread T0 here:
+2026-10-31T05:40:07.1825403Z     #0 0x75fda1129ddf in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67
+2026-10-31T05:40:07.1825975Z     #1 0x5ae4287613b3 in read_from_file /home/runner/work/gpr/gpr/source/lib/common/private/gpr_buffer.c:40
+2026-10-31T05:40:07.1826633Z     #2 0x5ae427f1fd55 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:501
+2026-10-31T05:40:07.1827274Z     #3 0x5ae427f67646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1827835Z     #4 0x5ae427f59a87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1828440Z     #5 0x75fda002a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1829180Z     #6 0x75fda002a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1830076Z     #7 0x5ae427f12824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1831498Z 
+2026-10-31T05:40:07.1832204Z SUMMARY: AddressSanitizer: heap-buffer-overflow /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944 in cJSON_ParseWithOpts
+2026-10-31T05:40:07.1833019Z Shadow bytes around the buggy address:
+2026-10-31T05:40:07.1833342Z   0x741d9f3e1200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1833707Z   0x741d9f3e1280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1834058Z   0x741d9f3e1300: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1834413Z   0x741d9f3e1380: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1834785Z   0x741d9f3e1400: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1835134Z =>0x741d9f3e1480: 00 00 00 00 00 00[06]fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1835503Z   0x741d9f3e1500: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1836027Z   0x741d9f3e1580: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1836408Z   0x741d9f3e1600: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1836777Z   0x741d9f3e1680: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1837151Z   0x741d9f3e1700: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1837552Z Shadow byte legend (one shadow byte represents 8 application bytes):
+2026-10-31T05:40:07.1837895Z   Addressable:           00
+2026-10-31T05:40:07.1838157Z   Partially addressable: 01 02 03 04 05 06 07 
+2026-10-31T05:40:07.1838431Z   Heap left redzone:       fa
+2026-10-31T05:40:07.1838676Z   Freed heap region:       fd
+2026-10-31T05:40:07.1838913Z   Stack left redzone:      f1
+2026-10-31T05:40:07.1839146Z   Stack mid redzone:       f2
+2026-10-31T05:40:07.1839371Z   Stack right redzone:     f3
+2026-10-31T05:40:07.1839607Z   Stack after return:      f5
+2026-10-31T05:40:07.1839833Z   Stack use after scope:   f8
+2026-10-31T05:40:07.1840058Z   Global redzone:          f9
+2026-10-31T05:40:07.1840281Z   Global init order:       f6
+2026-10-31T05:40:07.1840506Z   Poisoned by user:        f7
+2026-10-31T05:40:07.1841025Z   Container overflow:      fc
+2026-10-31T05:40:07.1841257Z   Array cookie:            ac
+2026-10-31T05:40:07.1841482Z   Intra object redzone:    bb
+2026-10-31T05:40:07.1841717Z   ASan internal:           fe
+2026-10-31T05:40:07.1841952Z   Left alloca redzone:     ca
+2026-10-31T05:40:07.1842185Z   Right alloca redzone:    cb
+2026-10-31T05:40:07.1842404Z ==14148==ABORTING
+2026-10-31T05:40:07.1842573Z 
+2026-10-31T05:40:07.1842578Z 
+2026-10-31T05:40:07.1842689Z ======================================================================
+2026-10-31T05:40:07.1843380Z FAIL: test_sdk_parameter_roundtrip_large_gain_maps (__main__.Stills.test_sdk_parameter_roundtrip_large_gain_maps) (map_side=65)
+2026-10-31T05:40:07.1844143Z ----------------------------------------------------------------------
+2026-10-31T05:40:07.1844744Z Traceback (most recent call last):
+2026-10-31T05:40:07.1845522Z   File "/home/runner/work/gpr/gpr/tests/stock_still_test.py", line 50, in test_sdk_parameter_roundtrip_large_gain_maps
+2026-10-31T05:40:07.1846124Z     self.assertEqual(result.returncode,0,result.stderr)
+2026-10-31T05:40:07.1846769Z AssertionError: 1 != 0 : [    0-ms]  GPR Tools Version 1.0.0 [HEAD @ ec59fa3] [Linux][GCC 15.2.0][64 bit] 
+2026-10-31T05:40:07.1847379Z [    0-ms]  Input File: /tmp/tmp7hqtpxuj/input.raw 
+2026-10-31T05:40:07.1847982Z [    0-ms]  Output File: /tmp/tmp7hqtpxuj/restored-65.dng 
+2026-10-31T05:40:07.1848582Z =================================================================
+2026-10-31T05:40:07.1849676Z ==14152==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x7f0b9bdf49f8 at pc 0x7feb9da8a2c8 bp 0x7fffdd91aef0 sp 0x7fffdd91a698
+2026-10-31T05:40:07.1850939Z READ of size 82425 at 0x7f0b9bdf49f8 thread T0
+2026-10-31T05:40:07.1851905Z     #0 0x7feb9da8a2c7 in strlen ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:425
+2026-10-31T05:40:07.1853236Z     #1 0x62fa7e93428c in cJSON_ParseWithOpts /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944
+2026-10-31T05:40:07.1854609Z     #2 0x62fa7e013da4 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:508
+2026-10-31T05:40:07.1855943Z     #3 0x62fa7e05b646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1857123Z     #4 0x62fa7e04da87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1858272Z     #5 0x7feb9ca2a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1859507Z     #6 0x7feb9ca2a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1861362Z     #7 0x62fa7e006824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1862382Z 
+2026-10-31T05:40:07.1862778Z 0x7f0b9bdf49f8 is located 0 bytes after 82424-byte region [0x7f0b9bde0800,0x7f0b9bdf49f8)
+2026-10-31T05:40:07.1863533Z allocated by thread T0 here:
+2026-10-31T05:40:07.1864173Z     #0 0x7feb9db29ddf in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67
+2026-10-31T05:40:07.1865263Z     #1 0x62fa7e8553b3 in read_from_file /home/runner/work/gpr/gpr/source/lib/common/private/gpr_buffer.c:40
+2026-10-31T05:40:07.1866675Z     #2 0x62fa7e013d55 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:501
+2026-10-31T05:40:07.1868078Z     #3 0x62fa7e05b646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1869065Z     #4 0x62fa7e04da87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1870189Z     #5 0x7feb9ca2a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1872032Z     #6 0x7feb9ca2a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1873668Z     #7 0x62fa7e006824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1874633Z 
+2026-10-31T05:40:07.1875364Z SUMMARY: AddressSanitizer: heap-buffer-overflow /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944 in cJSON_ParseWithOpts
+2026-10-31T05:40:07.1876428Z Shadow bytes around the buggy address:
+2026-10-31T05:40:07.1876940Z   0x7f0b9bdf4700: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1877567Z   0x7f0b9bdf4780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1878201Z   0x7f0b9bdf4800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1879071Z   0x7f0b9bdf4880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1879730Z   0x7f0b9bdf4900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1880380Z =>0x7f0b9bdf4980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00[fa]
+2026-10-31T05:40:07.1881225Z   0x7f0b9bdf4a00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1881857Z   0x7f0b9bdf4a80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1882483Z   0x7f0b9bdf4b00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1883180Z   0x7f0b9bdf4b80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1883844Z   0x7f0b9bdf4c00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1884552Z Shadow byte legend (one shadow byte represents 8 application bytes):
+2026-10-31T05:40:07.1885164Z   Addressable:           00
+2026-10-31T05:40:07.1885611Z   Partially addressable: 01 02 03 04 05 06 07 
+2026-10-31T05:40:07.1886118Z   Heap left redzone:       fa
+2026-10-31T05:40:07.1886538Z   Freed heap region:       fd
+2026-10-31T05:40:07.1886970Z   Stack left redzone:      f1
+2026-10-31T05:40:07.1887388Z   Stack mid redzone:       f2
+2026-10-31T05:40:07.1887799Z   Stack right redzone:     f3
+2026-10-31T05:40:07.1888229Z   Stack after return:      f5
+2026-10-31T05:40:07.1888605Z   Stack use after scope:   f8
+2026-10-31T05:40:07.1888888Z   Global redzone:          f9
+2026-10-31T05:40:07.1889113Z   Global init order:       f6
+2026-10-31T05:40:07.1889427Z   Poisoned by user:        f7
+2026-10-31T05:40:07.1889698Z   Container overflow:      fc
+2026-10-31T05:40:07.1889921Z   Array cookie:            ac
+2026-10-31T05:40:07.1890252Z   Intra object redzone:    bb
+2026-10-31T05:40:07.1890506Z   ASan internal:           fe
+2026-10-31T05:40:07.1891697Z   Left alloca redzone:     ca
+2026-10-31T05:40:07.1892127Z   Right alloca redzone:    cb
+2026-10-31T05:40:07.1892488Z ==14152==ABORTING
+2026-10-31T05:40:07.1892655Z 
+2026-10-31T05:40:07.1892677Z 
+2026-10-31T05:40:07.1892869Z ======================================================================
+2026-10-31T05:40:07.1898043Z FAIL: test_sdk_parameter_roundtrip_large_gain_maps (__main__.Stills.test_sdk_parameter_roundtrip_large_gain_maps) (map_side=97)
+2026-10-31T05:40:07.1899522Z ----------------------------------------------------------------------
+2026-10-31T05:40:07.1900096Z Traceback (most recent call last):
+2026-10-31T05:40:07.1901154Z   File "/home/runner/work/gpr/gpr/tests/stock_still_test.py", line 50, in test_sdk_parameter_roundtrip_large_gain_maps
+2026-10-31T05:40:07.1901917Z     self.assertEqual(result.returncode,0,result.stderr)
+2026-10-31T05:40:07.1902576Z AssertionError: 1 != 0 : [    0-ms]  GPR Tools Version 1.0.0 [HEAD @ ec59fa3] [Linux][GCC 15.2.0][64 bit] 
+2026-10-31T05:40:07.1903048Z [    0-ms]  Input File: /tmp/tmp7hqtpxuj/input.raw 
+2026-10-31T05:40:07.1903488Z [    0-ms]  Output File: /tmp/tmp7hqtpxuj/restored-97.dng 
+2026-10-31T05:40:07.1903836Z =================================================================
+2026-10-31T05:40:07.1904580Z ==14156==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x7fd614de13ec at pc 0x7fd61628a2c8 bp 0x7ffc75318110 sp 0x7ffc753178b8
+2026-10-31T05:40:07.1905302Z READ of size 179181 at 0x7fd614de13ec thread T0
+2026-10-31T05:40:07.1905959Z     #0 0x7fd61628a2c7 in strlen ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:425
+2026-10-31T05:40:07.1906730Z     #1 0x5ad5dd7a728c in cJSON_ParseWithOpts /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944
+2026-10-31T05:40:07.1907518Z     #2 0x5ad5dce86da4 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:508
+2026-10-31T05:40:07.1908307Z     #3 0x5ad5dcece646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1908938Z     #4 0x5ad5dcec0a87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1909777Z     #5 0x7fd61522a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1910941Z     #6 0x7fd61522a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1911848Z     #7 0x5ad5dce79824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1912624Z 
+2026-10-31T05:40:07.1912972Z 0x7fd614de13ec is located 0 bytes after 179180-byte region [0x7fd614db5800,0x7fd614de13ec)
+2026-10-31T05:40:07.1913650Z allocated by thread T0 here:
+2026-10-31T05:40:07.1914213Z     #0 0x7fd616329ddf in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67
+2026-10-31T05:40:07.1915104Z     #1 0x5ad5dd6c83b3 in read_from_file /home/runner/work/gpr/gpr/source/lib/common/private/gpr_buffer.c:40
+2026-10-31T05:40:07.1916134Z     #2 0x5ad5dce86d55 in gpr_parameters_parse /home/runner/work/gpr/gpr/source/app/gpr_tools/gpr_parse_utils.cpp:501
+2026-10-31T05:40:07.1916944Z     #3 0x5ad5dcece646 in dng_convert_main /home/runner/work/gpr/gpr/source/app/gpr_tools/main_c.c:146
+2026-10-31T05:40:07.1917626Z     #4 0x5ad5dcec0a87 in main /home/runner/work/gpr/gpr/source/app/gpr_tools/main.cpp:217
+2026-10-31T05:40:07.1918321Z     #5 0x7fd61522a8c0  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a8c0) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1919164Z     #6 0x7fd61522a9d7 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a9d7) (BuildId: 4ec69afdf3da96ce7388640dcd27c6d0c1b256ef)
+2026-10-31T05:40:07.1920164Z     #7 0x5ad5dce79824 in _start (/home/runner/work/gpr/gpr/build-runtime/source/app/gpr_tools/gpr_tools+0xfbd824) (BuildId: 90aab14c327b55f7d79ac9aa5b041fefba08d0c6)
+2026-10-31T05:40:07.1920924Z 
+2026-10-31T05:40:07.1921400Z SUMMARY: AddressSanitizer: heap-buffer-overflow /home/runner/work/gpr/gpr/source/app/common/cJSON/cJSON.c:944 in cJSON_ParseWithOpts
+2026-10-31T05:40:07.1922006Z Shadow bytes around the buggy address:
+2026-10-31T05:40:07.1922567Z   0x7fd614de1100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1923027Z   0x7fd614de1180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1923385Z   0x7fd614de1200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1923840Z   0x7fd614de1280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1924186Z   0x7fd614de1300: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2026-10-31T05:40:07.1924609Z =>0x7fd614de1380: 00 00 00 00 00 00 00 00 00 00 00 00 00[04]fa fa
+2026-10-31T05:40:07.1924982Z   0x7fd614de1400: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1925493Z   0x7fd614de1480: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1925869Z   0x7fd614de1500: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1926325Z   0x7fd614de1580: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1926701Z   0x7fd614de1600: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+2026-10-31T05:40:07.1927233Z Shadow byte legend (one shadow byte represents 8 application bytes):
+2026-10-31T05:40:07.1927577Z   Addressable:           00
+2026-10-31T05:40:07.1927912Z   Partially addressable: 01 02 03 04 05 06 07 
+2026-10-31T05:40:07.1928191Z   Heap left redzone:       fa
+2026-10-31T05:40:07.1928439Z   Freed heap region:       fd
+2026-10-31T05:40:07.1928819Z   Stack left redzone:      f1
+2026-10-31T05:40:07.1929054Z   Stack mid redzone:       f2
+2026-10-31T05:40:07.1929314Z   Stack right redzone:     f3
+2026-10-31T05:40:07.1929615Z   Stack after return:      f5
+2026-10-31T05:40:07.1929847Z   Stack use after scope:   f8
+2026-10-31T05:40:07.1930100Z   Global redzone:          f9
+2026-10-31T05:40:07.1930394Z   Global init order:       f6
+2026-10-31T05:40:07.1930800Z   Poisoned by user:        f7
+2026-10-31T05:40:07.1931034Z   Container overflow:      fc
+2026-10-31T05:40:07.1931254Z   Array cookie:            ac
+2026-10-31T05:40:07.1931739Z   Intra object redzone:    bb
+2026-10-31T05:40:07.1931964Z   ASan internal:           fe
+2026-10-31T05:40:07.1932197Z   Left alloca redzone:     ca
+2026-10-31T05:40:07.1932627Z   Right alloca redzone:    cb
+2026-10-31T05:40:07.1932849Z ==14156==ABORTING
+2026-10-31T05:40:07.1932971Z 
+2026-10-31T05:40:07.1932976Z 
+2026-10-31T05:40:07.1933213Z ----------------------------------------------------------------------
+2026-10-31T05:40:07.1933549Z Ran 5 tests in 6.530s
+2026-10-31T05:40:07.1933719Z 
+2026-10-31T05:40:07.1933805Z FAILED (failures=3)
+2026-10-31T05:40:07.1934023Z 
+2026-10-31T05:40:07.1934194Z       Start 15: encoder_preview_probe
+2026-10-31T05:40:07.3139092Z 15/23 Test #15: encoder_preview_probe ............   Passed    0.13 sec
+2026-10-31T05:40:07.3140122Z       Start 16: encoder_preview_probe_fast
+2026-10-31T05:40:07.4529460Z 16/23 Test #16: encoder_preview_probe_fast .......   Passed    0.14 sec
+2026-10-31T05:40:07.4530868Z       Start 17: encoder_preview_matrix
+2026-10-31T05:40:09.4061645Z 17/23 Test #17: encoder_preview_matrix ...........   Passed    1.95 sec
+2026-10-31T05:40:09.4062872Z       Start 18: encoder_preview_matrix_fast
+2026-10-31T05:40:11.5209437Z 18/23 Test #18: encoder_preview_matrix_fast ......   Passed    2.11 sec
+2026-10-31T05:40:11.5210897Z       Start 19: decoder_bounds
+2026-10-31T05:40:12.4198655Z 19/23 Test #19: decoder_bounds ...................   Passed    0.90 sec
+2026-10-31T05:40:12.4199298Z       Start 20: encoder_bounds
+2026-10-31T05:40:16.0452326Z 20/23 Test #20: encoder_bounds ...................   Passed    3.63 sec
+2026-10-31T05:40:16.0453896Z       Start 21: encoder_bounds_fast
+2026-10-31T05:40:19.8392649Z 21/23 Test #21: encoder_bounds_fast ..............   Passed    3.79 sec
+2026-10-31T05:40:19.8393838Z       Start 22: bayer_formats
+2026-10-31T05:40:22.3606902Z 22/23 Test #22: bayer_formats ....................   Passed    2.52 sec
+2026-10-31T05:40:22.3607327Z       Start 23: bayer_formats_fast
+2026-10-31T05:40:24.9389670Z 23/23 Test #23: bayer_formats_fast ...............   Passed    2.58 sec
+2026-10-31T05:40:24.9394477Z 
+2026-10-31T05:40:24.9395393Z 96% tests passed, 1 tests failed out of 23
+2026-10-31T05:40:24.9395650Z 
+2026-10-31T05:40:24.9395772Z Total Test time (real) =  58.46 sec
+2026-10-31T05:40:24.9395946Z 
+2026-10-31T05:40:24.9396055Z The following tests FAILED:
+2026-10-31T05:40:24.9396301Z 	 14 - stock_still (Failed)
+2026-10-31T05:40:24.9396588Z Errors while running CTest

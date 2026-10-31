@@ -504,8 +504,10 @@ int gpr_parameters_parse( gpr_parameters* parameters, const char* input_file_pat
     }
     
     const char* return_parse_end;
-    
-    cJSON* pRoot = cJSON_ParseWithOpts( (const char*)buffer.buffer, &return_parse_end, 0 );
+
+    // read_from_file returns exactly the file bytes; cJSON requires a C string.
+    const std::string json_text( (const char*)buffer.buffer, buffer.size );
+    cJSON* pRoot = cJSON_ParseWithOpts( json_text.c_str(), &return_parse_end, 0 );
     
     if( pRoot == NULL )
     {
