@@ -1,17 +1,18 @@
 /* SPDX-License-Identifier: Apache-2.0 OR MIT */
 #include "gpr_preview_stream.h"
+#include "gpr_preview_dequantize.h"
 #include "vc5_decoder.h"
 #include <atomic>
 #include <climits>
 #include <new>
 extern "C" CODEC_ERROR ComputeCubicTable(int16_t *,int,int16_t);
+extern "C" int32_t UncompandedValue(int32_t);
 // Bounded channel state; full planes exist only for the final output.
 #include <algorithm>
 #include <array>
 #include <vector>
 extern "C" CODEC_ERROR gpr_preview_inverse_row_dequantized(const int16_t *const[3],const int16_t *const[3],
  const int16_t *,const int16_t *,uint_least16_t,uint_least16_t,int,uint16_t,int16_t *,int16_t *,int16_t *);
-extern "C" CODEC_ERROR DequantizeBandRow16s(int16_t *,int,int,int16_t *);
 struct InvalidRows {};
 static void require_rows(bool okay){if(!okay)throw InvalidRows{};}
 struct RowChannel {
@@ -30,7 +31,7 @@ struct RowChannel {
  int16_t *u(unsigned row,unsigned band){return upper.data()+((row%3)*4+band)*w2;}
  int16_t *high(unsigned row,unsigned band){return hp.data()+((row&hp_mask)*3+band)*w1;}
  int16_t *low(unsigned row){return ll.data()+(row%4)*w1;}
- int16_t expand(int value)const{int magnitude=std::min(value<0?-value:value,1023);return int16_t(value<0?-cubic[magnitude]:cubic[magnitude]);}
+ int16_t dequantize(int16_t value,int quantization)const{return gpr_preview_dequantize_sample(cubic,value,uint32_t(quantization));}
  void drain_lower(){
   while(ready(lower_next,h1,std::min(hp_received,ll_received))){
    unsigned n=lower_next,start=n==0?0:n==h1-1?h1-3:n-1;const int16_t *llrows[3],*lhrows[3];
@@ -58,11 +59,11 @@ struct RowChannel {
   else {require_rows(prescale[row.level]==row.prescale);for(unsigned b=0;b<4;++b)require_rows(quant[row.level][b]==row.quant[b]);}
   if(!row.level){
    require_rows(row.row-oldest()<=hp_mask);max_hp_live=std::max(max_hp_live,row.row-oldest()+1);
-   for(unsigned b=1;b<4;++b){auto *out=high(row.row,b-1);for(unsigned x=0;x<w1;++x)out[x]=expand(row.bands[b][x]);require_rows(!DequantizeBandRow16s(out,w1,quant[0][b],out));}
+   for(unsigned b=1;b<4;++b){auto *out=high(row.row,b-1);for(unsigned x=0;x<w1;++x)out[x]=dequantize(row.bands[b][x],quant[0][b]);}
    ++hp_received;drain_lower();
   }else{
    unsigned needed=upper_next==0?0:upper_next==h2-1?h2-3:upper_next-1;require_rows(row.row-needed<3);
-   for(unsigned b=0;b<4;++b){auto *out=u(row.row,b);for(unsigned x=0;x<w2;++x)out[x]=b?expand(row.bands[b][x]):row.bands[b][x];if(b)require_rows(!DequantizeBandRow16s(out,w2,quant[1][b],out));}
+   for(unsigned b=0;b<4;++b){auto *out=u(row.row,b);for(unsigned x=0;x<w2;++x)out[x]=b?dequantize(row.bands[b][x],quant[1][b]):row.bands[b][x];}
    ++upper_received;drain_upper();
   }
  }
@@ -76,6 +77,10 @@ struct gpr_preview_stream {
  size_t buffer_bytes;
  gpr_preview_stream(unsigned w,unsigned h,size_t bytes):channels{{RowChannel(w,h,cubic.data()),RowChannel(w,h,cubic.data()),RowChannel(w,h,cubic.data())}},buffer_bytes(bytes){
   require_rows(!ComputeCubicTable(cubic.data(),1025,255));
+  // Prepare the exact stock two-stage coefficient conversion once. Reuse the
+  // existing table allocation; incoming highpass rows need one lookup and one
+  // integer multiply/saturation, with no second pass or floating-point cubic.
+  for(auto &value:cubic){int32_t expanded=UncompandedValue(value);require_rows(expanded>=0&&expanded<=1023);value=int16_t(expanded);}
  }
 };
 extern "C" int gpr_preview_stream_create(uint32_t w,uint32_t h,size_t limit,gpr_preview_stream **out){

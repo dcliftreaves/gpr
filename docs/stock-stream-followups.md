@@ -4,7 +4,9 @@ The streaming implementation at `3b2c0f0` passes all seven hosted jobs in
 [run 41184771455](https://github.com/dcliftreaves/gpr/actions/runs/41184771455).
 That revision corrects the synthetic inverse-row fixture to use valid cubic
 symbols; production codec arithmetic remains the measured streaming source.
-The following experiments are rejected. None changes production code, defaults,
+The experiments below are rejected. A separate
+[prepared coefficient lookup](stock-stream-dequantization.md) is adopted after
+exact-output checks and a faster matched native Pi comparison. None changes production code, defaults,
 public APIs, models or the Pi capture executable. The native 12 MP combined
 zero-late deadline gate remains open.
 

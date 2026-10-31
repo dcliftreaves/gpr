@@ -353,3 +353,12 @@ one-count Mac MPS agreement bound, with independent pixels/calibration checks
 and 97.996/98.949 seconds of offline inference per frame. This extends the
 current chain's input-specific execution evidence; the strict recording
 floor and broader model/temporal acceptance remain open.
+
+The [prepared streaming coefficient lookup](stock-stream-dequantization.md)
+removes the per-row inverse-companding pass without changing payloads, pixels,
+public APIs or workspace. Fresh native Pi ABBA candidate runs accept/preview
+600/600 each, with median encode 34.00/34.93 ms versus baseline 37.99/37.16 ms.
+All 2,370 accepted frames are independently verified. Fresh Mac/Pi CTests,
+frontend checks and four relocated Mac package profiles pass. Late deliveries
+and durable fps below 20 keep the strict combined gate open. No CNN weights or
+quality scopes change.
