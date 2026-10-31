@@ -14,6 +14,15 @@ include_directories( "../common/public" )
 
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
+target_include_directories(${LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gpr>)
+target_link_libraries(${LIB_NAME} PUBLIC vc5_common common)
+
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  target_link_libraries(${LIB_NAME} PUBLIC Threads::Threads)
+endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$" AND NEON AND NOT WIN32)
   enable_language(ASM)

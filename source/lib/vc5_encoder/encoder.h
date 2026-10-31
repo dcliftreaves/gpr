@@ -70,6 +70,8 @@ typedef struct _aspect_ratio
 	@todo Consider changing the transform data structure to use a
 	vector of wavelets rather than a vector of wavelet pointers.
 */
+#include "vc5_preview.h"
+
 typedef struct _encoder
 {
 	//	CODEC codec;			//!< Common fields for both the encoder and decoder
@@ -87,6 +89,9 @@ typedef struct _encoder
 
 	//! Number of color channels in the input and encoded images
 	uint_fast8_t channel_count;
+    bool retain_preview_bands;
+    vc5_encoder_preview_row_fn preview_row_observer;
+    void *preview_row_user;
 
 	//! Number of wavelet transforms in each channel
 	uint_fast8_t wavelet_count;
@@ -178,6 +183,7 @@ typedef struct _encoder
     //! Six rows of horizontal highpass results for each channel
     PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
     const PACKED_IMAGE *packed_input;
+    bool compact_bands; /* Row-sized highpass storage requires streaming channel workers. */
     BITSTREAM *row_stream[MAX_WAVELET_COUNT][MAX_BAND_COUNT];
     uint32_t row_pending[MAX_WAVELET_COUNT][MAX_BAND_COUNT];
     CODEC_ERROR row_error;
@@ -198,7 +204,8 @@ extern "C" {
     
     CODEC_ERROR PrepareEncoder(ENCODER *encoder,
                                const UNPACKED_IMAGE *image,
-                               const ENCODER_PARAMETERS *parameters);
+                              const ENCODER_PARAMETERS *parameters,
+                              bool memory_stream);
     
     CODEC_ERROR PrepareEncoderState(ENCODER *encoder,
                                     const UNPACKED_IMAGE *image,
