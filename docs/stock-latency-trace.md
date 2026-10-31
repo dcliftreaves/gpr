@@ -5,6 +5,10 @@ contribution to particular long encodes. They do not identify the competing
 task or establish a fix. The subsequent [affinity rotation](stock-affinity-offset.md)
 fails to establish a consistent benefit. Production remains unchanged.
 
+A [subsequent kernel-event collection](stock-kernel-scheduler.md) now identifies
+MMC maintenance in comparable gaps; the findings below remain bound to their
+original diagnostic runs.
+
 ## Instrumentation and scope
 
 The private patch on `6efc5bd` records each channel worker's monotonic wall time,

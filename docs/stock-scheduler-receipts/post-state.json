@@ -1,0 +1,11 @@
+{
+  "checked_monotonic_ns": 12958390546988471,
+  "production_binary_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "observer_uid": 1000,
+  "observer_scheduler_policy": 0,
+  "observer_nice": 0,
+  "rt_runtime_us": "950000",
+  "rt_period_us": "1000000",
+  "root_mount": "/dev/mmcblk0p2 /      ext4",
+  "output_mount": "/dev/sda1 /mnt/ssd ext4"
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/control-proof/scheduler.data",
+    "bytes": 2545206,
+    "sha256": "2c43c4d0733dc12e0bc23584a71403a6c34c2ec5e9bd78fe22e56b61046c4293"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/control-proof-natural/scheduler.data",
+    "bytes": 2541054,
+    "sha256": "42bfc00226800807b628bfb31d3f29b434c973aa9d1eaa4f71e29d314375a7cd"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/control-proof-natural/scheduler.txt",
+    "bytes": 3643876,
+    "sha256": "244f1b08176dc6b7986988ca8adba8ea537d4e6c9721c848f59608849d09f8cd"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-trace/scheduler.data",
+    "bytes": 63970614,
+    "sha256": "8404d5257155e00368acbfdd25908e63f93ff9870a3b213229a02094e4723edc"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-trace/scheduler.txt",
+    "bytes": 99797130,
+    "sha256": "00915dce1d9f73f62a74696207e5e7b7d2d6568ca38880034acf1854ac4624c5"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-trace/worker-scheduler.json",
+    "bytes": 4870634,
+    "sha256": "4dd2a992188cb6f0ba7fb211f575f8a9b2c42bdf0ac7f254838d64d972480955"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-workqueue/scheduler.data",
+    "bytes": 65321738,
+    "sha256": "ebe5e2f005c7904dc3e1cc4beae5047720d828c7d19b294156e12a46680cc607"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-workqueue/scheduler.txt",
+    "bytes": 108039304,
+    "sha256": "bc7b70d24796cefe22f4db589ff6fdca9a54e79c4a11d16a8a2ac1134a948e15"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-workqueue/worker-scheduler.json",
+    "bytes": 4882892,
+    "sha256": "4444af62336e1fee9001d4abc856441e8aca3777cef8d73c9d4fffc081e05a14"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-workqueue/workqueue-attribution.json",
+    "bytes": 138077,
+    "sha256": "fe09d2755c0db38cf05a7b3237c167f43842915d71b26e06d6dd6a9dbf6d2692"
+  },
+  {
+    "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stock_scheduler_trace_20261030/pi/kernel-workqueue/workqueue-executions.json",
+    "bytes": 2386519,
+    "sha256": "b869fd81c72095b675d7c71e04fe95ca00fc2b2fb81d37c05a460f0de5183f1e"
+  }
+]

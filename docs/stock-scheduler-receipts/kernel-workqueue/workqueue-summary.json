@@ -1,0 +1,613 @@
+{
+  "schema": "gpr.stock_workqueue_attribution.v1",
+  "complete": true,
+  "kernel": "6.6.51+rpt-rpi-2712",
+  "boot_id": "ffdfe08a-1f51-4632-92a5-d52eaa7e402e",
+  "resolved_at_monotonic_ns": 12956070906157311,
+  "work_functions": [
+    {
+      "token": "f27709f261bcb6bf",
+      "symbol": "phy_state_machine"
+    },
+    {
+      "token": "e4ca8777acd5d940",
+      "symbol": "neigh_periodic_work"
+    },
+    {
+      "token": "aae211058fdc8569",
+      "symbol": "wb_update_bandwidth_workfn"
+    },
+    {
+      "token": "b695b62a68b6db0b",
+      "symbol": "mmc_rescan"
+    },
+    {
+      "token": "3fa5c22d87fe2fb4",
+      "symbol": "delayed_vfree_work"
+    },
+    {
+      "token": "de5070d3c153e37b",
+      "symbol": "vmstat_update"
+    },
+    {
+      "token": "135015edb9434ba3",
+      "symbol": "thermal_zone_device_check"
+    },
+    {
+      "token": "4c826702f4742e39",
+      "symbol": "vmstat_shepherd"
+    },
+    {
+      "token": "a4849ea425728898",
+      "symbol": "flush_memcg_stats_dwork"
+    },
+    {
+      "token": "bd0abdb6fc0493d7",
+      "symbol": "get_values_poll"
+    },
+    {
+      "token": "981949c544995583",
+      "symbol": "neigh_managed_work"
+    },
+    {
+      "token": "ea7fa16da416b94c",
+      "symbol": "kfree_rcu_monitor"
+    },
+    {
+      "token": "8d506096e31d387c",
+      "symbol": "wb_workfn"
+    },
+    {
+      "token": "7590852bca60b1f8",
+      "symbol": "blk_mq_requeue_work"
+    },
+    {
+      "token": "7beb87d4cd5b9f95",
+      "symbol": "blk_mq_run_work_fn"
+    },
+    {
+      "token": "9db0d86dc493efff",
+      "symbol": "mmc_blk_mq_complete_work"
+    },
+    {
+      "token": "feb622cff98f2816",
+      "symbol": "blk_mq_timeout_work"
+    },
+    {
+      "token": "23a9e1b40f112328",
+      "symbol": "mld_ifc_work"
+    },
+    {
+      "token": "3e2acd2ed7084d9e",
+      "symbol": "do_cache_clean"
+    },
+    {
+      "token": "7f9bb5e86b838689",
+      "symbol": "drain_vmap_area_work"
+    },
+    {
+      "token": "4b02c92621d81927",
+      "symbol": "idle_cull_fn"
+    }
+  ],
+  "executions": 4499,
+  "nested_callbacks": 0,
+  "unmatched_ends_at_trace_boundary": [],
+  "unfinished_starts_at_trace_boundary": 0,
+  "largest_scheduled_out": [
+    {
+      "frame": 158,
+      "channel": 0,
+      "cpu": 0,
+      "worker_tid": 2432936,
+      "worker_wall_ms": 49.679818,
+      "worker_cpu_ms": 20.899705,
+      "scheduled_out_ms": 28.71095,
+      "unmatched_other_ms": 0.424632,
+      "functions": [
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "function": "mmc_rescan",
+          "scheduled_ms": 28.286318
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "mmc_rescan",
+        "tid": 2400182,
+        "comm": "kworker/0:0",
+        "execution_start_ns": 12955844540103225,
+        "execution_end_ns": 12955844589346022,
+        "execution_wall_ms": 49.242797,
+        "queued": {
+          "queued_ns": 12955844540038613,
+          "queue": "events_freezable",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2432936,
+          "requested_cpu": 256,
+          "target_cpu": 0
+        }
+      }
+    },
+    {
+      "frame": 486,
+      "channel": 0,
+      "cpu": 0,
+      "worker_tid": 2432936,
+      "worker_wall_ms": 44.599826,
+      "worker_cpu_ms": 23.36913,
+      "scheduled_out_ms": 21.212556,
+      "unmatched_other_ms": 0.006519,
+      "functions": [
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "function": "mmc_rescan",
+          "scheduled_ms": 21.206037
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "mmc_rescan",
+        "tid": 2400182,
+        "comm": "kworker/0:0",
+        "execution_start_ns": 12955860956060162,
+        "execution_end_ns": 12955861009170237,
+        "execution_wall_ms": 53.110075,
+        "queued": {
+          "queued_ns": 12955860956024625,
+          "queue": "events_freezable",
+          "queueing_context_comm": "swapper",
+          "queueing_context_tid": 0,
+          "requested_cpu": 256,
+          "target_cpu": 0
+        }
+      }
+    },
+    {
+      "frame": 597,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2437717,
+      "worker_wall_ms": 27.75635,
+      "worker_cpu_ms": 17.492764,
+      "scheduled_out_ms": 9.921291,
+      "unmatched_other_ms": 0.739374,
+      "functions": [
+        {
+          "comm": "kworker/u12:1",
+          "tid": 2009104,
+          "function": "wb_workfn",
+          "scheduled_ms": 8.805508
+        },
+        {
+          "comm": "kworker/3:2H",
+          "tid": 725247,
+          "function": "blk_mq_run_work_fn",
+          "scheduled_ms": 0.372983
+        },
+        {
+          "comm": "kworker/u12:1",
+          "tid": 2009104,
+          "function": "wb_update_bandwidth_workfn",
+          "scheduled_ms": 0.003426
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "wb_workfn",
+        "tid": 2009104,
+        "comm": "kworker/u12:1",
+        "execution_start_ns": 12955866588045073,
+        "execution_end_ns": 12955866701334018,
+        "execution_wall_ms": 113.288945,
+        "queued": {
+          "queued_ns": 12955866588015906,
+          "queue": "writeback",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2437717,
+          "requested_cpu": 256,
+          "target_cpu": -1
+        }
+      }
+    },
+    {
+      "frame": 598,
+      "channel": 1,
+      "cpu": 1,
+      "worker_tid": 2437723,
+      "worker_wall_ms": 33.864992,
+      "worker_cpu_ms": 26.539393,
+      "scheduled_out_ms": 6.571169,
+      "unmatched_other_ms": 1.483976,
+      "functions": [
+        {
+          "comm": "kworker/u12:1",
+          "tid": 2009104,
+          "function": "wb_workfn",
+          "scheduled_ms": 4.896952
+        },
+        {
+          "comm": "kworker/1:1H",
+          "tid": 3499189,
+          "function": "blk_mq_run_work_fn",
+          "scheduled_ms": 0.172019
+        },
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.018222
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "wb_workfn",
+        "tid": 2009104,
+        "comm": "kworker/u12:1",
+        "execution_start_ns": 12955866588045073,
+        "execution_end_ns": 12955866701334018,
+        "execution_wall_ms": 113.288945,
+        "queued": {
+          "queued_ns": 12955866588015906,
+          "queue": "writeback",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2437717,
+          "requested_cpu": 256,
+          "target_cpu": -1
+        }
+      }
+    },
+    {
+      "frame": 451,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2436549,
+      "worker_wall_ms": 35.534778,
+      "worker_cpu_ms": 28.643096,
+      "scheduled_out_ms": 5.501548,
+      "unmatched_other_ms": 5.478844,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.022704
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955859260043117,
+        "execution_end_ns": 12955859260065821,
+        "execution_wall_ms": 0.022704,
+        "queued": {
+          "queued_ns": 12955859260021283,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2436549,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    },
+    {
+      "frame": 599,
+      "channel": 1,
+      "cpu": 1,
+      "worker_tid": 2437731,
+      "worker_wall_ms": 31.936426,
+      "worker_cpu_ms": 26.019856,
+      "scheduled_out_ms": 5.10812,
+      "unmatched_other_ms": 1.816193,
+      "functions": [
+        {
+          "comm": "kworker/1:1H",
+          "tid": 3499189,
+          "function": "blk_mq_run_work_fn",
+          "scheduled_ms": 1.684157
+        },
+        {
+          "comm": "kworker/u12:1",
+          "tid": 2009104,
+          "function": "wb_workfn",
+          "scheduled_ms": 1.60777
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "wb_workfn",
+        "tid": 2009104,
+        "comm": "kworker/u12:1",
+        "execution_start_ns": 12955866588045073,
+        "execution_end_ns": 12955866701334018,
+        "execution_wall_ms": 113.288945,
+        "queued": {
+          "queued_ns": 12955866588015906,
+          "queue": "writeback",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2437717,
+          "requested_cpu": 256,
+          "target_cpu": -1
+        }
+      }
+    },
+    {
+      "frame": 251,
+      "channel": 1,
+      "cpu": 1,
+      "worker_tid": 2434947,
+      "worker_wall_ms": 32.944526,
+      "worker_cpu_ms": 27.575120000000002,
+      "scheduled_out_ms": 4.204063,
+      "unmatched_other_ms": 4.198285,
+      "functions": [
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.005778
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2087189,
+        "comm": "kworker/1:0",
+        "execution_start_ns": 12955849236123551,
+        "execution_end_ns": 12955849236129329,
+        "execution_wall_ms": 0.005778,
+        "queued": {
+          "queued_ns": 12955849236016124,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2434947,
+          "requested_cpu": 256,
+          "target_cpu": 1
+        }
+      }
+    },
+    {
+      "frame": 209,
+      "channel": 1,
+      "cpu": 1,
+      "worker_tid": 2434611,
+      "worker_wall_ms": 31.608796,
+      "worker_cpu_ms": 26.460341,
+      "scheduled_out_ms": 4.175143,
+      "unmatched_other_ms": 4.175143,
+      "functions": [],
+      "largest_matched_execution": null
+    },
+    {
+      "frame": 320,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2435501,
+      "worker_wall_ms": 28.907096,
+      "worker_cpu_ms": 23.863129999999998,
+      "scheduled_out_ms": 4.035064,
+      "unmatched_other_ms": 3.998823,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.036241
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955852680202372,
+        "execution_end_ns": 12955852680238613,
+        "execution_wall_ms": 0.036241,
+        "queued": {
+          "queued_ns": 12955852680058908,
+          "queue": "events",
+          "queueing_context_comm": "perf",
+          "queueing_context_tid": 2432931,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    },
+    {
+      "frame": 146,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2434109,
+      "worker_wall_ms": 28.494428,
+      "worker_cpu_ms": 23.805685,
+      "scheduled_out_ms": 3.641833,
+      "unmatched_other_ms": 3.623258,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.018575
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955843964053238,
+        "execution_end_ns": 12955843964071813,
+        "execution_wall_ms": 0.018575,
+        "queued": {
+          "queued_ns": 12955843964027997,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2434109,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    },
+    {
+      "frame": 90,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2433661,
+      "worker_wall_ms": 28.422334,
+      "worker_cpu_ms": 24.056276,
+      "scheduled_out_ms": 3.321408,
+      "unmatched_other_ms": 3.28726,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.034148
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955841192069128,
+        "execution_end_ns": 12955841192088517,
+        "execution_wall_ms": 0.019389,
+        "queued": {
+          "queued_ns": 12955841192038850,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2433661,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    },
+    {
+      "frame": 53,
+      "channel": 1,
+      "cpu": 1,
+      "worker_tid": 2433362,
+      "worker_wall_ms": 32.940638,
+      "worker_cpu_ms": 28.375926999999997,
+      "scheduled_out_ms": 3.292818,
+      "unmatched_other_ms": 3.179448,
+      "functions": [
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "function": "phy_state_machine",
+          "scheduled_ms": 0.101185
+        },
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.012185
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "phy_state_machine",
+        "tid": 2087189,
+        "comm": "kworker/1:0",
+        "execution_start_ns": 12955839356081176,
+        "execution_end_ns": 12955839356489752,
+        "execution_wall_ms": 0.408576,
+        "queued": {
+          "queued_ns": 12955839356044120,
+          "queue": "events_power_efficient",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2433362,
+          "requested_cpu": 256,
+          "target_cpu": 1
+        }
+      }
+    },
+    {
+      "frame": 184,
+      "channel": 0,
+      "cpu": 0,
+      "worker_tid": 2432936,
+      "worker_wall_ms": 30.262808,
+      "worker_cpu_ms": 26.931980000000003,
+      "scheduled_out_ms": 3.288462,
+      "unmatched_other_ms": 3.288462,
+      "functions": [],
+      "largest_matched_execution": null
+    },
+    {
+      "frame": 96,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2433709,
+      "worker_wall_ms": 30.776366,
+      "worker_cpu_ms": 26.346181,
+      "scheduled_out_ms": 3.278168,
+      "unmatched_other_ms": 3.278168,
+      "functions": [],
+      "largest_matched_execution": null
+    },
+    {
+      "frame": 548,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2437325,
+      "worker_wall_ms": 30.923514,
+      "worker_cpu_ms": 27.669536,
+      "scheduled_out_ms": 3.228184,
+      "unmatched_other_ms": 3.204628,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.023556
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955864084049372,
+        "execution_end_ns": 12955864084065409,
+        "execution_wall_ms": 0.016037,
+        "queued": {
+          "queued_ns": 12955864080018832,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2437325,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    },
+    {
+      "frame": 152,
+      "channel": 3,
+      "cpu": 3,
+      "worker_tid": 2434157,
+      "worker_wall_ms": 28.243538,
+      "worker_cpu_ms": 24.105127,
+      "scheduled_out_ms": 3.162518,
+      "unmatched_other_ms": 3.122276,
+      "functions": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "function": "delayed_vfree_work",
+          "scheduled_ms": 0.040242
+        }
+      ],
+      "largest_matched_execution": {
+        "function": "delayed_vfree_work",
+        "tid": 2423909,
+        "comm": "kworker/3:1",
+        "execution_start_ns": 12955844272059902,
+        "execution_end_ns": 12955844272088625,
+        "execution_wall_ms": 0.028723,
+        "queued": {
+          "queued_ns": 12955844272032069,
+          "queue": "events",
+          "queueing_context_comm": "gpr_capture_app",
+          "queueing_context_tid": 2434157,
+          "requested_cpu": 256,
+          "target_cpu": 3
+        }
+      }
+    }
+  ]
+}

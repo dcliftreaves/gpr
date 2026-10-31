@@ -53,8 +53,9 @@ All eight original production groups have a stock implementation or an explicit
 architectural replacement above. This establishes feature coverage, not
 completion of the entire goal or approval of every output. The
 [requirement ledger](stock-rebuild-requirements.md) distinguishes implementation,
-measured failures, unsupported combinations and external validation. The strict
-sustained Pi timing gate and broader/2x model-quality approval remain unmet;
+measured failures, unsupported combinations and external validation. Two later [fixed-profile Pi validations](stock-process-scheduling.md) meet the strict
+20 fps recording/preview floor; default scheduling and broader repeatability
+remain unresolved, as does broader/2x model-quality approval;
 the later [half-strength 1x study](stock-cleanup-strength.md) passes its declared
 validation and four-reference numeric guards.
 Percentages are planning estimates, not fractions of passing tests.
@@ -193,3 +194,15 @@ previews. Production and unresolved quality/timing gates are unchanged. All
 seven hosted checks pass at `6efc5bd`
 ([receipt](stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
 commits require their own hosted results.
+
+[Kernel scheduler/workqueue attribution](stock-kernel-scheduler.md) identifies
+`mmc_rescan` occupying CPU 0 in the largest corroborated gaps, with zero trace
+loss/continuity mismatches. The [explicit scheduling profile](stock-process-scheduling.md)
+then reproduces two 600-frame FIFO-priority-1/foreground-preview validation
+passes at 20.0056/20.0065 durable fps, all attempted payloads/previews exact and
+zero late deliveries. An earlier same-profile run still fails (4 late writes,
+250 late previews), so this is a scoped floor demonstration, not blanket
+reproducibility or default-scheduler approval. No boot/device/global scheduling
+setting, codec source or model is changed. All seven hosted jobs pass at
+`cade228` ([receipt](stock-scheduler-receipts/passed-cade228.json)); new evidence
+heads need their own checks. Broader timing and model-quality gates remain open.

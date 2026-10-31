@@ -1,0 +1,92 @@
+{
+  "schema": "gpr.owned_scheduler_collector.v1",
+  "complete": false,
+  "collector_command": [
+    "sudo",
+    "-n",
+    "nice",
+    "-n",
+    "10",
+    "taskset",
+    "-c",
+    "3",
+    "perf",
+    "record",
+    "-a",
+    "-e",
+    "sched:sched_switch",
+    "-e",
+    "sched:sched_wakeup",
+    "-e",
+    "sched:sched_wakeup_new",
+    "-k",
+    "mono",
+    "-m",
+    "64",
+    "-B",
+    "-N",
+    "-D",
+    "-1",
+    "--control",
+    "fifo:/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/control.fifo,/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/ack.fifo",
+    "-o",
+    "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/scheduler.data",
+    "--",
+    "sleep",
+    "5"
+  ],
+  "capture_command": [
+    "/usr/bin/sleep",
+    "1"
+  ],
+  "caller_uid": 1000,
+  "caller_gid": 1000,
+  "collector_cpu": 3,
+  "collector_nice": 10,
+  "events": [
+    "sched_switch",
+    "sched_wakeup",
+    "sched_wakeup_new"
+  ],
+  "clock": "CLOCK_MONOTONIC",
+  "control": [
+    {
+      "command": "enable",
+      "sent_ns": 12955239734314666,
+      "acknowledged": true,
+      "response": "ack\n\u0000",
+      "completed_ns": 12955239939261886
+    },
+    {
+      "command": "disable",
+      "sent_ns": 12955240957611260,
+      "acknowledged": true,
+      "response": "ack\n\u0000",
+      "completed_ns": 12955240957827409
+    },
+    {
+      "command": "stop",
+      "sent_ns": 12955240960828106,
+      "acknowledged": false,
+      "response": "",
+      "completed_ns": 12955240960830032
+    }
+  ],
+  "collector_wrapper_pid": 2427987,
+  "capture_pid": 2427991,
+  "capture_start_ns": 12955239939652703,
+  "observed_capture_uids": [
+    1000,
+    1000,
+    1000,
+    1000
+  ],
+  "capture_exit": 0,
+  "capture_end_ns": 12955240957277370,
+  "collector_exit": -15,
+  "error": "AssertionError({'schema': 'gpr.owned_scheduler_collector.v1', 'complete': False, 'collector_command': ['sudo', '-n', 'nice', '-n', '10', 'taskset', '-c', '3', 'perf', 'record', '-a', '-e', 'sched:sched_switch', '-e', 'sched:sched_wakeup', '-e', 'sched:sched_wakeup_new', '-k', 'mono', '-m', '64', '-B', '-N', '-D', '-1', '--control', 'fifo:/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/control.fifo,/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/ack.fifo', '-o', '/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/control-proof/scheduler.data', '--', 'sleep', '5'], 'capture_command': ['/usr/bin/sleep', '1'], 'caller_uid': 1000, 'caller_gid': 1000, 'collector_cpu': 3, 'collector_nice': 10, 'events': ['sched_switch', 'sched_wakeup', 'sched_wakeup_new'], 'clock': 'CLOCK_MONOTONIC', 'control': [{'command': 'enable', 'sent_ns': 12955239734314666, 'acknowledged': True, 'response': 'ack\\n\\x00', 'completed_ns': 12955239939261886}, {'command': 'disable', 'sent_ns': 12955240957611260, 'acknowledged': True, 'response': 'ack\\n\\x00', 'completed_ns': 12955240957827409}, {'command': 'stop', 'sent_ns': 12955240960828106, 'acknowledged': False, 'response': '', 'completed_ns': 12955240960830032}], 'collector_wrapper_pid': 2427987, 'capture_pid': 2427991, 'capture_start_ns': 12955239939652703, 'observed_capture_uids': [1000, 1000, 1000, 1000], 'capture_exit': 0, 'capture_end_ns': 12955240957277370, 'collector_exit': -15})",
+  "collector_terminal": true,
+  "capture_terminal": true,
+  "perf_bytes": 2545206,
+  "perf_sha256": "2c43c4d0733dc12e0bc23584a71403a6c34c2ec5e9bd78fe22e56b61046c4293"
+}

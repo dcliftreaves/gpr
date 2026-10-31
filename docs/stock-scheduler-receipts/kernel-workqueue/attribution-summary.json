@@ -1,0 +1,550 @@
+{
+  "schema": "gpr.scheduler_attribution.v1",
+  "complete": true,
+  "collector_sha256": "9283a17fc69e05ec39c6d83480577543c762f3a559b3cd34d0fc49d96b56e345",
+  "capture_receipt_sha256": "7749b8870e0390e1ec8f8a40685308b5ca564b0b30b7d440565c7a68bfa2b296",
+  "raw_perf_sha256": "ebe5e2f005c7904dc3e1cc4beae5047720d828c7d19b294156e12a46680cc607",
+  "decode_command": [
+    "perf",
+    "script",
+    "--ns",
+    "--show-lost-events",
+    "-i",
+    "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/kernel-workqueue/scheduler.data",
+    "-F",
+    "trace:comm,pid,tid,cpu,time,event,trace"
+  ],
+  "event_counts": {
+    "sched:sched_wakeup": 176411,
+    "sched:sched_switch": 358070,
+    "sched:sched_wakeup_new": 4805,
+    "workqueue:workqueue_queue_work": 4512,
+    "workqueue:workqueue_execute_start": 4499,
+    "workqueue:workqueue_execute_end": 4499
+  },
+  "lost_records": [],
+  "continuity_mismatches": [],
+  "all_worker_windows_covered": true,
+  "worker_phases": 2400,
+  "collector_named_perf_scheduled_ms_by_cpu": {
+    "3": 135.354545
+  },
+  "slowest_encodes": [
+    {
+      "encode_ms": 60.772673,
+      "frame": 158,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955844555424288,
+      "end_ns": 12955844605104106,
+      "wall_ms": 49.679818,
+      "thread_cpu_ms": 20.899705,
+      "scheduled_ms": 20.968868,
+      "scheduled_out_ms": 28.71095,
+      "scheduled_minus_thread_cpu_ms": 0.06916299999999964,
+      "involuntary": 28,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "priority": 120,
+          "scheduled_ms": 28.287836
+        },
+        {
+          "comm": "avahi-daemon",
+          "tid": 544,
+          "priority": 120,
+          "scheduled_ms": 0.415743
+        },
+        {
+          "comm": "rcu_preempt",
+          "tid": 17,
+          "priority": 120,
+          "scheduled_ms": 0.007371
+        }
+      ]
+    },
+    {
+      "encode_ms": 55.729125,
+      "frame": 486,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955860983242712,
+      "end_ns": 12955861027842538,
+      "wall_ms": 44.599826,
+      "thread_cpu_ms": 23.36913,
+      "scheduled_ms": 23.38727,
+      "scheduled_out_ms": 21.212556,
+      "scheduled_minus_thread_cpu_ms": 0.018140000000002487,
+      "involuntary": 22,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "priority": 120,
+          "scheduled_ms": 21.20763
+        },
+        {
+          "comm": "kswapd0",
+          "tid": 59,
+          "priority": 120,
+          "scheduled_ms": 0.004926
+        }
+      ]
+    },
+    {
+      "encode_ms": 50.264265,
+      "frame": 210,
+      "channel": 2,
+      "tid": 2434620,
+      "cpu": 2,
+      "start_ns": 12955847164070868,
+      "end_ns": 12955847197838640,
+      "wall_ms": 33.767772,
+      "thread_cpu_ms": 33.631668000000005,
+      "scheduled_ms": 33.65553,
+      "scheduled_out_ms": 0.112242,
+      "scheduled_minus_thread_cpu_ms": 0.023861999999994055,
+      "involuntary": 4,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/2:1",
+          "tid": 2400165,
+          "priority": 120,
+          "scheduled_ms": 0.066778
+        },
+        {
+          "comm": "rcu_preempt",
+          "tid": 17,
+          "priority": 120,
+          "scheduled_ms": 0.045464
+        }
+      ]
+    },
+    {
+      "encode_ms": 47.460953,
+      "frame": 482,
+      "channel": 2,
+      "tid": 2436796,
+      "cpu": 2,
+      "start_ns": 12955860780093276,
+      "end_ns": 12955860812946560,
+      "wall_ms": 32.853284,
+      "thread_cpu_ms": 32.645538,
+      "scheduled_ms": 32.726155,
+      "scheduled_out_ms": 0.127129,
+      "scheduled_minus_thread_cpu_ms": 0.08061699999999661,
+      "involuntary": 5,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/2:1",
+          "tid": 2400165,
+          "priority": 120,
+          "scheduled_ms": 0.08274
+        },
+        {
+          "comm": "rcu_preempt",
+          "tid": 17,
+          "priority": 120,
+          "scheduled_ms": 0.044389
+        }
+      ]
+    },
+    {
+      "encode_ms": 47.301786,
+      "frame": 364,
+      "channel": 3,
+      "tid": 2435853,
+      "cpu": 3,
+      "start_ns": 12955854864076026,
+      "end_ns": 12955854896365992,
+      "wall_ms": 32.289966,
+      "thread_cpu_ms": 31.542982,
+      "scheduled_ms": 31.567203,
+      "scheduled_out_ms": 0.722763,
+      "scheduled_minus_thread_cpu_ms": 0.024221000000000714,
+      "involuntary": 1,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "perf",
+          "tid": 2432931,
+          "priority": 130,
+          "scheduled_ms": 0.722763
+        }
+      ]
+    },
+    {
+      "encode_ms": 46.950339,
+      "frame": 466,
+      "channel": 3,
+      "tid": 2436669,
+      "cpu": 3,
+      "start_ns": 12955859972103074,
+      "end_ns": 12955860006224070,
+      "wall_ms": 34.120996,
+      "thread_cpu_ms": 31.096371,
+      "scheduled_ms": 32.391042,
+      "scheduled_out_ms": 1.729954,
+      "scheduled_minus_thread_cpu_ms": 1.2946709999999975,
+      "involuntary": 178,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.66675
+        },
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "priority": 120,
+          "scheduled_ms": 0.063204
+        }
+      ]
+    },
+    {
+      "encode_ms": 46.812653,
+      "frame": 474,
+      "channel": 1,
+      "tid": 2436731,
+      "cpu": 1,
+      "start_ns": 12955860372744510,
+      "end_ns": 12955860408155734,
+      "wall_ms": 35.411224,
+      "thread_cpu_ms": 30.875477,
+      "scheduled_ms": 32.255757,
+      "scheduled_out_ms": 3.155467,
+      "scheduled_minus_thread_cpu_ms": 1.3802800000000026,
+      "involuntary": 204,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.86522
+        },
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432937,
+          "priority": 120,
+          "scheduled_ms": 1.191766
+        },
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432934,
+          "priority": 120,
+          "scheduled_ms": 0.051981
+        },
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "priority": 120,
+          "scheduled_ms": 0.0465
+        }
+      ]
+    },
+    {
+      "encode_ms": 46.262262,
+      "frame": 434,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955858371085414,
+      "end_ns": 12955858405816076,
+      "wall_ms": 34.730662,
+      "thread_cpu_ms": 31.861456000000004,
+      "scheduled_ms": 33.122265,
+      "scheduled_out_ms": 1.608397,
+      "scheduled_minus_thread_cpu_ms": 1.2608089999999947,
+      "involuntary": 209,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.608397
+        }
+      ]
+    },
+    {
+      "encode_ms": 46.03239,
+      "frame": 451,
+      "channel": 3,
+      "tid": 2436549,
+      "cpu": 3,
+      "start_ns": 12955859229147140,
+      "end_ns": 12955859264681918,
+      "wall_ms": 35.534778,
+      "thread_cpu_ms": 28.643096,
+      "scheduled_ms": 30.03323,
+      "scheduled_out_ms": 5.501548,
+      "scheduled_minus_thread_cpu_ms": 1.3901339999999998,
+      "involuntary": 171,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432937,
+          "priority": 120,
+          "scheduled_ms": 3.512076
+        },
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.956009
+        },
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "priority": 120,
+          "scheduled_ms": 0.033463
+        }
+      ]
+    },
+    {
+      "encode_ms": 45.748425,
+      "frame": 372,
+      "channel": 3,
+      "tid": 2435917,
+      "cpu": 3,
+      "start_ns": 12955855264072442,
+      "end_ns": 12955855295352126,
+      "wall_ms": 31.279684,
+      "thread_cpu_ms": 31.187759999999997,
+      "scheduled_ms": 31.221184,
+      "scheduled_out_ms": 0.0585,
+      "scheduled_minus_thread_cpu_ms": 0.03342400000000367,
+      "involuntary": 3,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/3:1",
+          "tid": 2423909,
+          "priority": 120,
+          "scheduled_ms": 0.038222
+        },
+        {
+          "comm": "rcu_preempt",
+          "tid": 17,
+          "priority": 120,
+          "scheduled_ms": 0.020278
+        }
+      ]
+    },
+    {
+      "encode_ms": 45.537312,
+      "frame": 598,
+      "channel": 1,
+      "tid": 2437723,
+      "cpu": 1,
+      "start_ns": 12955866626008254,
+      "end_ns": 12955866659873246,
+      "wall_ms": 33.864992,
+      "thread_cpu_ms": 26.539393,
+      "scheduled_ms": 27.293823,
+      "scheduled_out_ms": 6.571169,
+      "scheduled_minus_thread_cpu_ms": 0.7544299999999993,
+      "involuntary": 144,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "kworker/u12:1",
+          "tid": 2009104,
+          "priority": 120,
+          "scheduled_ms": 4.896952
+        },
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.278994
+        },
+        {
+          "comm": "kworker/1:1H",
+          "tid": 3499189,
+          "priority": 100,
+          "scheduled_ms": 0.330056
+        },
+        {
+          "comm": "kworker/1:0",
+          "tid": 2087189,
+          "priority": 120,
+          "scheduled_ms": 0.049037
+        },
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432934,
+          "priority": 120,
+          "scheduled_ms": 0.01613
+        }
+      ]
+    },
+    {
+      "encode_ms": 45.385589,
+      "frame": 548,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955864063937950,
+      "end_ns": 12955864097709368,
+      "wall_ms": 33.771418,
+      "thread_cpu_ms": 31.322722999999996,
+      "scheduled_ms": 32.356067,
+      "scheduled_out_ms": 1.415351,
+      "scheduled_minus_thread_cpu_ms": 1.0333440000000067,
+      "involuntary": 179,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.362444
+        },
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "priority": 120,
+          "scheduled_ms": 0.038148
+        },
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432937,
+          "priority": 120,
+          "scheduled_ms": 0.014759
+        }
+      ]
+    },
+    {
+      "encode_ms": 44.864829,
+      "frame": 324,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955852864580194,
+      "end_ns": 12955852897385646,
+      "wall_ms": 32.805452,
+      "thread_cpu_ms": 29.621202999999998,
+      "scheduled_ms": 30.69511,
+      "scheduled_out_ms": 2.110342,
+      "scheduled_minus_thread_cpu_ms": 1.073907000000002,
+      "involuntary": 183,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.393244
+        },
+        {
+          "comm": "avahi-daemon",
+          "tid": 544,
+          "priority": 120,
+          "scheduled_ms": 0.717098
+        }
+      ]
+    },
+    {
+      "encode_ms": 44.649938,
+      "frame": 570,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955865213246544,
+      "end_ns": 12955865246192032,
+      "wall_ms": 32.945488,
+      "thread_cpu_ms": 30.399551,
+      "scheduled_ms": 31.478122,
+      "scheduled_out_ms": 1.467366,
+      "scheduled_minus_thread_cpu_ms": 1.0785710000000002,
+      "involuntary": 199,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.442107
+        },
+        {
+          "comm": "ksoftirqd/0",
+          "tid": 16,
+          "priority": 120,
+          "scheduled_ms": 0.025259
+        }
+      ]
+    },
+    {
+      "encode_ms": 44.633679,
+      "frame": 290,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955851161545156,
+      "end_ns": 12955851194164976,
+      "wall_ms": 32.61982,
+      "thread_cpu_ms": 30.230685,
+      "scheduled_ms": 31.3179,
+      "scheduled_out_ms": 1.30192,
+      "scheduled_minus_thread_cpu_ms": 1.0872150000000005,
+      "involuntary": 198,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.279679
+        },
+        {
+          "comm": "kworker/0:0",
+          "tid": 2400182,
+          "priority": 120,
+          "scheduled_ms": 0.022241
+        }
+      ]
+    },
+    {
+      "encode_ms": 44.383214,
+      "frame": 556,
+      "channel": 0,
+      "tid": 2432936,
+      "cpu": 0,
+      "start_ns": 12955864483940780,
+      "end_ns": 12955864515497780,
+      "wall_ms": 31.557,
+      "thread_cpu_ms": 29.393062,
+      "scheduled_ms": 30.268593,
+      "scheduled_out_ms": 1.288407,
+      "scheduled_minus_thread_cpu_ms": 0.8755309999999987,
+      "involuntary": 166,
+      "voluntary": 0,
+      "other_tasks": [
+        {
+          "comm": "labs_encoder_be",
+          "tid": 433804,
+          "priority": 120,
+          "scheduled_ms": 1.241833
+        },
+        {
+          "comm": "gpr_capture_app",
+          "tid": 2432937,
+          "priority": 120,
+          "scheduled_ms": 0.046574
+        }
+      ]
+    }
+  ]
+}

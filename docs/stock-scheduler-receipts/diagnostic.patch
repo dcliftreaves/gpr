@@ -1,0 +1,148 @@
+diff --git a/source/lib/gpr_video/gpr_capture.cpp b/source/lib/gpr_video/gpr_capture.cpp
+index bc37c2b..ae27e0f 100644
+--- a/source/lib/gpr_video/gpr_capture.cpp
++++ b/source/lib/gpr_video/gpr_capture.cpp
+@@ -6,6 +6,12 @@
+ #include <chrono>
+ #include <condition_variable>
+ #include <cstdlib>
++#include <cstdio>
++#include <ctime>
++#if defined(__linux__)
++#include <sys/syscall.h>
++#include <unistd.h>
++#endif
+ #include <cstring>
+ #include <limits>
+ #include <map>
+@@ -155,12 +161,25 @@ struct gpr_capture {
+                 }
+                 Slot &slot=slots[index];
+                 gpr_buffer input={const_cast<uint8_t *>(slot.input),slot.raw.size()}, compressed={nullptr,0};
++                timespec diagnostic_cpu_begin={},diagnostic_cpu_end={};
++                bool diagnostic=std::getenv("GPR_CHANNEL_BALANCE")!=nullptr;
++                long diagnostic_tid=0;
++#if defined(__linux__)
++                if (diagnostic) diagnostic_tid=syscall(SYS_gettid);
++#endif
++                int diagnostic_cpu_ok=diagnostic ? !clock_gettime(CLOCK_THREAD_CPUTIME_ID,&diagnostic_cpu_begin):0;
+                 auto start=Clock::now();
+                 CODEC_ERROR error;
+                 PreviewContext context={this,&slot};
+                 error=vc5_encoder_process_with_preview(&p,&input,&compressed,nullptr,
+                     preview ? coefficients:nullptr,&context);
+-                slot.encode_ns=elapsed(start);
++                auto diagnostic_end=Clock::now();
++                slot.encode_ns=uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(diagnostic_end-start).count());
++                if (diagnostic) {
++                    diagnostic_cpu_ok=(!clock_gettime(CLOCK_THREAD_CPUTIME_ID,&diagnostic_cpu_end)) && diagnostic_cpu_ok;
++                    long long cpu_ns=(diagnostic_cpu_end.tv_sec-diagnostic_cpu_begin.tv_sec)*1000000000LL+diagnostic_cpu_end.tv_nsec-diagnostic_cpu_begin.tv_nsec;
++                    std::fprintf(stderr,"capture_diag frame=%llu wall_ns=%llu cpu_ns=%lld clock_ok=%d error=%d tid=%ld end_ns=%llu\n",(unsigned long long)slot.index,(unsigned long long)slot.encode_ns,cpu_ns,diagnostic_cpu_ok,(int)error,diagnostic_tid,(unsigned long long)std::chrono::duration_cast<std::chrono::nanoseconds>(diagnostic_end.time_since_epoch()).count());
++                }
+                 bool okay=!error && compressed.buffer && compressed.size && compressed.size<=slot.payload.size();
+                 if (okay) {
+                     slot.payload_size=compressed.size;
+diff --git a/source/lib/vc5_encoder/encoder.c b/source/lib/vc5_encoder/encoder.c
+index 1935a2a..52535c1 100755
+--- a/source/lib/vc5_encoder/encoder.c
++++ b/source/lib/vc5_encoder/encoder.c
+@@ -35,6 +35,11 @@
+ #define _POSIX_C_SOURCE 200809L
+ #include "headers.h"
+ #include <time.h>
++#if defined(__linux__)
++#include <sys/resource.h>
++#include <sys/syscall.h>
++#include <unistd.h>
++#endif
+ #if defined(_WIN32)
+ #include <windows.h>
+ #include <malloc.h>
+@@ -413,6 +418,7 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
+     
+     if (parameters->preview_observer)
+         parameters->preview_observer(parameters->preview_user,encoder.transform);
++    if (getenv("GPR_PROFILE")) fprintf(stderr,"after_preview_wall=%.9f\n",EncoderWallTime()-start_wall);
+ 
+     if( rgb_image != NULL && parameters->rgb_resolution == GPR_RGB_RESOLUTION_SIXTEENTH )
+     { // Thumbnail
+@@ -434,6 +440,7 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
+ 
+ 	// Release any resources allocated by the encoder
+ 	ReleaseEncoder(&encoder);
++    if (getenv("GPR_PROFILE")) fprintf(stderr,"after_cleanup_wall=%.9f\n",EncoderWallTime()-start_wall);
+     
+ 	return error;
+ }
+@@ -1555,6 +1562,10 @@ typedef struct _channel_encode_thread
+     BITSTREAM row_bits[MAX_WAVELET_COUNT][MAX_BAND_COUNT];
+     PIXEL *lowpass[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
+     PIXEL *highpass[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
++    double diagnostic_start, diagnostic_end, diagnostic_cpu;
++    long diagnostic_voluntary, diagnostic_involuntary;
++    int diagnostic_cpu_number;
++    long diagnostic_tid;
+ } CHANNEL_ENCODE_THREAD;
+ 
+ static void *EncodeChannelThread(void *arg)
+@@ -1595,6 +1606,20 @@ static void *EncodeChannelThread(void *arg)
+         }
+     }
+ 
++    struct timespec diagnostic_cpu_begin, diagnostic_cpu_end;
++#if defined(__linux__)
++    struct rusage diagnostic_usage_begin, diagnostic_usage_end;
++#endif
++    int diagnostic_enabled = getenv("GPR_CHANNEL_BALANCE") != NULL;
++    if (diagnostic_enabled) {
++        thread->diagnostic_start = EncoderWallTime();
++#if defined(__linux__)
++        getrusage(RUSAGE_THREAD,&diagnostic_usage_begin);
++        thread->diagnostic_cpu_number=sched_getcpu();
++        thread->diagnostic_tid=syscall(SYS_gettid);
++#endif
++        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &diagnostic_cpu_begin);
++    }
+     double worker_begin = EncoderWallTime();
+     encoder.codec = thread->initial_codec_state;
+     memcpy(encoder.lowpass_buffer, thread->lowpass, sizeof(encoder.lowpass_buffer));
+@@ -1614,6 +1639,16 @@ static void *EncodeChannelThread(void *arg)
+         }
+     }
+     double transform_end = EncoderWallTime();
++    if (diagnostic_enabled) {
++        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &diagnostic_cpu_end);
++#if defined(__linux__)
++        getrusage(RUSAGE_THREAD,&diagnostic_usage_end);
++        thread->diagnostic_voluntary=diagnostic_usage_end.ru_nvcsw-diagnostic_usage_begin.ru_nvcsw;
++        thread->diagnostic_involuntary=diagnostic_usage_end.ru_nivcsw-diagnostic_usage_begin.ru_nivcsw;
++#endif
++        thread->diagnostic_end = EncoderWallTime();
++        thread->diagnostic_cpu = diagnostic_cpu_end.tv_sec - diagnostic_cpu_begin.tv_sec + (diagnostic_cpu_end.tv_nsec - diagnostic_cpu_begin.tv_nsec) * 1e-9;
++    }
+     if (thread->band_workspace && getenv("GPR_DIRECT_BANDS")) {
+         thread->prepared_encoder = encoder;
+         thread->error = encoder.row_error;
+@@ -1778,6 +1813,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
+             }
+         }
+ 
++        double diagnostic_dispatch = EncoderWallTime();
+         if (parallel_ok)
+         {
+             for (channel_index = 1; channel_index < channel_count; channel_index++)
+@@ -1799,6 +1835,14 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
+             }
+         }
+ 
++        if (getenv("GPR_CHANNEL_BALANCE")) {
++            double joined = EncoderWallTime();
++            for (channel_index = 0; channel_index < channel_count; channel_index++) {
++                CHANNEL_ENCODE_THREAD *t = &thread[channel_index];
++                fprintf(stderr, "balance channel=%d start=%.9f wall=%.9f cpu=%.9f finish=%.9f joined=%.9f error=%d voluntary=%ld involuntary=%ld processor=%d tid=%ld absolute_start=%.9f absolute_end=%.9f\n", t->channel_number, t->diagnostic_start-diagnostic_dispatch, t->diagnostic_end-t->diagnostic_start, t->diagnostic_cpu, t->diagnostic_end-diagnostic_dispatch, joined-diagnostic_dispatch, t->error, t->diagnostic_voluntary, t->diagnostic_involuntary, t->diagnostic_cpu_number, t->diagnostic_tid, t->diagnostic_start, t->diagnostic_end);
++            }
++        }
++
+         if (parallel_ok)
+         {
+             STREAM *output_stream = stream->stream;
