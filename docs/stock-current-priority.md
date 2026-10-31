@@ -43,10 +43,10 @@ and the final marker. Each run accepts/writes/renders all 600 attempts with no
 recording overruns or discarded/replaced previews. These remain memory-sink
 and replay measurements, not physical display/sensor/SD qualification.
 
-[Protocol](stock-current-priority-receipts/capture/protocol.json),
-[verification](stock-current-priority-receipts/capture/receipt.json),
-[source bindings](stock-current-priority-receipts/expected-sources.json) and
-[driver](stock-current-priority-receipts/benchmark.py)
+[Protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/capture/protocol.json),
+[verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/capture/receipt.json),
+[source bindings](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/expected-sources.json) and
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/benchmark.py)
 retain exact commands and scope. Use the recorded executable/source identities,
 adapt the external data/install paths and choose a fresh output root to repeat;
 the driver refuses to overwrite an existing protocol. Media remain external

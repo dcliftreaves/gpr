@@ -5,7 +5,7 @@ output, but both are slower in their isolated Pi 5 comparisons. No capture
 executable is rebuilt or replaced, and no sustained-floor approval follows.
 The existing encoder/preview binary remains SHA-256 `9fc7b823…`.
 
-The current direct-output [profile](stock-preview-row-receipts/direct-profile-flat.txt)
+The current direct-output [profile](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/direct-profile-flat.txt)
 attributes about 20.8% of sampled user cycles to channel unpacking and 23.0%
 to incremental highpass encoding. These samples motivate the targets; they
 are not wall-time savings. Both experiments below are separate unprofiled,
@@ -18,9 +18,9 @@ four output samples. The prototype uses two paired 64-bit loads and extracts
 both green indices before reusing source registers for red or blue. It retains
 independent lookup loads, packed NEON arithmetic, caller-saved registers,
 lookup values and stock rounding. It accesses the same input bytes and adds
-no alignment requirement. The [generated instructions](stock-encoder-kernel-receipts/wide/wide-disassembly.txt)
+no alignment requirement. The [generated instructions](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/wide-disassembly.txt)
 confirm the changed load/extract sequence against the
-[baseline](stock-encoder-kernel-receipts/wide/baseline-disassembly.txt).
+[baseline](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/baseline-disassembly.txt).
 
 The same-binary harness compares both assembly functions against an independent
 scalar formula using the **actual stock log table**. All 27,712 row/channel
@@ -41,12 +41,12 @@ The prototype is about **0.47% slower**, with every candidate run slower than
 every control. Fewer input-load instructions do not establish a useful speedup.
 No full capture comparison is justified by this result; the proposal is discarded.
 
-[Harness](stock-encoder-kernel-receipts/wide/kernel.c),
-[baseline assembly](stock-encoder-kernel-receipts/wide/baseline.S),
-[candidate assembly](stock-encoder-kernel-receipts/wide/wide.S),
-[original-symbol candidate](stock-encoder-kernel-receipts/wide/candidate-original-symbols.S),
-[measurements](stock-encoder-kernel-receipts/wide/kernel.json), and
-[identities/inputs](stock-encoder-kernel-receipts/wide/metadata.json) are retained.
+[Harness](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/kernel.c),
+[baseline assembly](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/baseline.S),
+[candidate assembly](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/wide.S),
+[original-symbol candidate](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/candidate-original-symbols.S),
+[measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/kernel.json), and
+[identities/inputs](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/wide/metadata.json) are retained.
 
 ## Precombined signed-nibble code pairs
 
@@ -79,20 +79,20 @@ It is discarded. This is synthetic packing behavior, not a measured whole-frame
 regression or a claim about other coefficient distributions. Neither proposal
 changes the production pipeline or the unresolved Pi deadline gate.
 
-[Harness](stock-encoder-kernel-receipts/pair/test.c),
-[extracted baseline/candidate functions](stock-encoder-kernel-receipts/pair/functions.inc),
-[candidate block](stock-encoder-kernel-receipts/pair/candidate-block.c),
-[measurements](stock-encoder-kernel-receipts/pair/receipt-long.json), and
-[identities](stock-encoder-kernel-receipts/pair/metadata.json) retain the experiment.
+[Harness](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/pair/test.c),
+[extracted baseline/candidate functions](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/pair/functions.inc),
+[candidate block](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/pair/candidate-block.c),
+[measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/pair/receipt-long.json), and
+[identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/pair/metadata.json) retain the experiment.
 
 ## Reproduction and limits
 
-[Compiler commands](stock-encoder-kernel-receipts/compile.json) identify the
+[Compiler commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/compile.json) identify the
 measured source/library paths. Copy the harness directory, adjust repository
 paths and build against the matching stock libraries before running the command
 in its metadata receipt. Binary hashes identify measured artifacts; binaries
 and source RAW media remain external. The
-[summary](stock-encoder-kernel-receipts/summary.json) records the median calculations.
+[summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/summary.json) records the median calculations.
 
 Baseline extracted assembly/function text is checked against `8e1c2b6` source.
 The entropy candidate differs only by the archived fast block; the harness
@@ -105,6 +105,6 @@ performance are outside these isolated measurements.
 
 All seven hosted checks for source/model revision `8e1c2b6` pass, including
 Mac's optional CNN/full-image selector tests and native/package contracts.
-The [hosted receipt](stock-encoder-kernel-receipts/hosted-8e1c2b6.json) is separate
+The [hosted receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-encoder-kernel-receipts/hosted-8e1c2b6.json) is separate
 from these isolated performance measurements. This evidence-only addition
 does not change the validated production source.

@@ -1,9 +1,0 @@
-{"device": "mps", "name": "0001", "regressions": [], "gain_db": 0.6186969419164967, "elapsed_s": 2.906827541}
-{"device": "mps", "name": "0067", "regressions": ["shadow_bottom_decile"], "gain_db": 0.3838287793048849, "elapsed_s": 4.989397708}
-{"device": "mps", "name": "5323", "regressions": ["active"], "gain_db": -0.03661505956961264, "elapsed_s": 7.412556916000001}
-{"device": "mps", "name": "6693", "regressions": ["active"], "gain_db": -0.0208553810296479, "elapsed_s": 10.018088875}
-{"device": "cpu", "name": "0001", "regressions": [], "gain_db": 0.618697292648541, "elapsed_s": 13.631450083}
-{"device": "cpu", "name": "0067", "regressions": ["shadow_bottom_decile"], "gain_db": 0.3838280976520778, "elapsed_s": 17.154692165999997}
-{"device": "cpu", "name": "5323", "regressions": ["active"], "gain_db": -0.036615013574113675, "elapsed_s": 21.131029457999997}
-{"device": "cpu", "name": "6693", "regressions": ["active"], "gain_db": -0.020855479111851594, "elapsed_s": 25.068944124999998}
-{"complete": true, "all_regions_pass": false, "mps_gain_db": 0.04141987259740528, "cpu_gain_db": 0.041419851330654865}

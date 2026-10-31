@@ -71,7 +71,7 @@ rows are tested. At 12 MP, used reconstruction scratch falls to 11.10 MB while
 the existing 40.89 MB reservation remains. Both matched serialized 600-frame
 runs preserve every frame/preview, but still miss deadlines.
 
-The [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json)
+The [arena follow-up](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-arena-600.json)
 reserves 40.89 MB and uses 30.57 MB peak over 600 frames; all payloads and preview
 pixels remain exact with no drops. Preview p95 is 45.96 ms and encode/reconstruct
 median 32.14 ms. Six previews and nine writes exceed 50 ms; the matched
@@ -87,8 +87,8 @@ The 600-frame/30-second follow-up delivers all 600 exact previews without drops,
 late writes (the recording-only baseline also has five late writes). Final fsync
 takes 1.047 s, reducing the combined durable average to 19.34 fps. Thus typical
 latency meets the target while the strict sustained zero-late/durability gate
-remains open. Receipts: [120 frames](stock-core-receipts/mission1-pi5-encoder-preview.json)
-and [600 frames](stock-core-receipts/mission1-pi5-encoder-preview-600.json).
+remains open. Receipts: [120 frames](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-preview.json)
+and [600 frames](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-preview-600.json).
 
 Build `gpr_capture_app` with both capture and preview. Supply one prepared pure
 `.gprp` profile per RAW source in input order:
@@ -166,7 +166,7 @@ previews with no replacement and exact offline pixels. Its 49.01 ms render
 median is down from 105.11 ms and 56/120 deliveries on the prior path. The
 same-frame latency gate remains open: preview begins only after encoding the
 compressed payload, so capture-to-sink p95 is 99.18 ms. See the
-[exact receipt](stock-core-receipts/mission1-pi5-parallel-preview.json).
+[exact receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-parallel-preview.json).
 
 The subsequent encoder-observer handoff offers preview before storage begins.
 Its matched 120-frame Pi replay again records and previews all frames with
@@ -176,7 +176,7 @@ buffered capture 20.06 fps. The roughly 700 ms final fsync lowers short-run
 durable throughput to 17.96 fps. The change removes a storage dependency;
 single-run differences from 99.18 ms p95 do not establish a statistical latency
 improvement. Encoding plus reduced decode/render still exceeds the 50 ms
-same-frame gate. [Observer receipt](stock-core-receipts/mission1-pi5-encoded-observer.json).
+same-frame gate. [Observer receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoded-observer.json).
 
 Neither baseline nor combined runs establish reliable live 30 fps. Both Pi HDMI
 connectors were disconnected. Sensor capture, physical presentation, microSD,

@@ -57,12 +57,12 @@ does not justify introducing extra instructions into this runtime.
 
 ## Reproduction and disposition
 
-[Build identities](stock-packed-gamma-receipts/builds.json),
-[isolated results](stock-packed-gamma-receipts/isolated/receipt.json),
-[counter protocol](stock-packed-gamma-receipts/pmu/protocol.json),
-[counter results](stock-packed-gamma-receipts/pmu/receipt.json),
-[capture protocol](stock-packed-gamma-receipts/capture/protocol.json) and
-[capture verification](stock-packed-gamma-receipts/capture/receipt.json)
+[Build identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/builds.json),
+[isolated results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/isolated/receipt.json),
+[counter protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/pmu/protocol.json),
+[counter results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/pmu/receipt.json),
+[capture protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/capture/protocol.json) and
+[capture verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-packed-gamma-receipts/capture/receipt.json)
 retain exact commands, source/binary hashes and scope. The receipt directory
 also contains the patch, private header/tests, build driver and raw outputs.
 Apply the patch to `40aa476`, copy the three private source files to the paths

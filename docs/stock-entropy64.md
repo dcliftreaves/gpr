@@ -92,15 +92,15 @@ control. No additional full package rebuild is claimed for this rejected draft.
 
 ## Evidence and reproduction
 
-[Summary](stock-entropy64-receipts/summary.json),
-[corrected full proof/timing](stock-entropy64-receipts/v2-full/receipt.json),
-[corrected hybrid proof/timing](stock-entropy64-receipts/v2-hybrid/receipt.json),
-[build commands/identities](stock-entropy64-receipts/integrated/builds-v2.json),
-[real-frame protocol](stock-entropy64-receipts/integrated/frames/protocol.json),
-[real-frame measurements](stock-entropy64-receipts/integrated/frames/receipt.json),
-[capture protocol](stock-entropy64-receipts/integrated/capture/protocol.json),
-[capture verification](stock-entropy64-receipts/integrated/capture/receipt.json) and
-[corrected integrated patch](stock-entropy64-receipts/integrated/prototype-v2.patch)
+[Summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/summary.json),
+[corrected full proof/timing](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/v2-full/receipt.json),
+[corrected hybrid proof/timing](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/v2-hybrid/receipt.json),
+[build commands/identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/builds-v2.json),
+[real-frame protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/frames/protocol.json),
+[real-frame measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/frames/receipt.json),
+[capture protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/capture/protocol.json),
+[capture verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/capture/receipt.json) and
+[corrected integrated patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy64-receipts/integrated/prototype-v2.patch)
 retain the complete checked result. Corrected/initial micro directories include
 exact extracted functions, independent harnesses and source/binary identities;
 initial failures and Mac proof outputs remain distinct.

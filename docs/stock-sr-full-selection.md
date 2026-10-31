@@ -48,7 +48,7 @@ numeric rejection is a completed selection with no chosen checkpoint.
 
 ## Ten-candidate follow-up
 
-The [fixed study protocol](stock-sr-full-selection-receipts/study-protocol.json)
+The [fixed study protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/study-protocol.json)
 chooses one candidate from each of the ten snapshots in the previous
 [relative-region experiment](stock-sr-relative.md): the lowest-MSE strength
 passing the unchanged pooled/per-group patch guards at that snapshot. This
@@ -85,17 +85,17 @@ remain null (both perfect yields zero); model selection uses MSE and remains
 well-defined. Existing finite-error calculations are unchanged.
 
 Receipts:
-[selector protocol](stock-sr-full-selection-receipts/protocol.json),
-[selection](stock-sr-full-selection-receipts/selection.json),
-[commands](stock-sr-full-selection-receipts/command.json),
-[disposition](stock-sr-full-selection-receipts/disposition.json),
-[prior control](stock-sr-full-selection-receipts/prior-control.json),
-[Mac tests](stock-sr-full-selection-receipts/mac-tests.json),
-[Pi tests](stock-sr-full-selection-receipts/pi-tests.json), and
-[source 0](stock-sr-full-selection-receipts/validation-0.json),
-[source 1](stock-sr-full-selection-receipts/validation-1.json),
-[source 2](stock-sr-full-selection-receipts/validation-2.json),
-[source 3](stock-sr-full-selection-receipts/validation-3.json).
+[selector protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/protocol.json),
+[selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/selection.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/command.json),
+[disposition](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/disposition.json),
+[prior control](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/prior-control.json),
+[Mac tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/mac-tests.json),
+[Pi tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/pi-tests.json), and
+[source 0](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/validation-0.json),
+[source 1](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/validation-1.json),
+[source 2](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/validation-2.json),
+[source 3](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-full-selection-receipts/validation-3.json).
 
 Photos, checkpoints, full-image outputs and detailed test logs remain external
 under `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_full_selection_20261030`.

@@ -17,15 +17,15 @@ nice 0; the privileged collector samples only user cycles. It finishes with
 calibration records and preview images match independent references; seven
 attempts overrun. Profiled latency is diagnostic, not acceptance evidence.
 
-The [flat profile](stock-horizontal-inverse-receipts/profile/flat.txt) assigns
+The [flat profile](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/profile/flat.txt) assigns
 35.45% to incremental highpass encoding, 15.07% to channel unpacking, 12.05% to
 forward transform, 8.40% to display rows and 8.20% to the spatial inverse.
 These are process-wide CPU sample shares, not critical-path percentages or
 predicted wall-time gains. The
-[protocol](stock-horizontal-inverse-receipts/profile/protocol.json),
-[verified receipt](stock-horizontal-inverse-receipts/profile/receipt.json),
-[call graph](stock-horizontal-inverse-receipts/profile/callgraph.txt) and
-[driver](stock-horizontal-inverse-receipts/profile_stock_native12_preview.py)
+[protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/profile/protocol.json),
+[verified receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/profile/receipt.json),
+[call graph](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/profile/callgraph.txt) and
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/profile_stock_native12_preview.py)
 retain the diagnostic separately from unprofiled comparisons.
 
 The tested kernel replaces only the interior of `InvertHorizontalDescale16s`.
@@ -37,7 +37,7 @@ Borders and scalar tails are unchanged. Loads/stores require only the existing
 
 Version 1 explicitly adds the rounding bias and shifts. Version 2 uses ARM's
 rounded shift-and-accumulate operation for the identical `(delta + 4) >> 3`
-term. The [compiled assembly](stock-horizontal-inverse-receipts/v2/horizontal-assembly.txt)
+term. The [compiled assembly](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/v2/horizontal-assembly.txt)
 contains four `srsra` instructions in that vector path. It is an explicit
 register-level/SIMD comparison, not an assumption that the original compiler
 emitted no vector instructions.
@@ -66,16 +66,16 @@ per helper within each executable; these are kernel timings, not frame times.
 | Explicit bias and shift | 0.0993701 | 0.1069094 | 7.59% slower |
 | Rounded shift-and-accumulate | 0.0994310 | 0.0904337 | 9.05% faster |
 
-[Version 1 events](stock-horizontal-inverse-receipts/v1/pi-oracle-benchmark.stdout),
-[version 2 events](stock-horizontal-inverse-receipts/v2/pi-oracle-benchmark.stdout)
-and the [decision summary](stock-horizontal-inverse-receipts/summary.json)
+[Version 1 events](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/v1/pi-oracle-benchmark.stdout),
+[version 2 events](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/v2/pi-oracle-benchmark.stdout)
+and the [decision summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/summary.json)
 retain both outcomes. Mac timings are separately archived and do not establish
 a Cortex-A76 speedup. Decoder, encoder and capture compiler flags match the
 production build after normalizing source directory names.
 
 ## Unprofiled native-input combined comparison
 
-The fixed [ABBA protocol](stock-horizontal-inverse-receipts/capture-abba/protocol.json)
+The fixed [ABBA protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/capture-abba/protocol.json)
 compares production against version 2: 600 attempts per run, native 4096x3072
 RGGB14 Q3 inputs, 20 fps, leased source buffers, every-frame calibrated preview,
 encoder-derived reconstruction, serialized compute, foreground preview,
@@ -87,8 +87,8 @@ all four capture UIDs are 1000 with zero effective capabilities.
 No unrelated Pi build, test or profiler runs during these four measured
 children. Independent verification occurs only after each capture finishes.
 The executable hashes and candidate source hash are frozen before timing.
-The [driver](stock-horizontal-inverse-receipts/benchmark_stock_horizontal_capture.py)
-and [full receipt](stock-horizontal-inverse-receipts/capture-abba/receipt.json)
+The [driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/benchmark_stock_horizontal_capture.py)
+and [full receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/capture-abba/receipt.json)
 preserve every run:
 
 | Order | Recorded / attempted | Durable fps | Encode/reconstruct median ms | Render median ms | Late writes | Late previews |
@@ -116,7 +116,7 @@ model or camera scheduling option is adopted.
 
 The isolated Mac checkout's tracked files are restored and its experimental
 test is removed. The main Pi source was never modified; its
-[production binding](stock-horizontal-inverse-receipts/production-unchanged.json)
+[production binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/production-unchanged.json)
 verifies the inverse, reconstruction, renderer and capture source hashes against
 the published branch, plus the original executable
 `c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c`.
@@ -137,7 +137,7 @@ with no camera CNN or sensor/display/thermal qualification.
 
 All seven hosted jobs pass for the preceding published revision `9111564`
 ([run 41163202174](https://github.com/dcliftreaves/gpr/actions/runs/41163202174),
-[receipt](stock-horizontal-inverse-receipts/passed-9111564.json)). This evidence
+[receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-horizontal-inverse-receipts/passed-9111564.json)). This evidence
 update does not change production source; its own hosted status is separate.
 The next timing work needs to resolve the variable combined critical path,
 rather than assume an isolated inner-loop improvement translates into a

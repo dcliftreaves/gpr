@@ -31,9 +31,9 @@ handler resumes them immediately after recording, before media verification;
 states confirm both are running/sleeping afterward. Neither process is killed
 or left paused. Pausing/resume setup is outside recording timers. Temperature,
 clock/governor, identities and before/after states are retained in the
-[receipt](stock-background-control-receipts/abba.json), with
-[commands](stock-background-control-receipts/commands.json) and
-[driver](stock-background-control-receipts/run-control.py).
+[receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-background-control-receipts/abba.json), with
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-background-control-receipts/commands.json) and
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-background-control-receipts/run-control.py).
 
 This is a supplied-frame replay to SSD and a memory sink. Sensor, rear-display,
 actual SD, thermal-soak and CNN performance are separate unverified scopes.

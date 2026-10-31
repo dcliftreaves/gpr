@@ -165,7 +165,7 @@ Eight-row standalone comparisons are slower; 32-row chunks still fail to
 establish a consistent benefit. Both prototypes are rejected and local tracked
 source is restored. Production and the strict timing gate remain unchanged.
 All seven hosted jobs pass at `a00ae4a`
-([receipt](stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
 commits need their own hosted results.
 
 A [current-executable preview priority control](stock-current-priority.md)
@@ -180,7 +180,7 @@ including guard boundaries, and all 492 independent real-input payloads, but
 64-bit word and 128-bit NEON variants are slower than both scalar controls on
 both inputs. Both are rejected without proceeding to capture timing. Prototype
 source is restored. All seven hosted checks pass at `950deda`
-([receipt](stock-current-priority-receipts/passed-950deda.json)); later evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/passed-950deda.json)); later evidence
 commits require their own results. Production/model behavior is unchanged.
 
 Two [latency diagnostics](stock-latency-trace.md) preserve all 1,198 accepted
@@ -192,7 +192,7 @@ are instrumented attribution results, not acceptance timing. A subsequent
 proposal is rejected. The best default control still misses four writes/seven
 previews. Production and unresolved quality/timing gates are unchanged. All
 seven hosted checks pass at `6efc5bd`
-([receipt](stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
 commits require their own hosted results.
 
 [Kernel scheduler/workqueue attribution](stock-kernel-scheduler.md) identifies
@@ -204,7 +204,7 @@ zero late deliveries. An earlier same-profile run still fails (4 late writes,
 250 late previews), so this is a scoped floor demonstration, not blanket
 reproducibility or default-scheduler approval. No boot/device/global scheduling
 setting, codec source or model is changed. All seven hosted jobs pass at
-`cade228` ([receipt](stock-scheduler-receipts/passed-cade228.json)); new evidence
+`cade228` ([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/passed-cade228.json)); new evidence
 heads need their own checks. Broader timing and model-quality gates remain open.
 
 The [actual supplied-GoPro study](stock-cnn-gopro.md) now supplies positive

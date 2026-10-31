@@ -74,15 +74,15 @@ For Metal, choose the Metal artifact, `mpsgraph` or `hybrid`, and add
 Exported artifacts are explicit external files; no model is downloaded or
 selected automatically. The original camera/SDK dependency boundaries remain.
 
-[FP32/Metal protocol](stock-cleanup-native-receipts/native-protocol.json),
-[export contracts](stock-cleanup-native-receipts/native-exports.json),
-[twelve-case results](stock-cleanup-native-receipts/native-native-check.json)
-and [driver](stock-cleanup-native-receipts/run-native.py) bind the successful
-checks. [FP16 protocol](stock-cleanup-native-receipts/native-f16-protocol.json),
-[export](stock-cleanup-native-receipts/native-f16-exports.json),
-[failed-bound results](stock-cleanup-native-receipts/native-f16-native-check.json)
-and [driver](stock-cleanup-native-receipts/run-native-fp16.py) preserve that
+[FP32/Metal protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-protocol.json),
+[export contracts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-exports.json),
+[twelve-case results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-native-check.json)
+and [driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/run-native.py) bind the successful
+checks. [FP16 protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-f16-protocol.json),
+[export](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-f16-exports.json),
+[failed-bound results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/native-f16-native-check.json)
+and [driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/run-native-fp16.py) preserve that
 separate experiment. Source/model/native hashes and exact command lines are
-in the receipts. [All seven hosted jobs](stock-cleanup-native-receipts/hosted-c47fdf1.json)
+in the receipts. [All seven hosted jobs](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cleanup-native-receipts/hosted-c47fdf1.json)
 passed at `c47fdf1`, including the generic native backend contracts on Mac;
 the real-checkpoint measurements above are separate local evidence.

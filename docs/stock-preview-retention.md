@@ -16,7 +16,7 @@ restored; the Pi capture executable again matches `c576f566…` byte for byte.
 
 Four fixed 120-attempt runs reuse the previously validated diagnostic executable
 `ec7b0c9f…`, whose full identity and instrumentation are bound by the earlier
-[scheduler protocol](stock-scheduler-receipts/kernel-trace/protocol.json).
+[scheduler protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-trace/protocol.json).
 They use the new native GP011728/GPAB1094 inputs and their actual calibration,
 Q3, encoder-derived every-frame preview, compute serialization, foreground
 preview, 1 MiB writeback and final fsync. There is no kernel sampling collector.
@@ -32,15 +32,15 @@ here to attribute it. These measurements rule against joins or scheduled-out
 time explaining the **observed slow-regime medians**. All four runs remain in
 that regime, so they cannot attribute the production fast/slow split.
 
-[Protocol](stock-preview-retention-receipts/stages/protocol.json),
-[complete receipt](stock-preview-retention-receipts/stages/receipt.json),
+[Protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/stages/protocol.json),
+[complete receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/stages/receipt.json),
 raw events/stderr and per-frame correlations retain the distinction. The
-[driver](stock-preview-retention-receipts/stages/trace_stock_native12_stages.py)
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/stages/trace_stock_native12_stages.py)
 sets diagnostic flags explicitly after the normal-user launch report.
 
 ## Separate retention from reconstruction
 
-The [harness](stock-preview-retention-receipts/preview_retention_benchmark.cpp)
+The [harness](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/preview_retention_benchmark.cpp)
 uses the unchanged production codec in three modes within one process per
 source: no observer, a retained-band observer that samples one coefficient per
 band, and retained bands plus ordinary three-channel reconstruction. There is
@@ -58,8 +58,8 @@ decoding that payload. The tiny retained-only observer is not a full-plane scan.
 | GP011728 | 27.192 | 34.181 | 42.965 |
 | GPAB1094 | 24.844 | 31.556 | 40.446 |
 
-The [protocol](stock-preview-retention-receipts/baseline/protocol.json),
-[receipt](stock-preview-retention-receipts/baseline/receipt.json) and events
+The [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/baseline/protocol.json),
+[receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/baseline/receipt.json) and events
 preserve block medians, extrema and actual child identity. References are
 SDK-decoded camera GPR counts that are already compressed, not sensor truth.
 Unpaced execution can also encounter the unchanged realtime budget; medians
@@ -96,9 +96,9 @@ reconstruction block medians change from 39.168 to 32.709 ms, then remain near
 32.60 ms. This within-process variation is preserved in the receipt and prevents
 attributing the regime solely to a different executable or initial allocation.
 
-[Spacing](stock-preview-retention-receipts/spacing/receipt.json),
-[rows v1](stock-preview-retention-receipts/rows-v1/isolated/receipt.json) and
-[rows v2](stock-preview-retention-receipts/rows-v2/isolated/receipt.json)
+[Spacing](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/spacing/receipt.json),
+[rows v1](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v1/isolated/receipt.json) and
+[rows v2](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v2/isolated/receipt.json)
 retain all cases. Both row versions also run separate fixed ABBA comparisons
 on the older GP017517/GP017348 downsampled controls, using exact frozen payloads
 and independently decoded planes. V1 raises an ordinary-path timing concern;
@@ -125,13 +125,13 @@ during the measured children. Independent verification follows each exit.
 | v2 / rows B | 579 / 600 | 19.2017 | 38.6937 | 579 | 579 |
 | v2 / original A | 565 / 600 | 18.7349 | 39.4607 | 565 | 565 |
 
-The v1 [comparison](stock-preview-retention-receipts/rows-v1/native-abba/receipt.json)
+The v1 [comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v1/native-abba/receipt.json)
 improves on both controls, but its
-[older-source control](stock-preview-retention-receipts/rows-v1/legacy-abba/receipt.json)
+[older-source control](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v1/legacy-abba/receipt.json)
 shows slower ordinary encodes. The v2
-[comparison](stock-preview-retention-receipts/rows-v2/native-abba/receipt.json)
+[comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v2/native-abba/receipt.json)
 places both candidate runs between its faster and slower controls, while its
-[older-source study](stock-preview-retention-receipts/rows-v2/legacy-abba/receipt.json)
+[older-source study](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/rows-v2/legacy-abba/receipt.json)
 also varies. No reliable combined gain follows from the large isolated result.
 
 All 4,605 accepted payloads, calibration packets and preview images verify
@@ -150,23 +150,23 @@ Those original logs remain under
 [initial setup](stock-preview-retention-receipts/validation/initial-missing-numpy/).
 Using the existing project environment makes the three tests pass, with source
 and capture binary unchanged; the
-[correction](stock-preview-retention-receipts/validation/pi-python-correction.json)
+[correction](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/validation/pi-python-correction.json)
 records the 21 passing results and three corrected reruns. No assertion is
 relaxed. V2 is rejected at the workflow-performance stage after focused Pi
 checks; it does not inherit a fresh full Pi SDK result from v1.
 
-The [stdlib event audit](stock-preview-retention-receipts/analyze_stock_preview_retention.py)
+The [stdlib event audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/analyze_stock_preview_retention.py)
 recomputes all isolated mode medians and validates block order, warmups,
 checks and native event accounting. Its
-[summary](stock-preview-retention-receipts/summary.json) covers 4,608 isolated
+[summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/summary.json) covers 4,608 isolated
 stock-byte comparisons and 4,608 independent plane comparisons, plus both
 complete native ABBA studies. Isolated timings are not acceptance results.
 
 The main encoder source is restored to the published version. The Pi capture
 executable again matches the original complete SHA-256, and fresh restoration
 checks pass **27 Mac / 24 Pi Release targets**. The
-[restoration binding](stock-preview-retention-receipts/restoration/restoration.json)
-and [post-state](stock-preview-retention-receipts/restoration/post-restoration.json)
+[restoration binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/restoration/restoration.json)
+and [post-state](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/restoration/post-restoration.json)
 retain source hashes, UID 1000, ordinary observer priority and unchanged
 950000/1000000-microsecond realtime limits. Existing June processes remain
 running and untouched. All diagnostic, benchmark and validation children have
@@ -187,7 +187,7 @@ Raw media, binaries and full artifacts remain external under
 matching Pi experiment roots. Source GPR photos and full calibration are not
 redistributed in the numeric receipts. All seven hosted jobs pass for baseline
 `779bb47` ([run 41164329487](https://github.com/dcliftreaves/gpr/actions/runs/41164329487),
-[receipt](stock-preview-retention-receipts/passed-779bb47.json)); the evidence
+[receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-retention-receipts/passed-779bb47.json)); the evidence
 update needs its own hosted result. Rejected source/tests are not new production
 features or registered tests. Broader native-input timing and useful CNN quality
 remain open.

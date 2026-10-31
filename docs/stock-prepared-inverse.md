@@ -41,19 +41,19 @@ Background processes remain unchanged. These are not sensor/SD/display/CNN tests
 
 ## Evidence and restoration
 
-The [receipt](stock-prepared-inverse-receipts/rejected-abba.json),
-[commands](stock-prepared-inverse-receipts/rejected-commands.json),
-[driver](stock-prepared-inverse-receipts/run-rejected.py),
-[five-file patch](stock-prepared-inverse-receipts/rejected-prepared.patch),
-[source identities](stock-prepared-inverse-receipts/rejected-sources.json),
-[experimental Mac tests](stock-prepared-inverse-receipts/rejected-mac-release.txt)
-and [packages](stock-prepared-inverse-receipts/rejected-packages-mac.json)
+The [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-abba.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-commands.json),
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/run-rejected.py),
+[five-file patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-prepared.patch),
+[source identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-sources.json),
+[experimental Mac tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-mac-release.txt)
+and [packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/rejected-packages-mac.json)
 preserve the proposal. Applying its patch to `08d62d5` reconstructs all five
 files byte for byte. The extra private test is part of that archived proposal,
 not a current registered production target.
 
-The [restoration binding](stock-prepared-inverse-receipts/restoration.json)
+The [restoration binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/restoration.json)
 checks source equality and the exact prior Pi executable. Fresh
-[26-target Mac](stock-prepared-inverse-receipts/restored-mac-release.txt) and
-[23-target Pi](stock-prepared-inverse-receipts/restored-pi-release.txt) Release
+[26-target Mac](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/restored-mac-release.txt) and
+[23-target Pi](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prepared-inverse-receipts/restored-pi-release.txt) Release
 runs pass after restoration.

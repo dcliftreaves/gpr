@@ -84,14 +84,14 @@ verify display color, image detail/noise and temporal behavior.
 
 - CPU inference with the real 1x stock-Q3 and 2x diverse checkpoints matches
   the external architecture **bit for bit** on two input tensor shapes.
-  [Architecture receipt](stock-sr-receipts/architecture-parity.json).
+  [Architecture receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/architecture-parity.json).
 - A full 45.7 MP 1x Nikon output has exactly the same reconstructed pixel and
   DNG hashes as the earlier external-architecture measurement.
-  [Receipt](stock-sr-receipts/bundled-1x.json).
+  [Receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/bundled-1x.json).
 - A supplied 4096x3072 camera GPR produces an **8192x6144** editable DNG with
   transformed GainMaps/crops. Independent SDK RAW decoding matches every
   reconstructed sample, and SDK calibration parsing succeeds.
-  [Receipt](stock-sr-receipts/camera-2x.json). There is no higher-resolution
+  [Receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/camera-2x.json). There is no higher-resolution
   camera truth for this sample, so it provides no quality approval.
 - Seven optional Torch tests pass locally: known-filter halo seams against
   whole-image inference, finite/shape rejection, declared 2x bicubic tiling,
@@ -105,7 +105,7 @@ verify display color, image detail/noise and temporal behavior.
   profiles pass, including imports without Torch. Their five installed runtime
   modules match the measured implementation. The relocated full package also
   runs the real 1x checkpoint using the bundled architecture from an unrelated
-  working directory. [Package receipt](stock-sr-receipts/packages-mac.json).
+  working directory. [Package receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/packages-mac.json).
 
 Reproduce optional contract tests without trained weights:
 
@@ -116,7 +116,7 @@ python tests/stock_cnn_test.py --sdk build/source/app/gpr_tools/gpr_tools \
 
 Linux Release CI now includes these CPU/Torch tests. Hosted checks on this
 implementation remain a separate gate. Pi Release also passes all ten ordinary CTest targets in 2.79 seconds at
-`31274ea`, including the geometry/GainMap checks: [receipt](stock-sr-receipts/pi5-release.json).
+`31274ea`, including the geometry/GainMap checks: [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/pi5-release.json).
 Its 410 source/test/tool/build/fixture files were verified against Git. This
 milestone adds no Pi Torch claim.
 
@@ -150,9 +150,9 @@ dB. All **16 comparisons regress**; no candidate is promoted or recommended.
 The measurement runtime sources are hash-verified against commit `31274ea`.
 All four references use integral ActiveArea coordinates. Per-site,
 shadow/highlight and reference-gradient metrics are in the receipts:
-[summary](stock-sr-receipts/summary.json), [0001](stock-sr-receipts/z8-0001.json),
-[0067](stock-sr-receipts/z8-0067.json), [5323](stock-sr-receipts/z8-5323.json),
-[6693](stock-sr-receipts/z8-6693.json). Source pixels and weights are not committed.
+[summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/summary.json), [0001](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/z8-0001.json),
+[0067](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/z8-0067.json), [5323](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/z8-5323.json),
+[6693](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-receipts/z8-6693.json). Source pixels and weights are not committed.
 
 ```sh
 python tools/benchmark_stock_sr.py --source source.dng \

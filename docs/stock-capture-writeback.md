@@ -68,18 +68,18 @@ timing receipt. No root cause or scheduling fix is claimed here.
 
 ## Evidence and reproduction
 
-- [Final implementation replay](stock-writeback-receipts/aligned-final.json),
-  [per-frame fsync](stock-writeback-receipts/fsync-each.json),
-  [initial 8 MiB](stock-writeback-receipts/writeback8-initial.json),
-  [fresh default repeat](stock-writeback-receipts/baseline-repeat.json),
-  [initial 1 MiB repeat](stock-writeback-receipts/writeback1-repeat.json).
-- [Old/new/new/old binary control](stock-writeback-receipts/frontend-abba.json),
-  [profiled diagnostic](stock-writeback-receipts/profiled-diagnostic.json),
-  [cache preparation](stock-writeback-receipts/cache-preparation.json),
-  [subsequent diagnostic](stock-writeback-receipts/cachefree-diagnostic.json).
-- [Source/receipt bindings](stock-writeback-receipts/validation.json),
-  [Mac Release tests](stock-writeback-receipts/mac-release.txt),
-  [Pi Release tests](stock-writeback-receipts/pi-release.txt).
+- [Final implementation replay](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/aligned-final.json),
+  [per-frame fsync](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/fsync-each.json),
+  [initial 8 MiB](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/writeback8-initial.json),
+  [fresh default repeat](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/baseline-repeat.json),
+  [initial 1 MiB repeat](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/writeback1-repeat.json).
+- [Old/new/new/old binary control](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/frontend-abba.json),
+  [profiled diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/profiled-diagnostic.json),
+  [cache preparation](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/cache-preparation.json),
+  [subsequent diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/cachefree-diagnostic.json).
+- [Source/receipt bindings](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/validation.json),
+  [Mac Release tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/mac-release.txt),
+  [Pi Release tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/pi-release.txt).
 
 ```sh
 python3 tools/benchmark_mission1.py \

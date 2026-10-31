@@ -74,8 +74,8 @@ decoder, checks both GVS2/GVS3 against a frozen independent VC-5 fixture,
 rejects corrupted clip CRC/record CRC/payload and exercises PNG/ProRes output.
 This proves functional Bayer identity, not camera color or temporal quality.
 
-The matrix passes on [Mac](stock-ffmpeg-receipts/mac.json) and
-[Pi 5/Linux](stock-ffmpeg-receipts/pi5.json), with identical decoded pixel hashes
+The matrix passes on [Mac](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-ffmpeg-receipts/mac.json) and
+[Pi 5/Linux](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-ffmpeg-receipts/pi5.json), with identical decoded pixel hashes
 for all twelve formats. Both receipts bind the decoder and helper binaries by
 SHA-256. Ordinary Mac Release passes 23/23 tests, including MOV/ProRes; the
 Pi's 13 transport/A/V tests also pass with the new sample-description atom.

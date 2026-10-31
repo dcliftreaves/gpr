@@ -104,18 +104,18 @@ background workloads remain unchanged; temperature/clock readings are observatio
 
 ## Reproduction and evidence
 
-[Summary](stock-preview-color-receipts/summary.json),
-[final source binding](stock-preview-color-receipts/validation/source-binding.json),
-[Mac Release](stock-preview-color-receipts/validation/mac-release.txt),
-[Pi Release](stock-preview-color-receipts/final-pi-tests-v2.log),
-[packages](stock-preview-color-receipts/validation/packages-mac.json),
-[reported cache geometry](stock-preview-color-receipts/diagnostic/cache.json),
-[pointer/correctness diagnostic](stock-preview-color-receipts/diagnostic/receipt.json),
-[isolated measurements](stock-preview-color-receipts/isolated/receipt.json),
-[matched final build](stock-preview-color-receipts/matched-final-build/build.json),
-[matched final counters](stock-preview-color-receipts/matched-final-pmu/receipt.json),
-[final capture protocol](stock-preview-color-receipts/final-capture/protocol.json) and
-[final capture verification](stock-preview-color-receipts/final-capture/receipt.json)
+[Summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/summary.json),
+[final source binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/validation/source-binding.json),
+[Mac Release](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/validation/mac-release.txt),
+[Pi Release](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/final-pi-tests-v2.log),
+[packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/validation/packages-mac.json),
+[reported cache geometry](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/diagnostic/cache.json),
+[pointer/correctness diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/diagnostic/receipt.json),
+[isolated measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/isolated/receipt.json),
+[matched final build](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/matched-final-build/build.json),
+[matched final counters](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/matched-final-pmu/receipt.json),
+[final capture protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/final-capture/protocol.json) and
+[final capture verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/final-capture/receipt.json)
 retain exact scope and identities.
 
 The receipt directory contains the independent queue benchmark, previous queue
@@ -147,9 +147,9 @@ The corrected list includes the executable and preserves CTest logs in the
 Release artifacts. The exact corrected build command and new test pass locally;
 all seven hosted jobs pass at corrected revision `40aa476` in
 [run 41139092733](https://github.com/dcliftreaves/gpr/actions/runs/41139092733).
-The [successful receipt](stock-preview-color-receipts/ci-integration/passed-40aa476.json)
+The [successful receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/ci-integration/passed-40aa476.json)
 records that exact head.
-[Failure receipt](stock-preview-color-receipts/ci-integration/failed-f332e07.json),
-[excerpts](stock-preview-color-receipts/ci-integration/missing-target-excerpts.txt)
-and [local target check](stock-preview-color-receipts/ci-integration/local-target-check.txt)
+[Failure receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/ci-integration/failed-f332e07.json),
+[excerpts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/ci-integration/missing-target-excerpts.txt)
+and [local target check](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/ci-integration/local-target-check.txt)
 retain the distinction. Runtime/source measurements remain bound to `f197f09`.

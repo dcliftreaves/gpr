@@ -57,7 +57,7 @@ interrupted context and do not prove the application deliberately queued MMC
 work. Other observed contributors include reclaim, writeback and the old
 benchmark process; these particular largest gaps are dominated by MMC work.
 
-![CPU-0 scheduler timeline during the diagnostic](stock-scheduler-receipts/mmc-scheduling.png)
+![CPU-0 scheduler timeline during the diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/mmc-scheduling.png)
 
 The Raspberry Pi Linux [MMC core source](https://github.com/raspberrypi/linux/blob/rpi-6.6.y/drivers/mmc/core/core.c)
 shows `mmc_rescan` checking card state and requeueing detection when polling is
@@ -67,12 +67,12 @@ No controller, polling, boot or system scheduler setting is changed.
 
 ## Reproduction and evidence
 
-[Scheduler protocol](stock-scheduler-receipts/kernel-trace/protocol.json),
-[capture verification](stock-scheduler-receipts/kernel-trace/receipt.json),
-[scheduler attribution](stock-scheduler-receipts/kernel-trace/attribution-summary.json),
-[workqueue attribution](stock-scheduler-receipts/kernel-workqueue/workqueue-summary.json),
-[collector controls](stock-scheduler-receipts/kernel-workqueue/collector.json) and
-[external-data hashes](stock-scheduler-receipts/external-data.json)
+[Scheduler protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-trace/protocol.json),
+[capture verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-trace/receipt.json),
+[scheduler attribution](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-trace/attribution-summary.json),
+[workqueue attribution](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-workqueue/workqueue-summary.json),
+[collector controls](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/kernel-workqueue/collector.json) and
+[external-data hashes](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/external-data.json)
 retain scope and identities. The receipt directory contains the private patch,
 drivers, parser, test logs and figure source. Apply the patch to `cade228`, use
 the archived build commands and adapt the fixed installation/input paths.

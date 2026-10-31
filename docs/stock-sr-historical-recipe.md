@@ -138,14 +138,14 @@ diagnostic reference-dependent measurements, never inference features.
 
 ## Reproducibility and scope
 
-The [receipt manifest](stock-sr-historical-receipts/manifest.json) binds frozen
+The [receipt manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-historical-receipts/manifest.json) binds frozen
 protocols, training reports, evaluation code, selected historical metadata and
 complete-image results. Photos, arrays, output RAWs and model weights remain
 external. The original import-setup failure and a later missing-imagecodecs
 setup failure are retained; neither is counted as successful training.
 
 The three comparisons complete 2,400 optimizer updates and 40 full-image
-candidate inferences. The [audit](stock-sr-historical-receipts/audit.json)
+candidate inferences. The [audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-historical-receipts/audit.json)
 recomputes every candidate's patch/full regional qualification, verifies actual
 checkpoint/output hashes and exact parameter-interpolation identities, and
 checks complete patch-qualified family coverage. A trainer serialization

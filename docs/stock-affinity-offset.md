@@ -55,10 +55,10 @@ for sustained performance; placement-unit success does not imply speed.
 
 ## Reproduction and disposition
 
-[Placement checks](stock-affinity-offset-receipts/placement/receipt.json),
-[rotated matrix](stock-affinity-offset-receipts/rotated-matrix.log),
-[capture protocol](stock-affinity-offset-receipts/capture/protocol.json) and
-[verification](stock-affinity-offset-receipts/capture/receipt.json)
+[Placement checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-affinity-offset-receipts/placement/receipt.json),
+[rotated matrix](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-affinity-offset-receipts/rotated-matrix.log),
+[capture protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-affinity-offset-receipts/capture/protocol.json) and
+[verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-affinity-offset-receipts/capture/receipt.json)
 retain exact source/binary hashes, commands and scope. The directory contains
 the private patch and build/test/measurement drivers. Apply `prototype.patch`
 to `6efc5bd`, use the archived build commands, adapt paths and select a fresh

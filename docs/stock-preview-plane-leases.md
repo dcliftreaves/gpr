@@ -28,10 +28,10 @@ Mixed copied/borrowed offers, invalid descriptors, sink/render/release failure,
 release-aware flush/finish and cancellation have explicit contract checks.
 These are experimental preview-enabled frontend checks, not promotion of a new
 supported API. The draft's release helper also lacks a guard for the
-preview-disabled replay frontend: a [syntax check](stock-preview-plane-lease-receipts/prototype-no-preview.json)
+preview-disabled replay frontend: a [syntax check](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-no-preview.json)
 confirms that configuration fails to compile. Package/library consumer checks
 do not cover it. The original restored frontend compiles in that configuration.
-The [diagnostic](stock-preview-plane-lease-receipts/prototype-no-preview.txt)
+The [diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-no-preview.txt)
 preserves this separate draft limitation; it does not affect the matched
 preview-enabled timing runs or current production source.
 
@@ -74,28 +74,28 @@ pass again**, the prototype symbol is absent from the Pi preview library, and
 the capture executable is byte-identical to the pre-experiment binary:
 `9fc7b823a088da3d6d5f5aa5985e710e4a00e9b39b4690d526ab99f9915ba80c`.
 
-The [archived patch](stock-preview-plane-lease-receipts/rejected-plane-leases.patch)
+The [archived patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/rejected-plane-leases.patch)
 applies to its recorded parent and reconstructs the exact
-[prototype source hashes](stock-preview-plane-lease-receipts/prototype-source.json).
+[prototype source hashes](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-source.json).
 It is research evidence, not active source. Run it in an isolated checkout with
 preview enabled and adjust the external input/output paths in the
-[driver](stock-preview-plane-lease-receipts/run-abba.py) and
-[commands](stock-preview-plane-lease-receipts/commands.json) to reproduce.
-The [complete comparison](stock-preview-plane-lease-receipts/abba.json) retains
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/run-abba.py) and
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/commands.json) to reproduce.
+The [complete comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/abba.json) retains
 source/binary identities, clocks/temperatures, CPU usage and missed deadlines.
 
-[Prototype Mac tests](stock-preview-plane-lease-receipts/prototype-mac-release.txt),
-[Pi tests](stock-preview-plane-lease-receipts/prototype-pi-release.txt),
-[packages](stock-preview-plane-lease-receipts/prototype-packages-mac.json),
-[restored Mac tests](stock-preview-plane-lease-receipts/restored-mac-release.txt),
-[restored Pi tests](stock-preview-plane-lease-receipts/restored-pi-release.txt),
-[Mac restoration](stock-preview-plane-lease-receipts/restored-mac.json) and
-[Pi restoration](stock-preview-plane-lease-receipts/restored-pi.json) distinguish
+[Prototype Mac tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-mac-release.txt),
+[Pi tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-pi-release.txt),
+[packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/prototype-packages-mac.json),
+[restored Mac tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/restored-mac-release.txt),
+[restored Pi tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/restored-pi-release.txt),
+[Mac restoration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/restored-mac.json) and
+[Pi restoration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/restored-pi.json) distinguish
 experimental validation from the restored production state. Media remain
 external; no checkpoint or model-quality policy changes.
 
 The documentation-only parent `a7fa861` passes six hosted jobs; its Mac job is
 cancelled before executing any steps. The
-[receipt](stock-preview-plane-lease-receipts/hosted-a7fa861.json) records that
+[receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-plane-lease-receipts/hosted-a7fa861.json) records that
 status without attributing a cause. All seven jobs previously pass at source
 revision `8e1c2b6`; the fresh local restoration checks above are separate evidence.

@@ -91,18 +91,18 @@ but the Q3-recompressed GPR decodes to **55.316 dB**. Thus re-encoding can erase
 the restoration gain; functional output support is not a fidelity improvement.
 The 2x check establishes format/transport, not high-resolution ground truth.
 
-[Real-image receipt](stock-restored-gpr-receipts/real-images.json),
-[eight optional reconstruction contracts](stock-restored-gpr-receipts/contracts.txt)
-and [ordinary still regression checks](stock-restored-gpr-receipts/ordinary-stills.txt)
+[Real-image receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/real-images.json),
+[eight optional reconstruction contracts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/contracts.txt)
+and [ordinary still regression checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/ordinary-stills.txt)
 record this boundary. Weights and photographs remain external.
 
-The full [Release suite passes 21/21 targets](stock-restored-gpr-receipts/release-tests.txt).
-All [four relocated package profiles](stock-restored-gpr-receipts/packages.json)
+The full [Release suite passes 21/21 targets](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/release-tests.txt).
+All [four relocated package profiles](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/packages.json)
 pass C/C++/SDK and installed PCM/timecode checks. The installed full package
 reproduces both real-image DNG/GPR files and decoded pixels exactly. Its capture,
 preview compiler and player binaries also match the hashes from the preceding
 60-second Mission 1 measurement; see the
-[installed validation receipt](stock-restored-gpr-receipts/installed-validation.json).
+[installed validation receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/installed-validation.json).
 
 ## Lossless-reference measurements
 
@@ -173,16 +173,16 @@ read decoded counts, and reject overwrite/invalid tiling. All three tests pass
 locally on CPU. They are separate from the ten ordinary CTest targets.
 
 After this integration, all ten ordinary CTest targets pass on Pi 5 Release
-in 2.78 seconds; [the receipt](stock-cnn-receipts/pi5-release.json) verifies
+in 2.78 seconds; [the receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/pi5-release.json) verifies
 407 source/test/tool/build/fixture files against commit `71dbace`. This exercises
 the no-CNN workflow on Pi, not Torch inference. The preceding preset snapshot
 `339b17a` passes all ten Pi ASan/UBSan/leak tests in 1285.46 seconds;
-[its separate receipt](stock-still-quality-receipts/pi5-gates.json) preserves that
+[its separate receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-still-quality-receipts/pi5-gates.json) preserves that
 revision boundary.
 
-Detailed receipts: [summary](stock-cnn-receipts/summary.json),
-[0001](stock-cnn-receipts/z8-0001.json), [0067](stock-cnn-receipts/z8-0067.json),
-[5323](stock-cnn-receipts/z8-5323.json), [6693](stock-cnn-receipts/z8-6693.json).
+Detailed receipts: [summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/summary.json),
+[0001](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/z8-0001.json), [0067](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/z8-0067.json),
+[5323](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/z8-5323.json), [6693](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-receipts/z8-6693.json).
 Each report records tool-source hashes, reference/input/output identity and
 model provenance. Partial evaluations explicitly retain `complete=false`.
 

@@ -143,13 +143,13 @@ timestamp, decoded pixel and RAW/DNG/TIFF/calibration hash. This tests offline
 desktop interchange, not camera audio delivery or actual A/V synchronization.
 The new auxiliary profile has local FFmpeg 8.1.1 evidence; the earlier Pi/
 FFmpeg-5 cross-version receipts below describe the preceding video-only profile.
-[Full 120-frame A/V verification](stock-av-receipts/real-core.json) and
-[24 ordinary Release cases](stock-av-receipts/release-tests.txt) bind the
+[Full 120-frame A/V verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/real-core.json) and
+[24 ordinary Release cases](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/release-tests.txt) bind the
 implementation, source/PCM/video hashes and tested binaries. Camera audio
 capture and physical synchronization remain separate hardware work.
 All four MOV-enabled relocated profiles also pass installed auxiliary wrap/
-recovery, C/C++ clients and the applicable SDK workflow: [package receipt](stock-av-receipts/packages.json),
-[installed gates](stock-av-receipts/validation.json).
+recovery, C/C++ clients and the applicable SDK workflow: [package receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/packages.json),
+[installed gates](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/validation.json).
 
 Strict outer-atom extent checks reject truncation even when libavformat could
 salvage an incomplete final metadata atom. Import checks the declared profile,
@@ -223,11 +223,11 @@ The independent capture/SDK/decoder binaries retain their verified `31274ea`
 identity. All four MOV-enabled relocated package profiles pass C/C++ clients,
 installed wrapping/recovery, guide presence and external-dependency declarations.
 
-Receipts: [current Pi benchmark](stock-mov-receipts/pi5-current.json),
-[initial tests and SDK pixel/calibration checks](stock-mov-receipts/pi5-initial-validation.json),
-[cross-version exchange](stock-mov-receipts/cross-version.json),
-[relocated packages](stock-mov-receipts/packages-mac.json),
-[final Pi Release input guards](stock-mov-receipts/pi5-final-guards.json).
+Receipts: [current Pi benchmark](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-mov-receipts/pi5-current.json),
+[initial tests and SDK pixel/calibration checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-mov-receipts/pi5-initial-validation.json),
+[cross-version exchange](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-mov-receipts/cross-version.json),
+[relocated packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-mov-receipts/packages-mac.json),
+[final Pi Release input guards](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-mov-receipts/pi5-final-guards.json).
 The source recordings remain outside the repository.
 
 Broader rendering validation, actual camera audio/display integration and
@@ -242,8 +242,8 @@ an extended-size `mdat` and **37 `co64` chunk offsets above UINT32_MAX**, with
 the largest at 4,419,481,925 bytes. This exercises the actual 64-bit file-offset
 path rather than a small file with large timestamps.
 
-[Round-trip receipt](stock-core-receipts/large-mov-mac.json) and
-[independent payload/atom validation](stock-core-receipts/large-mov-validation.json)
+[Round-trip receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/large-mov-mac.json) and
+[independent payload/atom validation](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/large-mov-validation.json)
 record the check. Capture was unpaced, with backpressure and actual timestamps;
 its completion times are not evidence for a 20 fps deadline or thermal gate.
 This particular large-file check is video-only; the separate 120-frame auxiliary

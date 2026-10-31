@@ -177,7 +177,7 @@ decoded pixels through FFmpeg. The final movie remains 682,542,583 bytes.
 This single functional run takes 57.70 s before publication; it is not a
 repeat-based speed comparison with the earlier 61.22 s batch run. The ten
 ordinary Release rendering tests pass in 8.26 s; no new sanitizer campaign
-was part of this change. [Receipt](stock-prores-receipts/streaming.json).
+was part of this change. [Receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prores-receipts/streaming.json).
 
 Initial M5 Max functional runs (single runs, not repeat-based benchmarks):
 
@@ -196,9 +196,9 @@ input is the same USB-SSD still replay used in [MOV testing](stock-mov.md), with
 its actual bursty timestamps, not a continuous live sensor capture. No CNN or
 ProRes rendering was measured on Pi.
 
-[Functional run receipts and source/binary hashes](stock-prores-receipts/runs.json),
-[Release/sanitizer checks](stock-prores-receipts/validation.json) and
-[relocated packages](stock-prores-receipts/packages.json) record this milestone. Image data and model weights remain
+[Functional run receipts and source/binary hashes](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prores-receipts/runs.json),
+[Release/sanitizer checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prores-receipts/validation.json) and
+[relocated packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prores-receipts/packages.json) record this milestone. Image data and model weights remain
 outside Git. These initial receipts precede the bounded-scratch and optional
 audio/timecode follow-ups. Current unfinished work includes custom grading
 looks, broader format adapters and temporal/rendered quality approval.

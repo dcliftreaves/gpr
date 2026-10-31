@@ -1,7 +1,0 @@
-{
-  "schema": "gpr.stock_sr_source_training_binding.v1",
-  "protocol_sha256": "27c924ff28e1337069ac9fff4657a2783a414f38555e29d29def2f95978d08b2",
-  "weight_binding_sha256": "20ca46ad78be2b12996e257f0a9b384284736fc8f5c4f09bcb040ff4057d37f5",
-  "training_sha256": "efc680edb19066bcef5d26160f633bc00e41ebed3c772275409b09b4694eaff4",
-  "selection_sha256": "36bbeafe04d9a5f89cbf831e5f6384d9a77da25fbf45ef5462f7cb6976cf1491"
-}

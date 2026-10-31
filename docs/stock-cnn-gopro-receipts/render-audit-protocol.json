@@ -1,8 +1,0 @@
-{
-  "schema": "gpr.stock_cnn_render_audit_protocol.v1",
-  "render_summary_sha256": "ff799212bd7521b5518b293b126fe413d89ad41cd3e44aa7795b92eee5eda32b",
-  "driver_sha256": "c51a7858eed33e7e1807230ef3981ca7d3ac076fdc3d95012c925b1db162221d",
-  "strict_numpy_floating_errors": true,
-  "agreement_relative_tolerance": 1e-10,
-  "initial_matmul_warnings_observed": true
-}

@@ -16,9 +16,10 @@ The existing regression covers 9x9, 65x65 and 97x97 maps with exact pixel and
 opcode roundtrips; no assertions or hosted checks are disabled. Only the CLI
 is rebuilt on Pi, and the capture executable remains byte-identical.
 
-[Failed job excerpt](stock-sdk-json-boundary-receipts/failed-ci-excerpt.log),
-[source/binary validation](stock-sdk-json-boundary-receipts/receipt.json) and
-[manifest](stock-sdk-json-boundary-receipts/manifest.json) retain the specific
-failure and correction. Hosted validation of the new revision remains a
-separate check. This is a bounded fix to the observed import path; no broader
+[Failed job excerpt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sdk-json-boundary-receipts/failed-ci-excerpt.log),
+[source/binary validation](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sdk-json-boundary-receipts/receipt.json) and
+[manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sdk-json-boundary-receipts/manifest.json) retain the specific
+failure and correction. All seven hosted jobs subsequently pass at `170802d`
+([run 41175893067](https://github.com/dcliftreaves/gpr/actions/runs/41175893067)).
+This is a bounded fix to the observed import path; no broader
 sanitizer/fuzz campaign is part of this work.

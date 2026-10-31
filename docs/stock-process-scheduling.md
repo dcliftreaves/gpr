@@ -94,11 +94,11 @@ that distinction when describing repeatability or planning further CPU margin.
 
 ## Evidence and limits
 
-[Nice control](stock-process-priority-receipts/nice-control/receipt.json),
-[boosted-preview control](stock-process-priority-receipts/boosted-preview-control/receipt.json),
-[FIFO comparison](stock-process-priority-receipts/fifo-control/receipt.json),
-[fixed validation](stock-process-priority-receipts/fifo-validation/receipt.json) and
-[fixed-profile commands](stock-process-priority-receipts/fifo-validation/protocol.json)
+[Nice control](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-process-priority-receipts/nice-control/receipt.json),
+[boosted-preview control](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-process-priority-receipts/boosted-preview-control/receipt.json),
+[FIFO comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-process-priority-receipts/fifo-control/receipt.json),
+[fixed validation](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-process-priority-receipts/fifo-validation/receipt.json) and
+[fixed-profile commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-process-priority-receipts/fifo-validation/protocol.json)
 retain all runs. Each directory includes the exact launcher/driver, startup
 identity records, raw events and independent verification. Adapt the UID/GID,
 absolute input/install paths and fresh output root when reproducing. Optional

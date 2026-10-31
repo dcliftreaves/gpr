@@ -1,8 +1,0 @@
-.....{"step": 1, "loss": 0.0030211389530450106, "validation_mse_counts": 56.52288818359375, "validation_psnr_db": 66.76562517363783, "delta_vs_bicubic_db": 1.5626067373202048, "delta_vs_baseline_db": 1.5626067373202048, "validation_regions_mse": {}, "selection_eligible": true, "best_step": 1, "elapsed_s": 0.09510166698601097}
-{"step": 1, "loss": 3.2836023819982074e-06, "validation_mse_counts": 1.0623779296875, "validation_psnr_db": 84.0250782261984, "delta_vs_bicubic_db": null, "delta_vs_baseline_db": null, "validation_regions_mse": {}, "selection_eligible": true, "best_step": 0, "elapsed_s": 0.05603220802731812}
-{"step": 1, "loss": 0.0, "validation_mse_counts": 0.0, "validation_psnr_db": null, "delta_vs_bicubic_db": 0.0, "delta_vs_baseline_db": 0.0, "validation_regions_mse": {"pooled": {"overall": 0.0, "shadow": 0.0, "highlight": 0.0, "detail": 0.0}, "group:validation": {"overall": 0.0, "shadow": 0.0, "highlight": 0.0, "detail": 0.0}}, "selection_eligible": true, "best_step": 0, "elapsed_s": 0.06665749999228865}
-..
-----------------------------------------------------------------------
-Ran 7 tests in 2.004s
-
-OK

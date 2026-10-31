@@ -1,7 +1,0 @@
-{
-  "base_commit": "f1e08c8660df556507df71e33ac1292e4aaba2b3",
-  "source_sha256": {
-    "source/lib/gpr_video/gpr_preview.cpp": "06851cae92d61a4a93f711304c1de99c6c1408402925678700082891ce07bd8c"
-  },
-  "patch_reconstruction_verified": true
-}

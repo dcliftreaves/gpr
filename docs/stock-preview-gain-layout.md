@@ -12,8 +12,8 @@ one. Existing independent color fixtures check that case.
 For a qualifying 1024x768 plan, active gain storage falls from 24 MiB to 12 MiB.
 The AArch64 four-pixel path uses one `LD4` gain load with constant caps; the
 fallback uses two loads and deinterleaving. The measured binary's
-[assembly](stock-preview-layout-receipts/display-wavelet-rows.asm) and
-[load-site receipt](stock-preview-layout-receipts/assembly.json) show these
+[assembly](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/display-wavelet-rows.asm) and
+[load-site receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/assembly.json) show these
 branches. This does not claim elimination of all temporary-array/vector spills.
 The scalar renderer uses the same exact stored values.
 
@@ -46,7 +46,7 @@ and process peaks support retaining the smaller representation, but the mixed
 throughput results do not establish a robust overall FPS speedup. RSS includes
 other allocations and different queue occupancy, so it is not a direct
 measurement of per-plan storage. Process CPU/fault/context-switch totals are
-retained in the [complete receipt](stock-preview-layout-receipts/compact-abba.json).
+retained in the [complete receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/compact-abba.json).
 
 ## Rejected persistent workers
 
@@ -58,8 +58,8 @@ comparison delivered 499/509/480/509 of 600 attempts. Render medians were
 That implementation was discarded; the current runtime retains its original
 scheduling. The useful large-frame correctness test was kept.
 
-The [rejected receipt](stock-preview-layout-receipts/rejected-persistent-abba.json)
-and [rejected patch](stock-preview-layout-receipts/rejected-persistent-workers.patch)
+The [rejected receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/rejected-persistent-abba.json)
+and [rejected patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/rejected-persistent-workers.patch)
 preserve the experiment. The patch applies to base `e1a1dda`, and reconstruction
 of all four archived files was checked against their byte hashes. It is an
 experimental artifact, not production code or a recommended follow-up patch.
@@ -71,7 +71,7 @@ encoder accumulated 2.13–2.37 CPU seconds during each approximately 30-second
 comparison process. A separate control temporarily stopped both processes,
 ran previous and compact versions, and resumed both in a cleanup handler.
 Kernel state checks confirm both returned from stopped to sleeping; neither was
-terminated. The [control receipt](stock-preview-layout-receipts/orphan-paused-control.json)
+terminated. The [control receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/orphan-paused-control.json)
 records the commands and states.
 
 With those processes paused, previous/compact delivered 524/571 of 600 attempts,
@@ -87,15 +87,15 @@ this control does not establish it as the sole cause of the earlier variability.
 - The added 1024x768 synthetic wavelet case stitches four serial crop renders
   and compares full parallel rendering byte for byte, including row padding.
   Repeated and concurrent immutable-plan renders exercise the large-frame path.
-- [24 Mac Release tests](stock-preview-layout-receipts/mac-release.txt),
-  [21 Pi Release tests](stock-preview-layout-receipts/pi-release.txt) and
-  [four stripped/relocated package profiles](stock-preview-layout-receipts/packages-mac.json)
+- [24 Mac Release tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/mac-release.txt),
+  [21 Pi Release tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/pi-release.txt) and
+  [four stripped/relocated package profiles](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/packages-mac.json)
   pass. No CNN changes or broad sanitizer work were part of this change.
-- [Measured commands](stock-preview-layout-receipts/commands.json), binary hashes,
-  source/receipt [bindings](stock-preview-layout-receipts/validation.json) and
+- [Measured commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/commands.json), binary hashes,
+  source/receipt [bindings](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-layout-receipts/validation.json) and
   the archived rejected patch make the comparison reviewable. Media and source
   calibration remain external, with their existing frozen identities in the
-  [writeback receipt](stock-writeback-receipts/aligned-final.json).
+  [writeback receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-writeback-receipts/aligned-final.json).
 
 To reproduce with caller-provided inputs, use `tools/benchmark_mission1.py` with
 the explicit capture/compiler/player/reference binaries, matching RAW/metadata

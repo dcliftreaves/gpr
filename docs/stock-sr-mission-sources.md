@@ -40,10 +40,10 @@ shadow failures. The freshly supplied metadata does not establish per-frame
 calibration for all 42 cached arrays. CFA/phase and calibration provenance
 must be bound explicitly before future camera-quality claims.
 
-[Count/provenance audit](stock-sr-mission-source-receipts/audit.json),
-[similarity hints](stock-sr-mission-source-receipts/similarity-hints.json),
-[proposed groups](stock-sr-mission-source-receipts/scene-groups.json) and
-[manifest](stock-sr-mission-source-receipts/manifest.json) preserve this evidence.
+[Count/provenance audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-mission-source-receipts/audit.json),
+[similarity hints](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-mission-source-receipts/similarity-hints.json),
+[proposed groups](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-mission-source-receipts/scene-groups.json) and
+[manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-mission-source-receipts/manifest.json) preserve this evidence.
 Photos and the visually inspected contact sheet stay external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_mission_sources_20261030`.
 Camera GPR-derived arrays are compressed count references, not lossless sensor

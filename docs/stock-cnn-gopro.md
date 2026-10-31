@@ -26,8 +26,8 @@ TIFF reads of editable source DNGs agree with a separate direct SDK decode of
 the original GPRs. Reconstructed DNG counts and supported calibration are
 checked independently. All twelve RAW regional comparisons pass.
 
-The [completed shared-helper receipt](stock-cnn-gopro-receipts/shared-summary.json)
-and [protocol](stock-cnn-gopro-receipts/shared-protocol.json) retain exact
+The [completed shared-helper receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/shared-summary.json)
+and [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/shared-protocol.json) retain exact
 metrics, changed sample counts, source/model identities and metadata checks.
 A fresh shared-helper run reproduces the initial one-off camera results;
 no new checkpoint replaces either supplied model.
@@ -56,7 +56,7 @@ applying a spatially varying gain and averaging do not generally commute.
 It does not establish exact radiometric equivalence to a camera's native binning.
 Other stage-1/2 operations and unsupported map geometries remain rejected.
 
-The [actual-packet proof](stock-cnn-gopro-receipts/gainmap-proof.json), shared
+The [actual-packet proof](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/gainmap-proof.json), shared
 camera rerun and Pi metadata checks retain that boundary. The original
 simulator failure and its initial partial two-case result remain archived.
 
@@ -76,9 +76,9 @@ improve. The first NumPy matrix-multiply analysis emitted floating-point
 warnings despite finite results. An independent chunked, explicit-channel
 audit with floating errors set to raise confirms every metric within the fixed
 1e-10 relative agreement check; those audited numbers are reported above.
-[Render records](stock-cnn-gopro-receipts/render-summary.json),
-[audit protocol](stock-cnn-gopro-receipts/render-audit-protocol.json) and
-[independent audit](stock-cnn-gopro-receipts/render-audit.json) bind the result.
+[Render records](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/render-summary.json),
+[audit protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/render-audit-protocol.json) and
+[independent audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/render-audit.json) bind the result.
 
 Local review files are under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_cnn_supplied_gopro_shared_20261030/render-review/`.
@@ -112,9 +112,9 @@ the three passing suites are reused only after proving their source and binary
 hashes unchanged. The final receipt identifies that reuse rather than claiming
 one fresh combined invocation.
 
-[Mac/Pi verification](stock-cnn-gopro-receipts/qa-receipt.json),
-[Pi receipt](stock-cnn-gopro-receipts/pi-receipt.json) and
-[receipt manifest](stock-cnn-gopro-receipts/manifest.json) retain logs and hashes.
+[Mac/Pi verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/qa-receipt.json),
+[Pi receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/pi-receipt.json) and
+[receipt manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-gopro-receipts/manifest.json) retain logs and hashes.
 The prior full hosted revision `2680e70` passes all seven jobs; this source
 change requires its own hosted validation. Physical sensor/display/SD/thermal
 qualification is unchanged.

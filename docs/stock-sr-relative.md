@@ -7,7 +7,7 @@ It is **not promoted**, and no weights are added to the repository. The optional
 
 ## Training and frozen selection
 
-The [protocol](stock-sr-relative-receipts/protocol.json) precedes training.
+The [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/protocol.json) precedes training.
 It uses the same audited RGGB14/Q3 dataset: 512 training patches, 128 validation
 patches from four separate validation sources/two groups, and no final-test
 patches. Training is fresh `F_ane`, width 16/depth 3, seed 20261031, MPS,
@@ -22,10 +22,10 @@ absolute errors dominate. Weight construction reads **training patches only**;
 validation and final pixels are excluded. It can overweight low-error training
 patches and is an experiment, not a general quality recommendation.
 
-The [independent loss audit](stock-sr-relative-receipts/loss-audit.json) compares
+The [independent loss audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/loss-audit.json) compares
 direct regional-ratio loss with the pixel-weight implementation on a nontrivial
 perturbation: absolute difference 1.19e-8, below the 1e-6 check tolerance.
-The [archived derived recipe](stock-sr-relative-receipts/run-training.py) records
+The [archived derived recipe](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/run-training.py) records
 the exact experimental code; it is not the unmodified production training tool.
 The protocol binds its hash and the underlying production tools.
 
@@ -33,7 +33,7 @@ Training takes 46.98 s. Selection checks the predefined ten 300-step snapshots
 and 17 strengths, with the unchanged exact pooled/per-group regional guard.
 Of 170 candidates, 113 qualify. Step 3000 at full strength wins: validation MSE
 8766.4013 → 8474.9331, **+0.14685 dB**. More candidates increase validation
-selection risk. The [freeze](stock-sr-relative-receipts/frozen.json) binds
+selection risk. The [freeze](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/frozen.json) binds
 checkpoint `a350ecc8e5c95c692f21daff6049a19920525af615ca1c154fe81d903365f6b2`
 before final evaluation; no final pixels select another snapshot or strength.
 
@@ -77,26 +77,26 @@ from the diagnostic, and the original failure is retained.
 
 ## Reproduction and receipts
 
-[Training](stock-sr-relative-receipts/training.json),
-[binding](stock-sr-relative-receipts/training-binding.json),
-[selection](stock-sr-relative-receipts/selection.json),
-[selector](stock-sr-relative-receipts/run-selection.py),
-[final driver](stock-sr-relative-receipts/run-final.py),
-[final summary](stock-sr-relative-receipts/final-summary.json), and
-[split audit](stock-sr-relative-receipts/split-audit.json) bind the study.
+[Training](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/training.json),
+[binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/training-binding.json),
+[selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/selection.json),
+[selector](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/run-selection.py),
+[final driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/run-final.py),
+[final summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/final-summary.json), and
+[split audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/split-audit.json) bind the study.
 Full-reference results:
-[0001](stock-sr-relative-receipts/final-0001.json),
-[0067](stock-sr-relative-receipts/final-0067.json),
-[5323](stock-sr-relative-receipts/final-5323.json),
-[6693](stock-sr-relative-receipts/final-6693.json).
+[0001](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/final-0001.json),
+[0067](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/final-0067.json),
+[5323](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/final-5323.json),
+[6693](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/final-6693.json).
 The full-frame validation has its own
-[protocol](stock-sr-relative-receipts/full-validation-protocol.json),
-[driver](stock-sr-relative-receipts/run-full-validation.py),
-[summary](stock-sr-relative-receipts/full-validation.json), and
-[source 0](stock-sr-relative-receipts/validation-0.json),
-[source 1](stock-sr-relative-receipts/validation-1.json),
-[source 2](stock-sr-relative-receipts/validation-2.json),
-[source 3](stock-sr-relative-receipts/validation-3.json) receipts.
+[protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/full-validation-protocol.json),
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/run-full-validation.py),
+[summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/full-validation.json), and
+[source 0](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/validation-0.json),
+[source 1](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/validation-1.json),
+[source 2](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/validation-2.json),
+[source 3](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-relative-receipts/validation-3.json) receipts.
 
 Photos, patch arrays, weights and full image outputs remain external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_region_relative_20261030`.

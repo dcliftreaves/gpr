@@ -59,7 +59,7 @@ calibration and 2x geometry contracts.
 
 ## Evidence and limits
 
-[Synthetic contracts](stock-coreml-receipts/mac-contracts.json) cover both scales,
+[Synthetic contracts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-coreml-receipts/mac-contracts.json) cover both scales,
 float32/float16 and all four unit settings, with non-square/tiled edge shapes.
 On those fixtures the native output differs from Torch by at most one 14-bit
 count. Tests also exercise checkpoint/package/scale binding, export collisions,
@@ -70,8 +70,8 @@ without Torch/Core ML, and ordinary portable contracts run on Mac and Pi.
 The real-source benchmarks use `GP011728.GPR` (4096x3072), the explicit fresh
 2x stock candidate, 8192x6144 output, four host Torch threads, tile 256 and halo
 64. They compare the same checkpoint's backend output, not independent sensor
-truth. See [float32](stock-coreml-receipts/real-fp32.json) and
-[float16](stock-coreml-receipts/real-fp16.json) receipts. The default float32
+truth. See [float32](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-coreml-receipts/real-fp32.json) and
+[float16](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-coreml-receipts/real-fp16.json) receipts. The default float32
 path differs by at most one count. Experimental float16 differs by up to
 26 counts on this real scene despite the smaller synthetic differences.
 Precision/backend agreement needs scene-specific validation; neither result
@@ -90,7 +90,7 @@ available in the Pi's Linux runtime. Each row has its own measured Torch
 baseline; the variation is another reason not to treat a single pass as a
 sustained performance guarantee.
 
-[Real upres integration](stock-coreml-receipts/real-upres-integration.json)
+[Real upres integration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-coreml-receipts/real-upres-integration.json)
 also verifies that the selected native output counts reach stock GPR/GVID/MOV,
 with scaled camera calibration and original capture-payload preservation.
 Counts match the independent native-backend benchmark. Core ML output may

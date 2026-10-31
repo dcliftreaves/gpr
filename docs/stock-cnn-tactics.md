@@ -89,7 +89,7 @@ controls give 20 patch configurations. Gates use the bicubic input only, per
 Bayer site. No reference image or per-image fitted threshold is available to
 inference.
 
-The [protocol](stock-cnn-tactics-receipts/protocol.json) precedes evaluation.
+The [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/protocol.json) precedes evaluation.
 All 128 validation patches use the existing exact pooled/per-group regional
 nonregression guards. The ungated 1/32 control exactly reproduces its previous
 regional scores; cached masks are independently checked against the existing
@@ -100,7 +100,7 @@ All eight gated candidates and the control then run on all four complete
 validation sources, using hash-verified cached SDK reference/decoded-low RAWs.
 Baseline pixels and metrics reproduce the previous benchmark; control output
 pixels also reproduce their historical validation outputs exactly. The
-[full result](stock-cnn-tactics-receipts/full-selection.json) rejects patch-best
+[full result](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/full-selection.json) rejects patch-best
 strong-1/4 for one image's shadows. **Strong-1/8** passes all sixteen regional
 comparisons and is selected at **+0.08716 dB pooled active PSNR**, versus
 **+0.02782 dB control**. The criterion is unchanged; the strongest patch result
@@ -111,7 +111,7 @@ active-area tuple was compared with its JSON list. Its protocol/code/error are
 retained. JSON normalization fixes the representation comparison; numeric
 values and bounds remain exact. The completed run has its own script hash.
 
-The [freeze](stock-cnn-tactics-receipts/frozen.json) binds base weights, gate,
+The [freeze](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/frozen.json) binds base weights, gate,
 strength and full selection before historical final evaluation. **Final
 reference and CPU portability results are now available below. Editable/native
 integration, useful visible detail and temporal quality remain unestablished.** It runs only
@@ -119,7 +119,7 @@ through the archived analysis wrapper; standard model loaders do not implement
 this gate. Supplied model files and production runtime are unchanged. This is
 an incremental diagnostic, not a substitute for reproducing the older recipe.
 
-[Receipt manifest](stock-cnn-tactics-receipts/manifest.json) binds scripts,
+[Receipt manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/manifest.json) binds scripts,
 protocols, results, frozen candidate and selected historical evidence. Large
 arrays/photos stay external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_spatial_gate_20261030`.
@@ -128,12 +128,12 @@ arrays/photos stay external under
 
 The fixed strong-1/8 candidate now passes all 32 regional checks: four
 historical references, four regions, two independent CPU/MPS baselines.
-[Final protocol](stock-cnn-tactics-receipts/final-protocol.json) and
-[results](stock-cnn-tactics-receipts/final-summary.json) preserve source, cache,
+[Final protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/final-protocol.json) and
+[results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/final-summary.json) preserve source, cache,
 output and code hashes. Pooled active gain is +0.0228792 dB MPS / +0.0228791 dB
 CPU, versus the supplied ungated diagnostic's +0.0072916 dB. All four CPU/MPS
 outputs differ by at most one count under the existing portability budget;
-[comparison](stock-cnn-tactics-receipts/portability.json). No final pixels select
+[comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-cnn-tactics-receipts/portability.json). No final pixels select
 the gate or strength; these remain reused historical references, not blind data.
 
 This is a modest numeric gain, not useful restored-detail approval. No gate

@@ -20,9 +20,9 @@ and stock payloads were unchanged.
 The native AArch64 `display_wavelet_rows` function shrank from 2332 to 2180 bytes.
 Static `STP Q` vector-pair store sites fell from 15 to 2. Those are emitted-code
 counts, not executed instruction counts, complete spill counts or cycle costs.
-The [assembly receipt](stock-canonical-preview-receipts/assembly.json) and
-[previous](stock-canonical-preview-receipts/previous.asm)/
-[prototype](stock-canonical-preview-receipts/canonical.asm) disassembly preserve
+The [assembly receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/assembly.json) and
+[previous](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/previous.asm)/
+[prototype](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/canonical.asm) disassembly preserve
 the measured binaries.
 
 The fixed-profile isolated renderer was slower despite that assembly change:
@@ -38,8 +38,8 @@ Each run renders 400 full 1024x768 frames from two frozen 12 MP sources. Decode,
 plan setup and CRC computation are outside render timing. The calling process
 runs in the foreground, with no capture encoder, display queue or storage
 writer. Both source RGB CRCs match the independent offline preview throughout.
-The [harness](stock-canonical-preview-receipts/kernel_bench.cpp) and
-[compiler commands/results](stock-canonical-preview-receipts/kernel.json) are
+The [harness](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/kernel_bench.cpp) and
+[compiler commands/results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/kernel.json) are
 retained. This measurement is not an end-to-end capture timing gate.
 
 ## Sustained control
@@ -63,11 +63,11 @@ slowdown, this supports discarding the runtime change. The experiment also
 changed private plan layout; these results do not isolate a single compiler or
 cache cause. Fewer static stores alone are insufficient evidence of a speedup.
 
-The [full replay receipt](stock-canonical-preview-receipts/rejected-abba.json),
-[rejected patch](stock-canonical-preview-receipts/rejected-canonical.patch) and
-[prototype source hashes](stock-canonical-preview-receipts/rejected-sources.json)
+The [full replay receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/rejected-abba.json),
+[rejected patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/rejected-canonical.patch) and
+[prototype source hashes](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/rejected-sources.json)
 preserve the experiment against base `a7e59f6`. Its
-[package checks](stock-canonical-preview-receipts/rejected-packages-mac.json)
+[package checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/rejected-packages-mac.json)
 belong to the rejected prototype and are not presented as current-runtime
 performance evidence. Apply the patch only to that base to reproduce it; the
 current branch retains the original runtime implementation.
@@ -75,9 +75,9 @@ current branch retains the original runtime implementation.
 ## Retained verification
 
 After reverting the prototype, the expanded twelve-format preview checks pass
-in the [24-target Mac Release suite](stock-canonical-preview-receipts/mac-release.txt)
-and [21-target Pi Release suite](stock-canonical-preview-receipts/pi-release.txt).
-The [validation receipt](stock-canonical-preview-receipts/validation.json) binds
+in the [24-target Mac Release suite](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/mac-release.txt)
+and [21-target Pi Release suite](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/pi-release.txt).
+The [validation receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/validation.json) binds
 current source, rejected source and evidence separately. The public API, default
 scheduling, encoder, compact unity-cap optimization and writeback policy remain
 those already implemented at the base revision. Sustained timing and model
@@ -85,7 +85,7 @@ quality gates remain unmet; no camera-production or model promotion follows.
 
 The preceding hosted run at `a7e59f6` passed six jobs, but its Mac job never
 acquired a hosted ARM64 runner. GitHub reports capacity constraints and no build
-or test steps ran. The [run identity](stock-canonical-preview-receipts/hosted-run.json)
-and [annotations](stock-canonical-preview-receipts/mac-capacity-annotations.json)
+or test steps ran. The [run identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/hosted-run.json)
+and [annotations](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-canonical-preview-receipts/mac-capacity-annotations.json)
 preserve that distinction. Local Mac results do not turn that hosted gate into
 a pass; the new head must retry it.

@@ -16,9 +16,9 @@ startup/workflow costs prevent interpreting the percentage difference as an
 equivalent wall-time speedup. GCC already emits vector instructions in both
 spatial and horizontal inverse functions; this is not a wholly scalar decoder.
 
-The [flat profile](stock-preview-row-receipts/direct-profile-flat.txt),
-[call graph](stock-preview-row-receipts/direct-profile-callgraph.txt) and
-[measured command/binary identity](stock-preview-row-receipts/direct-profile-command.json)
+The [flat profile](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/direct-profile-flat.txt),
+[call graph](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/direct-profile-callgraph.txt) and
+[measured command/binary identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/direct-profile-command.json)
 preserve the diagnostic. Timed comparisons below run without profiling.
 
 ## Rejected bounded-token NEON dequantization
@@ -53,14 +53,14 @@ overlap, and the later control has fewer late deliveries than either NEON run.
 The small encode-median reduction does not establish a consistent end-to-end
 benefit. The added table/dispatch path was therefore discarded.
 
-[Receipt](stock-preview-row-receipts/rejected-dequant-abba.json),
-[commands](stock-preview-row-receipts/rejected-dequant-commands.json),
-[driver](stock-preview-row-receipts/run-rejected-dequant.py),
-[patch](stock-preview-row-receipts/rejected-dequant.patch),
-[source identities](stock-preview-row-receipts/rejected-dequant-sources.json),
-[Mac test output](stock-preview-row-receipts/rejected-dequant-mac-release.txt),
-[Pi oracle replay](stock-preview-row-receipts/rejected-dequant-pi-oracle.txt) and
-[package results](stock-preview-row-receipts/rejected-dequant-packages-mac.json)
+[Receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-abba.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-commands.json),
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/run-rejected-dequant.py),
+[patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant.patch),
+[source identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-sources.json),
+[Mac test output](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-mac-release.txt),
+[Pi oracle replay](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-pi-oracle.txt) and
+[package results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-dequant-packages-mac.json)
 retain the experiment. The patch applies to `f1e08c8`; reconstruction of all
 three candidate files was checked against their byte hashes.
 
@@ -92,16 +92,16 @@ experiment's baseline (`5523bc3b…`), which measured 6.21–6.25 ms then.
 Cross-session differences must not be presented as code speedups or assigned
 to a hardware cause without further evidence.
 
-[Sustained receipt](stock-preview-row-receipts/rejected-row-abba.json),
-[commands](stock-preview-row-receipts/rejected-row-commands.json),
-[driver](stock-preview-row-receipts/run-rejected-row.py),
-[isolated receipt](stock-preview-row-receipts/rejected-row-kernel.json),
-[isolated driver](stock-preview-row-receipts/run-rejected-row-kernel.py),
-[harness](stock-preview-row-receipts/kernel_bench.cpp),
-[patch](stock-preview-row-receipts/rejected-row-address.patch),
-[verified source](stock-preview-row-receipts/rejected-row-sources.json),
-[Mac tests](stock-preview-row-receipts/rejected-row-mac-release.txt) and
-[packages](stock-preview-row-receipts/rejected-row-packages-mac.json) are retained.
+[Sustained receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-abba.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-commands.json),
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/run-rejected-row.py),
+[isolated receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-kernel.json),
+[isolated driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/run-rejected-row-kernel.py),
+[harness](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/kernel_bench.cpp),
+[patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-address.patch),
+[verified source](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-sources.json),
+[Mac tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-mac-release.txt) and
+[packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/rejected-row-packages-mac.json) are retained.
 
 Both sustained experiments use the frozen two-source 4096x3072 RGGB14 Q3
 replay: 600 attempts paced at 20 fps, leased inputs, encoder-derived preview,
@@ -111,18 +111,18 @@ unchanged. Media remain external. These are not sensor/display/SD/CNN tests.
 
 ## Restoration and hosted validation
 
-The [restoration receipt](stock-preview-row-receipts/restoration.json) binds
+The [restoration receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/restoration.json) binds
 restored runtime source and binary identities plus fresh Mac/Pi test output.
 Neither experimental test count nor experimental package receipt is relabeled
 as a current production result.
 The restored Pi executable matches its prior SHA-256 byte for byte; fresh
-[26-target Mac](stock-preview-row-receipts/restored-mac-release.txt) and
-[23-target Pi](stock-preview-row-receipts/restored-pi-release.txt) Release runs pass.
+[26-target Mac](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/restored-mac-release.txt) and
+[23-target Pi](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/restored-pi-release.txt) Release runs pass.
 
 At `f1e08c8`, six hosted jobs passed. Mac acquired no runner and executed no
 steps: GitHub reports runner allocation failure and ARM64 capacity constraints
-in its [annotations](stock-preview-row-receipts/mac-capacity-annotations.json).
-The terminal [first attempt](stock-preview-row-receipts/hosted-attempt1.json)
+in its [annotations](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/mac-capacity-annotations.json).
+The terminal [first attempt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-row-receipts/hosted-attempt1.json)
 is preserved. Only after that terminal failure was the Mac job retried; no
 source change or reduced validation was used to evade the missing gate.
 

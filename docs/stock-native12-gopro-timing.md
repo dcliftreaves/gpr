@@ -18,7 +18,7 @@ and `17777a9324025519e8c03497d0197beb98eb386ee0a5e447427013e3f3c2b054`.
 Their new stock Q3 payloads are 3,632,104 and 3,153,500 bytes respectively.
 Neither the prior replay payload references nor its preview CRCs are reused.
 
-The [protocol](stock-native12-gopro-receipts/protocol.json) is frozen before
+The [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native12-gopro-receipts/protocol.json) is frozen before
 the first measured child: two repeats, each 600 attempts at 20 fps, Q3, leased
 input, queue four, workspace 192 MiB, 1 MiB writeback and final fsync. Every
 accepted frame offers a calibrated 1024x768 memory-CRC preview reconstructed
@@ -48,7 +48,7 @@ runs only after each child finishes.
 | A | 600 / 600 | 0 | 19.9961 | 36.8130 | 9.86526 | 32 | 223 |
 | B | 570 / 600 | 30 | 18.9284 | 39.8519 | 9.12785 | 570 | 570 |
 
-The [complete receipt](stock-native12-gopro-receipts/receipt.json) preserves
+The [complete receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native12-gopro-receipts/receipt.json) preserves
 both failures. All 1,170 accepted payloads and preview images verify exactly;
 all source/attempt associations, calibration, queue accounting and END3 markers
 verify. This does not convert the 30 dropped attempts into success. Both
@@ -68,7 +68,7 @@ storage or scheduler interference.
 ## Recording-only controls
 
 After both combined runs finish, a separate frozen
-[control protocol](stock-native12-gopro-receipts/recording-control/protocol.json)
+[control protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native12-gopro-receipts/recording-control/protocol.json)
 removes the preview options and fixes two additional 600-attempt repeats. All
 other capture options, native inputs, Q3 reference bytes, scheduling, identity,
 writeback and final durability requirements remain the same. Both controls
@@ -81,11 +81,11 @@ pass the recording floor:
 
 All 1,200 control payloads and calibration records match the independent
 reference, and END3/accounting verify. The
-[control receipt](stock-native12-gopro-receipts/recording-control/receipt.json)
+[control receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native12-gopro-receipts/recording-control/receipt.json)
 has `floor.recording=true` for both runs. `floor.preview=false` is expected in
 these controls because no preview is requested; it is not a combined pass.
 
-The [event audit](stock-native12-gopro-receipts/event-audit.json) independently
+The [event audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native12-gopro-receipts/event-audit.json) independently
 recomputes counts, late deliveries and medians from emitted events. Per-source
 encode medians in combined A/B are 37.48/42.24 ms for GP011728 and 35.23/39.60 ms
 for GPAB1094; without preview they are 25.46/26.74 and 23.78/24.69 ms. The

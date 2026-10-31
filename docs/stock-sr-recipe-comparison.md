@@ -118,11 +118,11 @@ unchanged. The separately frozen intensity gate has its own modest passing
 [numeric result](stock-cnn-tactics.md#frozen-gate-historical-reference-and-cpu-follow-up);
 that result does not rescue this rejected architecture family.
 
-[Training protocol](stock-sr-recipe-receipts/protocol.json),
-[training and all patch candidates](stock-sr-recipe-receipts/training.json),
-[fixed full-image family](stock-sr-recipe-receipts/full-protocol.json),
-[complete-image results](stock-sr-recipe-receipts/full-selection.json) and
-[receipt manifest](stock-sr-recipe-receipts/manifest.json) bind the measurements.
+[Training protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/protocol.json),
+[training and all patch candidates](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/training.json),
+[fixed full-image family](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/full-protocol.json),
+[complete-image results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/full-selection.json) and
+[receipt manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/manifest.json) bind the measurements.
 
 ## Signed-residual diagnostic
 
@@ -151,8 +151,8 @@ were not evaluated on full images by the top-three protocol and may pass.
 The comparison rejects its 18 measured finalists, not every weaker family
 member. A complete fixed eligible-family evaluation or reference-free regional
 control is the next concrete test; no final-image retuning is justified.
-[Protocol](stock-sr-recipe-receipts/shadow-protocol.json) and
-[measured signed errors](stock-sr-recipe-receipts/shadow-analysis.json) retain
+[Protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/shadow-protocol.json) and
+[measured signed errors](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/shadow-analysis.json) retain
 that distinction.
 
 ## Complete patch-qualified family follow-up
@@ -178,17 +178,17 @@ The full recipe combination performs best in this small experiment, yet offers
 no quality improvement over the existing model. Its parameter/cost difference
 may warrant a separate measured tradeoff; no speed advantage is assumed.
 
-The [frozen diagnostic](stock-sr-recipe-receipts/frozen.json) binds the exact
+The [frozen diagnostic](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/frozen.json) binds the exact
 configuration/checkpoint without publishing it as a replacement. Historical
 final evaluation and native/Pi integration are not performed for this inferior
 validation candidate. No passing criterion is relaxed and no original approval
 is transferred. Larger models, calibration/domain conditioning and separate
 component/seed comparisons remain open.
 
-[Complete-family protocol](stock-sr-recipe-receipts/all-full-protocol.json),
-[results](stock-sr-recipe-receipts/all-full-selection.json) and the
-[driver](stock-sr-recipe-receipts/validate_stock_sr_recipe_all_qualified.py) retain
+[Complete-family protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/all-full-protocol.json),
+[results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/all-full-selection.json) and the
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/validate_stock_sr_recipe_all_qualified.py) retain
 all 192 complete-image source/candidate results, including the 72 reused
 results. All seven hosted jobs pass at published evidence revision `3ce777f`
-([receipt](stock-sr-recipe-receipts/passed-3ce777f.json)); new evidence heads
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-recipe-receipts/passed-3ce777f.json)); new evidence heads
 require their own hosted results. Runtime/model source is unchanged.

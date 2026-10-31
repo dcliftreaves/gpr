@@ -1,10 +1,11 @@
 # Stock rebuild requirement ledger
 
-Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
-Published source/evidence verification: `779bb47` (all seven hosted jobs pass in
-[run 41164329487](https://github.com/dcliftreaves/gpr/actions/runs/41164329487)).
-The shared Python GainMap simulation helper also has focused Mac/Pi and real-camera receipts.
-New timing evidence below does not change production source.
+Audit date: 2026-10-31. The latest SDK CLI parameter-import correction is
+`170802d`, with all seven hosted jobs passing in
+[run 41175893067](https://github.com/dcliftreaves/gpr/actions/runs/41175893067).
+The earlier `779bb47` source/evidence verification and shared Python GainMap
+simulation helper retain their focused Mac/Pi and real-camera receipts.
+New timing evidence below does not change encoder/capture source.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
 is implemented in `f197f09`.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
@@ -12,25 +13,32 @@ Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
 [eight-group audit](stock-feature-parity-audit.md). Older receipts remain bound
 to their recorded revisions; this ledger does not retimestamp their evidence.
 
+Generated receipts are consolidated in the [evidence archive](stock-evidence/README.md),
+with exact Git-object comparisons, per-file hashes, readable immutable links
+and an offline verifier/restoration command. This corrects the reviewability
+problem of roughly 688,000 added lines dominated by loose generated receipts.
+The archive change needs its own package and hosted checks; `170802d` is the
+preceding verified source revision, not a hosted result for this change.
+
 ## Requirements and evidence
 
 | Requirement | Evidence inspected | Disposition |
 |---|---|---|
 | Separate branch and reviewable fork PR; preserve old PRs | `feature/stock-raw-media-runtime`; fork [draft #101](https://github.com/dcliftreaves/gpr/pull/101). GitHub reports fork #95/#96 and upstream #71/#72 open, with unchanged frozen head identities | Delivered. No upstream replacement promotion or old-PR closure |
-| Build on stock encoder/#99/#100 | Foundation `d3d96ec`; historical payload/pixel comparisons in [core still receipts](stock-core-receipts/stills-mac.json), replay and [encoder evidence](stock-encoder-sub100.md) | Implemented and measured. Compatibility applies to checked codec profiles, not every container/editor |
+| Build on stock encoder/#99/#100 | Foundation `d3d96ec`; historical payload/pixel comparisons in [core still receipts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/stills-mac.json), replay and [encoder evidence](stock-encoder-sub100.md) | Implemented and measured. Compatibility applies to checked codec profiles, not every container/editor |
 | Broad stills and explicit compression choice | Four CFA layouts, 12/14/16-bit counts, packed-12 SDK support; `bayer_formats`, `raw_media`, `stock_still`; [presets](stock-still-quality.md) | Implemented. Historical stock log transform remains lossy |
-| Original large-image/X2D case | [X2D receipt](stock-still-quality-receipts/mac-x2d-3265.json): 11664x8750 RGGB16, independent source decode, six presets, three repeats | Verified on one real 102 MP source. Broader corpus not established |
+| Original large-image/X2D case | [X2D receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-still-quality-receipts/mac-x2d-3265.json): 11664x8750 RGGB16, independent source decode, six presets, three repeats | Verified on one real 102 MP source. Broader corpus not established |
 | Supported calibration and editable RAW | Typed image/EXIF/GPS/opcode records, decoded DNG/GPR count identities and source hashes; [contract](stock-editable-raw.md), `raw_media`, `stock_still`, real export/native integration receipts | Implemented within documented tag/opcode boundaries. General editor/lens compatibility is not established |
 | Bounded recording lifecycle | Public C/C++ API; `capture_lifecycle`, `capture_c_api`; [contract](stock-capture-api.md) | Copies/leases, backpressure, asynchronous writes, cancellation, flush/finish and latched errors implemented. Sensor/DMA/storage adapters unverified |
 | Checked RAW-video framing/recovery | `gvid3_conformance`, `gvid2_compatibility`, `video_format_matrix`; [contract](stock-capture-api.md) | Actual PTS, source/frame calibration, CRC/END3 and explicit prefix recovery implemented. Old fused GVID is a different profile |
 | Full-frame calibrated 1024x768 preview without camera CNN | Independent fixtures and 192-case plan/plane comparisons; preview/capture tests; [Pi evidence](stock-capture-preview.md) | Implemented. Quarter-scale encoder-derived route optional. Memory sink tested; rear-display integration unverified |
-| Relevant end-to-end Pi correctness/performance | Exact real-source replay; 600 recorded/previewed frames; [sustained receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json), [arena follow-up](stock-core-receipts/mission1-pi5-encoder-arena-600.json) | Correctness verified. Latest [fixed FIFO profile](stock-process-scheduling.md) passes two 600-frame validations at 20.0056/20.0065 durable fps with no late writes/previews. The later [native 12 MP GoPro repeats](stock-native12-gopro-timing.md) both fail combined timing (600/570 accepted; 223/570 late previews), while all accepted bytes/calibration/previews remain exact. Broader reproducibility remains open; earlier receipts retain their results |
-| Exact MOV, large files, PCM/timecode | `stock_mov`; [contract](stock-mov.md), 4.42 GB boundary receipt, [real A/V receipt](stock-av-receipts/real-core.json) | Implemented for declared private stock profiles. Exact recovery does not imply standard CFHD or universal editor support |
-| Calibrated deep ProRes/editable outputs | `stock_prores`; [contract](stock-prores.md), real 120-frame outputs and [native integration](stock-native-receipts/real-integration.json) | Implemented on macOS with optional CNN and audio/timecode. Broader rendered look/motion approval open |
+| Relevant end-to-end Pi correctness/performance | Exact real-source replay; 600 recorded/previewed frames; [sustained receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-preview-600.json), [arena follow-up](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-arena-600.json) | Correctness verified. Latest [fixed FIFO profile](stock-process-scheduling.md) passes two 600-frame validations at 20.0056/20.0065 durable fps with no late writes/previews. The later [native 12 MP GoPro repeats](stock-native12-gopro-timing.md) both fail combined timing (600/570 accepted; 223/570 late previews), while all accepted bytes/calibration/previews remain exact. Broader reproducibility remains open; earlier receipts retain their results |
+| Exact MOV, large files, PCM/timecode | `stock_mov`; [contract](stock-mov.md), 4.42 GB boundary receipt, [real A/V receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/real-core.json) | Implemented for declared private stock profiles. Exact recovery does not imply standard CFHD or universal editor support |
+| Calibrated deep ProRes/editable outputs | `stock_prores`; [contract](stock-prores.md), real 120-frame outputs and [native integration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native-receipts/real-integration.json) | Implemented on macOS with optional CNN and audio/timecode. Broader rendered look/motion approval open |
 | Optional FFmpeg decoder equivalent | Pinned n8.0 adapter; twelve CFA/depth checks, fixtures, malformed configuration and conversion on Mac/Pi/hosted Linux; [contract](stock-ffmpeg-decoder.md) | Implemented as an explicit patched build. Bayer output is not calibrated color rendering |
 | Portable offline 1x cleanup and 2x/8K inference | Eight `stock_cnn_test.py` contracts; [runtime](stock-cnn-portable.md), editable media and separate lossy re-encoding identities | Implemented for the declared RGGB14 family, explicit caller weights and optional repository 1x/2x research candidates. Broader codec formats do not widen model support |
 | Original native desktop backend capability | Core ML, MPSGraph, custom Metal hybrid; `stock_coreml_test.py`, `stock_metal_test.py`, `stock_native_test.py`; [runtime](stock-native-runtime.md) | Implemented, including standalone host processing without Torch/NumPy runtime. Explicit numeric tolerances; historical monolithic CLI syntax not retained |
-| High-level UPRESABLE modes/media chain | `stock_upres_test.py`, `stock_sequence_test.py`; [workflow](stock-upres-workflow.md), real Mac native and [Pi receipt](stock-upres-receipts/pi5-real-captured.json) | Timelapse/regression/both implemented through analysis workflows. Captured-GPR timelapse additionally has a standard-library native path. Native simulation/regression uses the analysis workflow |
+| High-level UPRESABLE modes/media chain | `stock_upres_test.py`, `stock_sequence_test.py`; [workflow](stock-upres-workflow.md), real Mac native and [Pi receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-upres-receipts/pi5-real-captured.json) | Timelapse/regression/both implemented through analysis workflows. Captured-GPR timelapse additionally has a standard-library native path. Native simulation/regression uses the analysis workflow |
 | Real Pi reconstruction correctness/cost | Two 4096x3072 captures become 8192x6144 GPR/GVID/MOV; final payloads checked against independent historical encoder, editable pixels/calibration verified | Earlier candidate verified offline: 114.24 s total, 57.12 s/frame. The later [supplied diagnostic](stock-sr-source-regions.md) separately verifies 50 MP editable output/count agreement at 86.29–99.89 s/frame inference. Neither result is real-time CNN or sensor ground truth |
 | Compatible checkpoints and stock-input quality validation | Architecture/domain/hash checks; source-grouped training and frozen evaluations in [1x](stock-cleanup-training.md) and [2x](stock-sr-training.md); legacy transfer also evaluated | A separately frozen [half-strength 1x candidate](stock-cleanup-strength.md) passes validation and the declared four-reference numeric guard (+0.639 dB pooled active PSNR), with Pi execution checked. The earlier full-strength 1x and stronger earlier 2x failures remain recorded. The later [source-wide 2x diagnostic](stock-sr-source-regions.md) passes patch/full-image/four-reference CPU/MPS numeric guards, but pooled gain is only +0.00729 dB. Broader visual/temporal/restored-tier promotion remains open |
 | Original compact restored-tier claims | Six measured stock presets and explicit model/final decoded metrics | Old size/quality approvals do not transfer. No replacement restored tier or temporal/perceptual model approval |
@@ -158,7 +166,7 @@ Hosted `f332e07` initially fails native CTest because the explicit CI build
 list omits the newly registered wavelet-queue executable. The [workflow
 integration correction](stock-preview-colors.md#ci-target-integration) adds it
 and retains failure logs; all seven hosted checks pass at correction `40aa476`
-([receipt](stock-preview-color-receipts/ci-integration/passed-40aa476.json)).
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-color-receipts/ci-integration/passed-40aa476.json)).
 The local 27 Mac/24 Pi source checks and package evidence are unchanged.
 
 The [exact packed gamma-table experiment](stock-packed-gamma.md) reduces the
@@ -182,7 +190,7 @@ Eight-row standalone comparisons are slower; 32-row chunks still fail to
 establish a consistent benefit. Both prototypes are rejected and local tracked
 source is restored. Production and the strict timing gate remain unchanged.
 All seven hosted jobs pass at `a00ae4a`
-([receipt](stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/passed-a00ae4a.json)); later evidence
 commits need their own hosted results.
 
 A [current-executable preview priority control](stock-current-priority.md)
@@ -197,7 +205,7 @@ including guard boundaries, and all 492 independent real-input payloads, but
 64-bit word and 128-bit NEON variants are slower than both scalar controls on
 both inputs. Both are rejected without proceeding to capture timing. Prototype
 source is restored. All seven hosted checks pass at `950deda`
-([receipt](stock-current-priority-receipts/passed-950deda.json)); later evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-current-priority-receipts/passed-950deda.json)); later evidence
 commits require their own results. Production/model behavior is unchanged.
 
 Two [latency diagnostics](stock-latency-trace.md) preserve all 1,198 accepted
@@ -209,7 +217,7 @@ are instrumented attribution results, not acceptance timing. A subsequent
 proposal is rejected. The best default control still misses four writes/seven
 previews. Production and unresolved quality/timing gates are unchanged. All
 seven hosted checks pass at `6efc5bd`
-([receipt](stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
+([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/passed-6efc5bd.json)); newer evidence
 commits require their own hosted results.
 
 [Kernel scheduler/workqueue attribution](stock-kernel-scheduler.md) identifies
@@ -221,7 +229,7 @@ zero late deliveries. An earlier same-profile run still fails (4 late writes,
 250 late previews), so this is a scoped floor demonstration, not blanket
 reproducibility or default-scheduler approval. No boot/device/global scheduling
 setting, codec source or model is changed. All seven hosted jobs pass at
-`cade228` ([receipt](stock-scheduler-receipts/passed-cade228.json)); new evidence
+`cade228` ([receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-scheduler-receipts/passed-cade228.json)); new evidence
 heads need their own checks. Broader timing and model-quality gates remain open.
 
 The [CNN tactics audit](stock-cnn-tactics.md) checks the old selected preclean/detail/coordinate recipe, structure losses and checkpoint interpolation against primary research. A new validation-only spatial gate improves full-validation gain from +0.02782 to +0.08716 dB without regional regressions. It is frozen for further evaluation, has no final/native approval and does not replace the supplied model. Reproducing the specialized older training recipe remains an explicit quality task.

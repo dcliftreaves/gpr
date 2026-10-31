@@ -7,7 +7,7 @@ spacing. This experiment does not close the sustained timing gate.
 
 ## Rationale and implementations
 
-The [current sampled assembly](stock-channel-balance-receipts/sampled/entropy-assembly.txt)
+The [current sampled assembly](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/sampled/entropy-assembly.txt)
 shows substantial local sample weight in the scalar zero-run search inside
 incremental highpass encoding. The hypothesis is to skip all-zero coefficient
 groups with fewer loop iterations while leaving VLC packing and pending run
@@ -68,11 +68,11 @@ lengths and preserve the existing cheap nonzero/short-run paths.
 
 ## Reproduction and restoration
 
-[Build commands, proofs and identities](stock-zero-scan-receipts/builds.json),
-[standalone protocol](stock-zero-scan-receipts/standalone/protocol.json),
-[verified results](stock-zero-scan-receipts/standalone/receipt.json),
-[Pi build driver](stock-zero-scan-receipts/build.py) and
-[measurement driver](stock-zero-scan-receipts/benchmark-standalone.py)
+[Build commands, proofs and identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-zero-scan-receipts/builds.json),
+[standalone protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-zero-scan-receipts/standalone/protocol.json),
+[verified results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-zero-scan-receipts/standalone/receipt.json),
+[Pi build driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-zero-scan-receipts/build.py) and
+[measurement driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-zero-scan-receipts/benchmark-standalone.py)
 retain the exact scope. The receipt directory contains raw samples, test logs,
 per-variant entropy disassembly, the private patch/header and proof/benchmark
 sources. Apply `prototype.patch` to `950deda`, put `zero_scan.h` in

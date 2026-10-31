@@ -81,13 +81,13 @@ For MPSGraph/hybrid, select the corresponding `--native-backend`, the exported
 Metal directory and `--native-kernels` pointing to `gpr_stock.metallib` adjacent
 to the native executable. See the exact archived commands for each case.
 
-[Exports](stock-sr-native-receipts/exports.json),
-[execution protocol](stock-sr-native-receipts/protocol.json),
-[twelve-case receipt](stock-sr-native-receipts/native-check.json),
-[quality protocol](stock-sr-native-receipts/quality-protocol.json),
-[24-reference receipt](stock-sr-native-receipts/quality.json),
-[execution driver](stock-sr-native-receipts/run-native.py) and
-[quality driver](stock-sr-native-receipts/run-quality.py) retain exact evidence.
+[Exports](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/exports.json),
+[execution protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/protocol.json),
+[twelve-case receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/native-check.json),
+[quality protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/quality-protocol.json),
+[24-reference receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/quality.json),
+[execution driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/run-native.py) and
+[quality driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-native-receipts/run-quality.py) retain exact evidence.
 Drivers record original installation/data paths; copy them to a fresh output
 root and adapt paths when reproducing, regenerating bindings rather than
 replacing historical receipts. Native packages, source images and full DNG

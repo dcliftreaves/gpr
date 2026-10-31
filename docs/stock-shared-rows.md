@@ -45,15 +45,15 @@ background workloads are left unchanged; this is not a thermal-control study.
 
 ## Reproduction and evidence
 
-[Summary](stock-shared-row-receipts/summary.json),
-[eight-row protocol](stock-shared-row-receipts/eight-row/protocol.json),
-[eight-row measurements](stock-shared-row-receipts/eight-row/receipt.json),
-[prototype patch](stock-shared-row-receipts/eight-row/prototype.patch),
-[driver](stock-shared-row-receipts/eight-row/run.py),
-[diagnostic protocol](stock-shared-row-receipts/diagnostic/protocol.json),
-[diagnostic measurements](stock-shared-row-receipts/diagnostic/receipt.json),
-[instrumented patch](stock-shared-row-receipts/diagnostic/prototype.patch) and
-[diagnostic driver](stock-shared-row-receipts/diagnostic/run.py) retain source,
+[Summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/summary.json),
+[eight-row protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/eight-row/protocol.json),
+[eight-row measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/eight-row/receipt.json),
+[prototype patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/eight-row/prototype.patch),
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/eight-row/run.py),
+[diagnostic protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/diagnostic/protocol.json),
+[diagnostic measurements](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/diagnostic/receipt.json),
+[instrumented patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/diagnostic/prototype.patch) and
+[diagnostic driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-shared-row-receipts/diagnostic/run.py) retain source,
 binary, input/output identities and full logs. Both patches apply to `b9d1c36`;
 reconstructed file hashes match the respective measured protocols. Apply in a
 separate checkout, configure Release with parallel channels, build

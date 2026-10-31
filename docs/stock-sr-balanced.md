@@ -7,17 +7,17 @@ is unchanged. Guards are not relaxed to convert an aggregate gain into a pass.
 
 ## Existing candidate, reduced strength
 
-A [preregistered family](stock-sr-balanced-receipts/rejected-unweighted-protocol.json)
+A [preregistered family](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/rejected-unweighted-protocol.json)
 tests strengths `1, 1/2, …, 1/65536` for the frozen fresh-trained checkpoint
 `3a6fa544…`. It reproduces the original identity-bicubic and full-strength
 validation MSE exactly. All 17 strengths regress in pooled shadows and in both
 validation groups' shadows. Even the smallest strength changes 858 validation
 samples and fails. No strength qualifies; no further final-reference evaluation
-is performed for that family. [Complete selection](stock-sr-balanced-receipts/rejected-unweighted-selection.json).
+is performed for that family. [Complete selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/rejected-unweighted-selection.json).
 
 ## Fresh shadow-weighted model
 
-The next [protocol](stock-sr-balanced-receipts/protocol.json) is recorded before
+The next [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/protocol.json) is recorded before
 training: the same source-grouped RGGB14/Q3 scale-two dataset, fresh seed
 20261030, width 16/depth 3 `F_ane`, training residual scale 0.01, 3000 steps,
 batch eight, AdamW learning rate 0.0003 and validation every 100 steps. The
@@ -30,7 +30,7 @@ then applies the unchanged exact regional guard on validation only. Eleven
 strengths qualify; **1/16 strength** wins among them, residual scale 0.000625,
 MSE **8629.5223**, only **+0.068 dB** over clipped per-plane bicubic.
 
-The [freeze receipt](stock-sr-balanced-receipts/frozen.json) binds selected
+The [freeze receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/frozen.json) binds selected
 checkpoint `2c9abcf944fbb01eb7e12552957db298771ae4ed04d24e294a4c9163f0577d06`
 before the next four-reference evaluation. Final pixels do not select another
 strength, and no retuning follows the failed results below.
@@ -49,24 +49,24 @@ for promotion. It remains an external research artifact.
 Both independent source decoders agree. Low stock-Q3 decoded inputs and full
 reference RAW hashes match the prior study exactly; editable model counts and
 transformed supported calibration are independently checked. The
-[split audit](stock-sr-balanced-receipts/split-audit.json) confirms exact source
+[split audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/split-audit.json) confirms exact source
 identity/RAW separation and no test patches. Historical references have already
 appeared in earlier studies; they are not newly unseen data. Perceptual
 near-duplicates, wider cameras, sensor footage and temporal quality are not
 established. Simulated low inputs use same-site rounded 2x2 averaging before
 actual stock-Q3 encode/decode, not a sensor or the old fused decimator.
 
-[Training](stock-sr-balanced-receipts/training.json),
-[binding](stock-sr-balanced-receipts/training-binding.json),
-[validation selection](stock-sr-balanced-receipts/selection.json),
-[final summary](stock-sr-balanced-receipts/final-summary.json) and the individual
-[0001](stock-sr-balanced-receipts/final-0001.json),
-[0067](stock-sr-balanced-receipts/final-0067.json),
-[5323](stock-sr-balanced-receipts/final-5323.json) and
-[6693](stock-sr-balanced-receipts/final-6693.json) results retain the failures.
-The [original-model selector](stock-sr-balanced-receipts/run-unweighted-selection.py),
-[fresh-model selector](stock-sr-balanced-receipts/run-selection.py) and
-[final driver](stock-sr-balanced-receipts/run-final.py) identify the measured
+[Training](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/training.json),
+[binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/training-binding.json),
+[validation selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/selection.json),
+[final summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/final-summary.json) and the individual
+[0001](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/final-0001.json),
+[0067](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/final-0067.json),
+[5323](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/final-5323.json) and
+[6693](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/final-6693.json) results retain the failures.
+The [original-model selector](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/run-unweighted-selection.py),
+[fresh-model selector](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/run-selection.py) and
+[final driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-balanced-receipts/run-final.py) identify the measured
 installation and external data/model paths. Training uses the existing recipe
 with the protocol parameters; final evaluation is skipped if validation has
 no eligible nonzero candidate.

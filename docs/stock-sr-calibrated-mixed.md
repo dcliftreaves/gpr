@@ -55,7 +55,7 @@ are byte-identical to the initial arrays. Coordinates, black/white levels
 and AsShotNeutral consumed by the completed training run are also unchanged.
 That run's approximate loss does not consume baseline exposure or analog
 balance, so its results are reused with the
-[explicit carrier proof](stock-sr-calibrated-receipts/camera-data-v2/carrier-proof.json),
+[explicit carrier proof](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/camera-data-v2/carrier-proof.json),
 not relabelled as a rerun. Future actual rendering uses the corrected metadata.
 
 Thirty-two patches per non-test source produce **896 training and 192 camera
@@ -63,9 +63,9 @@ validation patches**. An independent audit verifies every input/target crop
 against the complete cached source and decoded stock low, including absolute
 coordinates and all four Bayer sites. Eight historical-test sources have
 zero patches; their bytes are hashed but never decoded into the patch arrays.
-The [pair audit](stock-sr-calibrated-receipts/camera-data/pair-audit.json)
+The [pair audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/camera-data/pair-audit.json)
 binds all 1,088 pairs. Arrays, DNGs and original metadata files remain external.
-The [corrected pair audit](stock-sr-calibrated-receipts/camera-data-v2/pair-audit.json)
+The [corrected pair audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/camera-data-v2/pair-audit.json)
 independently checks all 1,088 regenerated pairs as well.
 
 ## CLI gain-map correction and verification
@@ -83,7 +83,7 @@ checks both decoded pixels and complete opcode bytes exactly. It covers
 
 The five-method still suite and focused `sdk_c_api`, `raw_media`, `stock_still`
 CTest targets pass on Mac and Pi 5. Final source/binary hashes and logs are in
-the [validation receipt](stock-sr-calibrated-receipts/validation/receipt.json).
+the [validation receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/validation/receipt.json).
 The Pi capture executable remains byte-identical at `c576f566…`; only the
 CLI parameter-reader source and regression test are copied, and only
 `gpr_tools` is rebuilt on Pi. No capture scheduling or system setting changes.
@@ -150,10 +150,10 @@ not an update to the previously frozen boundary/gate diagnostic.
 
 ## Reproducibility and remaining scope
 
-The [delivery audit](stock-sr-calibrated-receipts/audit.json) independently
+The [delivery audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/audit.json) independently
 recomputes every checkpoint's RAW/proxy verdict and gain, checks checkpoint
 hashes/metadata, dataset hashes, source counts, affine roundtrips and baseline
-agreement. The [manifest](stock-sr-calibrated-receipts/manifest.json) binds
+agreement. The [manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-calibrated-receipts/manifest.json) binds
 protocols, code, source-calibration summaries, training results, the actual
 CLI failure and Mac/Pi validation. Source photos, arrays and model weights
 are not uploaded.

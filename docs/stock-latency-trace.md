@@ -78,20 +78,20 @@ remain false, and normal compute plus reconstruction/rendering still consumes
 much of the 50 ms budget. Removing a rare scheduling stall alone would not
 establish a production floor or broader model-quality approval.
 
-![File-logged diagnostic wall and CPU timings](stock-latency-trace-receipts/file-trace.png)
+![File-logged diagnostic wall and CPU timings](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/file-trace.png)
 
-The [plot source](stock-latency-trace-receipts/plot-trace.py) reads the archived
+The [plot source](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/plot-trace.py) reads the archived
 correlations directly; its optional plotting dependencies are recorded in
-[the environment receipt](stock-latency-trace-receipts/plot-environment.json).
+[the environment receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/plot-environment.json).
 
 ## Evidence and next investigation
 
-[Pipe-run protocol](stock-latency-trace-receipts/trace/protocol.json),
-[verification](stock-latency-trace-receipts/trace/receipt.json),
-[file-run protocol](stock-latency-trace-receipts/trace-file/protocol.json),
-[verification](stock-latency-trace-receipts/trace-file/receipt.json),
-[frame correlations](stock-latency-trace-receipts/trace-file/correlation.json) and
-[worker summary](stock-latency-trace-receipts/file-worker-summary.json)
+[Pipe-run protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/trace/protocol.json),
+[verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/trace/receipt.json),
+[file-run protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/trace-file/protocol.json),
+[verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/trace-file/receipt.json),
+[frame correlations](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/trace-file/correlation.json) and
+[worker summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-latency-trace-receipts/file-worker-summary.json)
 retain the identities and complete observations. The directory includes the
 patch, build/test logs and both replay/analysis drivers. Apply the patch to
 `6efc5bd`, use the archived build commands, adapt input/install paths and choose

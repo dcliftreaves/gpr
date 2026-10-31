@@ -93,16 +93,16 @@ positive (+0.04142 dB), which does not override those failures. The candidate
 is not supplied or promoted, and no strength is selected using these final
 results. This exposes generalization rather than a CPU/MPS-only discrepancy.
 
-[Training protocol](stock-sr-signal-receipts/protocol.json),
-[all patch results](stock-sr-signal-receipts/training.json),
-[complete-image family](stock-sr-signal-receipts/full-protocol.json),
-[selection](stock-sr-signal-receipts/full-selection.json),
-[freeze](stock-sr-signal-receipts/frozen.json),
-[final protocol](stock-sr-signal-receipts/final-protocol.json),
-[CPU/MPS results](stock-sr-signal-receipts/final-summary.json) and
-[snapshot audit](stock-sr-signal-receipts/snapshot-audit.json) retain the result.
-The calibration [audit](stock-sr-signal-receipts/calibration-audit.json) and
-[protocol](stock-sr-signal-receipts/calibration-protocol.json) exclude final
+[Training protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/protocol.json),
+[all patch results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/training.json),
+[complete-image family](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/full-protocol.json),
+[selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/full-selection.json),
+[freeze](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/frozen.json),
+[final protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/final-protocol.json),
+[CPU/MPS results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/final-summary.json) and
+[snapshot audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/snapshot-audit.json) retain the result.
+The calibration [audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/calibration-audit.json) and
+[protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-signal-receipts/calibration-protocol.json) exclude final
 pixels and metadata from the initial audit.
 
 The [actual GoPro-source audit](stock-sr-mission-sources.md) separately finds

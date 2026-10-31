@@ -1,8 +1,0 @@
-{"source": "GP011728.GPR", "scale": 1, "gain_db": 0.4978558382625451, "regressions": [], "inference_s": 0.398132167}
-{"source": "GPAB1094.GPR", "scale": 1, "gain_db": 0.548515555742398, "regressions": [], "inference_s": 0.1934139589999999}
-Traceback (most recent call last):
-  File "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/evaluate_stock_cnn_supplied_gopro.py", line 27, in <module>
-    lowmeta,omitted=benchmark_stock_sr.simulation_metadata(meta)
-  File "/Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-raw-media-runtime/tools/benchmark_stock_sr.py", line 55, in simulation_metadata
-    raise ValueError('simulation requires no nonempty stage-1/2 opcode list')
-ValueError: simulation requires no nonempty stage-1/2 opcode list

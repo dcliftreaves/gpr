@@ -1,8 +1,0 @@
-{
-  "python": "/mnt/ssd/gpr_work/pr-human-test-env-20261011/bin/python",
-  "reason": "System Python lacks NumPy; use existing project environment",
-  "initial_passed": 21,
-  "initial_failed_setup": 3,
-  "rerun_passed": 3,
-  "binary_unchanged_sha256": "aab02a45991026789f4bd1e45622206d2b3a8d1a7de0d21a506ec5ea323bbbe0"
-}

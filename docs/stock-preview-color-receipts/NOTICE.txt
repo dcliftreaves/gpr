@@ -1,1 +1,0 @@
-Source extracts and the prior queue implementation retain the repository Apache-2.0 OR MIT licensing. LICENSE-MIT is provided alongside the reproduction files. Experimental diagnostics/macros and benchmark targets are not part of the retained implementation.

@@ -47,11 +47,11 @@ weights. Global count distortion is computed against the archived RAW count
 reference; original GPRs are not freshly decoded and no per-frame calibration
 claim is made for this control.
 
-[Transfer protocol](stock-old-sr-transfer-receipts/protocol.json),
-[transfer result](stock-old-sr-transfer-receipts/summary.json),
-[matched control protocol](stock-old-sr-transfer-receipts/legacy-control-protocol.json),
-[control result](stock-old-sr-transfer-receipts/legacy-control.json) and
-[manifest](stock-old-sr-transfer-receipts/manifest.json) preserve identities,
+[Transfer protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-old-sr-transfer-receipts/protocol.json),
+[transfer result](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-old-sr-transfer-receipts/summary.json),
+[matched control protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-old-sr-transfer-receipts/legacy-control-protocol.json),
+[control result](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-old-sr-transfer-receipts/legacy-control.json) and
+[manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-old-sr-transfer-receipts/manifest.json) preserve identities,
 metrics, limitations and source. The old runtime modules are retained as
 analysis evidence, not added as an installed production backend. Large
 outputs and the old checkpoint remain external under

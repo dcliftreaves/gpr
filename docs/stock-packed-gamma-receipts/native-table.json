@@ -1,6 +1,0 @@
-{
-  "bytes": 8192,
-  "sha256": "56560edeeb5dfc253873e06898d3e00f33b9c3c164dd28f94dda0e3b0e37b991",
-  "expected": "56560edeeb5dfc253873e06898d3e00f33b9c3c164dd28f94dda0e3b0e37b991",
-  "scope": "Mac compiled exhaustive lookup test; see mac-tests.log and preview_srgb_test.cpp"
-}

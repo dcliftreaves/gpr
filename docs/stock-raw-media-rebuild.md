@@ -19,6 +19,10 @@ The old suite's approved results describe its old codec/model pairings.
 Historical evidence remains historical. Porting an interface or model loader
 does not establish parity, quality, performance, or camera deployment.
 
+Generated receipts are now retained in a [verified evidence archive](stock-evidence/README.md).
+Guides link to readable immutable copies; local and installed packages can
+restore the original paths without downloading anything.
+
 ## Current delivery priority (2026-10-29)
 
 Finish a usable end-to-end path before expanding support at every stage.
@@ -99,7 +103,7 @@ preview. On Pi this reduces current capture-to-sink p95 from 96.50 ms to
 46.07 ms in a 600-frame replay, with all frames/pixels exact. Four late previews,
 five late writes and final storage flush still fail the strict sustained gate;
 `--require-floor` correctly returns status 2. See the
-[current Pi receipt](stock-core-receipts/mission1-pi5-encoder-preview-600.json).
+[current Pi receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-encoder-preview-600.json).
 
 The reference app must honor `GPR_BENCH_QUALITY`; the historical codec may be
 instrumented at the sample-app boundary without changing its encoder. Repeat
@@ -134,12 +138,12 @@ All four relocated local package profiles pass. The full installed package's
 capture, preview/compiler and SDK binaries have exactly the hashes used by
 these measurements. The configured local Release suite passes 21/21; seven
 optional CPU/Torch workflow contracts pass without trained weights. Exact
-receipts: [Mission 1 replay](stock-core-receipts/mission1-mac.json),
-[stills](stock-core-receipts/stills-mac.json),
-[packages](stock-core-receipts/packages-mac.json),
-[Release checks](stock-core-receipts/release-tests.txt),
-[optional CNN contracts](stock-core-receipts/cnn-contracts.txt) and
-[source/reference identity](stock-core-receipts/validation.json).
+receipts: [Mission 1 replay](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-mac.json),
+[stills](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/stills-mac.json),
+[packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/packages-mac.json),
+[Release checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/release-tests.txt),
+[optional CNN contracts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/cnn-contracts.txt) and
+[source/reference identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/validation.json).
 
 Using that relocated full package, the actual 120-frame recording passes an
 exact GVID/MOV/GVID round trip. Two exported editable DNG/GPR frames retain
@@ -148,7 +152,7 @@ independent decoder and the SDK. The complete private MOV then renders to
 4096x3072 ProRes HQ: all 120 frames pass timing/color/profile checks and a full
 independent FFmpeg decode. The single functional export takes 61.22 s before
 publication and produces 682,542,583 bytes; this is offline processing, not
-real-time ProRes. [Export receipt](stock-core-receipts/exports-mac.json).
+real-time ProRes. [Export receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/exports-mac.json).
 
 The subsequent [streaming ProRes follow-up](stock-prores.md#bounded-image-scratch-2026-10-29)
 removes the accumulated TIFF pool. The same 120-frame clip now peaks at
@@ -204,9 +208,9 @@ delivery exceeds the strict 50 ms deadline, and the 699.85 ms final fsync
 again prevents the durable-average gate from passing. This is a useful
 reduced-preview fallback, not evidence that the 1024x768 requirement is met.
 The runs use a memory CRC sink and do not establish sensor, display, card or
-thermal behavior. Exact receipts: [current parallel/fused 1024x768](stock-core-receipts/mission1-pi5-parallel-preview.json),
-[prior 1024x768 baseline](stock-core-receipts/mission1-pi5-s4.json) and
-[512x384 baseline](stock-core-receipts/mission1-pi5-s8.json).
+thermal behavior. Exact receipts: [current parallel/fused 1024x768](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-parallel-preview.json),
+[prior 1024x768 baseline](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-s4.json) and
+[512x384 baseline](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-pi5-s8.json).
 
 ## Current task and evidence matrix
 
@@ -240,14 +244,14 @@ workspace peaks at 97,936,896 bytes with zero fallback allocation in both runs;
 combined process peak RSS is 585,891,840 bytes. These are measured replay
 figures, not a camera memory budget or a sustained thermal qualification.
 
-[Full receipt](stock-core-receipts/mission1-minute-mac.json) and
-[package/source validation](stock-core-receipts/mission1-minute-validation.json)
+[Full receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-minute-mac.json) and
+[package/source validation](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-minute-validation.json)
 bind the results to installed binaries. This extends the six-second evidence
 without replacing the actual camera, Pi, display, SD or temporal gates. The
 different encode medians between these single runs are not evidence that
 enabling preview accelerates encoding.
 
-Read-only [PR status checks](stock-core-receipts/preserved-prs.json) confirm
+Read-only [PR status checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/preserved-prs.json) confirm
 fork #95/#96/#100 and upstream #71/#72 remain open on their original bases.
 No remote PR mutation, source upload or publication was performed.
 
@@ -257,10 +261,10 @@ Historical platform receipts remain bound to their recorded revisions.
 
 | Task | Current progress and authoritative evidence | Still open |
 |---|---|---|
-| Optimized stock encoder | Streaming/parallel/NEON foundation implemented; [Pi latency evidence](stock-encoder-sub100.md), [fresh exact still payload/pixel comparisons](stock-core-receipts/stills-mac.json), [240 exact replay payloads](stock-core-receipts/mission1-mac.json) | Universal latency guarantees; actual camera execution |
+| Optimized stock encoder | Streaming/parallel/NEON foundation implemented; [Pi latency evidence](stock-encoder-sub100.md), [fresh exact still payload/pixel comparisons](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/stills-mac.json), [240 exact replay payloads](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/mission1-mac.json) | Universal latency guarantees; actual camera execution |
 | Broad RAW still formats | Four CFA phases, 12/14/16-bit words and legacy packed-12 supported; [format/conformance scope](stock-still-formats.md) | Broader real-camera fixtures and metadata cases; stock log precision remains lossy |
-| Still presets/workflow | Six explicit presets, validated source calibration and editable DNG/GPR; [36 fresh pairs on two lossless sources](stock-core-receipts/stills-mac.json) | Restored-tier/model quality selection; no inherited old-tier approval |
-| Calibration/editable RAW | Typed supported calibration, EXIF/GPS/opcodes and per-frame precedence implemented; [contracts](stock-editable-raw.md), [independent core export pixels/calibration](stock-core-receipts/exports-mac.json) | Unsupported metadata/lens operations and broader reader interoperability |
+| Still presets/workflow | Six explicit presets, validated source calibration and editable DNG/GPR; [36 fresh pairs on two lossless sources](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/stills-mac.json) | Restored-tier/model quality selection; no inherited old-tier approval |
+| Calibration/editable RAW | Typed supported calibration, EXIF/GPS/opcodes and per-frame precedence implemented; [contracts](stock-editable-raw.md), [independent core export pixels/calibration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/exports-mac.json) | Unsupported metadata/lens operations and broader reader interoperability |
 | Bounded capture API | Ownership, leases, backpressure, cancellation, flush and writer failures implemented; [capture contract](stock-capture-api.md) | Physical sensor/DMA/storage adapter integration |
 | Checked recording/recovery | Actual timestamps, CRC metadata/payloads, END3 and explicit prefix recovery implemented; [recording contract](stock-capture-api.md) | Live sensor/card interruption and durability evidence |
 | Native calibrated preview | Immutable plans, source color/GainMaps/orientation and bounded queue implemented; [preview contract](stock-calibrated-preview.md), [combined path](stock-capture-preview.md). Independent color checks now cover all twelve CFA/depth combinations and 576 configurations on Mac/Pi; [retained validation and rejected register experiment](stock-preview-register-experiment.md) | Rear-display backend and broader lens/look/temporal approval |
@@ -270,12 +274,12 @@ Historical platform receipts remain bound to their recorded revisions.
 | Native Core ML inference | Optional 1x/2x residual execution, float32 default/experimental float16, checkpoint/package identity checks, four unit settings and still/GVID/ProRes integration implemented; [contract and receipts](stock-coreml.md). A standalone no-Torch option is available through the native runtime | Per-operation Core ML device-placement proof; model/temporal approval; Python and standalone host arithmetic can differ at floating-point boundaries |
 | Direct MPSGraph/Metal hybrid | Original residual engines ported with checked fp16 exports, bounded context reuse and current host baseline/scale math. Both scales/engines and media workflows pass; real 12 MP to 8192x6144 hybrid upres reaches stock GPR/GVID/MOV and calibrated ProRes. [Contract and receipts](stock-metal.md) | Native fp16 is not bit-identical to Torch (real maximum 8/7 counts); cold-start/sustained timing, model and temporal approval remain open |
 | Standalone native host/runtime | Objective-C++ raw executable, scalar/NEON float32 host kernels, explicit 1x/2x artifacts, and standard-library still/GVID/captured-timelapse/direct-ProRes paths run without Torch/NumPy/Core ML Tools. [Contracts and receipts](stock-native-runtime.md) | Historical monolithic CLI syntax is not retained. Native simulation/combined/regression analysis still requires the analysis workflow. Numerical agreement does not approve models or motion |
-| UPRESABLE orchestration | Timelapse/regression/both, explicit presets/checkpoint, half-capture simulation or original captured-GPR input, full stock GPR, exact GVID/MOV and optional DNG/ProRes implemented. Two real 12 MP Pi captures produce independently verified 8192x6144 outputs at 57.12 s/frame offline; [contract](stock-upres-workflow.md), [Mac receipt](stock-upres-receipts/mac.json), [Pi receipt](stock-upres-receipts/pi5.json), [real Pi receipt](stock-upres-receipts/pi5-real-captured.json). Native accelerated captured-GPR timelapse also passes on Mac | Broader scene/motion quality; native simulation/regression analysis uses the existing analysis workflow; no model approval or real-time CNN claim |
-| Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
-| PCM/timecode interchange | Optional declared PCM16/24/float32 mono/stereo, independent timecode clocks, exact WAV samples and ProRes inheritance implemented; [120-frame A/V receipt](stock-av-receipts/real-core.json), [24 Release cases](stock-av-receipts/release-tests.txt) | Actual camera audio/synchronization and broader editor compatibility |
-| Calibrated ProRes | Deep HQ/4444, original timing and optional reconstruction implemented; [core decode](stock-core-receipts/exports-mac.json), [one-TIFF scratch](stock-prores-receipts/streaming.json), [A/V pixel/packet identity](stock-av-receipts/real-core.json) | Broader rendered-color/lens/temporal approval and custom grading looks |
+| UPRESABLE orchestration | Timelapse/regression/both, explicit presets/checkpoint, half-capture simulation or original captured-GPR input, full stock GPR, exact GVID/MOV and optional DNG/ProRes implemented. Two real 12 MP Pi captures produce independently verified 8192x6144 outputs at 57.12 s/frame offline; [contract](stock-upres-workflow.md), [Mac receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-upres-receipts/mac.json), [Pi receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-upres-receipts/pi5.json), [real Pi receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-upres-receipts/pi5-real-captured.json). Native accelerated captured-GPR timelapse also passes on Mac | Broader scene/motion quality; native simulation/regression analysis uses the existing analysis workflow; no model approval or real-time CNN claim |
+| Exact MOV interchange | Complete original stock GVID survives wrap/unwrap; [transport evidence including 4.42 GB/64-bit chunk offsets](stock-mov.md), [core full-recording identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/exports-mac.json) | Latest auxiliary-profile platform/version exchange |
+| PCM/timecode interchange | Optional declared PCM16/24/float32 mono/stereo, independent timecode clocks, exact WAV samples and ProRes inheritance implemented; [120-frame A/V receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/real-core.json), [24 Release cases](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/release-tests.txt) | Actual camera audio/synchronization and broader editor compatibility |
+| Calibrated ProRes | Deep HQ/4444, original timing and optional reconstruction implemented; [core decode](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-core-receipts/exports-mac.json), [one-TIFF scratch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-prores-receipts/streaming.json), [A/V pixel/packet identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-av-receipts/real-core.json) | Broader rendered-color/lens/temporal approval and custom grading looks |
 | SDK ABI and selected boundaries | Published C symbols, owned-copy rollback and encoder/decoder boundary fixes implemented; [C API](stock-sdk-api.md), [encoder](stock-encoder-bounds.md), [decoder](stock-decoder-bounds.md) | Broader malformed-input/failure/concurrency audit, deferred from immediate delivery |
-| Independent packages | Four current MOV-enabled profiles pass relocated C/C++/SDK and installed PCM/timecode wrap/recovery; [current packages](stock-restored-gpr-receipts/packages.json), [installed 1x/2x reconstructed GPR/DNG and Mission 1 binary identity](stock-restored-gpr-receipts/installed-validation.json). Fork pushes are authorized and draft #101 contains the native runtime | Latest hosted platform/release validation; packages and receipts remain revision-bound |
+| Independent packages | Four current MOV-enabled profiles pass relocated C/C++/SDK and installed PCM/timecode wrap/recovery; [current packages](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/packages.json), [installed 1x/2x reconstructed GPR/DNG and Mission 1 binary identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-restored-gpr-receipts/installed-validation.json). Fork pushes are authorized and draft #101 contains the native runtime | Latest hosted platform/release validation; packages and receipts remain revision-bound |
 | Actual camera production | Integration requirements documented; host/Pi evidence stays explicitly labeled | Sensor/DMA, display presentation, durable SD, thermal and physical A/V synchronization receipts |
 | Optional FFmpeg decoder | Stock GVS2/GVS3 adapter for pinned FFmpeg n8.0; exact twelve-format Bayer matrix, frozen fixtures, corruption rejection and PNG/ProRes pass on Mac and Pi; hosted x86 gate passes at `eaeaefa`; [contract/receipts](stock-ffmpeg-decoder.md) | Patched build required; older MOVs without configuration need unwrap/rewrap; no calibrated color claim |
 

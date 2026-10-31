@@ -28,7 +28,7 @@ All four runs use the same executable, 600 attempted frames paced at 20 fps,
 pairs, encoder-derived quarter-scale preview, a memory CRC sink, background
 preview priority, 1 MiB page-aligned rolling writeback and final fsync. Existing
 background processes were left unchanged. CPU governor/clock and before/after
-temperatures are in the [receipt](stock-preview-stage-receipts/post-enqueue-abba.json).
+temperatures are in the [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/post-enqueue-abba.json).
 
 | Policy | Recorded / previewed | Durable fps | Encode median, ms | Preview render median, ms | Preview latency p95, ms |
 |---|---:|---:|---:|---:|---:|
@@ -62,9 +62,9 @@ storage could not start for that frame until preview finished. The final design
 enqueues first, allowing storage to overlap preview. The two experiments ran
 at different times and do not isolate a universal placement speedup.
 
-The earlier [receipt](stock-preview-stage-receipts/pre-enqueue-abba.json),
-[runtime patch](stock-preview-stage-receipts/pre-enqueue-source.patch) against
-`f34aee9`, and verified [source hashes](stock-preview-stage-receipts/pre-enqueue-source-hashes.json)
+The earlier [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/pre-enqueue-abba.json),
+[runtime patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/pre-enqueue-source.patch) against
+`f34aee9`, and verified [source hashes](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/pre-enqueue-source-hashes.json)
 preserve that prototype. The runtime patch covers its three modified runtime
 files, not its test/benchmark additions.
 
@@ -76,12 +76,12 @@ flush waiting after writer completion, callback frame order, setter lifecycle,
 normal recording and isolated display failure. Installed C clients link both
 new functions. All 24 Mac and 21 Pi Release targets and four stripped/relocated
 package profiles pass; source identities are bound in the
-[validation receipt](stock-preview-stage-receipts/validation.json).
+[validation receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/validation.json).
 
-[Commands](stock-preview-stage-receipts/commands.json), binary/source hashes,
-full numerical receipts, [Mac](stock-preview-stage-receipts/mac-release.txt)
-and [Pi](stock-preview-stage-receipts/pi-release.txt) test output and the
-[comparison driver](stock-preview-stage-receipts/run-post-enqueue.py) are retained.
+[Commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/commands.json), binary/source hashes,
+full numerical receipts, [Mac](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/mac-release.txt)
+and [Pi](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/pi-release.txt) test output and the
+[comparison driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/run-post-enqueue.py) are retained.
 Driver paths refer to the measured Pi installation and frozen external inputs;
 adjust them for another machine. For new inputs, the general
 `tools/benchmark_mission1.py --preview-sync-stages` option applies the policy
@@ -94,9 +94,9 @@ comparison, with serialization always enabled, records 557/560/564/565 frames
 at 18.4821/18.5694/18.7114/18.7521 durable fps. Render medians are
 8.442/8.501/8.406/8.500 ms. There is no consistent priority benefit; defaults
 remain unchanged. All four runs overrun and every preview is late. Exact
-accepted payload/pixel checks pass. The [receipt](stock-preview-stage-receipts/priority-abba.json),
-[commands](stock-preview-stage-receipts/priority-commands.json) and
-[driver](stock-preview-stage-receipts/run-priority.py) preserve this control.
+accepted payload/pixel checks pass. The [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/priority-abba.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/priority-commands.json) and
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-preview-stage-receipts/run-priority.py) preserve this control.
 
 The following [direct-output change](stock-preview-direct-output.md) instead
 removes a measured reconstruction copy and unused scratch bands. Its separate

@@ -111,7 +111,7 @@ python tools/benchmark_stock_upres.py --input GP011728.GPR --input GPAB1094.GPR 
 
 ## Real captured-GPR Pi 5 check
 
-[The measured receipt](stock-upres-receipts/pi5-real-captured.json) uses the
+[The measured receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-upres-receipts/pi5-real-captured.json) uses the
 user-provided `GP011728.GPR` and `GPAB1094.GPR`, both 4096x3072 RGGB14 camera
 stills. The explicit checkpoint is the previously evaluated fresh stock 2x
 candidate; its held-out shadow regression still prevents model promotion.

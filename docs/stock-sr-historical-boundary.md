@@ -59,10 +59,10 @@ resolve interior sky shadows on its own. The gate alone qualifies; reflection
 adds only about 0.00027 dB to the gated result. The factor comparison does not
 support calling reflection the main quality improvement.
 
-The [selection audit](stock-sr-boundary-receipts/selection-audit.json) verifies
+The [selection audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-boundary-receipts/selection-audit.json) verifies
 all final candidate/output hashes, regional decisions, pooled weighting and
 complete qualified-family coverage before writing the immutable
-[freeze](stock-sr-boundary-receipts/frozen.json).
+[freeze](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-boundary-receipts/frozen.json).
 
 ## Frozen historical references and camera transfer
 
@@ -132,7 +132,7 @@ this six-channel coordinate architecture, reflection policy or count gate.
 No new Pi performance, native backend, temporal or restored-tier approval is
 claimed.
 
-The [manifest](stock-sr-boundary-receipts/manifest.json) binds protocols,
+The [manifest](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-boundary-receipts/manifest.json) binds protocols,
 source snapshots, tiler checks, all selection/final results, camera/renderer
 receipts, independent render and delivery audits, and the prior c7125ab
 seven-job CI receipt. Runtime source and supplied checkpoints are unchanged.

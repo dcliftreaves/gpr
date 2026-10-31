@@ -67,7 +67,7 @@ by this adapter. Weights stay external and no model is selected automatically.
 
 ## Evidence and limits
 
-[Synthetic contracts](stock-metal-receipts/mac-contracts.json) cover both
+[Synthetic contracts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-metal-receipts/mac-contracts.json) cover both
 engines/scales, tiled edges, context eviction/reuse, malformed artifacts,
 native rejection of a truncated bias, device/backend selection, editable
 still/GPR, GVID restore, upres and calibrated ProRes. The test uses residual
@@ -77,7 +77,7 @@ Observed maxima versus Torch are 6–7 counts; peer-engine differences reach
 retains exact current bicubic/count output. The numeric test guard is an
 engineering contract, not a model-quality threshold.
 
-[The real-source receipt](stock-metal-receipts/real.json) uses the declared
+[The real-source receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-metal-receipts/real.json) uses the declared
 fresh stock 2x candidate and `GP011728.GPR` (4096x3072), producing 8192x6144
 counts on the local M5 Max Mac. Four Torch host threads, tile 256, halo 64:
 
@@ -94,7 +94,7 @@ were not flushed. Context creation on spatial cache misses is included in
 the restoration timer; interpreter/model load is separate. First-use cost can
 be materially higher. These Mac measurements do not estimate Pi performance.
 
-[Real upres integration](stock-metal-receipts/real-upres-integration.json)
+[Real upres integration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-metal-receipts/real-upres-integration.json)
 checks matching native model counts, scaled source calibration including
 GainMaps, exact GVID payloads/END3, MOV recovery and completed calibrated
 ProRes from the final GPR-derived frames. It does not run a second CNN pass.

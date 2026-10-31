@@ -24,7 +24,7 @@ existing full-image metrics; the original patch guards remain unchanged.
 
 ## Audited training-source weights
 
-The [protocol](stock-sr-source-region-receipts/protocol.json) precedes weight
+The [protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/protocol.json) precedes weight
 construction and training. Only the eight training sources are decoded to
 construct weights. Validation/final sources are excluded. Source bytes and
 independent reference RAW hashes match the audited dataset; all 512 target
@@ -45,10 +45,10 @@ matches stored masks/weights exactly on a patch from each training source;
 direct regional-ratio and weighted-pixel loss agree within the predefined
 1e-6 relative check. Nontraining weight rows remain zero.
 
-[Weight audit](stock-sr-source-region-receipts/weight-audit.json),
-[weight binding](stock-sr-source-region-receipts/weight-binding.json),
-[independent loss audit](stock-sr-source-region-receipts/loss-audit.json) and
-[builder](stock-sr-source-region-receipts/run-weights.py) retain these checks.
+[Weight audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/weight-audit.json),
+[weight binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/weight-binding.json),
+[independent loss audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/loss-audit.json) and
+[builder](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-weights.py) retain these checks.
 Weight construction takes 15.16 s; arrays/photos remain external.
 
 ## Fixed patch and full-image selection
@@ -56,7 +56,7 @@ Weight construction takes 15.16 s; arrays/photos remain external.
 Fresh `F_ane` training uses width 16/depth 3, seed 20261101, normalization 16383,
 residual scale 0.01, batch eight, 3000 steps, learning rate 0.0003 and checks
 every 300 steps. It takes 47.28 s. The
-[derived recipe](stock-sr-source-region-receipts/run-training.py) is archived;
+[derived recipe](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-training.py) is archived;
 production training/runtime code is unchanged.
 
 The predefined ten snapshots and 17 strengths produce 170 patch candidates.
@@ -74,10 +74,10 @@ The lowest sample-weighted active MSE selects **step 3000 at 1/32 strength**,
 residual scale **0.0003125**, full-validation gain **0.02782 dB**. Per-image
 regional nonregression and strict pooled improvement are unchanged.
 
-The [family protocol](stock-sr-source-region-receipts/all-family.json),
-[full protocol](stock-sr-source-region-receipts/all-full-protocol.json),
-[full selection](stock-sr-source-region-receipts/all-full-selection.json) and
-[freeze](stock-sr-source-region-receipts/all-frozen.json) bind this choice before
+The [family protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-family.json),
+[full protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-full-protocol.json),
+[full selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-full-selection.json) and
+[freeze](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-frozen.json) bind this choice before
 that candidate's final evaluation. Historical references had already appeared
 in previous studies, including the preliminary family; they are not newly
 unseen or a claim of an untouched blind test set.
@@ -125,28 +125,28 @@ remain unchanged.
 
 ## Receipts and reproduction
 
-[Summary](stock-sr-source-region-receipts/summary.json),
-[training](stock-sr-source-region-receipts/training.json),
-[training binding](stock-sr-source-region-receipts/training-binding.json),
-[patch selection](stock-sr-source-region-receipts/patch-selection.json),
-[patch selector](stock-sr-source-region-receipts/run-patch-selection.py),
-[final MPS summary](stock-sr-source-region-receipts/all-final-summary.json),
-[CPU protocol](stock-sr-source-region-receipts/all-cpu-protocol.json),
-[CPU summary](stock-sr-source-region-receipts/all-cpu-final-summary.json),
-[final driver](stock-sr-source-region-receipts/run-all-final.py),
-[CPU driver](stock-sr-source-region-receipts/run-all-cpu-final.py),
-[split audit](stock-sr-source-region-receipts/split-audit.json) and
-[asset check](stock-sr-source-region-receipts/repository-asset.json) bind the result.
+[Summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/summary.json),
+[training](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/training.json),
+[training binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/training-binding.json),
+[patch selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/patch-selection.json),
+[patch selector](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-patch-selection.py),
+[final MPS summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-final-summary.json),
+[CPU protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-cpu-protocol.json),
+[CPU summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-cpu-final-summary.json),
+[final driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-all-final.py),
+[CPU driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-all-cpu-final.py),
+[split audit](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/split-audit.json) and
+[asset check](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/repository-asset.json) bind the result.
 Individual validation/final/CPU benchmark files in the receipt directory retain
 exact counts/metrics, source and tool identities; source separation excludes
 exact duplicates, not untested perceptual near-duplicates.
 
-[Pi execution](stock-sr-source-region-receipts/all-pi.json),
-[MPS execution](stock-sr-source-region-receipts/all-mps-portability.json),
-[cross-host protocol](stock-sr-source-region-receipts/all-cross-host-protocol.json),
-[comparison](stock-sr-source-region-receipts/all-cross-host.json),
-[Pi driver](stock-sr-source-region-receipts/run-all-pi.py) and
-[comparison driver](stock-sr-source-region-receipts/run-all-cross-host.py) retain
+[Pi execution](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-pi.json),
+[MPS execution](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-mps-portability.json),
+[cross-host protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-cross-host-protocol.json),
+[comparison](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/all-cross-host.json),
+[Pi driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-all-pi.py) and
+[comparison driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-source-region-receipts/run-all-cross-host.py) retain
 portability evidence. The `three-*` files preserve the weaker preliminary
 family, metadata-only packaging and its independent checks; only the later
 exact frozen checkpoint is supplied.

@@ -89,7 +89,7 @@ reference algorithm; `auto` selects NEON where built. Scalar code may also be
 auto-vectorized by the compiler. Scalar/NEON and one/four worker outputs must
 match exactly; this is separate from agreement with Torch host arithmetic.
 
-[Contract tests](stock-native-receipts/mac-contracts.json) cover 1x/2x, all three
+[Contract tests](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native-receipts/mac-contracts.json) cover 1x/2x, all three
 engines, all four Core ML compute-unit settings, non-square/unaligned row
 widths and padded tails (128x96, 130x98, 50x50). Native output differs by at most
 one count from the corresponding Python/native-engine path on these fixtures.
@@ -97,7 +97,7 @@ The tests run still, GVID, timelapse and direct ProRes commands under `python -S
 They also check scalar/vector/thread identity, existing-output protection and
 corrupted artifact rejection.
 
-[The real benchmark](stock-native-receipts/real.json) uses GP011728.GPR,
+[The real benchmark](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native-receipts/real.json) uses GP011728.GPR,
 4096x3072 input and 8192x6144 output with the explicitly selected fresh stock
 2x candidate. In the controlled cache-exercised repeat, scalar restoration
 takes **0.513 s**, NEON **0.487 s** (1.052x), with identical output counts.
@@ -108,11 +108,11 @@ Restoration timing includes tile/context work, host conversion and mapped
 output writes; model load, input checks, final flush and publication are separate.
 This is one sequential pass per kernel, not sustained throughput or Pi timing.
 
-[Real standard-library integration](stock-native-receipts/real-integration.json)
+[Real standard-library integration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native-receipts/real-integration.json)
 also processes both user-provided 12 MP captures through native inference,
 editable model/final DNG, stock GPR/GVID/MOV and calibrated 8192x6144 ProRes.
 Original capture payloads, model count hashes, scaled calibration and packed
-payloads are checked independently. [Direct ProRes integration](stock-native-receipts/direct-prores.json)
+payloads are checked independently. [Direct ProRes integration](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-native-receipts/direct-prores.json)
 checks native inference inside the renderer workflow rather than rendering an
 already reconstructed recording. Both commands ran with site packages disabled.
 

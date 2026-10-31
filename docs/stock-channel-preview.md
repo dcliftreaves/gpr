@@ -60,16 +60,16 @@ open, and production source/binary remain unchanged.
 
 ## Reproduction and evidence
 
-[Summary](stock-channel-preview-receipts/summary.json),
-[pinned protocol](stock-channel-preview-receipts/pinned/protocol.json),
-[pinned receipt](stock-channel-preview-receipts/pinned/receipt.json),
-[pinned patch](stock-channel-preview-receipts/pinned/prototype.patch),
-[unpinned protocol](stock-channel-preview-receipts/unpinned/protocol.json),
-[unpinned receipt](stock-channel-preview-receipts/unpinned/receipt.json),
-[unpinned patch](stock-channel-preview-receipts/unpinned/prototype.patch),
-[Mac matrix](stock-channel-preview-receipts/mac-matrix.txt),
-[Pi matrix](stock-channel-preview-receipts/pi-matrix.txt) and
-[Pi affinity-restored matrix](stock-channel-preview-receipts/pi-unpinned-matrix.txt)
+[Summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/summary.json),
+[pinned protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/pinned/protocol.json),
+[pinned receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/pinned/receipt.json),
+[pinned patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/pinned/prototype.patch),
+[unpinned protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/unpinned/protocol.json),
+[unpinned receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/unpinned/receipt.json),
+[unpinned patch](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/unpinned/prototype.patch),
+[Mac matrix](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/mac-matrix.txt),
+[Pi matrix](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/pi-matrix.txt) and
+[Pi affinity-restored matrix](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/pi-unpinned-matrix.txt)
 retain the measurements. Each study directory also supplies `harness.cpp` and
 `run.py`. Both patches apply to `48534e0`; copy that study's harness to
 `tests/channel_preview_benchmark.cpp` in a separate checkout, apply its patch,
@@ -100,13 +100,13 @@ savings. They keep entropy packing and unpacking ahead of further queue-copy
 work as investigation targets. The earlier rejected small-code pair-table
 proposal remains rejected; this profile does not validate a replacement.
 
-[Command](stock-channel-preview-receipts/current-profile/command.json),
-[identities](stock-channel-preview-receipts/current-profile/identities.json),
-[flat profile](stock-channel-preview-receipts/current-profile/flat.txt),
-[call graph](stock-channel-preview-receipts/current-profile/callgraph.txt),
-[perf log](stock-channel-preview-receipts/current-profile/perf.stderr),
-[capture events](stock-channel-preview-receipts/current-profile/capture.jsonl) and
-[independent verification](stock-channel-preview-receipts/current-profile/verified.json)
+[Command](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/command.json),
+[identities](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/identities.json),
+[flat profile](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/flat.txt),
+[call graph](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/callgraph.txt),
+[perf log](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/perf.stderr),
+[capture events](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/capture.jsonl) and
+[independent verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-preview-receipts/current-profile/verified.json)
 retain the diagnostic. `perf.data` and the GVID stay in the external Pi profile
 directory named by the command. Profiled latency/fps are not an unprofiled
 performance comparison and do not establish the strict deadline floor.

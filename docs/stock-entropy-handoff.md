@@ -92,12 +92,12 @@ synchronization and extra bookkeeping costs; no specific hardware cause is prove
 
 ## Evidence and disposition
 
-[Full-capture protocol](stock-entropy-handoff-receipts/capture/protocol.json),
-[verification](stock-entropy-handoff-receipts/capture/receipt.json),
-[eight-row standalone](stock-entropy-handoff-receipts/standalone/receipt.json),
-[32-row standalone](stock-entropy-handoff-receipts/rows32/standalone/receipt.json),
-[eight-row smoke](stock-entropy-handoff-receipts/smoke/receipt.json) and
-[32-row smoke](stock-entropy-handoff-receipts/rows32/smoke/receipt.json)
+[Full-capture protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/capture/protocol.json),
+[verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/capture/receipt.json),
+[eight-row standalone](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/standalone/receipt.json),
+[32-row standalone](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/rows32/standalone/receipt.json),
+[eight-row smoke](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/smoke/receipt.json) and
+[32-row smoke](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-entropy-handoff-receipts/rows32/smoke/receipt.json)
 retain commands, source/binary identities and exact scope. The receipt directory
 also contains tests, logs, drivers, the patch and both private header versions.
 Apply `prototype.patch` to `a00ae4a`, copy the header into

@@ -158,7 +158,7 @@ checks; the full package runs its installed still encode/decode tools and
 checks pixel equality. Unsupported-link and partial-copy tests cover publication
 fallbacks. Local macOS Release and ASan/UBSan and Pi Release pass
 all ten CTest targets. The expanded Pi ASan/UBSan/leak gate also passes all ten
-in 1285.46 seconds: [receipt](stock-still-quality-receipts/pi5-gates.json).
+in 1285.46 seconds: [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-still-quality-receipts/pi5-gates.json).
 Its 405 source/test/tool/build/fixture files match commit `339b17a`; it precedes
 the optional still-restoration command and later preview-flag regression.
 Latest hosted checks remain a separate gate.

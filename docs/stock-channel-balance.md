@@ -71,9 +71,9 @@ On source 1, channel-0 stage-0 entropy is 5.276 ms versus 2.631–2.831 ms in th
 other channels, but combined worker CPU is more balanced. This establishes
 an input-dependent stage-0 entropy imbalance, not a universal four-ms saving.
 
-[Stage protocol](stock-channel-balance-receipts/stages/protocol.json),
-[verified replay](stock-channel-balance-receipts/stages/receipt.json) and
-[per-source summary](stock-channel-balance-receipts/stages/summary.json)
+[Stage protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/stages/protocol.json),
+[verified replay](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/stages/receipt.json) and
+[per-source summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/stages/summary.json)
 retain the complete results. `stage-diagnostic.patch` independently applies to
 `40aa476`; it supersedes rather than stacks on `diagnostic.patch`. The stage
 build/test logs and driver are separate from the first diagnostic's records.
@@ -94,12 +94,12 @@ have their own channels to finish. Any prototype must pass exact payload,
 preview, geometry and lifecycle checks and then beat matched full-capture
 controls. Lower isolated entropy time is insufficient for adoption.
 
-[Diagnostic protocol](stock-channel-balance-receipts/diagnostic/protocol.json),
-[verified results](stock-channel-balance-receipts/diagnostic/receipt.json),
-[per-source breakdown](stock-channel-balance-receipts/source-breakdown.json),
-[sampled protocol](stock-channel-balance-receipts/sampled/protocol.json),
-[sampled verification](stock-channel-balance-receipts/sampled/receipt.json) and
-[hot-symbol report](stock-channel-balance-receipts/sampled/report.txt)
+[Diagnostic protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/diagnostic/protocol.json),
+[verified results](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/diagnostic/receipt.json),
+[per-source breakdown](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/source-breakdown.json),
+[sampled protocol](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/sampled/protocol.json),
+[sampled verification](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/sampled/receipt.json) and
+[hot-symbol report](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-channel-balance-receipts/sampled/report.txt)
 retain the scope and identities. Apply `diagnostic.patch` to `40aa476`, build
 with the commands in `build-commands.json`, and adapt external paths in `diagnose.py`
 and `profile.py` to reproduce. Raw samples and media remain under

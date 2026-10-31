@@ -139,15 +139,15 @@ The seventh test and new recipe have their own latest hosted gate.
 
 Receipts and exact source revisions:
 
-- [Sources](stock-sr-training-receipts/sources.json),
-  [dataset](stock-sr-training-receipts/dataset.json): builder `417ad0c`.
-- [Training](stock-sr-training-receipts/training.json): recipe `e939690`.
-- [Frozen selection](stock-sr-training-receipts/test-selection.json),
-  [final summary](stock-sr-training-receipts/summary.json): evaluator `848c96b`.
-- Final images: [0001](stock-sr-training-receipts/test-0001.json),
-  [0067](stock-sr-training-receipts/test-0067.json),
-  [5323](stock-sr-training-receipts/test-5323.json),
-  [6693](stock-sr-training-receipts/test-6693.json).
+- [Sources](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/sources.json),
+  [dataset](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/dataset.json): builder `417ad0c`.
+- [Training](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/training.json): recipe `e939690`.
+- [Frozen selection](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/test-selection.json),
+  [final summary](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/summary.json): evaluator `848c96b`.
+- Final images: [0001](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/test-0001.json),
+  [0067](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/test-0067.json),
+  [5323](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/test-5323.json),
+  [6693](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-sr-training-receipts/test-6693.json).
 
 All recorded runtime/tool hashes were checked against those Git revisions.
 The complete high-level rebuild continues with rendering/interchange, integrated

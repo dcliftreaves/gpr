@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/dcliftreaves/Documents/slop/gpr_check/analysis/evaluate_stock_sr_spatial_gate_full.py", line 41, in <module>
-    bm=quality(reference,baseline,meta);assert bm==previous['bicubic_metrics'];del baseline
-AssertionError

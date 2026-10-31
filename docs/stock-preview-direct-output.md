@@ -23,9 +23,9 @@ not wall-time savings or a proof that every copy has the same cost. Startup and
 the supplied-frame workflow are included. The measured baseline build ID
 `9f9a7798f621e106b26613e5f1ae19afc7378ffe` matches the preserved executable.
 
-The [flat profile](stock-direct-plane-receipts/profile-flat.txt),
-[call graph](stock-direct-plane-receipts/profile-callgraph.txt) and
-[command/binary identity](stock-direct-plane-receipts/profile-command.json)
+The [flat profile](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/profile-flat.txt),
+[call graph](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/profile-callgraph.txt) and
+[command/binary identity](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/profile-command.json)
 identify this diagnostic. Timing comparisons below run without profiling.
 
 ## Matched Pi result
@@ -59,10 +59,10 @@ reserved memory or total process RSS falls by the same amount.
 Every accepted payload is checked against the independent historical stock
 encoder. Calibration, all delivered preview pixels, timestamp/source bindings,
 frame accounting and the final end marker match the frozen offline reference.
-The [complete receipt](stock-direct-plane-receipts/direct-abba.json) retains
+The [complete receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/direct-abba.json) retains
 binary hashes, temperatures/clocks, process CPU totals and missed deadlines;
-[commands](stock-direct-plane-receipts/commands.json) and the
-[driver](stock-direct-plane-receipts/run-abba.py) make the comparison repeatable
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/commands.json) and the
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/run-abba.py) make the comparison repeatable
 with the external frozen inputs.
 
 ## Scheduling follow-up with the new binary
@@ -81,9 +81,9 @@ All other replay parameters are unchanged:
 Every accepted payload/preview still matches the independent reference. Both
 additional serialized runs retain all 600 attempts, but none meets the strict
 floor. Serialization stays opt-in, and the overlapping default is unchanged.
-The [receipt](stock-direct-plane-receipts/policy-abba.json),
-[commands](stock-direct-plane-receipts/policy-commands.json) and
-[driver](stock-direct-plane-receipts/run-policy.py) preserve this comparison.
+The [receipt](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/policy-abba.json),
+[commands](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/policy-commands.json) and
+[driver](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/run-policy.py) preserve this comparison.
 
 ## Correctness and packaging
 
@@ -95,11 +95,11 @@ inputs and all six presets at 50x50 and 130x98. Their packed output widths are
 Both ordinary and optimized encoder policies run this matrix. Existing
 compressed-byte comparisons remain exact.
 
-[Mac](stock-direct-plane-receipts/mac-release.txt) and
-[Pi](stock-direct-plane-receipts/pi-release.txt) Release output and
-[package receipts](stock-direct-plane-receipts/packages-mac.json) cover 26 tests
+[Mac](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/mac-release.txt) and
+[Pi](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/pi-release.txt) Release output and
+[package receipts](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/packages-mac.json) cover 26 tests
 on Mac, 23 on Pi and four stripped/relocated profiles. The
-[validation binding](stock-direct-plane-receipts/validation.json) records source
+[validation binding](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-direct-plane-receipts/validation.json) records source
 hashes and Pi validation. No CNN or sanitizer expansion is part of this change.
 
 The [subsequent kernel experiments](stock-preview-rejected-kernels.md) test

@@ -247,9 +247,9 @@ capture, sensor delivery, display presentation or live camera frame rates**.
 Combined capture/preview scheduling and actual display integration remain work
 in the active rebuild. No CNN runs in this path.
 
-[Pi source/binary identities and every benchmark event](stock-calibrated-preview-receipts/pi5.json),
-[local Release/ASan/UBSan/TSan and stock-reference checks](stock-calibrated-preview-receipts/validation.json),
-and [relocated-package evidence](stock-calibrated-preview-receipts/packages.json)
+[Pi source/binary identities and every benchmark event](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-calibrated-preview-receipts/pi5.json),
+[local Release/ASan/UBSan/TSan and stock-reference checks](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-calibrated-preview-receipts/validation.json),
+and [relocated-package evidence](https://github.com/dcliftreaves/gpr/blob/170802d44c28cde77dfdb9c31bb45244297c21a8/docs/stock-calibrated-preview-receipts/packages.json)
 record this milestone. Pi passes all four preview targets with ASan/UBSan/leak
 checks in 145.60 s; local full Release passes all fourteen targets. The Pi
 snapshot verifies 430 source/test/tool/build/fixture files against Git `269f814`.
