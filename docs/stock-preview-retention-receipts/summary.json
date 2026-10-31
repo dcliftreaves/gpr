@@ -1,0 +1,350 @@
+{
+  "schema": "gpr.stock_preview_retention_audit.v1",
+  "complete": true,
+  "decision": "discard_all_three_runtime_proposals",
+  "runtime_source_changed": false,
+  "driver_sha256": "e5e1ee0eb1ae69da38546dee2a81a9a29e2bc024f1f9e958602a765e7e6317c6",
+  "isolated": {
+    "baseline": [
+      {
+        "source": 0,
+        "modes": {
+          "none": 27.191888499999997,
+          "retain": 34.180960999999996,
+          "reconstruct": 42.964818
+        }
+      },
+      {
+        "source": 1,
+        "modes": {
+          "none": 24.8435925,
+          "retain": 31.556145499999996,
+          "reconstruct": 40.445559
+        }
+      }
+    ],
+    "spacing": [
+      {
+        "source": 0,
+        "modes": {
+          "none": 26.909563,
+          "retain": 33.833478,
+          "reconstruct": 42.784113500000004
+        }
+      },
+      {
+        "source": 1,
+        "modes": {
+          "none": 24.846185499999997,
+          "retain": 31.473025,
+          "reconstruct": 40.127362500000004
+        }
+      }
+    ],
+    "rows-v1": [
+      {
+        "source": 0,
+        "modes": {
+          "none": 27.222980999999997,
+          "retain": 31.964526,
+          "reconstruct": 40.6361975
+        }
+      },
+      {
+        "source": 1,
+        "modes": {
+          "none": 24.917769,
+          "retain": 29.481499,
+          "reconstruct": 38.1067715
+        }
+      }
+    ],
+    "rows-v2": [
+      {
+        "source": 0,
+        "modes": {
+          "none": 25.946365,
+          "retain": 29.0226455,
+          "reconstruct": 35.917248
+        }
+      },
+      {
+        "source": 1,
+        "modes": {
+          "none": 23.9444305,
+          "retain": 25.918087,
+          "reconstruct": 32.6430125
+        }
+      }
+    ]
+  },
+  "legacy": {
+    "rows-v1": [
+      {
+        "source": 0,
+        "run": 0,
+        "mode": "baseline",
+        "modes": {
+          "none": 24.395354,
+          "retain": 29.6016725,
+          "reconstruct": 37.855346499999996
+        }
+      },
+      {
+        "source": 0,
+        "run": 1,
+        "mode": "candidate",
+        "modes": {
+          "none": 25.482803,
+          "retain": 28.814354,
+          "reconstruct": 36.358479
+        }
+      },
+      {
+        "source": 0,
+        "run": 2,
+        "mode": "candidate",
+        "modes": {
+          "none": 25.259283500000002,
+          "retain": 27.6059975,
+          "reconstruct": 36.3038215
+        }
+      },
+      {
+        "source": 0,
+        "run": 3,
+        "mode": "baseline",
+        "modes": {
+          "none": 24.0725195,
+          "retain": 28.171203499999997,
+          "reconstruct": 35.3145295
+        }
+      },
+      {
+        "source": 1,
+        "run": 0,
+        "mode": "baseline",
+        "modes": {
+          "none": 18.561346999999998,
+          "retain": 21.237896,
+          "reconstruct": 28.7121685
+        }
+      },
+      {
+        "source": 1,
+        "run": 1,
+        "mode": "candidate",
+        "modes": {
+          "none": 19.1000535,
+          "retain": 20.758848,
+          "reconstruct": 28.661862499999998
+        }
+      },
+      {
+        "source": 1,
+        "run": 2,
+        "mode": "candidate",
+        "modes": {
+          "none": 18.870191499999997,
+          "retain": 20.058918,
+          "reconstruct": 27.113504
+        }
+      },
+      {
+        "source": 1,
+        "run": 3,
+        "mode": "baseline",
+        "modes": {
+          "none": 18.857376000000002,
+          "retain": 21.710341999999997,
+          "reconstruct": 28.419445
+        }
+      }
+    ],
+    "rows-v2": [
+      {
+        "source": 0,
+        "run": 0,
+        "mode": "baseline",
+        "modes": {
+          "none": 24.0527375,
+          "retain": 28.683228999999997,
+          "reconstruct": 37.716905499999996
+        }
+      },
+      {
+        "source": 0,
+        "run": 1,
+        "mode": "candidate",
+        "modes": {
+          "none": 24.261553499999998,
+          "retain": 26.1746725,
+          "reconstruct": 34.043983
+        }
+      },
+      {
+        "source": 0,
+        "run": 2,
+        "mode": "candidate",
+        "modes": {
+          "none": 23.9320055,
+          "retain": 26.335238,
+          "reconstruct": 34.39192800000001
+        }
+      },
+      {
+        "source": 0,
+        "run": 3,
+        "mode": "baseline",
+        "modes": {
+          "none": 24.602934,
+          "retain": 26.7144145,
+          "reconstruct": 34.39177050000001
+        }
+      },
+      {
+        "source": 1,
+        "run": 0,
+        "mode": "baseline",
+        "modes": {
+          "none": 18.923873999999998,
+          "retain": 21.3529675,
+          "reconstruct": 28.0206235
+        }
+      },
+      {
+        "source": 1,
+        "run": 1,
+        "mode": "candidate",
+        "modes": {
+          "none": 18.827391499999997,
+          "retain": 20.369315,
+          "reconstruct": 27.646919
+        }
+      },
+      {
+        "source": 1,
+        "run": 2,
+        "mode": "candidate",
+        "modes": {
+          "none": 19.4077365,
+          "retain": 22.545129000000003,
+          "reconstruct": 29.504575
+        }
+      },
+      {
+        "source": 1,
+        "run": 3,
+        "mode": "baseline",
+        "modes": {
+          "none": 18.8241135,
+          "retain": 21.649792500000004,
+          "reconstruct": 29.227527
+        }
+      }
+    ]
+  },
+  "native": {
+    "rows-v1": [
+      {
+        "index": 0,
+        "mode": "baseline",
+        "accepted": 561,
+        "attempts": 600,
+        "durable_fps": 18.6112,
+        "encode_median_ms": 40.62,
+        "render_median_ms": 9.2587,
+        "late_writes": 561,
+        "late_previews": 561
+      },
+      {
+        "index": 1,
+        "mode": "candidate",
+        "accepted": 575,
+        "attempts": 600,
+        "durable_fps": 19.0904,
+        "encode_median_ms": 38.3929,
+        "render_median_ms": 9.98357,
+        "late_writes": 575,
+        "late_previews": 575
+      },
+      {
+        "index": 2,
+        "mode": "candidate",
+        "accepted": 587,
+        "attempts": 600,
+        "durable_fps": 19.4599,
+        "encode_median_ms": 38.5471,
+        "render_median_ms": 9.15785,
+        "late_writes": 586,
+        "late_previews": 587
+      },
+      {
+        "index": 3,
+        "mode": "baseline",
+        "accepted": 565,
+        "attempts": 600,
+        "durable_fps": 18.7411,
+        "encode_median_ms": 40.27,
+        "render_median_ms": 9.60274,
+        "late_writes": 565,
+        "late_previews": 565
+      }
+    ],
+    "rows-v2": [
+      {
+        "index": 0,
+        "mode": "baseline",
+        "accepted": 592,
+        "attempts": 600,
+        "durable_fps": 19.6291,
+        "encode_median_ms": 37.3828,
+        "render_median_ms": 10.3604,
+        "late_writes": 592,
+        "late_previews": 592
+      },
+      {
+        "index": 1,
+        "mode": "candidate",
+        "accepted": 581,
+        "attempts": 600,
+        "durable_fps": 19.2861,
+        "encode_median_ms": 38.3216,
+        "render_median_ms": 10.0237,
+        "late_writes": 581,
+        "late_previews": 581
+      },
+      {
+        "index": 2,
+        "mode": "candidate",
+        "accepted": 579,
+        "attempts": 600,
+        "durable_fps": 19.2017,
+        "encode_median_ms": 38.6937,
+        "render_median_ms": 9.92817,
+        "late_writes": 579,
+        "late_previews": 579
+      },
+      {
+        "index": 3,
+        "mode": "baseline",
+        "accepted": 565,
+        "attempts": 600,
+        "durable_fps": 18.7349,
+        "encode_median_ms": 39.4607,
+        "render_median_ms": 10.1505,
+        "late_writes": 565,
+        "late_previews": 565
+      }
+    ]
+  },
+  "isolated_payloads_verified": 4608,
+  "isolated_plane_comparisons_verified": 4608,
+  "combined_attempts": 4800,
+  "combined_payloads_verified": 4605,
+  "combined_previews_verified": 4605,
+  "combined_overruns": 195,
+  "diagnostic_payloads_previews_verified": 451,
+  "restored_capture_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+  "interpretation": "Retaining alone has a substantial measured cost. Spacing does not recover it. Scratch rows improve some isolated/native results, but ordinary-path concern and inconsistent revised combined comparisons prevent adoption. Slow-regime diagnostic medians do not establish the cause of production fast/slow variability."
+}

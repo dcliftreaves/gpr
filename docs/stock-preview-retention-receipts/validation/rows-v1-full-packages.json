@@ -1,0 +1,12 @@
+{
+  "schema": "gpr.build_profiles.v1",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "profiles": [
+    {
+      "profile": "full",
+      "relocated_sdk_consumer": true,
+      "source_digest": "2afb7b3c96a76a4b7ac6ab3b60a32b83fdcfb741ef6b89798e4d5a6620ef777c",
+      "archive_sha256": "2b454192ff656737a5110b01448aa420db6c0133879a443eea2babf146bcdf1d"
+    }
+  ]
+}

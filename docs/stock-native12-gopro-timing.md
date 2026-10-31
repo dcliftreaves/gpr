@@ -134,3 +134,10 @@ The subsequent [horizontal inverse SIMD experiment](stock-horizontal-inverse.md)
 passes its independent oracle and improves the isolated Pi kernel by 9.05%,
 but its native-input combined ABBA comparison remains inconsistent and fails
 all four strict floors. The proposal is discarded; production stays unchanged.
+
+The [retained-band storage study](stock-preview-retention.md) separately measures
+6.7–7.0 ms for retention before inverse reconstruction, then tests spacing and
+two scratch-row proposals. Improvements in isolation do not establish a
+consistent combined win across controls; all proposals are discarded and the
+original executable is restored. New restoration checks pass 27 Mac/24 Pi
+Release targets. The native-input timing requirement remains open.

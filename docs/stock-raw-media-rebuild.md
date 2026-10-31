@@ -555,3 +555,10 @@ consistent native-input combined recording/preview win. All 2,318 accepted
 comparison payloads and previews are exact; all four strict floors fail.
 Production source/binary remain unchanged. Hosted revision `9111564` now passes
 all seven jobs, with the full receipt archived in that follow-up.
+
+The [retained-band cost study](stock-preview-retention.md) identifies 6.7–7.0 ms
+before inverse reconstruction in isolated native-input comparisons. A band-gap
+proposal and two scratch-row variants are discarded after broader controls;
+all 4,605 accepted combined frames/previews remain exact, but all eight timing
+floors fail. Runtime source/executable are restored, with fresh 27 Mac/24 Pi
+Release passes. Baseline 779bb47 passes all seven hosted jobs.

@@ -1,0 +1,49 @@
+{
+  "pid": 2576311,
+  "uid": 1000,
+  "euid": 1000,
+  "gid": 1000,
+  "groups": [
+    4,
+    20,
+    24,
+    27,
+    29,
+    44,
+    46,
+    60,
+    100,
+    102,
+    105,
+    110,
+    993,
+    994,
+    995,
+    1000
+  ],
+  "nice": 0,
+  "scheduler_policy": 1,
+  "effective_capabilities": "0000000000000000",
+  "allowed_cpus": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "monotonic_ns": 12967291070975859,
+  "start_ticks": 1296729104,
+  "gpr_environment": {},
+  "command": [
+    "/usr/bin/env",
+    "GPR_STREAM_UNPACK=1",
+    "GPR_BAND_STREAM=1",
+    "GPR_CHANNEL_ASM=1",
+    "GPR_PIN_CHANNELS=1",
+    "GPR_DIRECT_BANDS=1",
+    "GPR_COMPACT_BANDS=1",
+    "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/reference-0.vc5"
+  ],
+  "realtime_priority": 1
+}

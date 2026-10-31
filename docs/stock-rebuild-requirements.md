@@ -1,8 +1,8 @@
 # Stock rebuild requirement ledger
 
 Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
-Published source/evidence verification: `9111564` (all seven hosted jobs pass in
-[run 41163202174](https://github.com/dcliftreaves/gpr/actions/runs/41163202174)).
+Published source/evidence verification: `779bb47` (all seven hosted jobs pass in
+[run 41164329487](https://github.com/dcliftreaves/gpr/actions/runs/41164329487)).
 The shared Python GainMap simulation helper also has focused Mac/Pi and real-camera receipts.
 New timing evidence below does not change production source.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
@@ -256,3 +256,11 @@ shift-and-accumulate improves the isolated Pi helper by 9.05%, but native
 combined ABBA remains inconsistent and every run fails the strict floor. The
 proposal is discarded; production hashes are unchanged. This is evidence for
 further combined-path investigation, not a new runtime optimization or closure.
+
+The [retention-cost follow-up](stock-preview-retention.md) isolates a 6.7–7.0 ms
+cost before reconstruction on supplied native 12 MP counts. Three storage
+proposals preserve bytes/pixels but fail to establish a consistent workflow
+benefit across native and older controls. All are discarded; runtime source
+is restored and the Pi executable again matches the original complete hash.
+Fresh 27 Mac/24 Pi restoration tests pass. No new optimization, quality approval
+or realtime floor is claimed.

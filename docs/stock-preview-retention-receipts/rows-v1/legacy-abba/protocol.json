@@ -1,0 +1,36 @@
+{
+  "schema": "gpr.stock_retention_legacy_control.v1",
+  "diagnostic_only": true,
+  "acceptance_timing": false,
+  "order": [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline"
+  ],
+  "source_count": 2,
+  "executables": {
+    "baseline": {
+      "path": "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+      "sha256": "0963207f9daa6fcf073bb6214de1af0418496c985f6582be0be9dc3bc1619fb2"
+    },
+    "candidate": {
+      "path": "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+      "sha256": "ea0adfafa9a134bcfd8f3711c1e0e5c2d820db009816249a877508239ce6c4dc"
+    }
+  },
+  "inputs": [
+    {
+      "raw": "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+      "raw_sha256": "e75aea542a2da413ff097bd1f1825b20e8723e56b1cda257ea4da4b8ed1121d9",
+      "reference_sha256": "bd1966d35be26afdd5d676473427245f80d884bee911ed1c7c2c4ecbe93023b8"
+    },
+    {
+      "raw": "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+      "raw_sha256": "6b286a10e816887c044640f220667173e7c0ccf31bb268ebb2b494e06ccb87c4",
+      "reference_sha256": "13626758bf6bf1262412ad308ed07ccb6b5f3557d7d2356c6b5e6a02816ceddb"
+    }
+  ],
+  "driver_sha256": "41524f51f9519c571fbef76ccbc34102f04e56addd95e5f27dfe4798f68d0a63",
+  "scope": "Older 50MP-downsampled controls, isolated none/retain/reconstruct modes only; no color rendering or capture durability; source metadata is not used by this codec-only benchmark"
+}

@@ -1,0 +1,43 @@
+{
+  "schema": "gpr.stock_preview_retention_modes.v1",
+  "diagnostic_only": true,
+  "acceptance_timing": false,
+  "base": "779bb47",
+  "binary_sha256": "0963207f9daa6fcf073bb6214de1af0418496c985f6582be0be9dc3bc1619fb2",
+  "harness_sha256": "6208d70344eb4f326af735cb058802f2ef6f9d4f9614af051284cfcbaf5c8c70",
+  "cmake_sha256": "1c28b05a6b18e0e673e05ec0677a621cf846115168ea8b3a18ec5eca40a93722",
+  "driver_sha256": "c95cedea9836a4fb02a76ff02f8f47c518a1189492a81bdcef1b2b0c57dc2a94",
+  "source_protocol_sha256": "172fab396354ad2e9e82c41ac2645729084075288f8ea1e1f1d98884ba69357a",
+  "sources": {
+    "source/lib/vc5_encoder/encoder.c": "f8913176171651668446a56f0a1462aad680dcc1cc77eba75e5e728b7ebc40a4",
+    "source/lib/vc5_decoder/inverse.c": "6c8ea24aa4366d3941a9e3551deb3df1fb3b52c0fd0bb60bef67a9e38d3faa47",
+    "source/lib/vc5_decoder/vc5_decoder.c": "c5281e5f27afc22ec8ee0952721bddb165be7dc0561a8aec6316eb61879ca771"
+  },
+  "order": [
+    "none",
+    "retain",
+    "reconstruct",
+    "reconstruct",
+    "retain",
+    "none",
+    "retain",
+    "none",
+    "reconstruct",
+    "none",
+    "reconstruct",
+    "retain"
+  ],
+  "blocks": 12,
+  "iterations_per_block": 16,
+  "warmup_excluded_per_block": 1,
+  "encoder_arena_bytes": 201326592,
+  "source_count": 2,
+  "quality": 3,
+  "geometry": [
+    4096,
+    3072
+  ],
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "scope": "All modes in one executable/process per source with fixed reused arenas; no rendering, queue, pacing or storage. Retain-only observes one coefficient per band; reconstruct matches three independent entropy-decoded planes. Not acceptance timing."
+}

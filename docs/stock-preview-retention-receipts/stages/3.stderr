@@ -1,0 +1,1008 @@
+unpack_wall=0.000123
+balance channel=0 start=0.000385815 wall=0.030665856 cpu=0.030641815 finish=0.031051671 joined=0.032358324 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.652758602 absolute_end=12966788.683424458
+balance channel=1 start=0.000206944 wall=0.032058770 cpu=0.032019537 finish=0.032265713 joined=0.032358324 error=0 voluntary=0 involuntary=0 processor=1 tid=2559142 absolute_start=12966788.652579730 absolute_end=12966788.684638500
+balance channel=2 start=0.000246797 wall=0.031934582 cpu=0.031920277 finish=0.032181378 joined=0.032358324 error=0 voluntary=0 involuntary=0 processor=2 tid=2559143 absolute_start=12966788.652619584 absolute_end=12966788.684554165
+balance channel=3 start=0.000371296 wall=0.031021433 cpu=0.030998092 finish=0.031392729 joined=0.032358324 error=0 voluntary=0 involuntary=0 processor=3 tid=2559144 absolute_start=12966788.652744083 absolute_end=12966788.683765516
+encoding_end_wall=0.035177
+after_preview_wall=0.043741237
+after_cleanup_wall=0.043773219
+capture_diag frame=0 wall_ns=43778720 cpu_ns=42444481 clock_ok=1 error=0 tid=2559140 end_ns=12966788695544874
+unpack_wall=0.000001
+balance channel=0 start=0.000056945 wall=0.028091403 cpu=0.028077481 finish=0.028148348 joined=0.028730053 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.712707493 absolute_end=12966788.740798896
+balance channel=1 start=0.000035612 wall=0.028380774 cpu=0.028373833 finish=0.028416386 joined=0.028730053 error=0 voluntary=0 involuntary=0 processor=1 tid=2559150 absolute_start=12966788.712686161 absolute_end=12966788.741066935
+balance channel=2 start=0.000049260 wall=0.028646905 cpu=0.028642704 finish=0.028696164 joined=0.028730053 error=0 voluntary=0 involuntary=0 processor=2 tid=2559151 absolute_start=12966788.712699808 absolute_end=12966788.741346713
+balance channel=3 start=0.000060741 wall=0.028381923 cpu=0.028374074 finish=0.028442664 joined=0.028730053 error=0 voluntary=0 involuntary=0 processor=3 tid=2559152 absolute_start=12966788.712711290 absolute_end=12966788.741093213
+encoding_end_wall=0.031177
+after_preview_wall=0.039862446
+after_cleanup_wall=0.039901633
+capture_diag frame=1 wall_ns=39905465 cpu_ns=39426981 clock_ok=1 error=0 tid=2559140 end_ns=12966788752152883
+unpack_wall=0.000001
+balance channel=0 start=0.000059668 wall=0.030051889 cpu=0.030041555 finish=0.030111557 joined=0.031412490 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.769073095 absolute_end=12966788.799124984
+balance channel=1 start=0.000038037 wall=0.031311471 cpu=0.031305797 finish=0.031349508 joined=0.031412490 error=0 voluntary=0 involuntary=0 processor=1 tid=2559158 absolute_start=12966788.769051464 absolute_end=12966788.800362935
+balance channel=2 start=0.000037871 wall=0.031216709 cpu=0.031210722 finish=0.031254580 joined=0.031412490 error=0 voluntary=0 involuntary=0 processor=2 tid=2559159 absolute_start=12966788.769051298 absolute_end=12966788.800268007
+balance channel=3 start=0.000079872 wall=0.030394446 cpu=0.030379944 finish=0.030474318 joined=0.031412490 error=0 voluntary=0 involuntary=0 processor=3 tid=2559160 absolute_start=12966788.769093299 absolute_end=12966788.799487745
+encoding_end_wall=0.034037
+after_preview_wall=0.042464586
+after_cleanup_wall=0.042509530
+capture_diag frame=2 wall_ns=42513290 cpu_ns=41298093 clock_ok=1 error=0 tid=2559140 end_ns=12966788811122994
+unpack_wall=0.000001
+balance channel=0 start=0.000056464 wall=0.028347902 cpu=0.028333889 finish=0.028404366 joined=0.029192777 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.825560641 absolute_end=12966788.853908543
+balance channel=1 start=0.000033872 wall=0.028879905 cpu=0.028872556 finish=0.028913777 joined=0.029192777 error=0 voluntary=0 involuntary=0 processor=1 tid=2559166 absolute_start=12966788.825538049 absolute_end=12966788.854417954
+balance channel=2 start=0.000044446 wall=0.029111035 cpu=0.029104889 finish=0.029155482 joined=0.029192777 error=0 voluntary=0 involuntary=0 processor=2 tid=2559167 absolute_start=12966788.825548623 absolute_end=12966788.854659658
+balance channel=3 start=0.000061039 wall=0.028462904 cpu=0.028453370 finish=0.028523942 joined=0.029192777 error=0 voluntary=0 involuntary=0 processor=3 tid=2559168 absolute_start=12966788.825565215 absolute_end=12966788.854028119
+encoding_end_wall=0.031638
+after_preview_wall=0.040085558
+after_cleanup_wall=0.040113557
+capture_diag frame=3 wall_ns=40117595 cpu_ns=39377556 clock_ok=1 error=0 tid=2559140 end_ns=12966788865219789
+unpack_wall=0.000001
+balance channel=0 start=0.000059852 wall=0.030138150 cpu=0.030122129 finish=0.030198002 joined=0.031374360 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.880314125 absolute_end=12966788.910452275
+balance channel=1 start=0.000042519 wall=0.031237137 cpu=0.031229834 finish=0.031279655 joined=0.031374360 error=0 voluntary=0 involuntary=0 processor=1 tid=2559174 absolute_start=12966788.880296791 absolute_end=12966788.911533928
+balance channel=2 start=0.000042945 wall=0.031215061 cpu=0.031209315 finish=0.031258006 joined=0.031374360 error=0 voluntary=0 involuntary=0 processor=2 tid=2559175 absolute_start=12966788.880297218 absolute_end=12966788.911512278
+balance channel=3 start=0.000065351 wall=0.030265614 cpu=0.030251111 finish=0.030330965 joined=0.031374360 error=0 voluntary=0 involuntary=0 processor=3 tid=2559176 absolute_start=12966788.880319623 absolute_end=12966788.910585238
+encoding_end_wall=0.034072
+after_preview_wall=0.042629920
+after_cleanup_wall=0.042669309
+capture_diag frame=4 wall_ns=42673049 cpu_ns=41595462 clock_ok=1 error=0 tid=2559140 end_ns=12966788922490153
+unpack_wall=0.000001
+balance channel=0 start=0.000055628 wall=0.028220514 cpu=0.028210630 finish=0.028276142 joined=0.028948830 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.936968355 absolute_end=12966788.965188868
+balance channel=1 start=0.000048814 wall=0.028854107 cpu=0.028847667 finish=0.028902922 joined=0.028948830 error=0 voluntary=0 involuntary=0 processor=1 tid=2559182 absolute_start=12966788.936961541 absolute_end=12966788.965815648
+balance channel=2 start=0.000064073 wall=0.028756442 cpu=0.028749129 finish=0.028820515 joined=0.028948830 error=0 voluntary=0 involuntary=0 processor=2 tid=2559183 absolute_start=12966788.936976800 absolute_end=12966788.965733241
+balance channel=3 start=0.000069203 wall=0.028395459 cpu=0.028373796 finish=0.028464662 joined=0.028948830 error=0 voluntary=0 involuntary=0 processor=3 tid=2559184 absolute_start=12966788.936981929 absolute_end=12966788.965377389
+encoding_end_wall=0.031400
+after_preview_wall=0.039981818
+after_cleanup_wall=0.040052224
+capture_diag frame=5 wall_ns=40055613 cpu_ns=39406480 clock_ok=1 error=0 tid=2559140 end_ns=12966788976559467
+unpack_wall=0.000001
+balance channel=0 start=0.000058409 wall=0.030032335 cpu=0.030019240 finish=0.030090744 joined=0.031536194 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966788.991072522 absolute_end=12966789.021104857
+balance channel=1 start=0.000046408 wall=0.031416951 cpu=0.031407852 finish=0.031463359 joined=0.031536194 error=0 voluntary=0 involuntary=0 processor=1 tid=2559190 absolute_start=12966788.991060521 absolute_end=12966789.022477472
+balance channel=2 start=0.000064742 wall=0.031158784 cpu=0.031153296 finish=0.031223526 joined=0.031536194 error=0 voluntary=0 involuntary=0 processor=2 tid=2559191 absolute_start=12966788.991078855 absolute_end=12966789.022237640
+balance channel=3 start=0.000075426 wall=0.030312745 cpu=0.030303481 finish=0.030388171 joined=0.031536194 error=0 voluntary=0 involuntary=0 processor=3 tid=2559192 absolute_start=12966788.991089540 absolute_end=12966789.021402285
+encoding_end_wall=0.034174
+after_preview_wall=0.042719733
+after_cleanup_wall=0.042758919
+capture_diag frame=6 wall_ns=42762939 cpu_ns=41336685 clock_ok=1 error=0 tid=2559140 end_ns=12966789033377459
+unpack_wall=0.000001
+balance channel=0 start=0.000060666 wall=0.028396737 cpu=0.028377463 finish=0.028457403 joined=0.028995385 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.047846846 absolute_end=12966789.076243583
+balance channel=1 start=0.000051185 wall=0.028703533 cpu=0.028694000 finish=0.028754719 joined=0.028995385 error=0 voluntary=0 involuntary=0 processor=1 tid=2559198 absolute_start=12966789.047837365 absolute_end=12966789.076540899
+balance channel=2 start=0.000063444 wall=0.028891647 cpu=0.028888037 finish=0.028955091 joined=0.028995385 error=0 voluntary=0 involuntary=0 processor=2 tid=2559199 absolute_start=12966789.047849623 absolute_end=12966789.076741271
+balance channel=3 start=0.000067296 wall=0.028274292 cpu=0.028268722 finish=0.028341588 joined=0.028995385 error=0 voluntary=0 involuntary=0 processor=3 tid=2559200 absolute_start=12966789.047853475 absolute_end=12966789.076127768
+encoding_end_wall=0.031415
+after_preview_wall=0.040063966
+after_cleanup_wall=0.040113335
+capture_diag frame=7 wall_ns=40116929 cpu_ns=39657723 clock_ok=1 error=0 tid=2559140 end_ns=12966789087496829
+unpack_wall=0.000001
+balance channel=0 start=0.000080369 wall=0.030183854 cpu=0.030143481 finish=0.030264223 joined=0.031437339 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.102582274 absolute_end=12966789.132766128
+balance channel=1 start=0.000034537 wall=0.031342579 cpu=0.031336667 finish=0.031377116 joined=0.031437339 error=0 voluntary=0 involuntary=0 processor=1 tid=2559206 absolute_start=12966789.102536442 absolute_end=12966789.133879021
+balance channel=2 start=0.000048500 wall=0.031258395 cpu=0.031251333 finish=0.031306894 joined=0.031437339 error=0 voluntary=0 involuntary=0 processor=2 tid=2559207 absolute_start=12966789.102550404 absolute_end=12966789.133808799
+balance channel=3 start=0.000087684 wall=0.030282984 cpu=0.030271259 finish=0.030370668 joined=0.031437339 error=0 voluntary=0 involuntary=0 processor=3 tid=2559208 absolute_start=12966789.102589589 absolute_end=12966789.132872572
+encoding_end_wall=0.034128
+after_preview_wall=0.042684715
+after_cleanup_wall=0.042714771
+capture_diag frame=8 wall_ns=42718309 cpu_ns=41645388 clock_ok=1 error=0 tid=2559140 end_ns=12966789144793729
+unpack_wall=0.000001
+balance channel=0 start=0.000054909 wall=0.028186494 cpu=0.028163889 finish=0.028241403 joined=0.028933516 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.159490841 absolute_end=12966789.187677335
+balance channel=1 start=0.000038186 wall=0.028764831 cpu=0.028755500 finish=0.028803017 joined=0.028933516 error=0 voluntary=0 involuntary=0 processor=1 tid=2559214 absolute_start=12966789.159474118 absolute_end=12966789.188238949
+balance channel=2 start=0.000038242 wall=0.028787423 cpu=0.028780519 finish=0.028825665 joined=0.028933516 error=0 voluntary=0 involuntary=0 processor=2 tid=2559215 absolute_start=12966789.159474174 absolute_end=12966789.188261596
+balance channel=3 start=0.000063723 wall=0.028391199 cpu=0.028382740 finish=0.028454922 joined=0.028933516 error=0 voluntary=0 involuntary=0 processor=3 tid=2559216 absolute_start=12966789.159499655 absolute_end=12966789.187890854
+encoding_end_wall=0.031342
+after_preview_wall=0.039949594
+after_cleanup_wall=0.039982093
+capture_diag frame=9 wall_ns=39985910 cpu_ns=39434111 clock_ok=1 error=0 tid=2559140 end_ns=12966789199011507
+unpack_wall=0.000001
+balance channel=0 start=0.000056520 wall=0.029875593 cpu=0.029857389 finish=0.029932113 joined=0.031275803 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.213710859 absolute_end=12966789.243586453
+balance channel=1 start=0.000038018 wall=0.031177172 cpu=0.031171815 finish=0.031215191 joined=0.031275803 error=0 voluntary=0 involuntary=0 processor=1 tid=2559222 absolute_start=12966789.213692358 absolute_end=12966789.244869530
+balance channel=2 start=0.000049520 wall=0.031062560 cpu=0.031056723 finish=0.031112080 joined=0.031275803 error=0 voluntary=0 involuntary=0 processor=2 tid=2559223 absolute_start=12966789.213703860 absolute_end=12966789.244766420
+balance channel=3 start=0.000068111 wall=0.030148614 cpu=0.030139130 finish=0.030216726 joined=0.031275803 error=0 voluntary=0 involuntary=0 processor=3 tid=2559224 absolute_start=12966789.213722451 absolute_end=12966789.243871065
+encoding_end_wall=0.033926
+after_preview_wall=0.042546920
+after_cleanup_wall=0.042580476
+capture_diag frame=10 wall_ns=42583697 cpu_ns=41387389 clock_ok=1 error=0 tid=2559140 end_ns=12966789255834480
+unpack_wall=0.000001
+balance channel=0 start=0.000056501 wall=0.027866513 cpu=0.027850203 finish=0.027923014 joined=0.028721960 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.269163234 absolute_end=12966789.297029747
+balance channel=1 start=0.000036001 wall=0.028613552 cpu=0.028604074 finish=0.028649554 joined=0.028721960 error=0 voluntary=0 involuntary=0 processor=1 tid=2559230 absolute_start=12966789.269142734 absolute_end=12966789.297756286
+balance channel=2 start=0.000045666 wall=0.028542534 cpu=0.028534389 finish=0.028588200 joined=0.028721960 error=0 voluntary=0 involuntary=0 processor=2 tid=2559231 absolute_start=12966789.269152399 absolute_end=12966789.297694933
+balance channel=3 start=0.000067316 wall=0.028125569 cpu=0.028116815 finish=0.028192885 joined=0.028721960 error=0 voluntary=0 involuntary=0 processor=3 tid=2559232 absolute_start=12966789.269174049 absolute_end=12966789.297299618
+encoding_end_wall=0.031147
+after_preview_wall=0.039682407
+after_cleanup_wall=0.039730778
+capture_diag frame=11 wall_ns=39734557 cpu_ns=39093666 clock_ok=1 error=0 tid=2559140 end_ns=12966789308439233
+unpack_wall=0.000001
+balance channel=0 start=0.000052888 wall=0.030198393 cpu=0.030187556 finish=0.030251281 joined=0.031499822 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.322262043 absolute_end=12966789.352460437
+balance channel=1 start=0.000038704 wall=0.031407323 cpu=0.031401648 finish=0.031446027 joined=0.031499822 error=0 voluntary=0 involuntary=0 processor=1 tid=2559238 absolute_start=12966789.322247859 absolute_end=12966789.353655182
+balance channel=2 start=0.000038574 wall=0.031048896 cpu=0.031042833 finish=0.031087469 joined=0.031499822 error=0 voluntary=0 involuntary=0 processor=2 tid=2559239 absolute_start=12966789.322247729 absolute_end=12966789.353296624
+balance channel=3 start=0.000059335 wall=0.030206149 cpu=0.030194685 finish=0.030265484 joined=0.031499822 error=0 voluntary=0 involuntary=0 processor=3 tid=2559240 absolute_start=12966789.322268490 absolute_end=12966789.352474639
+encoding_end_wall=0.034141
+after_preview_wall=0.042653345
+after_cleanup_wall=0.042685160
+capture_diag frame=12 wall_ns=42688882 cpu_ns=41527055 clock_ok=1 error=0 tid=2559140 end_ns=12966789364460610
+unpack_wall=0.000001
+balance channel=0 start=0.000053687 wall=0.028103493 cpu=0.028087000 finish=0.028157180 joined=0.028755832 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.378004532 absolute_end=12966789.406108025
+balance channel=1 start=0.000060204 wall=0.028543644 cpu=0.028535945 finish=0.028603848 joined=0.028755832 error=0 voluntary=0 involuntary=0 processor=1 tid=2559246 absolute_start=12966789.378011050 absolute_end=12966789.406554693
+balance channel=2 start=0.000065835 wall=0.028651793 cpu=0.028645352 finish=0.028717628 joined=0.028755832 error=0 voluntary=0 involuntary=0 processor=2 tid=2559247 absolute_start=12966789.378016680 absolute_end=12966789.406668473
+balance channel=3 start=0.000064353 wall=0.028212570 cpu=0.028199611 finish=0.028276922 joined=0.028755832 error=0 voluntary=0 involuntary=0 processor=3 tid=2559248 absolute_start=12966789.378015198 absolute_end=12966789.406227767
+encoding_end_wall=0.031234
+after_preview_wall=0.039693447
+after_cleanup_wall=0.039745336
+capture_diag frame=13 wall_ns=39748686 cpu_ns=39204556 clock_ok=1 error=0 tid=2559140 end_ns=12966789417288920
+unpack_wall=0.000001
+balance channel=0 start=0.000052815 wall=0.030365281 cpu=0.030351723 finish=0.030418096 joined=0.031518452 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.431246750 absolute_end=12966789.461612031
+balance channel=1 start=0.000047019 wall=0.031419266 cpu=0.031413796 finish=0.031466285 joined=0.031518452 error=0 voluntary=0 involuntary=0 processor=1 tid=2559254 absolute_start=12966789.431240954 absolute_end=12966789.462660220
+balance channel=2 start=0.000061613 wall=0.031296190 cpu=0.031291074 finish=0.031357802 joined=0.031518452 error=0 voluntary=0 involuntary=0 processor=2 tid=2559255 absolute_start=12966789.431255547 absolute_end=12966789.462551737
+balance channel=3 start=0.000066020 wall=0.030440819 cpu=0.030432963 finish=0.030506838 joined=0.031518452 error=0 voluntary=0 involuntary=0 processor=3 tid=2559256 absolute_start=12966789.431259954 absolute_end=12966789.461700773
+encoding_end_wall=0.034159
+after_preview_wall=0.042614939
+after_cleanup_wall=0.042655233
+capture_diag frame=14 wall_ns=42659605 cpu_ns=41654092 clock_ok=1 error=0 tid=2559140 end_ns=12966789473447131
+unpack_wall=0.000001
+balance channel=0 start=0.000056779 wall=0.028132938 cpu=0.028117944 finish=0.028189717 joined=0.028944775 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.487433240 absolute_end=12966789.515566178
+balance channel=1 start=0.000054464 wall=0.028662570 cpu=0.028655185 finish=0.028717034 joined=0.028944775 error=0 voluntary=0 involuntary=0 processor=1 tid=2559262 absolute_start=12966789.487430925 absolute_end=12966789.516093494
+balance channel=2 start=0.000054872 wall=0.028858034 cpu=0.028852259 finish=0.028912906 joined=0.028944775 error=0 voluntary=0 involuntary=0 processor=2 tid=2559263 absolute_start=12966789.487431332 absolute_end=12966789.516289366
+balance channel=3 start=0.000058834 wall=0.028607849 cpu=0.028598648 finish=0.028666683 joined=0.028944775 error=0 voluntary=0 involuntary=0 processor=3 tid=2559264 absolute_start=12966789.487435294 absolute_end=12966789.516043143
+encoding_end_wall=0.031421
+after_preview_wall=0.039868336
+after_cleanup_wall=0.039928762
+capture_diag frame=15 wall_ns=39932428 cpu_ns=39285481 clock_ok=1 error=0 tid=2559140 end_ns=12966789526870480
+unpack_wall=0.000001
+balance channel=0 start=0.000054333 wall=0.030187892 cpu=0.030177296 finish=0.030242225 joined=0.031451175 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.540722754 absolute_end=12966789.570910646
+balance channel=1 start=0.000048816 wall=0.031344155 cpu=0.031339278 finish=0.031392971 joined=0.031451175 error=0 voluntary=0 involuntary=0 processor=1 tid=2559270 absolute_start=12966789.540717237 absolute_end=12966789.572061392
+balance channel=2 start=0.000067241 wall=0.031166784 cpu=0.031160611 finish=0.031234026 joined=0.031451175 error=0 voluntary=0 involuntary=0 processor=2 tid=2559271 absolute_start=12966789.540735662 absolute_end=12966789.571902446
+balance channel=3 start=0.000069223 wall=0.030345039 cpu=0.030327370 finish=0.030414263 joined=0.031451175 error=0 voluntary=0 involuntary=0 processor=3 tid=2559272 absolute_start=12966789.540737644 absolute_end=12966789.571082683
+encoding_end_wall=0.034077
+after_preview_wall=0.042502308
+after_cleanup_wall=0.042538289
+capture_diag frame=16 wall_ns=42541956 cpu_ns=41370703 clock_ok=1 error=0 tid=2559140 end_ns=12966789582783727
+unpack_wall=0.000001
+balance channel=0 start=0.000077056 wall=0.028259272 cpu=0.028245074 finish=0.028336328 joined=0.028997442 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.596392389 absolute_end=12966789.624651661
+balance channel=1 start=0.000059629 wall=0.028801812 cpu=0.028793611 finish=0.028861441 joined=0.028997442 error=0 voluntary=0 involuntary=0 processor=1 tid=2559278 absolute_start=12966789.596374962 absolute_end=12966789.625176774
+balance channel=2 start=0.000068890 wall=0.028900478 cpu=0.028895760 finish=0.028969368 joined=0.028997442 error=0 voluntary=0 involuntary=0 processor=2 tid=2559279 absolute_start=12966789.596384224 absolute_end=12966789.625284702
+balance channel=3 start=0.000070371 wall=0.028390199 cpu=0.028379945 finish=0.028460570 joined=0.028997442 error=0 voluntary=0 involuntary=0 processor=3 tid=2559280 absolute_start=12966789.596385704 absolute_end=12966789.624775903
+encoding_end_wall=0.031444
+after_preview_wall=0.039891651
+after_cleanup_wall=0.039939465
+capture_diag frame=17 wall_ns=39950558 cpu_ns=39385426 clock_ok=1 error=0 tid=2559140 end_ns=12966789635848334
+unpack_wall=0.000001
+balance channel=0 start=0.000054056 wall=0.030132316 cpu=0.030120278 finish=0.030186372 joined=0.031423895 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.649286255 absolute_end=12966789.679418571
+balance channel=1 start=0.000046629 wall=0.031302007 cpu=0.031293981 finish=0.031348636 joined=0.031423895 error=0 voluntary=0 involuntary=0 processor=1 tid=2559286 absolute_start=12966789.649278829 absolute_end=12966789.680580836
+balance channel=2 start=0.000060370 wall=0.031243859 cpu=0.031239889 finish=0.031304229 joined=0.031423895 error=0 voluntary=0 involuntary=0 processor=2 tid=2559287 absolute_start=12966789.649292570 absolute_end=12966789.680536428
+balance channel=3 start=0.000064852 wall=0.030299189 cpu=0.030283260 finish=0.030364040 joined=0.031423895 error=0 voluntary=0 involuntary=0 processor=3 tid=2559288 absolute_start=12966789.649297051 absolute_end=12966789.679596240
+encoding_end_wall=0.034037
+after_preview_wall=0.042537291
+after_cleanup_wall=0.042588919
+capture_diag frame=18 wall_ns=42592863 cpu_ns=41447333 clock_ok=1 error=0 tid=2559140 end_ns=12966789691415524
+unpack_wall=0.000001
+balance channel=0 start=0.000055853 wall=0.028056717 cpu=0.028046667 finish=0.028112570 joined=0.028740497 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.704708260 absolute_end=12966789.732764976
+balance channel=1 start=0.000049742 wall=0.028625404 cpu=0.028616018 finish=0.028675146 joined=0.028740497 error=0 voluntary=0 involuntary=0 processor=1 tid=2559294 absolute_start=12966789.704702148 absolute_end=12966789.733327553
+balance channel=2 start=0.000066502 wall=0.028571902 cpu=0.028564537 finish=0.028638404 joined=0.028740497 error=0 voluntary=0 involuntary=0 processor=2 tid=2559295 absolute_start=12966789.704718908 absolute_end=12966789.733290810
+balance channel=3 start=0.000068428 wall=0.028028846 cpu=0.028018519 finish=0.028097274 joined=0.028740497 error=0 voluntary=0 involuntary=0 processor=3 tid=2559296 absolute_start=12966789.704720834 absolute_end=12966789.732749680
+encoding_end_wall=0.031218
+after_preview_wall=0.039732205
+after_cleanup_wall=0.039772205
+capture_diag frame=19 wall_ns=39776261 cpu_ns=39162926 clock_ok=1 error=0 tid=2559140 end_ns=12966789743992648
+unpack_wall=0.000001
+balance channel=0 start=0.000057926 wall=0.030054355 cpu=0.030040259 finish=0.030112281 joined=0.031333452 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.757738532 absolute_end=12966789.787792888
+balance channel=1 start=0.000039075 wall=0.031227155 cpu=0.031220740 finish=0.031266229 joined=0.031333452 error=0 voluntary=0 involuntary=0 processor=1 tid=2559302 absolute_start=12966789.757719681 absolute_end=12966789.788946835
+balance channel=2 start=0.000050927 wall=0.031143099 cpu=0.031137778 finish=0.031194026 joined=0.031333452 error=0 voluntary=0 involuntary=0 processor=2 tid=2559303 absolute_start=12966789.757731533 absolute_end=12966789.788874632
+balance channel=3 start=0.000064667 wall=0.030395633 cpu=0.030384908 finish=0.030460300 joined=0.031333452 error=0 voluntary=0 involuntary=0 processor=3 tid=2559304 absolute_start=12966789.757745273 absolute_end=12966789.788140906
+encoding_end_wall=0.033967
+after_preview_wall=0.042558938
+after_cleanup_wall=0.042592976
+capture_diag frame=20 wall_ns=42596660 cpu_ns=41433648 clock_ok=1 error=0 tid=2559140 end_ns=12966789799844784
+unpack_wall=0.000001
+balance channel=0 start=0.000059593 wall=0.028446645 cpu=0.028439055 finish=0.028506238 joined=0.029139221 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.813223630 absolute_end=12966789.841670275
+balance channel=1 start=0.000037666 wall=0.028874110 cpu=0.028867056 finish=0.028911777 joined=0.029139221 error=0 voluntary=0 involuntary=0 processor=1 tid=2559310 absolute_start=12966789.813201703 absolute_end=12966789.842075814
+balance channel=2 start=0.000051297 wall=0.029053831 cpu=0.029048111 finish=0.029105129 joined=0.029139221 error=0 voluntary=0 involuntary=0 processor=2 tid=2559311 absolute_start=12966789.813215334 absolute_end=12966789.842269165
+balance channel=3 start=0.000066075 wall=0.028433070 cpu=0.028422407 finish=0.028499145 joined=0.029139221 error=0 voluntary=0 involuntary=0 processor=3 tid=2559312 absolute_start=12966789.813230112 absolute_end=12966789.841663182
+encoding_end_wall=0.031608
+after_preview_wall=0.040146021
+after_cleanup_wall=0.040207818
+capture_diag frame=21 wall_ns=40211873 cpu_ns=39673758 clock_ok=1 error=0 tid=2559140 end_ns=12966789852968539
+unpack_wall=0.000001
+balance channel=0 start=0.000055259 wall=0.029929871 cpu=0.029916797 finish=0.029985130 joined=0.031249784 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.866500257 absolute_end=12966789.896430127
+balance channel=1 start=0.000035832 wall=0.031146988 cpu=0.031141111 finish=0.031182820 joined=0.031249784 error=0 voluntary=0 involuntary=0 processor=1 tid=2559318 absolute_start=12966789.866480829 absolute_end=12966789.897627817
+balance channel=2 start=0.000050314 wall=0.030921821 cpu=0.030916685 finish=0.030972134 joined=0.031249784 error=0 voluntary=0 involuntary=0 processor=2 tid=2559319 absolute_start=12966789.866495311 absolute_end=12966789.897417132
+balance channel=3 start=0.000061611 wall=0.030274559 cpu=0.030265574 finish=0.030336170 joined=0.031249784 error=0 voluntary=0 involuntary=0 processor=3 tid=2559320 absolute_start=12966789.866506608 absolute_end=12966789.896781167
+encoding_end_wall=0.033911
+after_preview_wall=0.042479714
+after_cleanup_wall=0.042547567
+capture_diag frame=22 wall_ns=42550604 cpu_ns=41346148 clock_ok=1 error=0 tid=2559140 end_ns=12966789908573322
+unpack_wall=0.000001
+balance channel=0 start=0.000051999 wall=0.028223032 cpu=0.028205704 finish=0.028275032 joined=0.028775627 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.922051964 absolute_end=12966789.950274996
+balance channel=1 start=0.000036074 wall=0.028612088 cpu=0.028604926 finish=0.028648162 joined=0.028775627 error=0 voluntary=0 involuntary=0 processor=1 tid=2559326 absolute_start=12966789.922036039 absolute_end=12966789.950648127
+balance channel=2 start=0.000051852 wall=0.028686330 cpu=0.028681370 finish=0.028738182 joined=0.028775627 error=0 voluntary=0 involuntary=0 processor=2 tid=2559327 absolute_start=12966789.922051817 absolute_end=12966789.950738147
+balance channel=3 start=0.000058519 wall=0.028085550 cpu=0.028073833 finish=0.028144069 joined=0.028775627 error=0 voluntary=0 involuntary=0 processor=3 tid=2559328 absolute_start=12966789.922058484 absolute_end=12966789.950144034
+encoding_end_wall=0.031319
+after_preview_wall=0.039749816
+after_cleanup_wall=0.039820483
+capture_diag frame=23 wall_ns=39823650 cpu_ns=39324537 clock_ok=1 error=0 tid=2559140 end_ns=12966789961421095
+unpack_wall=0.000001
+balance channel=0 start=0.000053074 wall=0.030059354 cpu=0.030046519 finish=0.030112429 joined=0.031340877 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966789.975208202 absolute_end=12966790.005267557
+balance channel=1 start=0.000036037 wall=0.031252932 cpu=0.031246389 finish=0.031288968 joined=0.031340877 error=0 voluntary=0 involuntary=0 processor=1 tid=2559334 absolute_start=12966789.975191165 absolute_end=12966790.006444097
+balance channel=2 start=0.000047944 wall=0.031069765 cpu=0.031063704 finish=0.031117709 joined=0.031340877 error=0 voluntary=0 involuntary=0 processor=2 tid=2559335 absolute_start=12966789.975203073 absolute_end=12966790.006272838
+balance channel=3 start=0.000056705 wall=0.030407077 cpu=0.030395278 finish=0.030463781 joined=0.031340877 error=0 voluntary=0 involuntary=0 processor=3 tid=2559336 absolute_start=12966789.975211833 absolute_end=12966790.005618909
+encoding_end_wall=0.034069
+after_preview_wall=0.042506827
+after_cleanup_wall=0.042560050
+capture_diag frame=24 wall_ns=42563697 cpu_ns=41378962 clock_ok=1 error=0 tid=2559140 end_ns=12966790017297008
+unpack_wall=0.000001
+balance channel=0 start=0.000056740 wall=0.028122606 cpu=0.028110000 finish=0.028179346 joined=0.028881293 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.030779762 absolute_end=12966790.058902368
+balance channel=1 start=0.000061464 wall=0.028719680 cpu=0.028713704 finish=0.028781144 joined=0.028881293 error=0 voluntary=0 involuntary=0 processor=1 tid=2559342 absolute_start=12966790.030784486 absolute_end=12966790.059504166
+balance channel=2 start=0.000057871 wall=0.028714366 cpu=0.028706796 finish=0.028772237 joined=0.028881293 error=0 voluntary=0 involuntary=0 processor=2 tid=2559343 absolute_start=12966790.030780893 absolute_end=12966790.059495259
+balance channel=3 start=0.000065537 wall=0.028114013 cpu=0.028103982 finish=0.028179551 joined=0.028881293 error=0 voluntary=0 involuntary=0 processor=3 tid=2559344 absolute_start=12966790.030788559 absolute_end=12966790.058902573
+encoding_end_wall=0.031520
+after_preview_wall=0.039998835
+after_cleanup_wall=0.040037800
+capture_diag frame=25 wall_ns=40041613 cpu_ns=39362203 clock_ok=1 error=0 tid=2559140 end_ns=12966790070337430
+unpack_wall=0.000001
+balance channel=0 start=0.000091167 wall=0.030111095 cpu=0.030093518 finish=0.030202262 joined=0.031303192 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.084140111 absolute_end=12966790.114251206
+balance channel=1 start=0.000038520 wall=0.031153748 cpu=0.031143981 finish=0.031192267 joined=0.031303192 error=0 voluntary=0 involuntary=0 processor=1 tid=2559350 absolute_start=12966790.084087463 absolute_end=12966790.115241211
+balance channel=2 start=0.000079704 wall=0.031157747 cpu=0.031150574 finish=0.031237451 joined=0.031303192 error=0 voluntary=0 involuntary=0 processor=2 tid=2559351 absolute_start=12966790.084128648 absolute_end=12966790.115286395
+balance channel=3 start=0.000096576 wall=0.030370150 cpu=0.030358185 finish=0.030466726 joined=0.031303192 error=0 voluntary=0 involuntary=0 processor=3 tid=2559352 absolute_start=12966790.084145520 absolute_end=12966790.114515670
+encoding_end_wall=0.034331
+after_preview_wall=0.043255441
+after_cleanup_wall=0.043293977
+capture_diag frame=26 wall_ns=43297015 cpu_ns=42300612 clock_ok=1 error=0 tid=2559140 end_ns=12966790126940828
+unpack_wall=0.000001
+balance channel=0 start=0.000055814 wall=0.028273311 cpu=0.028261722 finish=0.028329125 joined=0.028916849 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.140361359 absolute_end=12966790.168634670
+balance channel=1 start=0.000051999 wall=0.028713813 cpu=0.028707000 finish=0.028765813 joined=0.028916849 error=0 voluntary=0 involuntary=0 processor=1 tid=2559358 absolute_start=12966790.140357545 absolute_end=12966790.169071358
+balance channel=2 start=0.000051241 wall=0.028832940 cpu=0.028825333 finish=0.028884182 joined=0.028916849 error=0 voluntary=0 involuntary=0 processor=2 tid=2559359 absolute_start=12966790.140356787 absolute_end=12966790.169189727
+balance channel=3 start=0.000061167 wall=0.028231364 cpu=0.028217092 finish=0.028292531 joined=0.028916849 error=0 voluntary=0 involuntary=0 processor=3 tid=2559360 absolute_start=12966790.140366713 absolute_end=12966790.168598076
+encoding_end_wall=0.031384
+after_preview_wall=0.039889650
+after_cleanup_wall=0.039967872
+capture_diag frame=27 wall_ns=39973576 cpu_ns=39470536 clock_ok=1 error=0 tid=2559140 end_ns=12966790179849230
+unpack_wall=0.000001
+balance channel=0 start=0.000048019 wall=0.028407145 cpu=0.028392148 finish=0.028455164 joined=0.029022295 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.193740893 absolute_end=12966790.222148038
+balance channel=1 start=0.000053853 wall=0.028872110 cpu=0.028866740 finish=0.028925963 joined=0.029022295 error=0 voluntary=0 involuntary=0 processor=1 tid=2559366 absolute_start=12966790.193746727 absolute_end=12966790.222618837
+balance channel=2 start=0.000058262 wall=0.028914088 cpu=0.028908111 finish=0.028972350 joined=0.029022295 error=0 voluntary=0 involuntary=0 processor=2 tid=2559367 absolute_start=12966790.193751136 absolute_end=12966790.222665224
+balance channel=3 start=0.000059186 wall=0.028324069 cpu=0.028309703 finish=0.028383255 joined=0.029022295 error=0 voluntary=0 involuntary=0 processor=3 tid=2559368 absolute_start=12966790.193752060 absolute_end=12966790.222076129
+encoding_end_wall=0.031507
+after_preview_wall=0.039925242
+after_cleanup_wall=0.039974429
+capture_diag frame=28 wall_ns=39978613 cpu_ns=39497667 clock_ok=1 error=0 tid=2559140 end_ns=12966790233270079
+unpack_wall=0.000001
+balance channel=0 start=0.000070594 wall=0.030182131 cpu=0.030163778 finish=0.030252725 joined=0.031384064 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.246719927 absolute_end=12966790.276902057
+balance channel=1 start=0.000048056 wall=0.031285452 cpu=0.031270667 finish=0.031333508 joined=0.031384064 error=0 voluntary=0 involuntary=0 processor=1 tid=2559374 absolute_start=12966790.246697389 absolute_end=12966790.277982840
+balance channel=2 start=0.000065483 wall=0.031087710 cpu=0.031081852 finish=0.031153193 joined=0.031384064 error=0 voluntary=0 involuntary=0 processor=2 tid=2559375 absolute_start=12966790.246714815 absolute_end=12966790.277802525
+balance channel=3 start=0.000075668 wall=0.030307392 cpu=0.030296167 finish=0.030383060 joined=0.031384064 error=0 voluntary=0 involuntary=0 processor=3 tid=2559376 absolute_start=12966790.246725000 absolute_end=12966790.277032392
+encoding_end_wall=0.034048
+after_preview_wall=0.042517940
+after_cleanup_wall=0.042566938
+capture_diag frame=29 wall_ns=42570975 cpu_ns=41470684 clock_ok=1 error=0 tid=2559140 end_ns=12966790288813418
+unpack_wall=0.000001
+balance channel=0 start=0.000092611 wall=0.028239774 cpu=0.028226352 finish=0.028332384 joined=0.028953405 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.302570339 absolute_end=12966790.330810113
+balance channel=1 start=0.000039112 wall=0.028607311 cpu=0.028600314 finish=0.028646423 joined=0.028953405 error=0 voluntary=0 involuntary=0 processor=1 tid=2559382 absolute_start=12966790.302516840 absolute_end=12966790.331124151
+balance channel=2 start=0.000056574 wall=0.028864644 cpu=0.028860667 finish=0.028921219 joined=0.028953405 error=0 voluntary=0 involuntary=0 processor=2 tid=2559383 absolute_start=12966790.302534303 absolute_end=12966790.331398947
+balance channel=3 start=0.000102315 wall=0.028280254 cpu=0.028271500 finish=0.028382570 joined=0.028953405 error=0 voluntary=0 involuntary=0 processor=3 tid=2559384 absolute_start=12966790.302580044 absolute_end=12966790.330860298
+encoding_end_wall=0.031442
+after_preview_wall=0.040015502
+after_cleanup_wall=0.040054467
+capture_diag frame=30 wall_ns=40058058 cpu_ns=39491925 clock_ok=1 error=0 tid=2559140 end_ns=12966790342125137
+unpack_wall=0.000001
+balance channel=0 start=0.000088260 wall=0.029973872 cpu=0.029954056 finish=0.030062132 joined=0.031137081 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.355610965 absolute_end=12966790.385584837
+balance channel=1 start=0.000055907 wall=0.030996729 cpu=0.030989425 finish=0.031052636 joined=0.031137081 error=0 voluntary=0 involuntary=0 processor=1 tid=2559390 absolute_start=12966790.355578613 absolute_end=12966790.386575341
+balance channel=2 start=0.000052538 wall=0.031013615 cpu=0.031006148 finish=0.031066153 joined=0.031137081 error=0 voluntary=0 involuntary=0 processor=2 tid=2559391 absolute_start=12966790.355575243 absolute_end=12966790.386588858
+balance channel=3 start=0.000092853 wall=0.030187206 cpu=0.030175388 finish=0.030280059 joined=0.031137081 error=0 voluntary=0 involuntary=0 processor=3 tid=2559392 absolute_start=12966790.355615558 absolute_end=12966790.385802764
+encoding_end_wall=0.033822
+after_preview_wall=0.042337380
+after_cleanup_wall=0.042386213
+capture_diag frame=31 wall_ns=42389770 cpu_ns=41368167 clock_ok=1 error=0 tid=2559140 end_ns=12966790397500530
+unpack_wall=0.000001
+balance channel=0 start=0.000084205 wall=0.028367218 cpu=0.028352129 finish=0.028451422 joined=0.029044868 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.411034673 absolute_end=12966790.439401891
+balance channel=1 start=0.000037890 wall=0.028926460 cpu=0.028920167 finish=0.028964350 joined=0.029044868 error=0 voluntary=0 involuntary=0 processor=1 tid=2559398 absolute_start=12966790.410988359 absolute_end=12966790.439914819
+balance channel=2 start=0.000052853 wall=0.028946368 cpu=0.028938908 finish=0.028999221 joined=0.029044868 error=0 voluntary=0 involuntary=0 processor=2 tid=2559399 absolute_start=12966790.411003321 absolute_end=12966790.439949689
+balance channel=3 start=0.000093333 wall=0.028480219 cpu=0.028469092 finish=0.028573552 joined=0.029044868 error=0 voluntary=0 involuntary=0 processor=3 tid=2559400 absolute_start=12966790.411043802 absolute_end=12966790.439524021
+encoding_end_wall=0.031537
+after_preview_wall=0.040055687
+after_cleanup_wall=0.040097669
+capture_diag frame=32 wall_ns=40101354 cpu_ns=39552872 clock_ok=1 error=0 tid=2559140 end_ns=12966790450644026
+unpack_wall=0.000001
+balance channel=0 start=0.000045482 wall=0.030159594 cpu=0.030146648 finish=0.030205077 joined=0.031290822 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.464231947 absolute_end=12966790.494391542
+balance channel=1 start=0.000043094 wall=0.031109486 cpu=0.031102722 finish=0.031152580 joined=0.031290822 error=0 voluntary=0 involuntary=0 processor=1 tid=2559406 absolute_start=12966790.464229560 absolute_end=12966790.495339045
+balance channel=2 start=0.000053594 wall=0.031202432 cpu=0.031197240 finish=0.031256026 joined=0.031290822 error=0 voluntary=0 involuntary=0 processor=2 tid=2559407 absolute_start=12966790.464240059 absolute_end=12966790.495442491
+balance channel=3 start=0.000054853 wall=0.030248206 cpu=0.030236889 finish=0.030303059 joined=0.031290822 error=0 voluntary=0 involuntary=0 processor=3 tid=2559408 absolute_start=12966790.464241318 absolute_end=12966790.494489525
+encoding_end_wall=0.034005
+after_preview_wall=0.042444881
+after_cleanup_wall=0.042495402
+capture_diag frame=33 wall_ns=42499085 cpu_ns=41502816 clock_ok=1 error=0 tid=2559140 end_ns=12966790506272142
+unpack_wall=0.000001
+balance channel=0 start=0.000065185 wall=0.028228031 cpu=0.028218296 finish=0.028293217 joined=0.028942682 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.519988472 absolute_end=12966790.548216503
+balance channel=1 start=0.000035297 wall=0.028745681 cpu=0.028736259 finish=0.028780978 joined=0.028942682 error=0 voluntary=0 involuntary=0 processor=1 tid=2559414 absolute_start=12966790.519958584 absolute_end=12966790.548704265
+balance channel=2 start=0.000048464 wall=0.028862849 cpu=0.028858629 finish=0.028911313 joined=0.028942682 error=0 voluntary=0 involuntary=0 processor=2 tid=2559415 absolute_start=12966790.519971751 absolute_end=12966790.548834600
+balance channel=3 start=0.000076093 wall=0.028377587 cpu=0.028364037 finish=0.028453680 joined=0.028942682 error=0 voluntary=0 involuntary=0 processor=3 tid=2559416 absolute_start=12966790.519999379 absolute_end=12966790.548376966
+encoding_end_wall=0.031412
+after_preview_wall=0.040061723
+after_cleanup_wall=0.040094854
+capture_diag frame=34 wall_ns=40098410 cpu_ns=39489074 clock_ok=1 error=0 tid=2559140 end_ns=12966790559597750
+unpack_wall=0.000001
+balance channel=0 start=0.000050887 wall=0.029954260 cpu=0.029936889 finish=0.030005148 joined=0.031333283 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.573500987 absolute_end=12966790.603455247
+balance channel=1 start=0.000038000 wall=0.031247709 cpu=0.031241870 finish=0.031285709 joined=0.031333283 error=0 voluntary=0 involuntary=0 processor=1 tid=2559422 absolute_start=12966790.573488100 absolute_end=12966790.604735808
+balance channel=2 start=0.000037944 wall=0.031033115 cpu=0.031026426 finish=0.031071059 joined=0.031333283 error=0 voluntary=0 involuntary=0 processor=2 tid=2559423 absolute_start=12966790.573488044 absolute_end=12966790.604521159
+balance channel=3 start=0.000061000 wall=0.030212464 cpu=0.030202407 finish=0.030273464 joined=0.031333283 error=0 voluntary=0 involuntary=0 processor=3 tid=2559424 absolute_start=12966790.573511099 absolute_end=12966790.603723563
+encoding_end_wall=0.033980
+after_preview_wall=0.042501677
+after_cleanup_wall=0.042540936
+capture_diag frame=35 wall_ns=42544957 cpu_ns=41242222 clock_ok=1 error=0 tid=2559140 end_ns=12966790615556535
+unpack_wall=0.000001
+balance channel=0 start=0.000050668 wall=0.028602514 cpu=0.028589630 finish=0.028653182 joined=0.029128924 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.628980178 absolute_end=12966790.657582693
+balance channel=1 start=0.000044797 wall=0.028778220 cpu=0.028763407 finish=0.028823016 joined=0.029128924 error=0 voluntary=0 involuntary=0 processor=1 tid=2559430 absolute_start=12966790.628974307 absolute_end=12966790.657752527
+balance channel=2 start=0.000057390 wall=0.029040590 cpu=0.029036074 finish=0.029097980 joined=0.029128924 error=0 voluntary=0 involuntary=0 processor=2 tid=2559431 absolute_start=12966790.628986901 absolute_end=12966790.658027491
+balance channel=3 start=0.000063760 wall=0.028493606 cpu=0.028485148 finish=0.028557366 joined=0.029128924 error=0 voluntary=0 involuntary=0 processor=3 tid=2559432 absolute_start=12966790.628993271 absolute_end=12966790.657486876
+encoding_end_wall=0.031591
+after_preview_wall=0.039976465
+after_cleanup_wall=0.040016983
+capture_diag frame=36 wall_ns=40020614 cpu_ns=39647389 clock_ok=1 error=0 tid=2559140 end_ns=12966790668540512
+unpack_wall=0.000001
+balance channel=0 start=0.000052409 wall=0.029671278 cpu=0.029654111 finish=0.029723687 joined=0.031080024 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.682106175 absolute_end=12966790.711777452
+balance channel=1 start=0.000049483 wall=0.030977894 cpu=0.030972166 finish=0.031027377 joined=0.031080024 error=0 voluntary=0 involuntary=0 processor=1 tid=2559438 absolute_start=12966790.682103248 absolute_end=12966790.713081142
+balance channel=2 start=0.000058224 wall=0.030738058 cpu=0.030731759 finish=0.030796282 joined=0.031080024 error=0 voluntary=0 involuntary=0 processor=2 tid=2559439 absolute_start=12966790.682111990 absolute_end=12966790.712850047
+balance channel=3 start=0.000060631 wall=0.029764686 cpu=0.029752296 finish=0.029825317 joined=0.031080024 error=0 voluntary=0 involuntary=0 processor=3 tid=2559440 absolute_start=12966790.682114396 absolute_end=12966790.711879082
+encoding_end_wall=0.033698
+after_preview_wall=0.042295270
+after_cleanup_wall=0.042346103
+capture_diag frame=37 wall_ns=42350159 cpu_ns=41034445 clock_ok=1 error=0 tid=2559140 end_ns=12966790723971738
+unpack_wall=0.000001
+balance channel=0 start=0.000053613 wall=0.028332273 cpu=0.028316741 finish=0.028385885 joined=0.029073110 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.737793254 absolute_end=12966790.766125526
+balance channel=1 start=0.000061685 wall=0.028797628 cpu=0.028792370 finish=0.028859314 joined=0.029073110 error=0 voluntary=0 involuntary=0 processor=1 tid=2559446 absolute_start=12966790.737801326 absolute_end=12966790.766598955
+balance channel=2 start=0.000068685 wall=0.028967204 cpu=0.028963092 finish=0.029035889 joined=0.029073110 error=0 voluntary=0 involuntary=0 processor=2 tid=2559447 absolute_start=12966790.737808326 absolute_end=12966790.766775530
+balance channel=3 start=0.000067409 wall=0.028438458 cpu=0.028432370 finish=0.028505867 joined=0.029073110 error=0 voluntary=0 involuntary=0 processor=3 tid=2559448 absolute_start=12966790.737807050 absolute_end=12966790.766245509
+encoding_end_wall=0.031545
+after_preview_wall=0.040065836
+after_cleanup_wall=0.040125391
+capture_diag frame=38 wall_ns=40128947 cpu_ns=39499572 clock_ok=1 error=0 tid=2559140 end_ns=12966790777462625
+unpack_wall=0.000001
+balance channel=0 start=0.000058943 wall=0.030365374 cpu=0.030350315 finish=0.030424317 joined=0.031485638 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.791119156 absolute_end=12966790.821484530
+balance channel=1 start=0.000055796 wall=0.031353064 cpu=0.031344629 finish=0.031408859 joined=0.031485638 error=0 voluntary=0 involuntary=0 processor=1 tid=2559454 absolute_start=12966790.791116009 absolute_end=12966790.822469072
+balance channel=2 start=0.000062019 wall=0.031332359 cpu=0.031325722 finish=0.031394377 joined=0.031485638 error=0 voluntary=0 involuntary=0 processor=2 tid=2559455 absolute_start=12966790.791122232 absolute_end=12966790.822454590
+balance channel=3 start=0.000062333 wall=0.030319780 cpu=0.030307315 finish=0.030382114 joined=0.031485638 error=0 voluntary=0 involuntary=0 processor=3 tid=2559456 absolute_start=12966790.791122546 absolute_end=12966790.821442327
+encoding_end_wall=0.034187
+after_preview_wall=0.042613216
+after_cleanup_wall=0.042658994
+capture_diag frame=39 wall_ns=42662735 cpu_ns=41675815 clock_ok=1 error=0 tid=2559140 end_ns=12966790833313557
+unpack_wall=0.000001
+balance channel=0 start=0.000053000 wall=0.028168458 cpu=0.028153426 finish=0.028221458 joined=0.029098092 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.847074071 absolute_end=12966790.875242529
+balance channel=1 start=0.000035519 wall=0.028747775 cpu=0.028735907 finish=0.028783293 joined=0.029098092 error=0 voluntary=0 involuntary=0 processor=1 tid=2559462 absolute_start=12966790.847056590 absolute_end=12966790.875804365
+balance channel=2 start=0.000048611 wall=0.029019294 cpu=0.029014519 finish=0.029067906 joined=0.029098092 error=0 voluntary=0 involuntary=0 processor=2 tid=2559463 absolute_start=12966790.847069683 absolute_end=12966790.876088977
+balance channel=3 start=0.000060888 wall=0.028404627 cpu=0.028390407 finish=0.028465515 joined=0.029098092 error=0 voluntary=0 involuntary=0 processor=3 tid=2559464 absolute_start=12966790.847081959 absolute_end=12966790.875486586
+encoding_end_wall=0.031533
+after_preview_wall=0.039965983
+after_cleanup_wall=0.040003279
+capture_diag frame=40 wall_ns=40007206 cpu_ns=39228740 clock_ok=1 error=0 tid=2559140 end_ns=12966790886617905
+unpack_wall=0.000001
+balance channel=0 start=0.000054797 wall=0.030145464 cpu=0.030124389 finish=0.030200262 joined=0.031434655 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.900168234 absolute_end=12966790.930313699
+balance channel=1 start=0.000047870 wall=0.031266451 cpu=0.031255574 finish=0.031314321 joined=0.031434655 error=0 voluntary=0 involuntary=0 processor=1 tid=2559470 absolute_start=12966790.900161307 absolute_end=12966790.931427758
+balance channel=2 start=0.000063555 wall=0.031319952 cpu=0.031309741 finish=0.031383507 joined=0.031434655 error=0 voluntary=0 involuntary=0 processor=2 tid=2559471 absolute_start=12966790.900176993 absolute_end=12966790.931496944
+balance channel=3 start=0.000066759 wall=0.030288484 cpu=0.030273148 finish=0.030355243 joined=0.031434655 error=0 voluntary=0 involuntary=0 processor=3 tid=2559472 absolute_start=12966790.900180196 absolute_end=12966790.930468680
+encoding_end_wall=0.034143
+after_preview_wall=0.042595863
+after_cleanup_wall=0.042645587
+capture_diag frame=41 wall_ns=42649364 cpu_ns=41463760 clock_ok=1 error=0 tid=2559140 end_ns=12966790942323689
+unpack_wall=0.000001
+balance channel=0 start=0.000052795 wall=0.028318182 cpu=0.028306185 finish=0.028370976 joined=0.029035367 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966790.955813201 absolute_end=12966790.984131383
+balance channel=1 start=0.000049260 wall=0.028704312 cpu=0.028696833 finish=0.028753571 joined=0.029035367 error=0 voluntary=0 involuntary=0 processor=1 tid=2559478 absolute_start=12966790.955809666 absolute_end=12966790.984513978
+balance channel=2 start=0.000049556 wall=0.028954331 cpu=0.028948463 finish=0.029003887 joined=0.029035367 error=0 voluntary=0 involuntary=0 processor=2 tid=2559479 absolute_start=12966790.955809962 absolute_end=12966790.984764293
+balance channel=3 start=0.000056073 wall=0.028436255 cpu=0.028425167 finish=0.028492328 joined=0.029035367 error=0 voluntary=0 involuntary=0 processor=3 tid=2559480 absolute_start=12966790.955816479 absolute_end=12966790.984252734
+encoding_end_wall=0.031483
+after_preview_wall=0.039982373
+after_cleanup_wall=0.040062465
+capture_diag frame=42 wall_ns=40068169 cpu_ns=39529500 clock_ok=1 error=0 tid=2559140 end_ns=12966790995396647
+unpack_wall=0.000001
+balance channel=0 start=0.000071054 wall=0.030164076 cpu=0.030146815 finish=0.030235130 joined=0.031331394 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.008885253 absolute_end=12966791.039049329
+balance channel=1 start=0.000052832 wall=0.031189006 cpu=0.031184223 finish=0.031241838 joined=0.031331394 error=0 voluntary=0 involuntary=0 processor=1 tid=2559486 absolute_start=12966791.008867031 absolute_end=12966791.040056037
+balance channel=2 start=0.000049425 wall=0.031082580 cpu=0.031070871 finish=0.031132005 joined=0.031331394 error=0 voluntary=0 involuntary=0 processor=2 tid=2559487 absolute_start=12966791.008863624 absolute_end=12966791.039946204
+balance channel=3 start=0.000072148 wall=0.030352300 cpu=0.030341759 finish=0.030424448 joined=0.031331394 error=0 voluntary=0 involuntary=0 processor=3 tid=2559488 absolute_start=12966791.008886347 absolute_end=12966791.039238647
+encoding_end_wall=0.033964
+after_preview_wall=0.042356679
+after_cleanup_wall=0.042432476
+capture_diag frame=43 wall_ns=42437808 cpu_ns=41482222 clock_ok=1 error=0 tid=2559140 end_ns=12966791050842245
+unpack_wall=0.000001
+balance channel=0 start=0.000061426 wall=0.028163329 cpu=0.028145685 finish=0.028224755 joined=0.028824128 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.064650426 absolute_end=12966791.092813754
+balance channel=1 start=0.000059649 wall=0.028554810 cpu=0.028547666 finish=0.028614460 joined=0.028824128 error=0 voluntary=0 involuntary=0 processor=1 tid=2559494 absolute_start=12966791.064648649 absolute_end=12966791.093203459
+balance channel=2 start=0.000058964 wall=0.028733607 cpu=0.028723371 finish=0.028792571 joined=0.028824128 error=0 voluntary=0 involuntary=0 processor=2 tid=2559495 absolute_start=12966791.064647963 absolute_end=12966791.093381571
+balance channel=3 start=0.000064574 wall=0.028354978 cpu=0.028346981 finish=0.028419552 joined=0.028824128 error=0 voluntary=0 involuntary=0 processor=3 tid=2559496 absolute_start=12966791.064653574 absolute_end=12966791.093008552
+encoding_end_wall=0.031293
+after_preview_wall=0.039983520
+after_cleanup_wall=0.040065873
+capture_diag frame=44 wall_ns=40069632 cpu_ns=39547963 clock_ok=1 error=0 tid=2559140 end_ns=12966791104244334
+unpack_wall=0.000001
+balance channel=0 start=0.000064000 wall=0.028426088 cpu=0.028408259 finish=0.028490089 joined=0.029032331 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.117692700 absolute_end=12966791.146118788
+balance channel=1 start=0.000035759 wall=0.028741719 cpu=0.028734185 finish=0.028777478 joined=0.029032331 error=0 voluntary=0 involuntary=0 processor=1 tid=2559502 absolute_start=12966791.117664458 absolute_end=12966791.146406177
+balance channel=2 start=0.000058537 wall=0.028930979 cpu=0.028925445 finish=0.028989516 joined=0.029032331 error=0 voluntary=0 involuntary=0 processor=2 tid=2559503 absolute_start=12966791.117687237 absolute_end=12966791.146618215
+balance channel=3 start=0.000079891 wall=0.028456310 cpu=0.028448037 finish=0.028536201 joined=0.029032331 error=0 voluntary=0 involuntary=0 processor=3 tid=2559504 absolute_start=12966791.117708590 absolute_end=12966791.146164900
+encoding_end_wall=0.031492
+after_preview_wall=0.039973984
+after_cleanup_wall=0.040024169
+capture_diag frame=45 wall_ns=40027743 cpu_ns=39599204 clock_ok=1 error=0 tid=2559140 end_ns=12966791157245774
+unpack_wall=0.000001
+balance channel=0 start=0.000054926 wall=0.030221762 cpu=0.030204945 finish=0.030276688 joined=0.031307062 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.170903455 absolute_end=12966791.201125218
+balance channel=1 start=0.000037221 wall=0.031158840 cpu=0.031152018 finish=0.031196062 joined=0.031307062 error=0 voluntary=0 involuntary=0 processor=1 tid=2559510 absolute_start=12966791.170885751 absolute_end=12966791.202044591
+balance channel=2 start=0.000037314 wall=0.031215340 cpu=0.031208722 finish=0.031252654 joined=0.031307062 error=0 voluntary=0 involuntary=0 processor=2 tid=2559511 absolute_start=12966791.170885844 absolute_end=12966791.202101184
+balance channel=3 start=0.000060536 wall=0.030256134 cpu=0.030243000 finish=0.030316669 joined=0.031307062 error=0 voluntary=0 involuntary=0 processor=3 tid=2559512 absolute_start=12966791.170909066 absolute_end=12966791.201165199
+encoding_end_wall=0.033999
+after_preview_wall=0.042491769
+after_cleanup_wall=0.042524567
+capture_diag frame=46 wall_ns=42527864 cpu_ns=41601036 clock_ok=1 error=0 tid=2559140 end_ns=12966791212952984
+unpack_wall=0.000001
+balance channel=0 start=0.000050796 wall=0.028334161 cpu=0.028323722 finish=0.028384957 joined=0.028977182 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.226318719 absolute_end=12966791.254652880
+balance channel=1 start=0.000046890 wall=0.028684404 cpu=0.028673574 finish=0.028731294 joined=0.028977182 error=0 voluntary=0 involuntary=0 processor=1 tid=2559518 absolute_start=12966791.226314813 absolute_end=12966791.254999217
+balance channel=2 start=0.000050964 wall=0.028873589 cpu=0.028868945 finish=0.028924553 joined=0.028977182 error=0 voluntary=0 involuntary=0 processor=2 tid=2559519 absolute_start=12966791.226318887 absolute_end=12966791.255192475
+balance channel=3 start=0.000051500 wall=0.028251885 cpu=0.028238222 finish=0.028303385 joined=0.028977182 error=0 voluntary=0 involuntary=0 processor=3 tid=2559520 absolute_start=12966791.226319423 absolute_end=12966791.254571307
+encoding_end_wall=0.031403
+after_preview_wall=0.039986687
+after_cleanup_wall=0.040021742
+capture_diag frame=47 wall_ns=40025169 cpu_ns=39446963 clock_ok=1 error=0 tid=2559140 end_ns=12966791265892164
+unpack_wall=0.000001
+balance channel=0 start=0.000064148 wall=0.030201355 cpu=0.030184389 finish=0.030265503 joined=0.031429414 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.280370032 absolute_end=12966791.310571387
+balance channel=1 start=0.000042684 wall=0.031295007 cpu=0.031285722 finish=0.031337691 joined=0.031429414 error=0 voluntary=0 involuntary=0 processor=1 tid=2559526 absolute_start=12966791.280348569 absolute_end=12966791.311643576
+balance channel=2 start=0.000060797 wall=0.031246321 cpu=0.031241296 finish=0.031307118 joined=0.031429414 error=0 voluntary=0 involuntary=0 processor=2 tid=2559527 absolute_start=12966791.280366682 absolute_end=12966791.311613003
+balance channel=3 start=0.000066964 wall=0.030357836 cpu=0.030351241 finish=0.030424800 joined=0.031429414 error=0 voluntary=0 involuntary=0 processor=3 tid=2559528 absolute_start=12966791.280372849 absolute_end=12966791.310730685
+encoding_end_wall=0.034097
+after_preview_wall=0.042654550
+after_cleanup_wall=0.042685086
+capture_diag frame=48 wall_ns=42688735 cpu_ns=41573537 clock_ok=1 error=0 tid=2559140 end_ns=12966791322581155
+unpack_wall=0.000001
+balance channel=0 start=0.000056686 wall=0.028381513 cpu=0.028371537 finish=0.028438199 joined=0.028909830 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.336902246 absolute_end=12966791.365283759
+balance channel=1 start=0.000053093 wall=0.028674755 cpu=0.028665333 finish=0.028727848 joined=0.028909830 error=0 voluntary=0 involuntary=0 processor=1 tid=2559534 absolute_start=12966791.336898653 absolute_end=12966791.365573408
+balance channel=2 start=0.000053482 wall=0.028796850 cpu=0.028788315 finish=0.028850332 joined=0.028909830 error=0 voluntary=0 involuntary=0 processor=2 tid=2559535 absolute_start=12966791.336899042 absolute_end=12966791.365695892
+balance channel=3 start=0.000058351 wall=0.028245183 cpu=0.028231037 finish=0.028303534 joined=0.028909830 error=0 voluntary=0 involuntary=0 processor=3 tid=2559536 absolute_start=12966791.336903911 absolute_end=12966791.365149094
+encoding_end_wall=0.031356
+after_preview_wall=0.039827779
+after_cleanup_wall=0.039859593
+capture_diag frame=49 wall_ns=39862779 cpu_ns=39479963 clock_ok=1 error=0 tid=2559140 end_ns=12966791376272190
+unpack_wall=0.000001
+balance channel=0 start=0.000052111 wall=0.029949632 cpu=0.029934444 finish=0.030001743 joined=0.031190172 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.390340021 absolute_end=12966791.420289652
+balance channel=1 start=0.000035314 wall=0.031088600 cpu=0.031081852 finish=0.031123914 joined=0.031190172 error=0 voluntary=0 involuntary=0 processor=1 tid=2559542 absolute_start=12966791.390323224 absolute_end=12966791.421411823
+balance channel=2 start=0.000036612 wall=0.031022931 cpu=0.031017833 finish=0.031059543 joined=0.031190172 error=0 voluntary=0 involuntary=0 processor=2 tid=2559543 absolute_start=12966791.390324522 absolute_end=12966791.421347452
+balance channel=3 start=0.000059001 wall=0.030255890 cpu=0.030247519 finish=0.030314891 joined=0.031190172 error=0 voluntary=0 involuntary=0 processor=3 tid=2559544 absolute_start=12966791.390346911 absolute_end=12966791.420602800
+encoding_end_wall=0.033833
+after_preview_wall=0.042442622
+after_cleanup_wall=0.042494437
+capture_diag frame=50 wall_ns=42497382 cpu_ns=41299759 clock_ok=1 error=0 tid=2559140 end_ns=12966791432362623
+unpack_wall=0.000001
+balance channel=0 start=0.000050075 wall=0.028180161 cpu=0.028165240 finish=0.028230237 joined=0.028868701 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.445767822 absolute_end=12966791.473947983
+balance channel=1 start=0.000047576 wall=0.028556736 cpu=0.028545574 finish=0.028604312 joined=0.028868701 error=0 voluntary=0 involuntary=0 processor=1 tid=2559550 absolute_start=12966791.445765322 absolute_end=12966791.474322058
+balance channel=2 start=0.000060463 wall=0.028778849 cpu=0.028774426 finish=0.028839312 joined=0.028868701 error=0 voluntary=0 involuntary=0 processor=2 tid=2559551 absolute_start=12966791.445778210 absolute_end=12966791.474557059
+balance channel=3 start=0.000065668 wall=0.028246867 cpu=0.028234740 finish=0.028312534 joined=0.028868701 error=0 voluntary=0 involuntary=0 processor=3 tid=2559552 absolute_start=12966791.445783414 absolute_end=12966791.474030280
+encoding_end_wall=0.031343
+after_preview_wall=0.039697891
+after_cleanup_wall=0.039775372
+capture_diag frame=51 wall_ns=39779242 cpu_ns=39236443 clock_ok=1 error=0 tid=2559140 end_ns=12966791485095377
+unpack_wall=0.000001
+balance channel=0 start=0.000049073 wall=0.030110652 cpu=0.030098000 finish=0.030159725 joined=0.031459859 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.499011021 absolute_end=12966791.529121673
+balance channel=1 start=0.000049759 wall=0.031327970 cpu=0.031321759 finish=0.031377729 joined=0.031459859 error=0 voluntary=0 involuntary=0 processor=1 tid=2559558 absolute_start=12966791.499011707 absolute_end=12966791.530339677
+balance channel=2 start=0.000063870 wall=0.031289414 cpu=0.031283037 finish=0.031353284 joined=0.031459859 error=0 voluntary=0 involuntary=0 processor=2 tid=2559559 absolute_start=12966791.499025818 absolute_end=12966791.530315232
+balance channel=3 start=0.000062611 wall=0.030396447 cpu=0.030388222 finish=0.030459058 joined=0.031459859 error=0 voluntary=0 involuntary=0 processor=3 tid=2559560 absolute_start=12966791.499024559 absolute_end=12966791.529421005
+encoding_end_wall=0.034125
+after_preview_wall=0.042639624
+after_cleanup_wall=0.042675050
+capture_diag frame=52 wall_ns=42678938 cpu_ns=41411686 clock_ok=1 error=0 tid=2559140 end_ns=12966791541207939
+unpack_wall=0.000001
+balance channel=0 start=0.000049852 wall=0.028180052 cpu=0.028164241 finish=0.028229903 joined=0.028898925 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.554562582 absolute_end=12966791.582742633
+balance channel=1 start=0.000053111 wall=0.028591404 cpu=0.028583889 finish=0.028644515 joined=0.028898925 error=0 voluntary=0 involuntary=0 processor=1 tid=2559566 absolute_start=12966791.554565841 absolute_end=12966791.583157245
+balance channel=2 start=0.000067946 wall=0.028793812 cpu=0.028788666 finish=0.028861757 joined=0.028898925 error=0 voluntary=0 involuntary=0 processor=2 tid=2559567 absolute_start=12966791.554580675 absolute_end=12966791.583374487
+balance channel=3 start=0.000063334 wall=0.028376311 cpu=0.028368685 finish=0.028439645 joined=0.028898925 error=0 voluntary=0 involuntary=0 processor=3 tid=2559568 absolute_start=12966791.554576064 absolute_end=12966791.582952375
+encoding_end_wall=0.031414
+after_preview_wall=0.039990336
+after_cleanup_wall=0.040044669
+capture_diag frame=53 wall_ns=40048113 cpu_ns=39414019 clock_ok=1 error=0 tid=2559140 end_ns=12966791594160157
+unpack_wall=0.000001
+balance channel=0 start=0.000052594 wall=0.030274909 cpu=0.030256166 finish=0.030327503 joined=0.031387415 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.607970783 absolute_end=12966791.638245692
+balance channel=1 start=0.000038370 wall=0.031226210 cpu=0.031216926 finish=0.031264581 joined=0.031387415 error=0 voluntary=0 involuntary=0 processor=1 tid=2559574 absolute_start=12966791.607956560 absolute_end=12966791.639182771
+balance channel=2 start=0.000047760 wall=0.031231487 cpu=0.031225944 finish=0.031279247 joined=0.031387415 error=0 voluntary=0 involuntary=0 processor=2 tid=2559575 absolute_start=12966791.607965950 absolute_end=12966791.639197437
+balance channel=3 start=0.000063187 wall=0.030469114 cpu=0.030459148 finish=0.030532300 joined=0.031387415 error=0 voluntary=0 involuntary=0 processor=3 tid=2559576 absolute_start=12966791.607981376 absolute_end=12966791.638450490
+encoding_end_wall=0.034287
+after_preview_wall=0.042771252
+after_cleanup_wall=0.042811994
+capture_diag frame=54 wall_ns=42815958 cpu_ns=41859371 clock_ok=1 error=0 tid=2559140 end_ns=12966791650312535
+unpack_wall=0.000001
+balance channel=0 start=0.000051890 wall=0.028236587 cpu=0.028223000 finish=0.028288476 joined=0.028965257 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.663927531 absolute_end=12966791.692164117
+balance channel=1 start=0.000035871 wall=0.028759645 cpu=0.028752204 finish=0.028795516 joined=0.028965257 error=0 voluntary=0 involuntary=0 processor=1 tid=2559582 absolute_start=12966791.663911512 absolute_end=12966791.692671157
+balance channel=2 start=0.000049166 wall=0.028885275 cpu=0.028880648 finish=0.028934442 joined=0.028965257 error=0 voluntary=0 involuntary=0 processor=2 tid=2559583 absolute_start=12966791.663924808 absolute_end=12966791.692810083
+balance channel=3 start=0.000057075 wall=0.028319273 cpu=0.028313388 finish=0.028376348 joined=0.028965257 error=0 voluntary=0 involuntary=0 processor=3 tid=2559584 absolute_start=12966791.663932716 absolute_end=12966791.692251990
+encoding_end_wall=0.031382
+after_preview_wall=0.040000429
+after_cleanup_wall=0.040057151
+capture_diag frame=55 wall_ns=40060762 cpu_ns=39491036 clock_ok=1 error=0 tid=2559140 end_ns=12966791703535550
+unpack_wall=0.000001
+balance channel=0 start=0.000050165 wall=0.028402440 cpu=0.028394408 finish=0.028452605 joined=0.028872533 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.717353527 absolute_end=12966791.745755967
+balance channel=1 start=0.000036146 wall=0.028600331 cpu=0.028591240 finish=0.028636478 joined=0.028872533 error=0 voluntary=0 involuntary=0 processor=1 tid=2559590 absolute_start=12966791.717339508 absolute_end=12966791.745939840
+balance channel=2 start=0.000037165 wall=0.028795090 cpu=0.028788425 finish=0.028832255 joined=0.028872533 error=0 voluntary=0 involuntary=0 processor=2 tid=2559591 absolute_start=12966791.717340527 absolute_end=12966791.746135617
+balance channel=3 start=0.000061499 wall=0.028304754 cpu=0.028290352 finish=0.028366253 joined=0.028872533 error=0 voluntary=0 involuntary=0 processor=3 tid=2559592 absolute_start=12966791.717364861 absolute_end=12966791.745669615
+encoding_end_wall=0.031339
+after_preview_wall=0.039843502
+after_cleanup_wall=0.039912483
+capture_diag frame=56 wall_ns=39916187 cpu_ns=39561277 clock_ok=1 error=0 tid=2559140 end_ns=12966791756795268
+unpack_wall=0.000001
+balance channel=0 start=0.000055740 wall=0.030132558 cpu=0.030115592 finish=0.030188298 joined=0.031302931 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.770448282 absolute_end=12966791.800580841
+balance channel=1 start=0.000035962 wall=0.031146765 cpu=0.031138185 finish=0.031182727 joined=0.031302931 error=0 voluntary=0 involuntary=0 processor=1 tid=2559598 absolute_start=12966791.770428505 absolute_end=12966791.801575270
+balance channel=2 start=0.000037814 wall=0.031224135 cpu=0.031216944 finish=0.031261949 joined=0.031302931 error=0 voluntary=0 involuntary=0 processor=2 tid=2559599 absolute_start=12966791.770430356 absolute_end=12966791.801654492
+balance channel=3 start=0.000063926 wall=0.030316947 cpu=0.030310000 finish=0.030380873 joined=0.031302931 error=0 voluntary=0 involuntary=0 processor=3 tid=2559600 absolute_start=12966791.770456469 absolute_end=12966791.800773416
+encoding_end_wall=0.033975
+after_preview_wall=0.042404158
+after_cleanup_wall=0.042463047
+capture_diag frame=57 wall_ns=42470234 cpu_ns=41482425 clock_ok=1 error=0 tid=2559140 end_ns=12966791812437755
+unpack_wall=0.000001
+balance channel=0 start=0.000053575 wall=0.028202828 cpu=0.028189445 finish=0.028256403 joined=0.028983369 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.825928269 absolute_end=12966791.854131097
+balance channel=1 start=0.000034001 wall=0.028673904 cpu=0.028664241 finish=0.028707905 joined=0.028983369 error=0 voluntary=0 involuntary=0 processor=1 tid=2559606 absolute_start=12966791.825908694 absolute_end=12966791.854582598
+balance channel=2 start=0.000048539 wall=0.028894886 cpu=0.028890241 finish=0.028943425 joined=0.028983369 error=0 voluntary=0 involuntary=0 processor=2 tid=2559607 absolute_start=12966791.825923232 absolute_end=12966791.854818119
+balance channel=3 start=0.000058353 wall=0.028250365 cpu=0.028240203 finish=0.028308718 joined=0.028983369 error=0 voluntary=0 involuntary=0 processor=3 tid=2559608 absolute_start=12966791.825933047 absolute_end=12966791.854183411
+encoding_end_wall=0.031433
+after_preview_wall=0.040005928
+after_cleanup_wall=0.040059706
+capture_diag frame=58 wall_ns=40062928 cpu_ns=39440446 clock_ok=1 error=0 tid=2559140 end_ns=12966791865535788
+unpack_wall=0.000001
+balance channel=0 start=0.000050241 wall=0.030312762 cpu=0.030295241 finish=0.030363003 joined=0.031529082 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.879459063 absolute_end=12966791.909771824
+balance channel=1 start=0.000052018 wall=0.031270729 cpu=0.031265129 finish=0.031322747 joined=0.031529082 error=0 voluntary=0 involuntary=0 processor=1 tid=2559614 absolute_start=12966791.879460840 absolute_end=12966791.910731569
+balance channel=2 start=0.000069315 wall=0.031421266 cpu=0.031414592 finish=0.031490581 joined=0.031529082 error=0 voluntary=0 involuntary=0 processor=2 tid=2559615 absolute_start=12966791.879478136 absolute_end=12966791.910899403
+balance channel=3 start=0.000069112 wall=0.030449558 cpu=0.030439111 finish=0.030518670 joined=0.031529082 error=0 voluntary=0 involuntary=0 processor=3 tid=2559616 absolute_start=12966791.879477933 absolute_end=12966791.909927491
+encoding_end_wall=0.034247
+after_preview_wall=0.042751346
+after_cleanup_wall=0.042807179
+capture_diag frame=59 wall_ns=42810494 cpu_ns=41734759 clock_ok=1 error=0 tid=2559140 end_ns=12966791921798833
+unpack_wall=0.000001
+balance channel=0 start=0.000051038 wall=0.028373903 cpu=0.028357315 finish=0.028424941 joined=0.029107407 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.935521996 absolute_end=12966791.963895898
+balance channel=1 start=0.000047483 wall=0.028629238 cpu=0.028623000 finish=0.028676720 joined=0.029107407 error=0 voluntary=0 involuntary=0 processor=1 tid=2559622 absolute_start=12966791.935518440 absolute_end=12966791.964147678
+balance channel=2 start=0.000048334 wall=0.029013388 cpu=0.029007555 finish=0.029061722 joined=0.029107407 error=0 voluntary=0 involuntary=0 processor=2 tid=2559623 absolute_start=12966791.935519291 absolute_end=12966791.964532679
+balance channel=3 start=0.000052130 wall=0.028289126 cpu=0.028277629 finish=0.028341256 joined=0.029107407 error=0 voluntary=0 involuntary=0 processor=3 tid=2559624 absolute_start=12966791.935523087 absolute_end=12966791.963812213
+encoding_end_wall=0.031517
+after_preview_wall=0.039960261
+after_cleanup_wall=0.040032409
+capture_diag frame=60 wall_ns=40040910 cpu_ns=39459149 clock_ok=1 error=0 tid=2559140 end_ns=12966791975110015
+unpack_wall=0.000001
+balance channel=0 start=0.000053963 wall=0.030232206 cpu=0.030214167 finish=0.030286169 joined=0.031449135 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966791.988913363 absolute_end=12966792.019145569
+balance channel=1 start=0.000062315 wall=0.031283451 cpu=0.031277833 finish=0.031345766 joined=0.031449135 error=0 voluntary=0 involuntary=0 processor=1 tid=2559630 absolute_start=12966791.988921715 absolute_end=12966792.020205166
+balance channel=2 start=0.000072500 wall=0.031314878 cpu=0.031307963 finish=0.031387378 joined=0.031449135 error=0 voluntary=0 involuntary=0 processor=2 tid=2559631 absolute_start=12966791.988931900 absolute_end=12966792.020246778
+balance channel=3 start=0.000070147 wall=0.030375762 cpu=0.030354925 finish=0.030445909 joined=0.031449135 error=0 voluntary=0 involuntary=0 processor=3 tid=2559632 absolute_start=12966791.988929547 absolute_end=12966792.019305309
+encoding_end_wall=0.034073
+after_preview_wall=0.042542994
+after_cleanup_wall=0.042583568
+capture_diag frame=61 wall_ns=42587382 cpu_ns=41425982 clock_ok=1 error=0 tid=2559140 end_ns=12966792031019836
+unpack_wall=0.000001
+balance channel=0 start=0.000054019 wall=0.028263107 cpu=0.028241148 finish=0.028317126 joined=0.029031405 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.044847129 absolute_end=12966792.073110236
+balance channel=1 start=0.000046555 wall=0.028751664 cpu=0.028745592 finish=0.028798219 joined=0.029031405 error=0 voluntary=0 involuntary=0 processor=1 tid=2559638 absolute_start=12966792.044839665 absolute_end=12966792.073591329
+balance channel=2 start=0.000048721 wall=0.028950313 cpu=0.028946518 finish=0.028999034 joined=0.029031405 error=0 voluntary=0 involuntary=0 processor=2 tid=2559639 absolute_start=12966792.044841832 absolute_end=12966792.073792145
+balance channel=3 start=0.000058759 wall=0.028335217 cpu=0.028325500 finish=0.028393976 joined=0.029031405 error=0 voluntary=0 involuntary=0 processor=3 tid=2559640 absolute_start=12966792.044851869 absolute_end=12966792.073187087
+encoding_end_wall=0.031452
+after_preview_wall=0.039998706
+after_cleanup_wall=0.040039558
+capture_diag frame=62 wall_ns=40043058 cpu_ns=39415833 clock_ok=1 error=0 tid=2559140 end_ns=12966792084431407
+unpack_wall=0.000001
+balance channel=0 start=0.000057222 wall=0.030045131 cpu=0.030030630 finish=0.030102354 joined=0.031343877 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.098051811 absolute_end=12966792.128096942
+balance channel=1 start=0.000055017 wall=0.031235971 cpu=0.031228555 finish=0.031290988 joined=0.031343877 error=0 voluntary=0 involuntary=0 processor=1 tid=2559646 absolute_start=12966792.098049605 absolute_end=12966792.129285576
+balance channel=2 start=0.000063278 wall=0.031138042 cpu=0.031133111 finish=0.031201320 joined=0.031343877 error=0 voluntary=0 involuntary=0 processor=2 tid=2559647 absolute_start=12966792.098057866 absolute_end=12966792.129195908
+balance channel=3 start=0.000065036 wall=0.030212039 cpu=0.030201814 finish=0.030277075 joined=0.031343877 error=0 voluntary=0 involuntary=0 processor=3 tid=2559648 absolute_start=12966792.098059624 absolute_end=12966792.128271664
+encoding_end_wall=0.033992
+after_preview_wall=0.042480400
+after_cleanup_wall=0.042542623
+capture_diag frame=63 wall_ns=42546790 cpu_ns=41391259 clock_ok=1 error=0 tid=2559140 end_ns=12966792140107172
+unpack_wall=0.000001
+balance channel=0 start=0.000089038 wall=0.028309848 cpu=0.028291185 finish=0.028398886 joined=0.029090796 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.153408796 absolute_end=12966792.181718644
+balance channel=1 start=0.000049742 wall=0.028871313 cpu=0.028861093 finish=0.028921055 joined=0.029090796 error=0 voluntary=0 involuntary=0 processor=1 tid=2559654 absolute_start=12966792.153369499 absolute_end=12966792.182240812
+balance channel=2 start=0.000100186 wall=0.028942164 cpu=0.028936407 finish=0.029042350 joined=0.029090796 error=0 voluntary=0 involuntary=0 processor=2 tid=2559655 absolute_start=12966792.153419944 absolute_end=12966792.182362108
+balance channel=3 start=0.000108428 wall=0.028322421 cpu=0.028311370 finish=0.028430849 joined=0.029090796 error=0 voluntary=0 involuntary=0 processor=3 tid=2559656 absolute_start=12966792.153428186 absolute_end=12966792.181750607
+encoding_end_wall=0.031775
+after_preview_wall=0.040877728
+after_cleanup_wall=0.040906951
+capture_diag frame=64 wall_ns=40910635 cpu_ns=40343333 clock_ok=1 error=0 tid=2559140 end_ns=12966792193820262
+unpack_wall=0.000001
+balance channel=0 start=0.000081740 wall=0.029949000 cpu=0.029933815 finish=0.030030740 joined=0.031149635 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.207298832 absolute_end=12966792.237247832
+balance channel=1 start=0.000056796 wall=0.030992504 cpu=0.030988037 finish=0.031049300 joined=0.031149635 error=0 voluntary=0 involuntary=0 processor=1 tid=2559662 absolute_start=12966792.207273887 absolute_end=12966792.238266392
+balance channel=2 start=0.000043388 wall=0.031050097 cpu=0.031042074 finish=0.031093486 joined=0.031149635 error=0 voluntary=0 involuntary=0 processor=2 tid=2559663 absolute_start=12966792.207260480 absolute_end=12966792.238310577
+balance channel=3 start=0.000083555 wall=0.030167947 cpu=0.030157092 finish=0.030251501 joined=0.031149635 error=0 voluntary=0 involuntary=0 processor=3 tid=2559664 absolute_start=12966792.207300646 absolute_end=12966792.237468593
+encoding_end_wall=0.033817
+after_preview_wall=0.042378845
+after_cleanup_wall=0.042408383
+capture_diag frame=65 wall_ns=42412196 cpu_ns=41420832 clock_ok=1 error=0 tid=2559140 end_ns=12966792249224100
+unpack_wall=0.000001
+balance channel=0 start=0.000060314 wall=0.028600441 cpu=0.028588259 finish=0.028660756 joined=0.029080516 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.262914652 absolute_end=12966792.291515093
+balance channel=1 start=0.000039889 wall=0.028642219 cpu=0.028633056 finish=0.028682107 joined=0.029080516 error=0 voluntary=0 involuntary=0 processor=1 tid=2559670 absolute_start=12966792.262894226 absolute_end=12966792.291536445
+balance channel=2 start=0.000053814 wall=0.028989220 cpu=0.028984630 finish=0.029043034 joined=0.029080516 error=0 voluntary=0 involuntary=0 processor=2 tid=2559671 absolute_start=12966792.262908151 absolute_end=12966792.291897371
+balance channel=3 start=0.000065351 wall=0.028341180 cpu=0.028326741 finish=0.028406531 joined=0.029080516 error=0 voluntary=0 involuntary=0 processor=3 tid=2559672 absolute_start=12966792.262919689 absolute_end=12966792.291260868
+encoding_end_wall=0.031530
+after_preview_wall=0.040183244
+after_cleanup_wall=0.040211985
+capture_diag frame=66 wall_ns=40215391 cpu_ns=39825277 clock_ok=1 error=0 tid=2559140 end_ns=12966792302665097
+unpack_wall=0.000001
+balance channel=0 start=0.000057166 wall=0.030220911 cpu=0.030206296 finish=0.030278077 joined=0.031583508 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.316137351 absolute_end=12966792.346358262
+balance channel=1 start=0.000045519 wall=0.031469859 cpu=0.031459722 finish=0.031515379 joined=0.031583508 error=0 voluntary=0 involuntary=0 processor=1 tid=2559678 absolute_start=12966792.316125704 absolute_end=12966792.347595563
+balance channel=2 start=0.000054352 wall=0.031172192 cpu=0.031166481 finish=0.031226544 joined=0.031583508 error=0 voluntary=0 involuntary=0 processor=2 tid=2559679 absolute_start=12966792.316134537 absolute_end=12966792.347306728
+balance channel=3 start=0.000063352 wall=0.030315632 cpu=0.030304407 finish=0.030378984 joined=0.031583508 error=0 voluntary=0 involuntary=0 processor=3 tid=2559680 absolute_start=12966792.316143537 absolute_end=12966792.346459169
+encoding_end_wall=0.034255
+after_preview_wall=0.042940717
+after_cleanup_wall=0.042992681
+capture_diag frame=67 wall_ns=42996272 cpu_ns=41773852 clock_ok=1 error=0 tid=2559140 end_ns=12966792358659178
+unpack_wall=0.000001
+balance channel=0 start=0.000049369 wall=0.030221282 cpu=0.030203907 finish=0.030270651 joined=0.031568525 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.371885672 absolute_end=12966792.402106954
+balance channel=1 start=0.000034943 wall=0.031476730 cpu=0.031471092 finish=0.031511674 joined=0.031568525 error=0 voluntary=0 involuntary=0 processor=1 tid=2559686 absolute_start=12966792.371871246 absolute_end=12966792.403347977
+balance channel=2 start=0.000046536 wall=0.031300562 cpu=0.031295037 finish=0.031347098 joined=0.031568525 error=0 voluntary=0 involuntary=0 processor=2 tid=2559687 absolute_start=12966792.371882839 absolute_end=12966792.403183401
+balance channel=3 start=0.000058591 wall=0.030412281 cpu=0.030404408 finish=0.030470872 joined=0.031568525 error=0 voluntary=0 involuntary=0 processor=3 tid=2559688 absolute_start=12966792.371894894 absolute_end=12966792.402307175
+encoding_end_wall=0.034218
+after_preview_wall=0.042820400
+after_cleanup_wall=0.042865474
+capture_diag frame=68 wall_ns=42868976 cpu_ns=41644242 clock_ok=1 error=0 tid=2559140 end_ns=12966792414304110
+unpack_wall=0.000001
+balance channel=0 start=0.000051703 wall=0.028066589 cpu=0.028054148 finish=0.028118292 joined=0.028940739 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.427578177 absolute_end=12966792.455644766
+balance channel=1 start=0.000044463 wall=0.028850146 cpu=0.028844055 finish=0.028894609 joined=0.028940739 error=0 voluntary=0 involuntary=0 processor=1 tid=2559694 absolute_start=12966792.427570937 absolute_end=12966792.456421083
+balance channel=2 start=0.000059908 wall=0.028770793 cpu=0.028767167 finish=0.028830701 joined=0.028940739 error=0 voluntary=0 involuntary=0 processor=2 tid=2559695 absolute_start=12966792.427586382 absolute_end=12966792.456357175
+balance channel=3 start=0.000061261 wall=0.028251031 cpu=0.028239944 finish=0.028312292 joined=0.028940739 error=0 voluntary=0 involuntary=0 processor=3 tid=2559696 absolute_start=12966792.427587735 absolute_end=12966792.455838766
+encoding_end_wall=0.031367
+after_preview_wall=0.039874593
+after_cleanup_wall=0.039918352
+capture_diag frame=69 wall_ns=39921650 cpu_ns=39180277 clock_ok=1 error=0 tid=2559140 end_ns=12966792467047623
+unpack_wall=0.000001
+balance channel=0 start=0.000048203 wall=0.030217985 cpu=0.030205981 finish=0.030266188 joined=0.031374488 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.481024619 absolute_end=12966792.511242604
+balance channel=1 start=0.000036482 wall=0.031273877 cpu=0.031268889 finish=0.031310359 joined=0.031374488 error=0 voluntary=0 involuntary=0 processor=1 tid=2559702 absolute_start=12966792.481012898 absolute_end=12966792.512286775
+balance channel=2 start=0.000042593 wall=0.031297248 cpu=0.031292741 finish=0.031339841 joined=0.031374488 error=0 voluntary=0 involuntary=0 processor=2 tid=2559703 absolute_start=12966792.481019009 absolute_end=12966792.512316257
+balance channel=3 start=0.000053482 wall=0.030405855 cpu=0.030392667 finish=0.030459337 joined=0.031374488 error=0 voluntary=0 involuntary=0 processor=3 tid=2559704 absolute_start=12966792.481029898 absolute_end=12966792.511435753
+encoding_end_wall=0.033979
+after_preview_wall=0.042392196
+after_cleanup_wall=0.042437252
+capture_diag frame=70 wall_ns=42441234 cpu_ns=41440463 clock_ok=1 error=0 tid=2559140 end_ns=12966792523009463
+unpack_wall=0.000001
+balance channel=0 start=0.000050593 wall=0.028292587 cpu=0.028281093 finish=0.028343180 joined=0.028937293 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.536311179 absolute_end=12966792.564603766
+balance channel=1 start=0.000046482 wall=0.028558718 cpu=0.028548648 finish=0.028605200 joined=0.028937293 error=0 voluntary=0 involuntary=0 processor=1 tid=2559710 absolute_start=12966792.536307069 absolute_end=12966792.564865787
+balance channel=2 start=0.000057353 wall=0.028847404 cpu=0.028843351 finish=0.028904757 joined=0.028937293 error=0 voluntary=0 involuntary=0 processor=2 tid=2559711 absolute_start=12966792.536317939 absolute_end=12966792.565165343
+balance channel=3 start=0.000057871 wall=0.028319051 cpu=0.028312963 finish=0.028376922 joined=0.028937293 error=0 voluntary=0 involuntary=0 processor=3 tid=2559712 absolute_start=12966792.536318457 absolute_end=12966792.564637508
+encoding_end_wall=0.031358
+after_preview_wall=0.039907280
+after_cleanup_wall=0.039941279
+capture_diag frame=71 wall_ns=39945020 cpu_ns=39466130 clock_ok=1 error=0 tid=2559140 end_ns=12966792575798735
+unpack_wall=0.000001
+balance channel=0 start=0.000052111 wall=0.030197559 cpu=0.030182426 finish=0.030249670 joined=0.031401897 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.589485249 absolute_end=12966792.619682807
+balance channel=1 start=0.000055205 wall=0.031290635 cpu=0.031286018 finish=0.031345841 joined=0.031401897 error=0 voluntary=0 involuntary=0 processor=1 tid=2559718 absolute_start=12966792.589488342 absolute_end=12966792.620778978
+balance channel=2 start=0.000057926 wall=0.031210395 cpu=0.031202982 finish=0.031268321 joined=0.031401897 error=0 voluntary=0 involuntary=0 processor=2 tid=2559719 absolute_start=12966792.589491064 absolute_end=12966792.620701458
+balance channel=3 start=0.000062482 wall=0.030528134 cpu=0.030520352 finish=0.030590616 joined=0.031401897 error=0 voluntary=0 involuntary=0 processor=3 tid=2559720 absolute_start=12966792.589495620 absolute_end=12966792.620023753
+encoding_end_wall=0.034029
+after_preview_wall=0.042461345
+after_cleanup_wall=0.042547585
+capture_diag frame=72 wall_ns=42552752 cpu_ns=41489389 clock_ok=1 error=0 tid=2559140 end_ns=12966792631564000
+unpack_wall=0.000001
+balance channel=0 start=0.000049297 wall=0.028326754 cpu=0.028312240 finish=0.028376050 joined=0.029034127 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.645121792 absolute_end=12966792.673448546
+balance channel=1 start=0.000046408 wall=0.028708033 cpu=0.028700870 finish=0.028754441 joined=0.029034127 error=0 voluntary=0 involuntary=0 processor=1 tid=2559726 absolute_start=12966792.645118903 absolute_end=12966792.673826937
+balance channel=2 start=0.000045629 wall=0.028951239 cpu=0.028945630 finish=0.028996868 joined=0.029034127 error=0 voluntary=0 involuntary=0 processor=2 tid=2559727 absolute_start=12966792.645118125 absolute_end=12966792.674069364
+balance channel=3 start=0.000057703 wall=0.028433274 cpu=0.028419259 finish=0.028490977 joined=0.029034127 error=0 voluntary=0 involuntary=0 processor=3 tid=2559728 absolute_start=12966792.645130198 absolute_end=12966792.673563473
+encoding_end_wall=0.031516
+after_preview_wall=0.039830185
+after_cleanup_wall=0.039904261
+capture_diag frame=73 wall_ns=39908353 cpu_ns=39345111 clock_ok=1 error=0 tid=2559140 end_ns=12966792684581236
+unpack_wall=0.000001
+balance channel=0 start=0.000051685 wall=0.030091763 cpu=0.030082907 finish=0.030143447 joined=0.031375082 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.698275620 absolute_end=12966792.728367383
+balance channel=1 start=0.000048557 wall=0.031245505 cpu=0.031235093 finish=0.031294063 joined=0.031375082 error=0 voluntary=0 involuntary=0 processor=1 tid=2559734 absolute_start=12966792.698272493 absolute_end=12966792.729517998
+balance channel=2 start=0.000059796 wall=0.031175505 cpu=0.031167944 finish=0.031235302 joined=0.031375082 error=0 voluntary=0 involuntary=0 processor=2 tid=2559735 absolute_start=12966792.698283732 absolute_end=12966792.729459237
+balance channel=3 start=0.000061408 wall=0.030272540 cpu=0.030256871 finish=0.030333947 joined=0.031375082 error=0 voluntary=0 involuntary=0 processor=3 tid=2559736 absolute_start=12966792.698285343 absolute_end=12966792.728557883
+encoding_end_wall=0.033983
+after_preview_wall=0.042459715
+after_cleanup_wall=0.042530974
+capture_diag frame=74 wall_ns=42534790 cpu_ns=41414814 clock_ok=1 error=0 tid=2559140 end_ns=12966792740340261
+unpack_wall=0.000001
+balance channel=0 start=0.000055630 wall=0.028550144 cpu=0.028533611 finish=0.028605774 joined=0.028941553 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.753909830 absolute_end=12966792.782459974
+balance channel=1 start=0.000038018 wall=0.028679997 cpu=0.028673092 finish=0.028718015 joined=0.028941553 error=0 voluntary=0 involuntary=0 processor=1 tid=2559742 absolute_start=12966792.753892219 absolute_end=12966792.782572215
+balance channel=2 start=0.000038501 wall=0.028875738 cpu=0.028871314 finish=0.028914239 joined=0.028941553 error=0 voluntary=0 involuntary=0 processor=2 tid=2559743 absolute_start=12966792.753892701 absolute_end=12966792.782768440
+balance channel=3 start=0.000061501 wall=0.028225087 cpu=0.028217037 finish=0.028286587 joined=0.028941553 error=0 voluntary=0 involuntary=0 processor=3 tid=2559744 absolute_start=12966792.753915701 absolute_end=12966792.782140788
+encoding_end_wall=0.031434
+after_preview_wall=0.039815761
+after_cleanup_wall=0.039876742
+capture_diag frame=75 wall_ns=39879706 cpu_ns=39640186 clock_ok=1 error=0 tid=2559140 end_ns=12966792793304664
+unpack_wall=0.000001
+balance channel=0 start=0.000054870 wall=0.030119170 cpu=0.030104111 finish=0.030174039 joined=0.031273635 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.807275567 absolute_end=12966792.837394737
+balance channel=1 start=0.000039149 wall=0.031152856 cpu=0.031143518 finish=0.031192005 joined=0.031273635 error=0 voluntary=0 involuntary=0 processor=1 tid=2559750 absolute_start=12966792.807259846 absolute_end=12966792.838412702
+balance channel=2 start=0.000048425 wall=0.031084340 cpu=0.031077630 finish=0.031132765 joined=0.031273635 error=0 voluntary=0 involuntary=0 processor=2 tid=2559751 absolute_start=12966792.807269122 absolute_end=12966792.838353463
+balance channel=3 start=0.000063315 wall=0.030250225 cpu=0.030239333 finish=0.030313540 joined=0.031273635 error=0 voluntary=0 involuntary=0 processor=3 tid=2559752 absolute_start=12966792.807284012 absolute_end=12966792.837534238
+encoding_end_wall=0.033986
+after_preview_wall=0.042512346
+after_cleanup_wall=0.042544995
+capture_diag frame=76 wall_ns=42548363 cpu_ns=41437705 clock_ok=1 error=0 tid=2559140 end_ns=12966792849341670
+unpack_wall=0.000001
+balance channel=0 start=0.000054371 wall=0.028296607 cpu=0.028277870 finish=0.028350977 joined=0.028937146 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.862870924 absolute_end=12966792.891167531
+balance channel=1 start=0.000037445 wall=0.028745664 cpu=0.028739852 finish=0.028783109 joined=0.028937146 error=0 voluntary=0 involuntary=0 processor=1 tid=2559758 absolute_start=12966792.862853998 absolute_end=12966792.891599663
+balance channel=2 start=0.000047168 wall=0.028851165 cpu=0.028846592 finish=0.028898332 joined=0.028937146 error=0 voluntary=0 involuntary=0 processor=2 tid=2559759 absolute_start=12966792.862863721 absolute_end=12966792.891714886
+balance channel=3 start=0.000063464 wall=0.028364200 cpu=0.028355870 finish=0.028427664 joined=0.028937146 error=0 voluntary=0 involuntary=0 processor=3 tid=2559760 absolute_start=12966792.862880018 absolute_end=12966792.891244218
+encoding_end_wall=0.031522
+after_preview_wall=0.040074984
+after_cleanup_wall=0.040114446
+capture_diag frame=77 wall_ns=40117596 cpu_ns=39605517 clock_ok=1 error=0 tid=2559140 end_ns=12966792902517204
+unpack_wall=0.000001
+balance channel=0 start=0.000051666 wall=0.030113650 cpu=0.030096704 finish=0.030165317 joined=0.031233728 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.916235551 absolute_end=12966792.946349202
+balance channel=1 start=0.000037981 wall=0.030990690 cpu=0.030984963 finish=0.031028671 joined=0.031233728 error=0 voluntary=0 involuntary=0 processor=1 tid=2559766 absolute_start=12966792.916221866 absolute_end=12966792.947212556
+balance channel=2 start=0.000039037 wall=0.031158302 cpu=0.031153445 finish=0.031197339 joined=0.031233728 error=0 voluntary=0 involuntary=0 processor=2 tid=2559767 absolute_start=12966792.916222923 absolute_end=12966792.947381224
+balance channel=3 start=0.000057463 wall=0.030253485 cpu=0.030243482 finish=0.030310947 joined=0.031233728 error=0 voluntary=0 involuntary=0 processor=3 tid=2559768 absolute_start=12966792.916241348 absolute_end=12966792.946494833
+encoding_end_wall=0.034012
+after_preview_wall=0.042545142
+after_cleanup_wall=0.042607939
+capture_diag frame=78 wall_ns=42611345 cpu_ns=41570703 clock_ok=1 error=0 tid=2559140 end_ns=12966792958351932
+unpack_wall=0.000001
+balance channel=0 start=0.000053223 wall=0.029998761 cpu=0.029981074 finish=0.030051984 joined=0.031254377 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966792.971721428 absolute_end=12966793.001720188
+balance channel=1 start=0.000035556 wall=0.031165710 cpu=0.031161129 finish=0.031201266 joined=0.031254377 error=0 voluntary=0 involuntary=0 processor=1 tid=2559774 absolute_start=12966792.971703760 absolute_end=12966793.002869470
+balance channel=2 start=0.000048945 wall=0.031042745 cpu=0.031038000 finish=0.031091690 joined=0.031254377 error=0 voluntary=0 involuntary=0 processor=2 tid=2559775 absolute_start=12966792.971717149 absolute_end=12966793.002759894
+balance channel=3 start=0.000056723 wall=0.030133724 cpu=0.030124074 finish=0.030190447 joined=0.031254377 error=0 voluntary=0 involuntary=0 processor=3 tid=2559776 absolute_start=12966792.971724927 absolute_end=12966793.001858652
+encoding_end_wall=0.033911
+after_preview_wall=0.042456234
+after_cleanup_wall=0.042515345
+capture_diag frame=79 wall_ns=42518845 cpu_ns=41342924 clock_ok=1 error=0 tid=2559140 end_ns=12966793013786640
+unpack_wall=0.000001
+balance channel=0 start=0.000079779 wall=0.028292939 cpu=0.028275852 finish=0.028372718 joined=0.029037535 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.027454877 absolute_end=12966793.055747816
+balance channel=1 start=0.000062576 wall=0.028619681 cpu=0.028612834 finish=0.028682256 joined=0.029037535 error=0 voluntary=0 involuntary=0 processor=1 tid=2559782 absolute_start=12966793.027437674 absolute_end=12966793.056057354
+balance channel=2 start=0.000063000 wall=0.028943053 cpu=0.028938426 finish=0.029006053 joined=0.029037535 error=0 voluntary=0 involuntary=0 processor=2 tid=2559783 absolute_start=12966793.027438099 absolute_end=12966793.056381151
+balance channel=3 start=0.000067148 wall=0.028294329 cpu=0.028279796 finish=0.028361477 joined=0.029037535 error=0 voluntary=0 involuntary=0 processor=3 tid=2559784 absolute_start=12966793.027442247 absolute_end=12966793.055736575
+encoding_end_wall=0.031459
+after_preview_wall=0.039988020
+after_cleanup_wall=0.040018724
+capture_diag frame=80 wall_ns=40022650 cpu_ns=39398277 clock_ok=1 error=0 tid=2559140 end_ns=12966793066993266
+unpack_wall=0.000001
+balance channel=0 start=0.000077203 wall=0.029686000 cpu=0.029664018 finish=0.029763203 joined=0.031079598 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.080533095 absolute_end=12966793.110219095
+balance channel=1 start=0.000054035 wall=0.030978655 cpu=0.030972703 finish=0.031032691 joined=0.031079598 error=0 voluntary=0 involuntary=0 processor=1 tid=2559790 absolute_start=12966793.080509927 absolute_end=12966793.111488583
+balance channel=2 start=0.000057220 wall=0.030783933 cpu=0.030776908 finish=0.030841153 joined=0.031079598 error=0 voluntary=0 involuntary=0 processor=2 tid=2559791 absolute_start=12966793.080513112 absolute_end=12966793.111297045
+balance channel=3 start=0.000079703 wall=0.029951483 cpu=0.029941093 finish=0.030031186 joined=0.031079598 error=0 voluntary=0 involuntary=0 processor=3 tid=2559792 absolute_start=12966793.080535594 absolute_end=12966793.110487077
+encoding_end_wall=0.033762
+after_preview_wall=0.042173455
+after_cleanup_wall=0.042240253
+capture_diag frame=81 wall_ns=42243955 cpu_ns=40950610 clock_ok=1 error=0 tid=2559140 end_ns=12966793122293844
+unpack_wall=0.000001
+balance channel=0 start=0.000059796 wall=0.028018530 cpu=0.028011056 finish=0.028078327 joined=0.028827645 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.135909062 absolute_end=12966793.163927592
+balance channel=1 start=0.000050092 wall=0.028704109 cpu=0.028697555 finish=0.028754201 joined=0.028827645 error=0 voluntary=0 involuntary=0 processor=1 tid=2559798 absolute_start=12966793.135899357 absolute_end=12966793.164603466
+balance channel=2 start=0.000049742 wall=0.028694348 cpu=0.028688759 finish=0.028744090 joined=0.028827645 error=0 voluntary=0 involuntary=0 processor=2 tid=2559799 absolute_start=12966793.135899007 absolute_end=12966793.164593356
+balance channel=3 start=0.000064464 wall=0.028119901 cpu=0.028109574 finish=0.028184365 joined=0.028827645 error=0 voluntary=0 involuntary=0 processor=3 tid=2559800 absolute_start=12966793.135913730 absolute_end=12966793.164033631
+encoding_end_wall=0.031298
+after_preview_wall=0.039814204
+after_cleanup_wall=0.039873851
+capture_diag frame=82 wall_ns=39877835 cpu_ns=39157223 clock_ok=1 error=0 tid=2559140 end_ns=12966793175290766
+unpack_wall=0.000001
+balance channel=0 start=0.000054331 wall=0.030087817 cpu=0.030070704 finish=0.030142149 joined=0.031375783 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.188571833 absolute_end=12966793.218659651
+balance channel=1 start=0.000044240 wall=0.031274118 cpu=0.031268240 finish=0.031318357 joined=0.031375783 error=0 voluntary=0 involuntary=0 processor=1 tid=2559806 absolute_start=12966793.188561741 absolute_end=12966793.219835859
+balance channel=2 start=0.000061221 wall=0.031117210 cpu=0.031110741 finish=0.031178432 joined=0.031375783 error=0 voluntary=0 involuntary=0 processor=2 tid=2559807 absolute_start=12966793.188578723 absolute_end=12966793.219695933
+balance channel=3 start=0.000065425 wall=0.030303409 cpu=0.030294166 finish=0.030368835 joined=0.031375783 error=0 voluntary=0 involuntary=0 processor=3 tid=2559808 absolute_start=12966793.188582927 absolute_end=12966793.218886336
+encoding_end_wall=0.034015
+after_preview_wall=0.042480269
+after_cleanup_wall=0.042524012
+capture_diag frame=83 wall_ns=42527900 cpu_ns=41335758 clock_ok=1 error=0 tid=2559140 end_ns=12966793230612640
+unpack_wall=0.000001
+balance channel=0 start=0.000052610 wall=0.028259421 cpu=0.028248703 finish=0.028312031 joined=0.028902441 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.244158747 absolute_end=12966793.272418167
+balance channel=1 start=0.000046352 wall=0.028745273 cpu=0.028735926 finish=0.028791625 joined=0.028902441 error=0 voluntary=0 involuntary=0 processor=1 tid=2559814 absolute_start=12966793.244152488 absolute_end=12966793.272897761
+balance channel=2 start=0.000046074 wall=0.028777329 cpu=0.028769296 finish=0.028823404 joined=0.028902441 error=0 voluntary=0 involuntary=0 processor=2 tid=2559815 absolute_start=12966793.244152211 absolute_end=12966793.272929540
+balance channel=3 start=0.000053221 wall=0.028111255 cpu=0.028103926 finish=0.028164476 joined=0.028902441 error=0 voluntary=0 involuntary=0 processor=3 tid=2559816 absolute_start=12966793.244159358 absolute_end=12966793.272270612
+encoding_end_wall=0.031360
+after_preview_wall=0.039849853
+after_cleanup_wall=0.039914593
+capture_diag frame=84 wall_ns=39918316 cpu_ns=39448167 clock_ok=1 error=0 tid=2559140 end_ns=12966793283580691
+unpack_wall=0.000001
+balance channel=0 start=0.000056390 wall=0.029981872 cpu=0.029966555 finish=0.030038262 joined=0.031085581 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.297309650 absolute_end=12966793.327291522
+balance channel=1 start=0.000036057 wall=0.030967800 cpu=0.030962463 finish=0.031003857 joined=0.031085581 error=0 voluntary=0 involuntary=0 processor=1 tid=2559822 absolute_start=12966793.297289317 absolute_end=12966793.328257117
+balance channel=2 start=0.000050038 wall=0.030982487 cpu=0.030976222 finish=0.031032525 joined=0.031085581 error=0 voluntary=0 involuntary=0 processor=2 tid=2559823 absolute_start=12966793.297303298 absolute_end=12966793.328285785
+balance channel=3 start=0.000061000 wall=0.030142132 cpu=0.030135333 finish=0.030203132 joined=0.031085581 error=0 voluntary=0 involuntary=0 processor=3 tid=2559824 absolute_start=12966793.297314260 absolute_end=12966793.327456392
+encoding_end_wall=0.033718
+after_preview_wall=0.042257678
+after_cleanup_wall=0.042314066
+capture_diag frame=85 wall_ns=42317974 cpu_ns=41335353 clock_ok=1 error=0 tid=2559140 end_ns=12966793339138326
+unpack_wall=0.000001
+balance channel=0 start=0.000056854 wall=0.028500810 cpu=0.028478870 finish=0.028557664 joined=0.029205630 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.352676785 absolute_end=12966793.381177595
+balance channel=1 start=0.000061909 wall=0.028838238 cpu=0.028832111 finish=0.028900146 joined=0.029205630 error=0 voluntary=0 involuntary=0 processor=1 tid=2559830 absolute_start=12966793.352681840 absolute_end=12966793.381520078
+balance channel=2 start=0.000066964 wall=0.029091313 cpu=0.029085778 finish=0.029158277 joined=0.029205630 error=0 voluntary=0 involuntary=0 processor=2 tid=2559831 absolute_start=12966793.352686895 absolute_end=12966793.381778209
+balance channel=3 start=0.000068188 wall=0.028574105 cpu=0.028563926 finish=0.028642293 joined=0.029205630 error=0 voluntary=0 involuntary=0 processor=3 tid=2559832 absolute_start=12966793.352688119 absolute_end=12966793.381262224
+encoding_end_wall=0.031613
+after_preview_wall=0.040209057
+after_cleanup_wall=0.040270355
+capture_diag frame=86 wall_ns=40273800 cpu_ns=39703092 clock_ok=1 error=0 tid=2559140 end_ns=12966793392484934
+unpack_wall=0.000001
+balance channel=0 start=0.000059426 wall=0.030284317 cpu=0.030273444 finish=0.030343743 joined=0.031310042 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.406179857 absolute_end=12966793.436464174
+balance channel=1 start=0.000044202 wall=0.031175673 cpu=0.031170204 finish=0.031219875 joined=0.031310042 error=0 voluntary=0 involuntary=0 processor=1 tid=2559838 absolute_start=12966793.406164633 absolute_end=12966793.437340306
+balance channel=2 start=0.000049220 wall=0.031192563 cpu=0.031187500 finish=0.031241784 joined=0.031310042 error=0 voluntary=0 involuntary=0 processor=2 tid=2559839 absolute_start=12966793.406169651 absolute_end=12966793.437362215
+balance channel=3 start=0.000058055 wall=0.030315150 cpu=0.030307000 finish=0.030373204 joined=0.031310042 error=0 voluntary=0 involuntary=0 processor=3 tid=2559840 absolute_start=12966793.406178486 absolute_end=12966793.436493635
+encoding_end_wall=0.033938
+after_preview_wall=0.042491956
+after_cleanup_wall=0.042556770
+capture_diag frame=87 wall_ns=42560548 cpu_ns=41643186 clock_ok=1 error=0 tid=2559140 end_ns=12966793448273458
+unpack_wall=0.000001
+balance channel=0 start=0.000060316 wall=0.028486978 cpu=0.028473796 finish=0.028547294 joined=0.028973294 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.461989991 absolute_end=12966793.490476970
+balance channel=1 start=0.000048371 wall=0.028708164 cpu=0.028696370 finish=0.028756535 joined=0.028973294 error=0 voluntary=0 involuntary=0 processor=1 tid=2559846 absolute_start=12966793.461978046 absolute_end=12966793.490686210
+balance channel=2 start=0.000049872 wall=0.028887959 cpu=0.028883222 finish=0.028937832 joined=0.028973294 error=0 voluntary=0 involuntary=0 processor=2 tid=2559847 absolute_start=12966793.461979548 absolute_end=12966793.490867507
+balance channel=3 start=0.000061482 wall=0.028314052 cpu=0.028300963 finish=0.028375534 joined=0.028973294 error=0 voluntary=0 involuntary=0 processor=3 tid=2559848 absolute_start=12966793.461991157 absolute_end=12966793.490305210
+encoding_end_wall=0.031427
+after_preview_wall=0.040001206
+after_cleanup_wall=0.040047262
+capture_diag frame=88 wall_ns=40050632 cpu_ns=39696185 clock_ok=1 error=0 tid=2559140 end_ns=12966793501548733
+unpack_wall=0.000001
+balance channel=0 start=0.000051258 wall=0.030193763 cpu=0.030176315 finish=0.030245021 joined=0.031376302 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.515092913 absolute_end=12966793.545286676
+balance channel=1 start=0.000035981 wall=0.031165523 cpu=0.031161018 finish=0.031201504 joined=0.031376302 error=0 voluntary=0 involuntary=0 processor=1 tid=2559854 absolute_start=12966793.515077636 absolute_end=12966793.546243159
+balance channel=2 start=0.000047481 wall=0.031283932 cpu=0.031276648 finish=0.031331412 joined=0.031376302 error=0 voluntary=0 involuntary=0 processor=2 tid=2559855 absolute_start=12966793.515089136 absolute_end=12966793.546373067
+balance channel=3 start=0.000057943 wall=0.030297263 cpu=0.030286593 finish=0.030355206 joined=0.031376302 error=0 voluntary=0 involuntary=0 processor=3 tid=2559856 absolute_start=12966793.515099598 absolute_end=12966793.545396861
+encoding_end_wall=0.034072
+after_preview_wall=0.042605143
+after_cleanup_wall=0.042640623
+capture_diag frame=89 wall_ns=42643846 cpu_ns=41549519 clock_ok=1 error=0 tid=2559140 end_ns=12966793557266109
+unpack_wall=0.000001
+balance channel=0 start=0.000061685 wall=0.030006835 cpu=0.029991945 finish=0.030068520 joined=0.031270858 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.570982864 absolute_end=12966793.600989699
+balance channel=1 start=0.000047702 wall=0.031171285 cpu=0.031163851 finish=0.031218987 joined=0.031270858 error=0 voluntary=0 involuntary=0 processor=1 tid=2559862 absolute_start=12966793.570968881 absolute_end=12966793.602140166
+balance channel=2 start=0.000059240 wall=0.031105692 cpu=0.031100074 finish=0.031164931 joined=0.031270858 error=0 voluntary=0 involuntary=0 processor=2 tid=2559863 absolute_start=12966793.570980418 absolute_end=12966793.602086110
+balance channel=3 start=0.000064259 wall=0.030170891 cpu=0.030159111 finish=0.030235151 joined=0.031270858 error=0 voluntary=0 involuntary=0 processor=3 tid=2559864 absolute_start=12966793.570985438 absolute_end=12966793.601156330
+encoding_end_wall=0.033912
+after_preview_wall=0.042475307
+after_cleanup_wall=0.042509383
+capture_diag frame=90 wall_ns=42513215 cpu_ns=41327776 clock_ok=1 error=0 tid=2559140 end_ns=12966793613010003
+unpack_wall=0.000001
+balance channel=0 start=0.000054093 wall=0.028510032 cpu=0.028489130 finish=0.028564125 joined=0.029251276 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.626302332 absolute_end=12966793.654812364
+balance channel=1 start=0.000061333 wall=0.028924905 cpu=0.028913389 finish=0.028986238 joined=0.029251276 error=0 voluntary=0 involuntary=0 processor=1 tid=2559870 absolute_start=12966793.626309572 absolute_end=12966793.655234477
+balance channel=2 start=0.000066092 wall=0.029135091 cpu=0.029129944 finish=0.029201183 joined=0.029251276 error=0 voluntary=0 involuntary=0 processor=2 tid=2559871 absolute_start=12966793.626314331 absolute_end=12966793.655449422
+balance channel=3 start=0.000064833 wall=0.028713942 cpu=0.028701888 finish=0.028778775 joined=0.029251276 error=0 voluntary=0 involuntary=0 processor=3 tid=2559872 absolute_start=12966793.626313072 absolute_end=12966793.655027013
+encoding_end_wall=0.031722
+after_preview_wall=0.040316651
+after_cleanup_wall=0.040351134
+capture_diag frame=91 wall_ns=40355336 cpu_ns=39728259 clock_ok=1 error=0 tid=2559140 end_ns=12966793666196962
+unpack_wall=0.000001
+balance channel=0 start=0.000065148 wall=0.030189447 cpu=0.030175926 finish=0.030254595 joined=0.031365024 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.679827699 absolute_end=12966793.710017147
+balance channel=1 start=0.000049796 wall=0.031232599 cpu=0.031224982 finish=0.031282395 joined=0.031365024 error=0 voluntary=0 involuntary=0 processor=1 tid=2559878 absolute_start=12966793.679812348 absolute_end=12966793.711044947
+balance channel=2 start=0.000051944 wall=0.031186432 cpu=0.031182389 finish=0.031238375 joined=0.031365024 error=0 voluntary=0 involuntary=0 processor=2 tid=2559879 absolute_start=12966793.679814495 absolute_end=12966793.711000927
+balance channel=3 start=0.000067296 wall=0.030249316 cpu=0.030240037 finish=0.030316612 joined=0.031365024 error=0 voluntary=0 involuntary=0 processor=3 tid=2559880 absolute_start=12966793.679829847 absolute_end=12966793.710079163
+encoding_end_wall=0.034036
+after_preview_wall=0.042536030
+after_cleanup_wall=0.042571196
+capture_diag frame=92 wall_ns=42574771 cpu_ns=41564425 clock_ok=1 error=0 tid=2559140 end_ns=12966793721933913
+unpack_wall=0.000001
+balance channel=0 start=0.000052925 wall=0.028183402 cpu=0.028169037 finish=0.028236328 joined=0.028890291 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.735045351 absolute_end=12966793.763228754
+balance channel=1 start=0.000059517 wall=0.028472405 cpu=0.028466278 finish=0.028531922 joined=0.028890291 error=0 voluntary=0 involuntary=0 processor=1 tid=2559886 absolute_start=12966793.735051943 absolute_end=12966793.763524348
+balance channel=2 start=0.000068814 wall=0.028749071 cpu=0.028742000 finish=0.028817885 joined=0.028890291 error=0 voluntary=0 involuntary=0 processor=2 tid=2559887 absolute_start=12966793.735061239 absolute_end=12966793.763810311
+balance channel=3 start=0.000067741 wall=0.028319346 cpu=0.028301870 finish=0.028387086 joined=0.028890291 error=0 voluntary=0 involuntary=0 processor=3 tid=2559888 absolute_start=12966793.735060167 absolute_end=12966793.763379512
+encoding_end_wall=0.031310
+after_preview_wall=0.039809391
+after_cleanup_wall=0.039864391
+capture_diag frame=93 wall_ns=39868002 cpu_ns=39263057 clock_ok=1 error=0 tid=2559140 end_ns=12966793774458610
+unpack_wall=0.000001
+balance channel=0 start=0.000062944 wall=0.030225892 cpu=0.030212852 finish=0.030288836 joined=0.031427765 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.787765531 absolute_end=12966793.817991422
+balance channel=1 start=0.000050500 wall=0.031265525 cpu=0.031258352 finish=0.031316025 joined=0.031427765 error=0 voluntary=0 involuntary=0 processor=1 tid=2559894 absolute_start=12966793.787753087 absolute_end=12966793.819018612
+balance channel=2 start=0.000051111 wall=0.031306913 cpu=0.031300814 finish=0.031358024 joined=0.031427765 error=0 voluntary=0 involuntary=0 processor=2 tid=2559895 absolute_start=12966793.787753697 absolute_end=12966793.819060611
+balance channel=3 start=0.000063278 wall=0.030403225 cpu=0.030388537 finish=0.030466503 joined=0.031427765 error=0 voluntary=0 involuntary=0 processor=3 tid=2559896 absolute_start=12966793.787765864 absolute_end=12966793.818169089
+encoding_end_wall=0.034096
+after_preview_wall=0.042563235
+after_cleanup_wall=0.042614032
+capture_diag frame=94 wall_ns=42617808 cpu_ns=41598666 clock_ok=1 error=0 tid=2559140 end_ns=12966793829915170
+unpack_wall=0.000001
+balance channel=0 start=0.000054482 wall=0.028272031 cpu=0.028258407 finish=0.028326513 joined=0.028779607 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.843379537 absolute_end=12966793.871651568
+balance channel=1 start=0.000035295 wall=0.028527237 cpu=0.028518704 finish=0.028562533 joined=0.028779607 error=0 voluntary=0 involuntary=0 processor=1 tid=2559902 absolute_start=12966793.843360350 absolute_end=12966793.871887587
+balance channel=2 start=0.000047686 wall=0.028703311 cpu=0.028699870 finish=0.028750997 joined=0.028779607 error=0 voluntary=0 involuntary=0 processor=2 tid=2559903 absolute_start=12966793.843372740 absolute_end=12966793.872076051
+balance channel=3 start=0.000059759 wall=0.028266681 cpu=0.028252204 finish=0.028326441 joined=0.028779607 error=0 voluntary=0 involuntary=0 processor=3 tid=2559904 absolute_start=12966793.843384814 absolute_end=12966793.871651495
+encoding_end_wall=0.031201
+after_preview_wall=0.039580815
+after_cleanup_wall=0.039637001
+capture_diag frame=95 wall_ns=39640556 cpu_ns=39322240 clock_ok=1 error=0 tid=2559140 end_ns=12966793882564831
+unpack_wall=0.000001
+balance channel=0 start=0.000051018 wall=0.030134520 cpu=0.030115888 finish=0.030185537 joined=0.031282078 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.896398606 absolute_end=12966793.926533125
+balance channel=1 start=0.000036813 wall=0.031136582 cpu=0.031131314 finish=0.031173395 joined=0.031282078 error=0 voluntary=0 involuntary=0 processor=1 tid=2559910 absolute_start=12966793.896384401 absolute_end=12966793.927520983
+balance channel=2 start=0.000040444 wall=0.031174265 cpu=0.031168722 finish=0.031214708 joined=0.031282078 error=0 voluntary=0 involuntary=0 processor=2 tid=2559911 absolute_start=12966793.896388032 absolute_end=12966793.927562296
+balance channel=3 start=0.000053443 wall=0.030205559 cpu=0.030196315 finish=0.030259002 joined=0.031282078 error=0 voluntary=0 involuntary=0 processor=3 tid=2559912 absolute_start=12966793.896401031 absolute_end=12966793.926606590
+encoding_end_wall=0.033980
+after_preview_wall=0.042484697
+after_cleanup_wall=0.042514995
+capture_diag frame=96 wall_ns=42518512 cpu_ns=41539240 clock_ok=1 error=0 tid=2559140 end_ns=12966793938432282
+unpack_wall=0.000001
+balance channel=0 start=0.000055593 wall=0.028256144 cpu=0.028239963 finish=0.028311737 joined=0.029052295 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966793.951824628 absolute_end=12966793.980080772
+balance channel=1 start=0.000050889 wall=0.028778220 cpu=0.028771407 finish=0.028829109 joined=0.029052295 error=0 voluntary=0 involuntary=0 processor=1 tid=2559918 absolute_start=12966793.951819925 absolute_end=12966793.980598144
+balance channel=2 start=0.000051260 wall=0.028968461 cpu=0.028961426 finish=0.029019721 joined=0.029052295 error=0 voluntary=0 involuntary=0 processor=2 tid=2559919 absolute_start=12966793.951820295 absolute_end=12966793.980788756
+balance channel=3 start=0.000058556 wall=0.028518979 cpu=0.028509315 finish=0.028577534 joined=0.029052295 error=0 voluntary=0 involuntary=0 processor=3 tid=2559920 absolute_start=12966793.951827591 absolute_end=12966793.980346570
+encoding_end_wall=0.031504
+after_preview_wall=0.040108133
+after_cleanup_wall=0.040148430
+capture_diag frame=97 wall_ns=40152299 cpu_ns=39516500 clock_ok=1 error=0 tid=2559140 end_ns=12966793991494185
+unpack_wall=0.000001
+balance channel=0 start=0.000050444 wall=0.030095076 cpu=0.030081037 finish=0.030145520 joined=0.031348802 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.004989792 absolute_end=12966794.035084868
+balance channel=1 start=0.000037426 wall=0.031241635 cpu=0.031235074 finish=0.031279061 joined=0.031348802 error=0 voluntary=0 involuntary=0 processor=1 tid=2559926 absolute_start=12966794.004976774 absolute_end=12966794.036218408
+balance channel=2 start=0.000047017 wall=0.031171730 cpu=0.031166037 finish=0.031218747 joined=0.031348802 error=0 voluntary=0 involuntary=0 processor=2 tid=2559927 absolute_start=12966794.004986364 absolute_end=12966794.036158094
+balance channel=3 start=0.000059944 wall=0.030375225 cpu=0.030362833 finish=0.030435169 joined=0.031348802 error=0 voluntary=0 involuntary=0 processor=3 tid=2559928 absolute_start=12966794.004999291 absolute_end=12966794.035374517
+encoding_end_wall=0.034056
+after_preview_wall=0.042570826
+after_cleanup_wall=0.042604160
+capture_diag frame=98 wall_ns=42607605 cpu_ns=41556111 clock_ok=1 error=0 tid=2559140 end_ns=12966794047126931
+unpack_wall=0.000001
+balance channel=0 start=0.000066852 wall=0.028215272 cpu=0.028204722 finish=0.028282125 joined=0.029088812 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.060810650 absolute_end=12966794.089025922
+balance channel=1 start=0.000038814 wall=0.028907146 cpu=0.028898814 finish=0.028945960 joined=0.029088812 error=0 voluntary=0 involuntary=0 processor=1 tid=2559934 absolute_start=12966794.060782611 absolute_end=12966794.089689758
+balance channel=2 start=0.000058815 wall=0.028997349 cpu=0.028991019 finish=0.029056164 joined=0.029088812 error=0 voluntary=0 involuntary=0 processor=2 tid=2559935 absolute_start=12966794.060802612 absolute_end=12966794.089799961
+balance channel=3 start=0.000073334 wall=0.028474996 cpu=0.028466908 finish=0.028548330 joined=0.029088812 error=0 voluntary=0 involuntary=0 processor=3 tid=2559936 absolute_start=12966794.060817132 absolute_end=12966794.089292128
+encoding_end_wall=0.031527
+after_preview_wall=0.040068947
+after_cleanup_wall=0.040100520
+capture_diag frame=99 wall_ns=40104280 cpu_ns=39416631 clock_ok=1 error=0 tid=2559140 end_ns=12966794100431631
+unpack_wall=0.000001
+balance channel=0 start=0.000058703 wall=0.030199170 cpu=0.030180407 finish=0.030257873 joined=0.031416636 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.114388812 absolute_end=12966794.144587982
+balance channel=1 start=0.000060093 wall=0.031246470 cpu=0.031237537 finish=0.031306563 joined=0.031416636 error=0 voluntary=0 involuntary=0 processor=1 tid=2559942 absolute_start=12966794.114390202 absolute_end=12966794.145636672
+balance channel=2 start=0.000066463 wall=0.031203581 cpu=0.031196685 finish=0.031270044 joined=0.031416636 error=0 voluntary=0 involuntary=0 processor=2 tid=2559943 absolute_start=12966794.114396572 absolute_end=12966794.145600153
+balance channel=3 start=0.000066537 wall=0.030416226 cpu=0.030404537 finish=0.030482763 joined=0.031416636 error=0 voluntary=0 involuntary=0 processor=3 tid=2559944 absolute_start=12966794.114396647 absolute_end=12966794.144812873
+encoding_end_wall=0.034200
+after_preview_wall=0.042670215
+after_cleanup_wall=0.042720715
+capture_diag frame=100 wall_ns=42724197 cpu_ns=41603167 clock_ok=1 error=0 tid=2559140 end_ns=12966794156629472
+unpack_wall=0.000001
+balance channel=0 start=0.000055464 wall=0.030091446 cpu=0.030050352 finish=0.030146910 joined=0.031389711 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.169797689 absolute_end=12966794.199889135
+balance channel=1 start=0.000038037 wall=0.031177025 cpu=0.031171111 finish=0.031215062 joined=0.031389711 error=0 voluntary=0 involuntary=0 processor=1 tid=2559950 absolute_start=12966794.169780262 absolute_end=12966794.200957287
+balance channel=2 start=0.000048427 wall=0.031298211 cpu=0.031293648 finish=0.031346638 joined=0.031389711 error=0 voluntary=0 involuntary=0 processor=2 tid=2559951 absolute_start=12966794.169790652 absolute_end=12966794.201088862
+balance channel=3 start=0.000059353 wall=0.030365001 cpu=0.030356981 finish=0.030424355 joined=0.031389711 error=0 voluntary=0 involuntary=0 processor=3 tid=2559952 absolute_start=12966794.169801578 absolute_end=12966794.200166579
+encoding_end_wall=0.034073
+after_preview_wall=0.042637309
+after_cleanup_wall=0.042698901
+capture_diag frame=101 wall_ns=42703790 cpu_ns=41583999 clock_ok=1 error=0 tid=2559140 end_ns=12966794212038125
+unpack_wall=0.000001
+balance channel=0 start=0.000059111 wall=0.028298978 cpu=0.028281203 finish=0.028358089 joined=0.028977664 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.225491453 absolute_end=12966794.253790431
+balance channel=1 start=0.000039389 wall=0.028674366 cpu=0.028667296 finish=0.028713755 joined=0.028977664 error=0 voluntary=0 involuntary=0 processor=1 tid=2559958 absolute_start=12966794.225471731 absolute_end=12966794.254146097
+balance channel=2 start=0.000050185 wall=0.028885016 cpu=0.028881259 finish=0.028935201 joined=0.028977664 error=0 voluntary=0 involuntary=0 processor=2 tid=2559959 absolute_start=12966794.225482527 absolute_end=12966794.254367543
+balance channel=3 start=0.000065593 wall=0.028293217 cpu=0.028282315 finish=0.028358810 joined=0.028977664 error=0 voluntary=0 involuntary=0 processor=3 tid=2559960 absolute_start=12966794.225497935 absolute_end=12966794.253791152
+encoding_end_wall=0.031402
+after_preview_wall=0.039965652
+after_cleanup_wall=0.040007133
+capture_diag frame=102 wall_ns=40010688 cpu_ns=39498074 clock_ok=1 error=0 tid=2559140 end_ns=12966794265032417
+unpack_wall=0.000001
+balance channel=0 start=0.000049001 wall=0.030241964 cpu=0.030224074 finish=0.030290965 joined=0.031365562 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.278296838 absolute_end=12966794.308538802
+balance channel=1 start=0.000052426 wall=0.031178450 cpu=0.031174167 finish=0.031230876 joined=0.031365562 error=0 voluntary=0 involuntary=0 processor=1 tid=2559966 absolute_start=12966794.278300263 absolute_end=12966794.309478713
+balance channel=2 start=0.000063481 wall=0.031261155 cpu=0.031256073 finish=0.031324636 joined=0.031365562 error=0 voluntary=0 involuntary=0 processor=2 tid=2559967 absolute_start=12966794.278311318 absolute_end=12966794.309572473
+balance channel=3 start=0.000063630 wall=0.030326001 cpu=0.030315093 finish=0.030389631 joined=0.031365562 error=0 voluntary=0 involuntary=0 processor=3 tid=2559968 absolute_start=12966794.278311467 absolute_end=12966794.308637468
+encoding_end_wall=0.034016
+after_preview_wall=0.042583717
+after_cleanup_wall=0.042668885
+capture_diag frame=103 wall_ns=42672771 cpu_ns=41702240 clock_ok=1 error=0 tid=2559140 end_ns=12966794320499273
+unpack_wall=0.000001
+balance channel=0 start=0.000056518 wall=0.028454311 cpu=0.028439223 finish=0.028510829 joined=0.029143406 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.333995009 absolute_end=12966794.362449320
+balance channel=1 start=0.000052964 wall=0.028907662 cpu=0.028900371 finish=0.028960627 joined=0.029143406 error=0 voluntary=0 involuntary=0 processor=1 tid=2559974 absolute_start=12966794.333991455 absolute_end=12966794.362899117
+balance channel=2 start=0.000051925 wall=0.029061740 cpu=0.029055870 finish=0.029113665 joined=0.029143406 error=0 voluntary=0 involuntary=0 processor=2 tid=2559975 absolute_start=12966794.333990416 absolute_end=12966794.363052156
+balance channel=3 start=0.000058537 wall=0.028557163 cpu=0.028549778 finish=0.028615700 joined=0.029143406 error=0 voluntary=0 involuntary=0 processor=3 tid=2559976 absolute_start=12966794.333997028 absolute_end=12966794.362554191
+encoding_end_wall=0.031840
+after_preview_wall=0.040552188
+after_cleanup_wall=0.040616412
+capture_diag frame=104 wall_ns=40619542 cpu_ns=40034444 clock_ok=1 error=0 tid=2559140 end_ns=12966794374121660
+unpack_wall=0.000001
+balance channel=0 start=0.000069093 wall=0.029781519 cpu=0.029762259 finish=0.029850611 joined=0.031138061 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.387706360 absolute_end=12966794.417487878
+balance channel=1 start=0.000052666 wall=0.030964969 cpu=0.030959759 finish=0.031017635 joined=0.031138061 error=0 voluntary=0 involuntary=0 processor=1 tid=2559982 absolute_start=12966794.387689933 absolute_end=12966794.418654902
+balance channel=2 start=0.000049593 wall=0.031055987 cpu=0.031048963 finish=0.031105580 joined=0.031138061 error=0 voluntary=0 involuntary=0 processor=2 tid=2559983 absolute_start=12966794.387686860 absolute_end=12966794.418742847
+balance channel=3 start=0.000069648 wall=0.030234724 cpu=0.030229185 finish=0.030304372 joined=0.031138061 error=0 voluntary=0 involuntary=0 processor=3 tid=2559984 absolute_start=12966794.387706915 absolute_end=12966794.417941639
+encoding_end_wall=0.033779
+after_preview_wall=0.042264158
+after_cleanup_wall=0.042307770
+capture_diag frame=105 wall_ns=42311529 cpu_ns=41053721 clock_ok=1 error=0 tid=2559140 end_ns=12966794429538979
+unpack_wall=0.000001
+balance channel=0 start=0.000067407 wall=0.028385736 cpu=0.028355389 finish=0.028453143 joined=0.028961184 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.443089196 absolute_end=12966794.471474933
+balance channel=1 start=0.000047240 wall=0.028735405 cpu=0.028724797 finish=0.028782645 joined=0.028961184 error=0 voluntary=0 involuntary=0 processor=1 tid=2559990 absolute_start=12966794.443069030 absolute_end=12966794.471804434
+balance channel=2 start=0.000051573 wall=0.028863665 cpu=0.028855981 finish=0.028915238 joined=0.028961184 error=0 voluntary=0 involuntary=0 processor=2 tid=2559991 absolute_start=12966794.443073362 absolute_end=12966794.471937027
+balance channel=3 start=0.000068536 wall=0.028382348 cpu=0.028372630 finish=0.028450884 joined=0.028961184 error=0 voluntary=0 involuntary=0 processor=3 tid=2559992 absolute_start=12966794.443090325 absolute_end=12966794.471472673
+encoding_end_wall=0.031404
+after_preview_wall=0.039930020
+after_cleanup_wall=0.039970355
+capture_diag frame=106 wall_ns=39974539 cpu_ns=39580685 clock_ok=1 error=0 tid=2559140 end_ns=12966794482597512
+unpack_wall=0.000001
+balance channel=0 start=0.000060353 wall=0.027971623 cpu=0.027957500 finish=0.028031977 joined=0.028794684 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.496179527 absolute_end=12966794.524151150
+balance channel=1 start=0.000054074 wall=0.028648904 cpu=0.028638926 finish=0.028702978 joined=0.028794684 error=0 voluntary=0 involuntary=0 processor=1 tid=2559998 absolute_start=12966794.496173248 absolute_end=12966794.524822151
+balance channel=2 start=0.000080150 wall=0.028656181 cpu=0.028646444 finish=0.028736331 joined=0.028794684 error=0 voluntary=0 involuntary=0 processor=2 tid=2559999 absolute_start=12966794.496199323 absolute_end=12966794.524855504
+balance channel=3 start=0.000087595 wall=0.028376754 cpu=0.028364444 finish=0.028464349 joined=0.028794684 error=0 voluntary=0 involuntary=0 processor=3 tid=2560000 absolute_start=12966794.496206768 absolute_end=12966794.524583522
+encoding_end_wall=0.031263
+after_preview_wall=0.039697630
+after_cleanup_wall=0.039781315
+capture_diag frame=107 wall_ns=39786446 cpu_ns=39133518 clock_ok=1 error=0 tid=2559140 end_ns=12966794535460711
+unpack_wall=0.000001
+balance channel=0 start=0.000052037 wall=0.030177409 cpu=0.030158018 finish=0.030229446 joined=0.031448396 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.549229003 absolute_end=12966794.579406412
+balance channel=1 start=0.000050295 wall=0.031245820 cpu=0.031240315 finish=0.031296115 joined=0.031448396 error=0 voluntary=0 involuntary=0 processor=1 tid=2560006 absolute_start=12966794.549227262 absolute_end=12966794.580473082
+balance channel=2 start=0.000057092 wall=0.031350730 cpu=0.031345574 finish=0.031407822 joined=0.031448396 error=0 voluntary=0 involuntary=0 processor=2 tid=2560007 absolute_start=12966794.549234059 absolute_end=12966794.580584789
+balance channel=3 start=0.000057889 wall=0.030325649 cpu=0.030316407 finish=0.030383538 joined=0.031448396 error=0 voluntary=0 involuntary=0 processor=3 tid=2560008 absolute_start=12966794.549234856 absolute_end=12966794.579560505
+encoding_end_wall=0.034062
+after_preview_wall=0.042443363
+after_cleanup_wall=0.042533567
+capture_diag frame=108 wall_ns=42538975 cpu_ns=41413981 clock_ok=1 error=0 tid=2559140 end_ns=12966794591315421
+unpack_wall=0.000001
+balance channel=0 start=0.000050407 wall=0.028321588 cpu=0.028311611 finish=0.028371995 joined=0.029093331 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.604657359 absolute_end=12966794.632978948
+balance channel=1 start=0.000034889 wall=0.028751867 cpu=0.028740518 finish=0.028786756 joined=0.029093331 error=0 voluntary=0 involuntary=0 processor=1 tid=2560014 absolute_start=12966794.604641842 absolute_end=12966794.633393709
+balance channel=2 start=0.000047574 wall=0.029013349 cpu=0.029008204 finish=0.029060923 joined=0.029093331 error=0 voluntary=0 involuntary=0 processor=2 tid=2560015 absolute_start=12966794.604654526 absolute_end=12966794.633667875
+balance channel=3 start=0.000054741 wall=0.028558347 cpu=0.028550963 finish=0.028613089 joined=0.029093331 error=0 voluntary=0 involuntary=0 processor=3 tid=2560016 absolute_start=12966794.604661694 absolute_end=12966794.633220041
+encoding_end_wall=0.031529
+after_preview_wall=0.040071260
+after_cleanup_wall=0.040112242
+capture_diag frame=109 wall_ns=40115929 cpu_ns=39441833 clock_ok=1 error=0 tid=2559140 end_ns=12966794644321972
+unpack_wall=0.000001
+balance channel=0 start=0.000046665 wall=0.030055095 cpu=0.030038296 finish=0.030101759 joined=0.031358819 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.657866022 absolute_end=12966794.687921116
+balance channel=1 start=0.000042573 wall=0.031252062 cpu=0.031246630 finish=0.031294635 joined=0.031358819 error=0 voluntary=0 involuntary=0 processor=1 tid=2560022 absolute_start=12966794.657861929 absolute_end=12966794.689113991
+balance channel=2 start=0.000055777 wall=0.031106118 cpu=0.031098833 finish=0.031161895 joined=0.031358819 error=0 voluntary=0 involuntary=0 processor=2 tid=2560023 absolute_start=12966794.657875134 absolute_end=12966794.688981252
+balance channel=3 start=0.000056833 wall=0.030456355 cpu=0.030449111 finish=0.030513188 joined=0.031358819 error=0 voluntary=0 involuntary=0 processor=3 tid=2560024 absolute_start=12966794.657876190 absolute_end=12966794.688332545
+encoding_end_wall=0.033959
+after_preview_wall=0.042490587
+after_cleanup_wall=0.042556606
+capture_diag frame=110 wall_ns=42566938 cpu_ns=41437297 clock_ok=1 error=0 tid=2559140 end_ns=12966794699987329
+unpack_wall=0.000001
+balance channel=0 start=0.000083650 wall=0.028311050 cpu=0.028295963 finish=0.028394699 joined=0.029018998 error=0 voluntary=0 involuntary=0 processor=0 tid=2559140 absolute_start=12966794.713437010 absolute_end=12966794.741748059
+balance channel=1 start=0.000045594 wall=0.028697200 cpu=0.028688574 finish=0.028742794 joined=0.029018998 error=0 voluntary=0 involuntary=0 processor=1 tid=2560030 absolute_start=12966794.713398954 absolute_end=12966794.742096154
+balance channel=2 start=0.000059519 wall=0.028921869 cpu=0.028917907 finish=0.028981388 joined=0.029018998 error=0 voluntary=0 involuntary=0 processor=2 tid=2560031 absolute_start=12966794.713412879 absolute_end=12966794.742334748
+balance channel=3 start=0.000069205 wall=0.028455013 cpu=0.028442277 finish=0.028524218 joined=0.029018998 error=0 voluntary=0 involuntary=0 processor=3 tid=2560032 absolute_start=12966794.713422565 absolute_end=12966794.741877578
+encoding_end_wall=0.031459
+after_preview_wall=0.039892225
+after_cleanup_wall=0.039924910
+capture_diag frame=111 wall_ns=39928465 cpu_ns=39413816 clock_ok=1 error=0 tid=2559140 end_ns=12966794752877602

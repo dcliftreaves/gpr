@@ -1,0 +1,17 @@
+{
+  "decision": "discard_all_retention_proposals",
+  "reason": "Spacing does not recover retention cost; first hot-row version raises ordinary-path concern; revised version lacks consistent combined win",
+  "restoration": {
+    "restored": true,
+    "main_capture_sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c",
+    "observer_uid": 1000,
+    "observer_policy": 0,
+    "observer_nice": 0,
+    "sources": {
+      "source/lib/vc5_encoder/encoder.c": "f8913176171651668446a56f0a1462aad680dcc1cc77eba75e5e728b7ebc40a4",
+      "source/lib/vc5_encoder/encoder.h": "4df6dc46074fd083ff21f90ecaec59acfc9120e9539f417bd77644daa7c44959"
+    },
+    "rt_runtime_us": "950000",
+    "rt_period_us": "1000000"
+  }
+}

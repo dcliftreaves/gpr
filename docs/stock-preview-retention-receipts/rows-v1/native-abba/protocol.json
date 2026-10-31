@@ -1,0 +1,76 @@
+{
+  "schema": "gpr.stock_preview_hot_rows_abba.v1",
+  "order": [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline"
+  ],
+  "frames": 600,
+  "fps": 20,
+  "quality": 3,
+  "source_protocol_sha256": "172fab396354ad2e9e82c41ac2645729084075288f8ea1e1f1d98884ba69357a",
+  "command_template": [
+    "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/gpr_capture_app",
+    "--width",
+    "4096",
+    "--height",
+    "3072",
+    "--cfa",
+    "RGGB",
+    "--sample-bits",
+    "14",
+    "--quality",
+    "3",
+    "--fps-num",
+    "20",
+    "--fps-den",
+    "1",
+    "--queue",
+    "4",
+    "--workspace-mib",
+    "192",
+    "--leased",
+    "--writeback-mib",
+    "1",
+    "--input",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+    "--source-metadata",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+    "--input",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+    "--source-metadata",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+    "--output",
+    "REPLACE_OUTPUT",
+    "--frames",
+    "600",
+    "--paced",
+    "--preview-every",
+    "1",
+    "--preview-from-encoder",
+    "--preview-sync-stages",
+    "--preview-foreground",
+    "--preview-profile",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+    "--preview-profile",
+    "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+  ],
+  "binaries": {
+    "baseline": {
+      "path": "/mnt/ssd/gpr_work/stock-raw-media-runtime/build-runtime/gpr_capture_app",
+      "sha256": "c576f5662ac605cc5719ae536308e9ff71cdcec4f4e714343a5a919a5711687c"
+    },
+    "candidate": {
+      "path": "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/gpr_capture_app",
+      "sha256": "aab02a45991026789f4bd1e45622206d2b3a8d1a7de0d21a506ec5ea323bbbe0"
+    }
+  },
+  "driver_sha256": "b9c8641c2fa65e15a67968c4a8f3f5a3f27db2a2dea0b89cc41706451b32884d",
+  "launcher_sha256": "c3bca98475afd6336eee52743a94ec3da017fdea694e6f62b2c821b46012cf82",
+  "candidate_source_sha256": {
+    "source/lib/vc5_encoder/encoder.c": "a253342a34ca10b5e88e0ad8288b3110750f27426de481fe69e052f37f9063f4",
+    "source/lib/vc5_encoder/encoder.h": "dd07b7cce17fb6a087f4ed93792c5232ff3a584faa46f40f26e6682cde6f7a61"
+  },
+  "scope": "Unprofiled fixed native12 GoPro combined capture/preview ABBA; same UID1000/cap0 FIFO1 nice0, leased Q3, serialized foreground preview, SSD1MiB writeback/final fsync. No other Pi build/test/profiler during measured children."
+}

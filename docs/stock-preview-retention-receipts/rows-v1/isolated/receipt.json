@@ -1,0 +1,290 @@
+{
+  "complete": true,
+  "protocol_sha256": "e1664b7bce9fb0b3479beeb20cef3c8a7955bf07d0330d507b9b885225682cbd",
+  "rows": [
+    {
+      "source": 0,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/hot-row-control/0-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/reference-0.vc5"
+      ],
+      "launch": {
+        "pid": 2576311,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12967291070975859,
+        "start_ticks": 1296729104,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/reference-0.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "iterations": 60,
+          "median_ms": 27.222980999999997,
+          "minimum_ms": 27.068897,
+          "maximum_ms": 65.04952,
+          "block_median_ms": [
+            27.241324000000002,
+            27.205138,
+            27.19936,
+            27.257231
+          ],
+          "callback_median_ms": 0.0,
+          "encoder_used_bytes": [
+            97936896
+          ]
+        },
+        "retain": {
+          "iterations": 60,
+          "median_ms": 31.964526,
+          "minimum_ms": 31.650154999999998,
+          "maximum_ms": 66.334858,
+          "block_median_ms": [
+            32.021730999999996,
+            32.007545,
+            31.946082,
+            31.942563
+          ],
+          "callback_median_ms": 0.0,
+          "encoder_used_bytes": [
+            104275968
+          ]
+        },
+        "reconstruct": {
+          "iterations": 60,
+          "median_ms": 40.6361975,
+          "minimum_ms": 40.429521,
+          "maximum_ms": 71.259303,
+          "block_median_ms": [
+            40.678151,
+            40.606559,
+            40.648781,
+            40.664429
+          ],
+          "callback_median_ms": 8.855737,
+          "encoder_used_bytes": [
+            104275968
+          ]
+        }
+      },
+      "all_payloads_exact_independent_stock": true,
+      "reconstructed_planes_exact_independent_decode": true
+    },
+    {
+      "source": 1,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/hot-row-control/1-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/reference-1.vc5"
+      ],
+      "launch": {
+        "pid": 2577017,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12967298392607958,
+        "start_ticks": 1296729836,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/reference-1.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "iterations": 60,
+          "median_ms": 24.917769,
+          "minimum_ms": 24.80437,
+          "maximum_ms": 25.173501,
+          "block_median_ms": [
+            24.963092999999997,
+            24.894538,
+            24.88826,
+            24.93826
+          ],
+          "callback_median_ms": 0.0,
+          "encoder_used_bytes": [
+            97936896
+          ]
+        },
+        "retain": {
+          "iterations": 60,
+          "median_ms": 29.481499,
+          "minimum_ms": 29.310998,
+          "maximum_ms": 65.74450399999999,
+          "block_median_ms": [
+            29.536129000000003,
+            29.489351,
+            29.435813000000003,
+            29.437628
+          ],
+          "callback_median_ms": 0.0,
+          "encoder_used_bytes": [
+            104275968
+          ]
+        },
+        "reconstruct": {
+          "iterations": 60,
+          "median_ms": 38.1067715,
+          "minimum_ms": 37.778863,
+          "maximum_ms": 73.350606,
+          "block_median_ms": [
+            38.056346,
+            38.128975000000004,
+            38.159605,
+            38.086605000000006
+          ],
+          "callback_median_ms": 8.8766995,
+          "encoder_used_bytes": [
+            104275968
+          ]
+        }
+      },
+      "all_payloads_exact_independent_stock": true,
+      "reconstructed_planes_exact_independent_decode": true
+    }
+  ]
+}

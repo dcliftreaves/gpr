@@ -1,0 +1,990 @@
+{
+  "complete": true,
+  "protocol_sha256": "eeb5550ff3c1514291957a880bdf7e0c4c27ddd0be0fd043ab54e1797de06edf",
+  "rows": [
+    {
+      "source": 0,
+      "run": 0,
+      "mode": "baseline",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/0-0-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+      ],
+      "launch": {
+        "pid": 2642911,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968716701872683,
+        "start_ticks": 1296871667,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 24.0527375,
+          "block_median_ms": [
+            24.788046,
+            23.994024,
+            24.061821000000002,
+            24.035821
+          ]
+        },
+        "retain": {
+          "median_ms": 28.683228999999997,
+          "block_median_ms": [
+            29.187639,
+            34.04001,
+            28.064653,
+            28.061763
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 37.716905499999996,
+          "block_median_ms": [
+            37.916175,
+            37.904155,
+            35.314108,
+            35.296718999999996
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 0,
+      "run": 1,
+      "mode": "candidate",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/0-1-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+      ],
+      "launch": {
+        "pid": 2643617,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968723415774312,
+        "start_ticks": 1296872339,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 24.261553499999998,
+          "block_median_ms": [
+            24.233804000000003,
+            24.311637,
+            24.31773,
+            24.229044000000002
+          ]
+        },
+        "retain": {
+          "median_ms": 26.1746725,
+          "block_median_ms": [
+            26.1872,
+            26.2032,
+            26.153219,
+            26.172404
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 34.043983,
+          "block_median_ms": [
+            34.049029000000004,
+            34.081232,
+            34.039658,
+            33.999269
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 0,
+      "run": 2,
+      "mode": "candidate",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/0-2-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+      ],
+      "launch": {
+        "pid": 2644323,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968729654444210,
+        "start_ticks": 1296872963,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 23.9320055,
+          "block_median_ms": [
+            23.952284000000002,
+            23.924691000000003,
+            23.918858,
+            23.912895
+          ]
+        },
+        "retain": {
+          "median_ms": 26.335238,
+          "block_median_ms": [
+            26.334719,
+            26.358571,
+            26.330626,
+            26.350997
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 34.39192800000001,
+          "block_median_ms": [
+            34.355938,
+            34.406234,
+            34.369864,
+            34.433993
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 0,
+      "run": 3,
+      "mode": "baseline",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/0-3-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+      ],
+      "launch": {
+        "pid": 2645029,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968735976973691,
+        "start_ticks": 1296873595,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017517.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-0.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 24.602934,
+          "block_median_ms": [
+            24.656823000000003,
+            24.598082,
+            24.565859999999997,
+            24.621601
+          ]
+        },
+        "retain": {
+          "median_ms": 26.7144145,
+          "block_median_ms": [
+            26.694369,
+            26.719721,
+            26.740831999999997,
+            26.710258
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 34.39177050000001,
+          "block_median_ms": [
+            34.387882000000005,
+            34.416493,
+            34.37003,
+            34.392419000000004
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 1,
+      "run": 0,
+      "mode": "baseline",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/1-0-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+      ],
+      "launch": {
+        "pid": 2645735,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968742291598194,
+        "start_ticks": 1296874226,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 18.923873999999998,
+          "block_median_ms": [
+            18.967115,
+            18.936929000000003,
+            18.893114,
+            18.898818000000002
+          ]
+        },
+        "retain": {
+          "median_ms": 21.3529675,
+          "block_median_ms": [
+            21.381495,
+            21.371198,
+            21.346921000000002,
+            21.311605
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 28.0206235,
+          "block_median_ms": [
+            28.059615,
+            28.024337,
+            28.021929,
+            28.004689
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 1,
+      "run": 1,
+      "mode": "candidate",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/1-1-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+      ],
+      "launch": {
+        "pid": 2646441,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968747439832178,
+        "start_ticks": 1296874741,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 18.827391499999997,
+          "block_median_ms": [
+            18.806521,
+            18.897578000000003,
+            18.845188999999998,
+            18.825392
+          ]
+        },
+        "retain": {
+          "median_ms": 20.369315,
+          "block_median_ms": [
+            20.280231,
+            20.359139,
+            20.361195,
+            20.746178
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 27.646919,
+          "block_median_ms": [
+            28.022930000000002,
+            27.935226,
+            27.360926,
+            27.457797
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 1,
+      "run": 2,
+      "mode": "candidate",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/1-2-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+      ],
+      "launch": {
+        "pid": 2647147,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968752554592661,
+        "start_ticks": 1296875253,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/build/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 19.4077365,
+          "block_median_ms": [
+            19.493488,
+            19.407116,
+            19.284283,
+            19.38006
+          ]
+        },
+        "retain": {
+          "median_ms": 22.545129000000003,
+          "block_median_ms": [
+            22.524704,
+            22.532962,
+            22.534963,
+            22.590444
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 29.504575,
+          "block_median_ms": [
+            29.393138999999998,
+            29.642677,
+            29.512898,
+            29.505177
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    },
+    {
+      "source": 1,
+      "run": 3,
+      "mode": "baseline",
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/legacy-control-v2/1-3-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_STREAM_UNPACK=1",
+        "GPR_BAND_STREAM=1",
+        "GPR_CHANNEL_ASM=1",
+        "GPR_PIN_CHANNELS=1",
+        "GPR_DIRECT_BANDS=1",
+        "GPR_COMPACT_BANDS=1",
+        "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+        "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+        "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+      ],
+      "launch": {
+        "pid": 2647853,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12968757901030264,
+        "start_ticks": 1296875787,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_STREAM_UNPACK=1",
+          "GPR_BAND_STREAM=1",
+          "GPR_CHANNEL_ASM=1",
+          "GPR_PIN_CHANNELS=1",
+          "GPR_DIRECT_BANDS=1",
+          "GPR_COMPACT_BANDS=1",
+          "/mnt/ssd/gpr_work/stock-preview-retention-20261030/baseline/preview_retention_benchmark",
+          "/mnt/ssd/gpr_work/artifacts/mission1_all42_4k_raw_pi20fps_20260624/frames/GP017348.raw",
+          "/mnt/ssd/gpr_work/pi-mission1-writeback8-20261030/reference-1.vc5"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "modes": {
+        "none": {
+          "median_ms": 18.8241135,
+          "block_median_ms": [
+            19.043949,
+            18.756169,
+            18.810336,
+            18.755799
+          ]
+        },
+        "retain": {
+          "median_ms": 21.649792500000004,
+          "block_median_ms": [
+            21.684867,
+            21.449681,
+            21.709348,
+            21.609996
+          ]
+        },
+        "reconstruct": {
+          "median_ms": 29.227527,
+          "block_median_ms": [
+            29.204545,
+            29.232267999999998,
+            29.213305,
+            29.367046000000002
+          ]
+        }
+      },
+      "payloads_verified": 192,
+      "reconstructions_verified": 64
+    }
+  ]
+}

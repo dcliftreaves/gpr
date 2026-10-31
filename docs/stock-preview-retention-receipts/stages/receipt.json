@@ -1,0 +1,1492 @@
+{
+  "complete": true,
+  "diagnostic_only": true,
+  "acceptance_timing": false,
+  "protocol_sha256": "60bd27ae2c4e0c8d20b6ff42df8efee8ea08c0c723a88429d4b265987295c3fc",
+  "rows": [
+    {
+      "index": 0,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/0-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_PROFILE=1",
+        "GPR_CHANNEL_BALANCE=1",
+        "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--cfa",
+        "RGGB",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--fps-den",
+        "1",
+        "--queue",
+        "4",
+        "--workspace-mib",
+        "192",
+        "--leased",
+        "--writeback-mib",
+        "1",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/0.gvid",
+        "--frames",
+        "120",
+        "--paced",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--preview-sync-stages",
+        "--preview-foreground",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+      ],
+      "launch": {
+        "pid": 2556409,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12966763588380417,
+        "start_ticks": 1296676356,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_PROFILE=1",
+          "GPR_CHANNEL_BALANCE=1",
+          "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+          "--width",
+          "4096",
+          "--height",
+          "3072",
+          "--cfa",
+          "RGGB",
+          "--sample-bits",
+          "14",
+          "--quality",
+          "3",
+          "--fps-num",
+          "20",
+          "--fps-den",
+          "1",
+          "--queue",
+          "4",
+          "--workspace-mib",
+          "192",
+          "--leased",
+          "--writeback-mib",
+          "1",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+          "--output",
+          "/mnt/ssd/gpr_work/stock-native12-stages-20261030/0.gvid",
+          "--frames",
+          "120",
+          "--paced",
+          "--preview-every",
+          "1",
+          "--preview-from-encoder",
+          "--preview-sync-stages",
+          "--preview-foreground",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "verified": {
+        "frames_verified": 115,
+        "previews_verified": 115,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 120,
+          "accepted": 115,
+          "written": 115,
+          "overruns": 5,
+          "queue": 4,
+          "inflight_high_water": 4,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 115,
+          "writeback_scheduled_bytes": 390037504,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 18.7234,
+          "durable_fps": 18.6979,
+          "encode_median_ms": 40.1662,
+          "write_p95_ms": 8.1244,
+          "capture_to_written_p95_ms": 183.537,
+          "deadline_misses": 115,
+          "final_fsync_s": 0.00836729,
+          "submit_s": 0.00482442,
+          "queue_wait_s": 7.532e-05,
+          "setup_s": 0.203558,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597770240,
+          "payload_bytes": 388975720,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102272,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 115,
+          "rendered": 115,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718848,
+          "render_median_ms": 9.16985,
+          "capture_to_sink_p95_ms": 185.221,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 1.09499,
+          "before_capture_finish": 115,
+          "with_capture_inflight": 114,
+          "drain_after_durability_s": 8.537e-06,
+          "setup_s": 0.250154,
+          "background_requested": 0,
+          "background_applied": 0,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 115,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "0365e8ec5a254320ac690ec44447ca611840dd849829e60b541450a11a1707a5"
+      },
+      "summary": {
+        "frames": 115,
+        "metrics": {
+          "encode_ms": {
+            "median": 40.1662,
+            "maximum": 42.8544
+          },
+          "worker_wall_ms": {
+            "median": 29.125331,
+            "maximum": 31.534451999999998
+          },
+          "worker_cpu_ms": {
+            "median": 29.115407,
+            "maximum": 31.529777000000003
+          },
+          "worker_wall_minus_cpu_ms": {
+            "median": 0.0055360000000004295,
+            "maximum": 0.01591499999999829
+          },
+          "join_tail_ms": {
+            "median": 0.043055000000000176,
+            "maximum": 0.10153699999999877
+          },
+          "reconstruction_callback_ms": {
+            "median": 8.314091999999995,
+            "maximum": 8.563196999999995
+          },
+          "cleanup_ms": {
+            "median": 0.04277700000000079,
+            "maximum": 0.08824099999999585
+          },
+          "render_ms": {
+            "median": 9.16985,
+            "maximum": 10.3836
+          }
+        },
+        "critical_channels": {
+          "0": 0,
+          "1": 25,
+          "2": 90,
+          "3": 0
+        }
+      },
+      "sources": {
+        "0": {
+          "frames": 55,
+          "metrics": {
+            "encode_ms": {
+              "median": 42.5694,
+              "maximum": 42.8544
+            },
+            "worker_wall_ms": {
+              "median": 31.322191,
+              "maximum": 31.534451999999998
+            },
+            "worker_cpu_ms": {
+              "median": 31.314833,
+              "maximum": 31.529777000000003
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.0063600000000038626,
+              "maximum": 0.01591499999999829
+            },
+            "join_tail_ms": {
+              "median": 0.05916499999999991,
+              "maximum": 0.10153699999999877
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.325326,
+              "maximum": 8.563196999999995
+            },
+            "cleanup_ms": {
+              "median": 0.04057400000000155,
+              "maximum": 0.08296199999999893
+            },
+            "render_ms": {
+              "median": 9.22652,
+              "maximum": 10.1268
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 20,
+            "2": 35,
+            "3": 0
+          }
+        },
+        "1": {
+          "frames": 60,
+          "metrics": {
+            "encode_ms": {
+              "median": 39.8551,
+              "maximum": 40.2241
+            },
+            "worker_wall_ms": {
+              "median": 28.8883495,
+              "maximum": 29.154664
+            },
+            "worker_cpu_ms": {
+              "median": 28.8823515,
+              "maximum": 29.150111
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.0051650000000014185,
+              "maximum": 0.010479000000000738
+            },
+            "join_tail_ms": {
+              "median": 0.03835299999999965,
+              "maximum": 0.08389099999999913
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.295983000000003,
+              "maximum": 8.489817999999996
+            },
+            "cleanup_ms": {
+              "median": 0.045573999999999615,
+              "maximum": 0.08824099999999585
+            },
+            "render_ms": {
+              "median": 9.0987,
+              "maximum": 10.3836
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 5,
+            "2": 55,
+            "3": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 1,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/1-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_PROFILE=1",
+        "GPR_CHANNEL_BALANCE=1",
+        "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--cfa",
+        "RGGB",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--fps-den",
+        "1",
+        "--queue",
+        "4",
+        "--workspace-mib",
+        "192",
+        "--leased",
+        "--writeback-mib",
+        "1",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/1.gvid",
+        "--frames",
+        "120",
+        "--paced",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--preview-sync-stages",
+        "--preview-foreground",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+      ],
+      "launch": {
+        "pid": 2557334,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12966771833601519,
+        "start_ticks": 1296677180,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_PROFILE=1",
+          "GPR_CHANNEL_BALANCE=1",
+          "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+          "--width",
+          "4096",
+          "--height",
+          "3072",
+          "--cfa",
+          "RGGB",
+          "--sample-bits",
+          "14",
+          "--quality",
+          "3",
+          "--fps-num",
+          "20",
+          "--fps-den",
+          "1",
+          "--queue",
+          "4",
+          "--workspace-mib",
+          "192",
+          "--leased",
+          "--writeback-mib",
+          "1",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+          "--output",
+          "/mnt/ssd/gpr_work/stock-native12-stages-20261030/1.gvid",
+          "--frames",
+          "120",
+          "--paced",
+          "--preview-every",
+          "1",
+          "--preview-from-encoder",
+          "--preview-sync-stages",
+          "--preview-foreground",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "verified": {
+        "frames_verified": 112,
+        "previews_verified": 112,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 120,
+          "accepted": 112,
+          "written": 112,
+          "overruns": 8,
+          "queue": 4,
+          "inflight_high_water": 4,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 112,
+          "writeback_scheduled_bytes": 380534784,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 18.2058,
+          "durable_fps": 18.1805,
+          "encode_median_ms": 40.4517,
+          "write_p95_ms": 9.44726,
+          "capture_to_written_p95_ms": 190.561,
+          "deadline_misses": 112,
+          "final_fsync_s": 0.008565,
+          "submit_s": 0.00592761,
+          "queue_wait_s": 6.1415e-05,
+          "setup_s": 0.237211,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597770240,
+          "payload_bytes": 379515220,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102272,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 112,
+          "rendered": 112,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718848,
+          "render_median_ms": 10.2685,
+          "capture_to_sink_p95_ms": 192.279,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 1.18632,
+          "before_capture_finish": 112,
+          "with_capture_inflight": 111,
+          "drain_after_durability_s": 9.148e-06,
+          "setup_s": 0.245907,
+          "background_requested": 0,
+          "background_applied": 0,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 112,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "c10f92251ea7595e3ec19307a4bf2d585315360c583be9b472181f7fb11f1353"
+      },
+      "summary": {
+        "frames": 112,
+        "metrics": {
+          "encode_ms": {
+            "median": 40.47495,
+            "maximum": 43.7438
+          },
+          "worker_wall_ms": {
+            "median": 29.1607665,
+            "maximum": 32.08884
+          },
+          "worker_cpu_ms": {
+            "median": 29.152361,
+            "maximum": 32.053647999999995
+          },
+          "worker_wall_minus_cpu_ms": {
+            "median": 0.00617800000000078,
+            "maximum": 0.03519200000000333
+          },
+          "join_tail_ms": {
+            "median": 0.05019499999999941,
+            "maximum": 0.11494599999999772
+          },
+          "reconstruction_callback_ms": {
+            "median": 8.612911500000001,
+            "maximum": 8.805495999999996
+          },
+          "cleanup_ms": {
+            "median": 0.05555600000000174,
+            "maximum": 0.4542249999999956
+          },
+          "render_ms": {
+            "median": 10.271799999999999,
+            "maximum": 12.344
+          }
+        },
+        "critical_channels": {
+          "0": 0,
+          "1": 38,
+          "2": 74,
+          "3": 0
+        }
+      },
+      "sources": {
+        "0": {
+          "frames": 55,
+          "metrics": {
+            "encode_ms": {
+              "median": 42.8078,
+              "maximum": 43.7438
+            },
+            "worker_wall_ms": {
+              "median": 31.348636,
+              "maximum": 32.08884
+            },
+            "worker_cpu_ms": {
+              "median": 31.342315000000003,
+              "maximum": 32.053647999999995
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.006359000000004389,
+              "maximum": 0.03519200000000333
+            },
+            "join_tail_ms": {
+              "median": 0.059186000000002736,
+              "maximum": 0.11494599999999772
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.610771000000003,
+              "maximum": 8.805495999999996
+            },
+            "cleanup_ms": {
+              "median": 0.05540899999999932,
+              "maximum": 0.08840699999999868
+            },
+            "render_ms": {
+              "median": 10.3019,
+              "maximum": 12.344
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 29,
+            "2": 26,
+            "3": 0
+          }
+        },
+        "1": {
+          "frames": 57,
+          "metrics": {
+            "encode_ms": {
+              "median": 40.1596,
+              "maximum": 40.4982
+            },
+            "worker_wall_ms": {
+              "median": 28.90907,
+              "maximum": 29.175296
+            },
+            "worker_cpu_ms": {
+              "median": 28.902055,
+              "maximum": 29.165148
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.0056830000000028524,
+              "maximum": 0.013682000000000971
+            },
+            "join_tail_ms": {
+              "median": 0.03833400000000098,
+              "maximum": 0.09901799999999933
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.613042000000002,
+              "maximum": 8.780003
+            },
+            "cleanup_ms": {
+              "median": 0.056704999999997174,
+              "maximum": 0.4542249999999956
+            },
+            "render_ms": {
+              "median": 10.1909,
+              "maximum": 11.4321
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 9,
+            "2": 48,
+            "3": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/2-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_PROFILE=1",
+        "GPR_CHANNEL_BALANCE=1",
+        "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--cfa",
+        "RGGB",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--fps-den",
+        "1",
+        "--queue",
+        "4",
+        "--workspace-mib",
+        "192",
+        "--leased",
+        "--writeback-mib",
+        "1",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/2.gvid",
+        "--frames",
+        "120",
+        "--paced",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--preview-sync-stages",
+        "--preview-foreground",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+      ],
+      "launch": {
+        "pid": 2558236,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12966779929067754,
+        "start_ticks": 1296677990,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_PROFILE=1",
+          "GPR_CHANNEL_BALANCE=1",
+          "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+          "--width",
+          "4096",
+          "--height",
+          "3072",
+          "--cfa",
+          "RGGB",
+          "--sample-bits",
+          "14",
+          "--quality",
+          "3",
+          "--fps-num",
+          "20",
+          "--fps-den",
+          "1",
+          "--queue",
+          "4",
+          "--workspace-mib",
+          "192",
+          "--leased",
+          "--writeback-mib",
+          "1",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+          "--output",
+          "/mnt/ssd/gpr_work/stock-native12-stages-20261030/2.gvid",
+          "--frames",
+          "120",
+          "--paced",
+          "--preview-every",
+          "1",
+          "--preview-from-encoder",
+          "--preview-sync-stages",
+          "--preview-foreground",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "verified": {
+        "frames_verified": 112,
+        "previews_verified": 112,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 120,
+          "accepted": 112,
+          "written": 112,
+          "overruns": 8,
+          "queue": 4,
+          "inflight_high_water": 4,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 112,
+          "writeback_scheduled_bytes": 379584512,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 18.2017,
+          "durable_fps": 18.1773,
+          "encode_median_ms": 40.3752,
+          "write_p95_ms": 9.51885,
+          "capture_to_written_p95_ms": 190.734,
+          "deadline_misses": 112,
+          "final_fsync_s": 0.00825824,
+          "submit_s": 0.00516337,
+          "queue_wait_s": 5.8814e-05,
+          "setup_s": 0.234461,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597770240,
+          "payload_bytes": 378558012,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102272,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 112,
+          "rendered": 112,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718848,
+          "render_median_ms": 10.1518,
+          "capture_to_sink_p95_ms": 192.255,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 1.18632,
+          "before_capture_finish": 112,
+          "with_capture_inflight": 111,
+          "drain_after_durability_s": 8.5e-06,
+          "setup_s": 0.226675,
+          "background_requested": 0,
+          "background_applied": 0,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 112,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "8270da1722ef2d3f71a462a62222a2521f48d5f36df47b675b19cc49de9f31bd"
+      },
+      "summary": {
+        "frames": 112,
+        "metrics": {
+          "encode_ms": {
+            "median": 40.383849999999995,
+            "maximum": 55.5687
+          },
+          "worker_wall_ms": {
+            "median": 29.00822,
+            "maximum": 44.360502000000004
+          },
+          "worker_cpu_ms": {
+            "median": 28.9925925,
+            "maximum": 31.580148
+          },
+          "worker_wall_minus_cpu_ms": {
+            "median": 0.006136999999999809,
+            "maximum": 18.066058
+          },
+          "join_tail_ms": {
+            "median": 0.04788950000000035,
+            "maximum": 0.15012899999999885
+          },
+          "reconstruction_callback_ms": {
+            "median": 8.616433500000003,
+            "maximum": 9.542089000000004
+          },
+          "cleanup_ms": {
+            "median": 0.04824099999999748,
+            "maximum": 0.1199080000000019
+          },
+          "render_ms": {
+            "median": 10.15405,
+            "maximum": 13.174
+          }
+        },
+        "critical_channels": {
+          "0": 1,
+          "1": 40,
+          "2": 71,
+          "3": 0
+        }
+      },
+      "sources": {
+        "0": {
+          "frames": 53,
+          "metrics": {
+            "encode_ms": {
+              "median": 42.6917,
+              "maximum": 43.808
+            },
+            "worker_wall_ms": {
+              "median": 31.231783,
+              "maximum": 31.598489999999998
+            },
+            "worker_cpu_ms": {
+              "median": 31.223963,
+              "maximum": 31.580148
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.006710000000000049,
+              "maximum": 0.018341999999997582
+            },
+            "join_tail_ms": {
+              "median": 0.0666289999999986,
+              "maximum": 0.15012899999999885
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.616532000000003,
+              "maximum": 9.542089000000004
+            },
+            "cleanup_ms": {
+              "median": 0.04950000000000093,
+              "maximum": 0.08807599999999943
+            },
+            "render_ms": {
+              "median": 10.1695,
+              "maximum": 13.174
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 38,
+            "2": 15,
+            "3": 0
+          }
+        },
+        "1": {
+          "frames": 59,
+          "metrics": {
+            "encode_ms": {
+              "median": 40.0912,
+              "maximum": 55.5687
+            },
+            "worker_wall_ms": {
+              "median": 28.856164,
+              "maximum": 44.360502000000004
+            },
+            "worker_cpu_ms": {
+              "median": 28.849574,
+              "maximum": 29.117925999999997
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.005497999999999614,
+              "maximum": 18.066058
+            },
+            "join_tail_ms": {
+              "median": 0.03594499999999903,
+              "maximum": 0.12062799999999763
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.616335000000003,
+              "maximum": 8.839171
+            },
+            "cleanup_ms": {
+              "median": 0.04823999999999801,
+              "maximum": 0.1199080000000019
+            },
+            "render_ms": {
+              "median": 10.1462,
+              "maximum": 11.4953
+            }
+          },
+          "critical_channels": {
+            "0": 1,
+            "1": 2,
+            "2": 56,
+            "3": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 3,
+      "command": [
+        "sudo",
+        "-n",
+        "chrt",
+        "--fifo",
+        "1",
+        "/usr/bin/setpriv",
+        "--reuid=1000",
+        "--regid=1000",
+        "--init-groups",
+        "--reset-env",
+        "/usr/bin/python3",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/launch_stock_policy_user.py",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/3-launch.json",
+        "1",
+        "/usr/bin/env",
+        "GPR_PROFILE=1",
+        "GPR_CHANNEL_BALANCE=1",
+        "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+        "--width",
+        "4096",
+        "--height",
+        "3072",
+        "--cfa",
+        "RGGB",
+        "--sample-bits",
+        "14",
+        "--quality",
+        "3",
+        "--fps-num",
+        "20",
+        "--fps-den",
+        "1",
+        "--queue",
+        "4",
+        "--workspace-mib",
+        "192",
+        "--leased",
+        "--writeback-mib",
+        "1",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+        "--input",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+        "--source-metadata",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+        "--output",
+        "/mnt/ssd/gpr_work/stock-native12-stages-20261030/3.gvid",
+        "--frames",
+        "120",
+        "--paced",
+        "--preview-every",
+        "1",
+        "--preview-from-encoder",
+        "--preview-sync-stages",
+        "--preview-foreground",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+        "--preview-profile",
+        "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+      ],
+      "launch": {
+        "pid": 2559138,
+        "uid": 1000,
+        "euid": 1000,
+        "gid": 1000,
+        "groups": [
+          4,
+          20,
+          24,
+          27,
+          29,
+          44,
+          46,
+          60,
+          100,
+          102,
+          105,
+          110,
+          993,
+          994,
+          995,
+          1000
+        ],
+        "nice": 0,
+        "scheduler_policy": 1,
+        "effective_capabilities": "0000000000000000",
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "monotonic_ns": 12966787998457643,
+        "start_ticks": 1296678797,
+        "gpr_environment": {},
+        "command": [
+          "/usr/bin/env",
+          "GPR_PROFILE=1",
+          "GPR_CHANNEL_BALANCE=1",
+          "/mnt/ssd/gpr_work/stock-scheduler-trace-prototype-20261030/build-diagnostic/gpr_capture_app",
+          "--width",
+          "4096",
+          "--height",
+          "3072",
+          "--cfa",
+          "RGGB",
+          "--sample-bits",
+          "14",
+          "--quality",
+          "3",
+          "--fps-num",
+          "20",
+          "--fps-den",
+          "1",
+          "--queue",
+          "4",
+          "--workspace-mib",
+          "192",
+          "--leased",
+          "--writeback-mib",
+          "1",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GP011728.json",
+          "--input",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.raw",
+          "--source-metadata",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/GPAB1094.json",
+          "--output",
+          "/mnt/ssd/gpr_work/stock-native12-stages-20261030/3.gvid",
+          "--frames",
+          "120",
+          "--paced",
+          "--preview-every",
+          "1",
+          "--preview-from-encoder",
+          "--preview-sync-stages",
+          "--preview-foreground",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000000.gprp",
+          "--preview-profile",
+          "/mnt/ssd/gpr_work/stock-native12-gopro-20261030/profiles/000001.gprp"
+        ],
+        "realtime_priority": 1
+      },
+      "observed": {
+        "uids": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "nice": 0,
+        "policy": 1,
+        "priority": 1,
+        "capabilities": "0000000000000000"
+      },
+      "verified": {
+        "frames_verified": 112,
+        "previews_verified": 112,
+        "all_payloads_exact_independent_stock": true,
+        "all_source_calibration_exact": true,
+        "all_delivered_preview_pixels_exact_offline": true,
+        "end_marker_verified": true,
+        "capture": {
+          "event": "summary",
+          "schema": "gpr.capture_replay.v1",
+          "attempts": 120,
+          "accepted": 112,
+          "written": 112,
+          "overruns": 8,
+          "queue": 4,
+          "inflight_high_water": 4,
+          "leased": true,
+          "fsync_each": false,
+          "writeback_mib": 1,
+          "writeback_requests": 112,
+          "writeback_scheduled_bytes": 381026304,
+          "writeback_page_bytes": 16384,
+          "fps_num": 20,
+          "fps_den": 1,
+          "quality": 3,
+          "buffered_fps": 18.3173,
+          "durable_fps": 18.2911,
+          "encode_median_ms": 40.9106,
+          "write_p95_ms": 9.30129,
+          "capture_to_written_p95_ms": 188.256,
+          "deadline_misses": 112,
+          "final_fsync_s": 0.00875337,
+          "submit_s": 0.00506165,
+          "queue_wait_s": 7.4095e-05,
+          "setup_s": 0.235069,
+          "workspace_peak_bytes": 104257536,
+          "workspace_fallback_peak_bytes": 0,
+          "peak_rss_bytes": 597835776,
+          "payload_bytes": 379993824,
+          "complete": true
+        },
+        "preview": {
+          "event": "preview_summary",
+          "schema": "gpr.capture_preview.v1",
+          "sink": "memory_crc",
+          "pipeline": "encoder_wavelets",
+          "reconstruction_scratch_bytes": 40894464,
+          "reconstruction_scratch_peak_bytes": 11102272,
+          "every": 1,
+          "sink_delay_ms": 0,
+          "offered": 112,
+          "rendered": 112,
+          "discarded": 0,
+          "replaced": 0,
+          "inflight_high_water": 1,
+          "payload_peak_bytes": 4718848,
+          "render_median_ms": 10.1125,
+          "capture_to_sink_p95_ms": 189.328,
+          "sync_compute_stages": true,
+          "producer_flush_wait_s": 1.17034,
+          "before_capture_finish": 112,
+          "with_capture_inflight": 111,
+          "drain_after_durability_s": 8.648e-06,
+          "setup_s": 0.225603,
+          "background_requested": 0,
+          "background_applied": 0,
+          "error": 0
+        },
+        "floor": {
+          "recording": false,
+          "preview": false,
+          "preview_late_deliveries": 112,
+          "deadline_ms": 50.0
+        },
+        "clip_sha256": "7fc05fa82de6356d708b253c7d78803036f1ee99e58f39af59895d26f3aad1fa"
+      },
+      "summary": {
+        "frames": 112,
+        "metrics": {
+          "encode_ms": {
+            "median": 41.5773,
+            "maximum": 43.7787
+          },
+          "worker_wall_ms": {
+            "median": 30.056492499999997,
+            "maximum": 32.05877
+          },
+          "worker_cpu_ms": {
+            "median": 30.051054999999998,
+            "maximum": 32.019537
+          },
+          "worker_wall_minus_cpu_ms": {
+            "median": 0.005873499999999726,
+            "maximum": 0.03923299999999963
+          },
+          "join_tail_ms": {
+            "median": 0.049195499999998143,
+            "maximum": 0.11007299999999526
+          },
+          "reconstruction_callback_ms": {
+            "median": 8.515792000000001,
+            "maximum": 9.102728000000004
+          },
+          "cleanup_ms": {
+            "median": 0.04693500000000142,
+            "maximum": 0.09020400000000345
+          },
+          "render_ms": {
+            "median": 10.112850000000002,
+            "maximum": 11.8217
+          }
+        },
+        "critical_channels": {
+          "0": 0,
+          "1": 41,
+          "2": 71,
+          "3": 0
+        }
+      },
+      "sources": {
+        "0": {
+          "frames": 56,
+          "metrics": {
+            "encode_ms": {
+              "median": 42.56895,
+              "maximum": 43.7787
+            },
+            "worker_wall_ms": {
+              "median": 31.247089499999998,
+              "maximum": 32.05877
+            },
+            "worker_cpu_ms": {
+              "median": 31.2397035,
+              "maximum": 32.019537
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.006339999999998777,
+              "maximum": 0.03923299999999963
+            },
+            "join_tail_ms": {
+              "median": 0.05921350000000214,
+              "maximum": 0.11007299999999526
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.5134845,
+              "maximum": 8.924440999999998
+            },
+            "cleanup_ms": {
+              "median": 0.04542599999999772,
+              "maximum": 0.09020400000000345
+            },
+            "render_ms": {
+              "median": 9.944700000000001,
+              "maximum": 11.8217
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 35,
+            "2": 21,
+            "3": 0
+          }
+        },
+        "1": {
+          "frames": 56,
+          "metrics": {
+            "encode_ms": {
+              "median": 40.0239,
+              "maximum": 40.9106
+            },
+            "worker_wall_ms": {
+              "median": 28.880377000000003,
+              "maximum": 29.135091
+            },
+            "worker_cpu_ms": {
+              "median": 28.875980999999996,
+              "maximum": 29.129944000000002
+            },
+            "worker_wall_minus_cpu_ms": {
+              "median": 0.005572000000000563,
+              "maximum": 0.010236000000000273
+            },
+            "join_tail_ms": {
+              "median": 0.037463500000001204,
+              "maximum": 0.10785099999999909
+            },
+            "reconstruction_callback_ms": {
+              "median": 8.523428,
+              "maximum": 9.102728000000004
+            },
+            "cleanup_ms": {
+              "median": 0.048092499999999316,
+              "maximum": 0.08368500000000001
+            },
+            "render_ms": {
+              "median": 10.27945,
+              "maximum": 11.642
+            }
+          },
+          "critical_channels": {
+            "0": 0,
+            "1": 6,
+            "2": 50,
+            "3": 0
+          }
+        }
+      }
+    }
+  ]
+}

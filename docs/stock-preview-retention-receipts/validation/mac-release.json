@@ -1,0 +1,13 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "build",
+    "--output-on-failure"
+  ],
+  "returncode": 0,
+  "source_sha256": {
+    "source/lib/vc5_encoder/encoder.c": "a253342a34ca10b5e88e0ad8288b3110750f27426de481fe69e052f37f9063f4",
+    "source/lib/vc5_encoder/encoder.h": "dd07b7cce17fb6a087f4ed93792c5232ff3a584faa46f40f26e6682cde6f7a61"
+  }
+}

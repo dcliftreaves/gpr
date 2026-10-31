@@ -1,0 +1,44 @@
+{
+  "schema": "gpr.stock_preview_retention_modes.v1",
+  "diagnostic_only": true,
+  "acceptance_timing": false,
+  "base": "779bb47",
+  "binary_sha256": "ea0adfafa9a134bcfd8f3711c1e0e5c2d820db009816249a877508239ce6c4dc",
+  "harness_sha256": "6208d70344eb4f326af735cb058802f2ef6f9d4f9614af051284cfcbaf5c8c70",
+  "cmake_sha256": "1c28b05a6b18e0e673e05ec0677a621cf846115168ea8b3a18ec5eca40a93722",
+  "driver_sha256": "944661b2e5ae20ba01d48ec758871a4bb59e59ff3012ae0a434a1bb574c2c017",
+  "source_protocol_sha256": "172fab396354ad2e9e82c41ac2645729084075288f8ea1e1f1d98884ba69357a",
+  "sources": {
+    "source/lib/vc5_encoder/encoder.c": "a253342a34ca10b5e88e0ad8288b3110750f27426de481fe69e052f37f9063f4",
+    "source/lib/vc5_encoder/encoder.h": "dd07b7cce17fb6a087f4ed93792c5232ff3a584faa46f40f26e6682cde6f7a61",
+    "source/lib/vc5_decoder/inverse.c": "6c8ea24aa4366d3941a9e3551deb3df1fb3b52c0fd0bb60bef67a9e38d3faa47",
+    "source/lib/vc5_decoder/vc5_decoder.c": "c5281e5f27afc22ec8ee0952721bddb165be7dc0561a8aec6316eb61879ca771"
+  },
+  "order": [
+    "none",
+    "retain",
+    "reconstruct",
+    "reconstruct",
+    "retain",
+    "none",
+    "retain",
+    "none",
+    "reconstruct",
+    "none",
+    "reconstruct",
+    "retain"
+  ],
+  "blocks": 12,
+  "iterations_per_block": 16,
+  "warmup_excluded_per_block": 1,
+  "encoder_arena_bytes": 201326592,
+  "source_count": 2,
+  "quality": 3,
+  "geometry": [
+    4096,
+    3072
+  ],
+  "cfa": "RGGB",
+  "sample_bits": 14,
+  "scope": "All modes in one executable/process per source with fixed reused arenas; no rendering, queue, pacing or storage. Retain-only observes one coefficient per band; reconstruct matches three independent entropy-decoded planes. Not acceptance timing."
+}
