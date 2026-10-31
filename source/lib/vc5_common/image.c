@@ -69,18 +69,18 @@ CODEC_ERROR AllocImage(gpr_allocator *allocator, IMAGE *image, DIMENSION width, 
     size_t size = 0;
     DIMENSION pitch = 0;
     
-    assert(image != NULL);
+    if (!image) return CODEC_ERROR_NULLPTR;
     
     // Compute the pitch from the width and format
     pitch = ImagePitch(width, format);
-    assert(pitch > 0);
+    if (pitch <= 0 || height <= 0) return CODEC_ERROR_IMAGE_DIMENSIONS;
     
 #if VC5_ENABLED_PART(VC5_PART_COLOR_SAMPLING)
-    size = height * pitch;
+    size = (size_t)height * (size_t)pitch;
 #else
-    size = height * pitch;
+    size = (size_t)height * (size_t)pitch;
 #endif
-    assert(size > 0);
+    if (!size) return CODEC_ERROR_IMAGE_DIMENSIONS;
     
     // Allocate the image buffer
     image->buffer = allocator->Alloc(size);
@@ -127,6 +127,15 @@ DIMENSION ImagePitch(DIMENSION width, PIXEL_FORMAT format)
     switch (format)
     {
         case PIXEL_FORMAT_RAW_RGGB_14:
+        case PIXEL_FORMAT_RAW_RGGB_12:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
         case PIXEL_FORMAT_RAW_GBRG_12:
         case PIXEL_FORMAT_RAW_GBRG_12P:
         case PIXEL_FORMAT_RAW_RGGB_16:
@@ -205,6 +214,7 @@ CODEC_ERROR ReleaseComponentArrays(gpr_allocator *allocator,
                                    int channel_count )
 {
     int channel;
+    if (!image->component_array_list) return CODEC_ERROR_OKAY;
     
     for (channel = 0; channel < channel_count; channel++)
     {
@@ -274,7 +284,6 @@ CODEC_ERROR AllocateComponentArray(gpr_allocator *allocator,
     size_t pitch = ((width * sizeof(COMPONENT_VALUE) + 63) & ~(size_t)63) + 64;
     size_t size = height * pitch;
     void *buffer = gpr_aligned_alloc(allocator, size + MAX_CHANNEL_COUNT * 64);
-    assert(buffer != NULL);
     if (! (buffer != NULL)) {
         return CODEC_ERROR_OUTOFMEMORY;
     }

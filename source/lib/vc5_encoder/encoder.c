@@ -35,12 +35,23 @@
 #define _POSIX_C_SOURCE 200809L
 #include "headers.h"
 #include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+#include <malloc.h>
+#endif
 
 static double EncoderWallTime(void)
 {
+#if defined(_WIN32)
+    LARGE_INTEGER counter, frequency;
+    QueryPerformanceCounter(&counter);
+    QueryPerformanceFrequency(&frequency);
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
     struct timespec value;
     clock_gettime(CLOCK_MONOTONIC, &value);
     return value.tv_sec + value.tv_nsec * 1e-9;
+#endif
 }
 
 extern void UnpackChannelRow14(const PACKED_IMAGE *, int, int, PIXEL *);
@@ -400,6 +411,9 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 		return error;
 	}
     
+    if (parameters->preview_observer)
+        parameters->preview_observer(parameters->preview_user,encoder.transform);
+
     if( rgb_image != NULL && parameters->rgb_resolution == GPR_RGB_RESOLUTION_SIXTEENTH )
     { // Thumbnail
         SetupDecoderLogCurve();
@@ -444,7 +458,8 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 
 	// Initialize the encoder using the parameters provided by the application
-	error = PrepareEncoder(encoder, image, parameters);
+	error = PrepareEncoder(encoder, image, parameters,
+        bitstream && bitstream->stream && bitstream->stream->type == STREAM_TYPE_MEMORY);
     encoder->packed_input = packed_input;
 	assert(error == CODEC_ERROR_OKAY);
 	if (! (error == CODEC_ERROR_OKAY)) {
@@ -530,7 +545,8 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
 */
 CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 						   const UNPACKED_IMAGE *image,
-						   const ENCODER_PARAMETERS *parameters)
+						   const ENCODER_PARAMETERS *parameters,
+                           bool memory_stream)
 {
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 	VERSION version = VERSION_INITIALIZER(VC5_VERSION_MAJOR, VC5_VERSION_MINOR, VC5_VERSION_REVISION, 0);
@@ -555,8 +571,23 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 	// Initialize the encoding parameters and the codec state
 	PrepareEncoderState(encoder, image, parameters);
 
+    /* Compact highpass rows are consumed immediately by channel workers.
+     * The serial/file path writes complete bands and needs full storage even
+     * when a caller leaves the fast-path environment requests enabled. */
+#if GPR_ENABLE_PARALLEL_CHANNELS
+    encoder->compact_bands = memory_stream && encoder->channel_count > 1 &&
+        getenv("GPR_BAND_STREAM") && getenv("GPR_COMPACT_BANDS");
+#else
+    (void)memory_stream;
+    encoder->compact_bands = false;
+#endif
+
+    encoder->retain_preview_bands=parameters->preview_observer!=NULL;
+    encoder->preview_row_observer=parameters->preview_row_observer;
+    encoder->preview_row_user=parameters->preview_row_user;
 	// Allocate the wavelet transforms
-	AllocEncoderTransforms(encoder);
+	error = AllocEncoderTransforms(encoder);
+    if (error != CODEC_ERROR_OKAY) return error;
 
 	// Initialize the quantizer
 	SetEncoderQuantization(encoder, parameters);
@@ -788,6 +819,17 @@ static void *UnpackImageThread(void *arg)
         case PIXEL_FORMAT_RAW_GBRG_12P:
             UnpackImage_12P(&thread->input, &thread->output, thread->enabled_parts, false);
             break;
+        case PIXEL_FORMAT_RAW_RGGB_16:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
+            UnpackImage_WordBayer(&thread->input, &thread->output);
+            break;
         default:
             break;
     }
@@ -818,6 +860,14 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
     case PIXEL_FORMAT_RAW_GBRG_12:
     case PIXEL_FORMAT_RAW_GBRG_12P:
     case PIXEL_FORMAT_RAW_RGGB_16:
+    case PIXEL_FORMAT_RAW_GBRG_16:
+    case PIXEL_FORMAT_RAW_GBRG_14:
+    case PIXEL_FORMAT_RAW_GRBG_12:
+    case PIXEL_FORMAT_RAW_GRBG_14:
+    case PIXEL_FORMAT_RAW_GRBG_16:
+    case PIXEL_FORMAT_RAW_BGGR_12:
+    case PIXEL_FORMAT_RAW_BGGR_14:
+    case PIXEL_FORMAT_RAW_BGGR_16:
         channel_count = 4;
         max_channel_width = input->width / 2;
         max_channel_height = input->height / 2;
@@ -923,6 +973,17 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 
         case PIXEL_FORMAT_RAW_GBRG_12P:
             UnpackImage_12P(input, output, enabled_parts, false );
+            break;
+        case PIXEL_FORMAT_RAW_RGGB_16:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
+            UnpackImage_WordBayer(input, output);
             break;
             
         default:
@@ -1282,7 +1343,9 @@ static void TransformVertical(RECURSIVE_TRANSFORM_DATA *data, int row, int mode)
     if (encoder && encoder->row_stream[stage][1]) {
         PIXEL *output[MAX_BAND_COUNT];
         output[0] = (PIXEL *)((uint8_t *)data->output_ptr[0] + (size_t)(row/2) * data->output_pitch);
-        for (int band=1; band<MAX_BAND_COUNT; band++) output[band] = data->output_ptr[band];
+        for (int band=1; band<MAX_BAND_COUNT; band++)
+            output[band] = (PIXEL *)((uint8_t *)data->output_ptr[band] +
+                (encoder->retain_preview_bands && stage>0 ? (size_t)(row/2)*data->output_pitch:0));
         FilterVerticalDirect(data->lowpass_buffer, data->highpass_buffer, output,
             data->output_width, data->midpoints, data->multipliers, mode);
         for (int band=1; band<MAX_BAND_COUNT; band++) {
@@ -1300,6 +1363,21 @@ static void TransformVertical(RECURSIVE_TRANSFORM_DATA *data, int row, int mode)
     } else {
         FilterVerticalBottomRow(data->lowpass_buffer, data->highpass_buffer, data->output_ptr,
             data->output_width, data->output_pitch, data->midpoints, data->multipliers, row);
+    }
+    if (encoder && encoder->preview_row_observer && stage>0 && data->channel<3) {
+        vc5_preview_row view={0};
+        view.channel=data->channel;view.level=stage-1;view.row=row/2;
+        view.width=data->output_width;view.height=(data->input_height+1)/2;
+        view.prescale=data->prescale;
+        const WAVELET *wavelet=encoder->transform[data->channel].wavelet[stage];
+        for (unsigned band=0;band<4;++band) {
+            const size_t offset=band && encoder->row_stream[stage][1] &&
+                !encoder->retain_preview_bands ? 0:(size_t)(row/2)*data->output_pitch;
+            view.bands[band]=(const PIXEL *)((const uint8_t *)data->output_ptr[band]+offset);
+            view.quant[band]=wavelet->quant[band];
+            view.band_samples[band]=view.width;
+        }
+        encoder->preview_row_observer(encoder->preview_row_user,&view);
     }
 }
 
@@ -1399,6 +1477,55 @@ static void ForwardWaveletTransformRecursive(RECURSIVE_TRANSFORM_DATA *transform
     }
 }
 
+/* Incremental stage scheduler. Each stage owns its six horizontal rows.
+   A downstream stage consumes only LL rows already produced upstream. */
+typedef struct {
+    uint32_t next_row;
+    uint32_t produced;
+} WAVELET_ROW_PROGRESS;
+
+static bool ForwardWaveletOneRow(RECURSIVE_TRANSFORM_DATA *data,
+    WAVELET_ROW_PROGRESS *progress, uint32_t available)
+{
+    const uint32_t height=data->input_height;
+    const uint32_t bottom=(height%2)==0 ? height-2:height-1;
+    const uint32_t row=progress->next_row;
+    if (row>bottom) return false;
+    const uint32_t required=row==0 || row==2 ? 6:
+        row==bottom ? height:minimum(row+4,height);
+    if (available<required) return false;
+    if (row==0) {
+        for (int i=0;i<ROW_BUFFER_COUNT;++i)
+            FilterHorizontalRow(GetTransformInputRow(data,i),
+                data->lowpass_buffer[i],data->highpass_buffer[i],
+                data->input_width,data->prescale);
+    } else if (row>=4 && row!=bottom) {
+        ShiftHorizontalResultBuffers(data->lowpass_buffer);
+        ShiftHorizontalResultBuffers(data->highpass_buffer);
+        for (int i=4;i<ROW_BUFFER_COUNT;++i) {
+            const uint32_t input=minimum(row+i-2,height-1);
+            FilterHorizontalRow(GetTransformInputRow(data,input),
+                data->lowpass_buffer[i],data->highpass_buffer[i],
+                data->input_width,data->prescale);
+        }
+    }
+    TransformVertical(data,row,row==0 ? 0:row==bottom ? 2:1);
+    progress->next_row+=2;
+    ++progress->produced;
+    return true;
+}
+
+static void ForwardWaveletPipelined(RECURSIVE_TRANSFORM_DATA *data)
+{
+    WAVELET_ROW_PROGRESS progress[MAX_WAVELET_COUNT]={{0}};
+    while (ForwardWaveletOneRow(&data[0],&progress[0],data[0].input_height)) {
+        for (int stage=1;stage<MAX_WAVELET_COUNT;++stage)
+            while (ForwardWaveletOneRow(&data[stage],&progress[stage],progress[stage-1].produced)) {}
+    }
+    for (int stage=0;stage<MAX_WAVELET_COUNT;++stage)
+        assert(progress[stage].produced==(data[stage].input_height+1)/2);
+}
+
 static void SetRecursiveTransformData(RECURSIVE_TRANSFORM_DATA* transform_data,
                                       const TRANSFORM *transform,
                                       const COMPONENT_ARRAY *input_image_component,
@@ -1450,7 +1577,12 @@ static void SetRecursiveTransformData(RECURSIVE_TRANSFORM_DATA* transform_data,
 static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY *input_image_component, PIXEL *lowpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT], PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT], int midpoint_prequant, const PACKED_IMAGE *packed_input, int channel, ENCODER *encoder)
 {
     RECURSIVE_TRANSFORM_DATA transform_data[MAX_WAVELET_COUNT] = {0};
+#if defined(_WIN32)
+    /* MSVC has no C VLAs. Preserve the same stack lifetime and alignment pad. */
+    PIXEL *unpack_storage = (PIXEL *)_alloca(((size_t)input_image_component->width + 32) * sizeof(PIXEL));
+#else
     PIXEL unpack_storage[input_image_component->width + 32];
+#endif
     PIXEL *unpack_row = (PIXEL *)(((uintptr_t)unpack_storage + 63) & ~(uintptr_t)63);
     transform_data[0].packed_input = packed_input;
     transform_data[0].unpack_row = unpack_row;
@@ -1458,6 +1590,7 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     for (int stage=0; stage<MAX_WAVELET_COUNT; stage++) {
         transform_data[stage].encoder = encoder;
         transform_data[stage].stage = stage;
+        transform_data[stage].channel = channel;
     }
     
     int32_t midpoints[MAX_WAVELET_COUNT][MAX_BAND_COUNT];      //!< Midpoint value for each band (applied during quantization)
@@ -1467,7 +1600,10 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     SetRecursiveTransformData( &transform_data[1], transform, input_image_component, midpoints[1], multipliers[1], lowpass_buffer, highpass_buffer, midpoint_prequant, 1 );
     SetRecursiveTransformData( &transform_data[2], transform, input_image_component, midpoints[2], multipliers[2], lowpass_buffer, highpass_buffer, midpoint_prequant, 2 );
     
-    ForwardWaveletTransformRecursive( transform_data, 0, 0, 0xFFFF );
+    if ((encoder->preview_row_observer || getenv("GPR_PIPELINE_WAVELETS")) && transform_data[2].input_height>=6)
+        ForwardWaveletPipelined(transform_data);
+    else
+        ForwardWaveletTransformRecursive( transform_data, 0, 0, 0xFFFF );
 }
 
 #if GPR_ENABLE_PARALLEL_CHANNELS
@@ -1782,7 +1918,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
         if (!parallel_ok)
         {
             if (error != CODEC_ERROR_OKAY) return error;
-            if (getenv("GPR_COMPACT_BANDS")) return CODEC_ERROR_OUTOFMEMORY;
+            if (encoder->compact_bands) return CODEC_ERROR_OUTOFMEMORY;
             for (channel_index = 0; channel_index < channel_count; channel_index++)
             {
                 channel_number = encoder->channel_order_table[channel_index];
@@ -2328,7 +2464,7 @@ CODEC_ERROR AllocEncoderTransforms(ENCODER *encoder)
 			//assert((wavelet_width % 2) == 0);
 
 			// Allocate the wavelet
-            if (getenv("GPR_BAND_STREAM") && getenv("GPR_COMPACT_BANDS")) {
+            if (encoder->compact_bands && !(encoder->retain_preview_bands && wavelet_index>0)) {
                 wavelet = allocator->Alloc(sizeof(WAVELET));
                 if (!wavelet) return CODEC_ERROR_OUTOFMEMORY;
                 InitWavelet(wavelet,wavelet_width,wavelet_height);

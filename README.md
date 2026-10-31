@@ -1,5 +1,13 @@
 # GPR Introduction
 
+The [stock RAW-media rebuild](docs/stock-raw-media-rebuild.md) now provides
+selectable RAW still compression, calibrated editable DNG/GPR, bounded RAW
+recording and preview, exact MOV interchange and macOS ProRes export.
+Start with the [core workflow](docs/stock-raw-media-rebuild.md#core-workflow)
+and [current delivery scope](docs/stock-raw-media-rebuild.md#current-delivery-priority-2026-10-29).
+Mission 1 video integration and optional reconstruction quality still have
+explicit hardware/model gates; broad format support at every stage is stretch work.
+
 The opt-in [12 MP stock RAW-video experiment](docs/stock-raw-video-12mp.md)
 records unchanged VC-5 payloads, measures paced encoding and storage on Pi 5,
 and supports optional offline 1x Bayer CNN restoration. The linked results
