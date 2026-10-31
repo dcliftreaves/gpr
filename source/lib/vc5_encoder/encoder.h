@@ -70,6 +70,8 @@ typedef struct _aspect_ratio
 	@todo Consider changing the transform data structure to use a
 	vector of wavelets rather than a vector of wavelet pointers.
 */
+#include "vc5_preview.h"
+
 typedef struct _encoder
 {
 	//	CODEC codec;			//!< Common fields for both the encoder and decoder
@@ -88,6 +90,8 @@ typedef struct _encoder
 	//! Number of color channels in the input and encoded images
 	uint_fast8_t channel_count;
     bool retain_preview_bands;
+    vc5_encoder_preview_row_fn preview_row_observer;
+    void *preview_row_user;
 
 	//! Number of wavelet transforms in each channel
 	uint_fast8_t wavelet_count;

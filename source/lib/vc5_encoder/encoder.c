@@ -583,6 +583,8 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 #endif
 
     encoder->retain_preview_bands=parameters->preview_observer!=NULL;
+    encoder->preview_row_observer=parameters->preview_row_observer;
+    encoder->preview_row_user=parameters->preview_row_user;
 	// Allocate the wavelet transforms
 	error = AllocEncoderTransforms(encoder);
     if (error != CODEC_ERROR_OKAY) return error;
@@ -1362,6 +1364,20 @@ static void TransformVertical(RECURSIVE_TRANSFORM_DATA *data, int row, int mode)
         FilterVerticalBottomRow(data->lowpass_buffer, data->highpass_buffer, data->output_ptr,
             data->output_width, data->output_pitch, data->midpoints, data->multipliers, row);
     }
+    if (encoder && encoder->preview_row_observer && stage>0 && data->channel<3) {
+        vc5_preview_row view={0};
+        view.channel=data->channel;view.level=stage-1;view.row=row/2;
+        view.width=data->output_width;view.height=(data->input_height+1)/2;
+        view.prescale=data->prescale;
+        const WAVELET *wavelet=encoder->transform[data->channel].wavelet[stage];
+        for (unsigned band=0;band<4;++band) {
+            const size_t offset=band && encoder->row_stream[stage][1] &&
+                !encoder->retain_preview_bands ? 0:(size_t)(row/2)*data->output_pitch;
+            view.bands[band]=(const PIXEL *)((const uint8_t *)data->output_ptr[band]+offset);
+            view.quant[band]=wavelet->quant[band];
+        }
+        encoder->preview_row_observer(encoder->preview_row_user,&view);
+    }
 }
 
 static PIXEL *GetTransformInputRow(RECURSIVE_TRANSFORM_DATA *data, int row)
@@ -1460,6 +1476,55 @@ static void ForwardWaveletTransformRecursive(RECURSIVE_TRANSFORM_DATA *transform
     }
 }
 
+/* Incremental stage scheduler. Each stage owns its six horizontal rows.
+   A downstream stage consumes only LL rows already produced upstream. */
+typedef struct {
+    uint32_t next_row;
+    uint32_t produced;
+} WAVELET_ROW_PROGRESS;
+
+static bool ForwardWaveletOneRow(RECURSIVE_TRANSFORM_DATA *data,
+    WAVELET_ROW_PROGRESS *progress, uint32_t available)
+{
+    const uint32_t height=data->input_height;
+    const uint32_t bottom=(height%2)==0 ? height-2:height-1;
+    const uint32_t row=progress->next_row;
+    if (row>bottom) return false;
+    const uint32_t required=row==0 || row==2 ? 6:
+        row==bottom ? height:minimum(row+4,height);
+    if (available<required) return false;
+    if (row==0) {
+        for (int i=0;i<ROW_BUFFER_COUNT;++i)
+            FilterHorizontalRow(GetTransformInputRow(data,i),
+                data->lowpass_buffer[i],data->highpass_buffer[i],
+                data->input_width,data->prescale);
+    } else if (row>=4 && row!=bottom) {
+        ShiftHorizontalResultBuffers(data->lowpass_buffer);
+        ShiftHorizontalResultBuffers(data->highpass_buffer);
+        for (int i=4;i<ROW_BUFFER_COUNT;++i) {
+            const uint32_t input=minimum(row+i-2,height-1);
+            FilterHorizontalRow(GetTransformInputRow(data,input),
+                data->lowpass_buffer[i],data->highpass_buffer[i],
+                data->input_width,data->prescale);
+        }
+    }
+    TransformVertical(data,row,row==0 ? 0:row==bottom ? 2:1);
+    progress->next_row+=2;
+    ++progress->produced;
+    return true;
+}
+
+static void ForwardWaveletPipelined(RECURSIVE_TRANSFORM_DATA *data)
+{
+    WAVELET_ROW_PROGRESS progress[MAX_WAVELET_COUNT]={{0}};
+    while (ForwardWaveletOneRow(&data[0],&progress[0],data[0].input_height)) {
+        for (int stage=1;stage<MAX_WAVELET_COUNT;++stage)
+            while (ForwardWaveletOneRow(&data[stage],&progress[stage],progress[stage-1].produced)) {}
+    }
+    for (int stage=0;stage<MAX_WAVELET_COUNT;++stage)
+        assert(progress[stage].produced==(data[stage].input_height+1)/2);
+}
+
 static void SetRecursiveTransformData(RECURSIVE_TRANSFORM_DATA* transform_data,
                                       const TRANSFORM *transform,
                                       const COMPONENT_ARRAY *input_image_component,
@@ -1524,6 +1589,7 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     for (int stage=0; stage<MAX_WAVELET_COUNT; stage++) {
         transform_data[stage].encoder = encoder;
         transform_data[stage].stage = stage;
+        transform_data[stage].channel = channel;
     }
     
     int32_t midpoints[MAX_WAVELET_COUNT][MAX_BAND_COUNT];      //!< Midpoint value for each band (applied during quantization)
@@ -1533,7 +1599,10 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     SetRecursiveTransformData( &transform_data[1], transform, input_image_component, midpoints[1], multipliers[1], lowpass_buffer, highpass_buffer, midpoint_prequant, 1 );
     SetRecursiveTransformData( &transform_data[2], transform, input_image_component, midpoints[2], multipliers[2], lowpass_buffer, highpass_buffer, midpoint_prequant, 2 );
     
-    ForwardWaveletTransformRecursive( transform_data, 0, 0, 0xFFFF );
+    if ((encoder->preview_row_observer || getenv("GPR_PIPELINE_WAVELETS")) && transform_data[2].input_height>=6)
+        ForwardWaveletPipelined(transform_data);
+    else
+        ForwardWaveletTransformRecursive( transform_data, 0, 0, 0xFFFF );
 }
 
 #if GPR_ENABLE_PARALLEL_CHANNELS

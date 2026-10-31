@@ -52,6 +52,8 @@ typedef CODEC_ERROR (* DECOMPOSITOR)(IMAGE *packed_image, IMAGE *image_array[], 
 	have different dimensions (for example YUV with 4:2:2 sampling), the first
 	encoded plane (corresponding to the luma plane, for example) is reported.
 */
+ #include "vc5_preview.h"
+
 typedef struct _encoder_parameters
 {
 	uint32_t version;				//!< Version number for this definition of the parameters
@@ -126,6 +128,8 @@ typedef struct _encoder_parameters
     /* Internal experiment: retained upper bands, borrowed only during callback. */
     void (*preview_observer)(void *user, const TRANSFORM *transforms);
     void *preview_user;
+    vc5_encoder_preview_row_fn preview_row_observer;
+    void *preview_row_user;
     
 } ENCODER_PARAMETERS;
 
