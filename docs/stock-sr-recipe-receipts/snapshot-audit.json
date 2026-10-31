@@ -1,0 +1,126 @@
+{
+  "schema": "gpr.stock_sr_recipe_snapshot_audit.v1",
+  "complete": true,
+  "snapshots": [
+    {
+      "path": "p0d0s0/step-1000.pt",
+      "sha256": "f71e4c37192433b9ab5523a7e9cd1bca75591edf9579934385bf2ac31b60deaa",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d0s0/step-2000.pt",
+      "sha256": "9b47bd531eacfe1a4282e139b74a7494268d636b0e4a0703eea24ec573b65033",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d0s0/step-3000.pt",
+      "sha256": "591690ae0284d21a8614c91dc1001d2bc22d48c1697467004e05cd9b7bd06740",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d0s1/step-1000.pt",
+      "sha256": "276473065875174e3df57b7183c30e7257fd2bf907cf8fbb315f43e5489e4398",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d0s1/step-2000.pt",
+      "sha256": "628b8bbb58b3f6026de7ef6fbf0e5cbef38ee6eea453ac4cb21e521ef37db4e5",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d0s1/step-3000.pt",
+      "sha256": "9220f1d743a0667ee34dc479509f9e9f800787333bb6a4c0f9283feada72ce92",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s0/step-1000.pt",
+      "sha256": "694031691e9c40b028ee5bd36ecab5759babf143282915045c7c6c10e98e8b89",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s0/step-2000.pt",
+      "sha256": "cf63d50e5ad09f7200197a0445b4407c40dec938b38278f01c88886a42749b4b",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s0/step-3000.pt",
+      "sha256": "5402305c9745f8379f458b935c7da5f0324380445aeced053874f6b827580fd9",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s1/step-1000.pt",
+      "sha256": "d92de2f98294f983f4ed0cd209edb3c2f169d525e62b6991362e0bbdc9968903",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s1/step-2000.pt",
+      "sha256": "7caf8cedd5ef18eeac1484fa5d504cd402ac01cbc1e2ec1014d2d63b738b405e",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p0d1s1/step-3000.pt",
+      "sha256": "f0be2a18f9a2127e486e72949b0e93830393c786afca615b2ad8f6afcd5d025e",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s0/step-1000.pt",
+      "sha256": "c3c1281a317c12fc5ef47f891616e3480723726f905b6e5b93f9d7053480f7b6",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s0/step-2000.pt",
+      "sha256": "ad3e0940c6baaacc4b091a8ae8c91b93be971d0e3269d303c80344d552810d16",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s0/step-3000.pt",
+      "sha256": "554fb02a11664c1e288f4dcb297c84428c8fb6ab6dac1cb1e679f2b00d9750fd",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s1/step-1000.pt",
+      "sha256": "38482705a6c92875bed3036128e1ec91824780fe68afcbc7a49932f508be0e58",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s1/step-2000.pt",
+      "sha256": "2020180546d73525e8e4a243501044e4ea0b38fc9dd1dfd96754da342620ef89",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d0s1/step-3000.pt",
+      "sha256": "38ee4ab50aec4d7d7e84dfe6774439a1f64fd4ee31404ebbac2fd95574042090",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s0/step-1000.pt",
+      "sha256": "1945ba3afa5c139705f91cdd350575037a3bd53ea5cbb6f9f55c4302eaa45bd0",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s0/step-2000.pt",
+      "sha256": "4af8b26d541ef0a6fc9c8b9d78b7ad73cc7617b2344bed1610c761ebc07a19fa",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s0/step-3000.pt",
+      "sha256": "d7f934256784ef5709b1baa442336d1bab8070ffa77273a939fc92b800eb0b8c",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s1/step-1000.pt",
+      "sha256": "17cf335bf7f1f541bf9f1f5eb23f54e905f407a5fc715b5fc67f19139eedd825",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s1/step-2000.pt",
+      "sha256": "306866d28aa7e371abf4b01f9ed3fab3dd86361bc7b63f8aa564c18e337a8c19",
+      "all_tensors_finite": true
+    },
+    {
+      "path": "p1d1s1/step-3000.pt",
+      "sha256": "e1a04b0cc9f2728063dbb826a5659f9c869af6ce6511ac6ab4c6b39db4a736a2",
+      "all_tensors_finite": true
+    }
+  ]
+}

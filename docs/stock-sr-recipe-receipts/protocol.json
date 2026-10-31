@@ -1,0 +1,91 @@
+{
+  "schema": "gpr.stock_sr_recipe_comparison_protocol.v1",
+  "created_utc": "2026-10-31T01:20:09.070598+00:00",
+  "script_sha256": "4d039567294cc790cff6cac735d5e8d603759ad8cc96debcb90928ff3dae280d",
+  "parent_protocol_sha256": "27c924ff28e1337069ac9fff4657a2783a414f38555e29d29def2f95978d08b2",
+  "dataset_sha256": "ad4fec4d4eefa6b3b4bb17a8ca7c288ba7cc5754d98d1e08cd53bf48e68ae7ff",
+  "weight_audit_sha256": "f403d3c00ba923cb6ac7c2e2bb8cb35dbf072da2cb01e5695a982ece275de056",
+  "configs": [
+    {
+      "name": "p0d0s0",
+      "preclean": false,
+      "detail": false,
+      "structure_loss": false
+    },
+    {
+      "name": "p0d0s1",
+      "preclean": false,
+      "detail": false,
+      "structure_loss": true
+    },
+    {
+      "name": "p0d1s0",
+      "preclean": false,
+      "detail": true,
+      "structure_loss": false
+    },
+    {
+      "name": "p0d1s1",
+      "preclean": false,
+      "detail": true,
+      "structure_loss": true
+    },
+    {
+      "name": "p1d0s0",
+      "preclean": true,
+      "detail": false,
+      "structure_loss": false
+    },
+    {
+      "name": "p1d0s1",
+      "preclean": true,
+      "detail": false,
+      "structure_loss": true
+    },
+    {
+      "name": "p1d1s0",
+      "preclean": true,
+      "detail": true,
+      "structure_loss": false
+    },
+    {
+      "name": "p1d1s1",
+      "preclean": true,
+      "detail": true,
+      "structure_loss": true
+    }
+  ],
+  "steps": 3000,
+  "checkpoint_steps": [
+    1000,
+    2000,
+    3000
+  ],
+  "seed": 20261102,
+  "batch": 8,
+  "learning_rate": 0.0003,
+  "width": 16,
+  "device": "mps",
+  "strengths": [
+    1.0,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    0.015625,
+    0.0078125
+  ],
+  "source_sampling": "one patch from each of eight train sources per step; same indices across variants",
+  "loss": "audited source-region MSE ratio; preclean variants add 0.05 low-resolution clean supervision ratio; structure variants add 0.4 same-site gradient and 0.05 Laplacian error ratios with fixed per-training-patch bicubic denominators",
+  "selection": "unchanged exact pooled/group patch regional nonregression plus strict pooled overall improvement; preregistered top three eligible candidates per variant to complete-image validation",
+  "final_reference_pixels_used": false,
+  "quality_approval": false,
+  "limitations": [
+    "exploratory one-seed comparison",
+    "preclean factor includes auxiliary supervision",
+    "detail input changes parameter count",
+    "bicubic adaptation, no coordinate channels, not exact historical recipe",
+    "no temporal or visual approval"
+  ]
+}

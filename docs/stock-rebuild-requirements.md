@@ -222,3 +222,7 @@ setting, codec source or model is changed. All seven hosted jobs pass at
 heads need their own checks. Broader timing and model-quality gates remain open.
 
 The [CNN tactics audit](stock-cnn-tactics.md) checks the old selected preclean/detail/coordinate recipe, structure losses and checkpoint interpolation against primary research. A new validation-only spatial gate improves full-validation gain from +0.02782 to +0.08716 dB without regional regressions. It is frozen for further evaluation, has no final/native approval and does not replace the supplied model. Reproducing the specialized older training recipe remains an explicit quality task.
+
+The frozen gate passes four historical references on CPU/MPS (+0.022879 dB pooled, at most one count cross-host), but remains analysis-only without useful-detail/native/Pi approval. Separately, the [eight-case older-recipe comparison](stock-sr-recipe-comparison.md) completes training and 72 full-image inferences; all 18 shortlisted candidates fail regional guards. No replacement model is promoted; broader quality remains open.
+
+The complete recipe-family follow-up evaluates all 48 patch-qualified settings across four full validation images: ten pass, but best gain is +0.00735 dB versus existing BIBO +0.02782 dB. The earlier shortlist missed weaker passing candidates. No quality replacement or final-reference promotion follows; the shadow overshoot and full-family receipts are retained.

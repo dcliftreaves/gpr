@@ -1,0 +1,9 @@
+{
+  "schema": "gpr.stock_sr_shadow_analysis_protocol.v1",
+  "full_selection_sha256": "9210aed5d5595392a953dc94f0c6adb7f48a720e53f4becc1f9a4f83b7234389",
+  "script_sha256": "66ba4810533e853f88c60c11b7f4b12ed948084a9c417d5b0d8eec4fd809ed7e",
+  "candidate": "p1d1s1-step2000-alpha0.25",
+  "source_index": 3,
+  "diagnostic_only": true,
+  "final_references_used": false
+}

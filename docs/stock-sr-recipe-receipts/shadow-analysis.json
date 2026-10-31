@@ -1,0 +1,52 @@
+{
+  "schema": "gpr.stock_sr_shadow_analysis.v1",
+  "complete": true,
+  "protocol_sha256": "c089e5e23136092ff8d0d9bb22070c2e3d18a0e42f88df2cc99305f896fd0117",
+  "candidate": "p1d1s1-step2000-alpha0.25",
+  "source": {
+    "path": "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded/LRT_20250730_05__ColoradoSky_010.dng",
+    "group": "LRT_20250730_05__ColoradoSky",
+    "split": "validation",
+    "sha256": "fdf073c35b883c72ab5911b444c3280f8066fa4a49bf317bb80c617b9fed0d79"
+  },
+  "rows": {
+    "active": {
+      "samples": 45705600,
+      "baseline_mean_error_counts": -3.0023223193656796,
+      "mean_correction_counts": -0.0763963059231254,
+      "residual_mse": 5.097256156794791,
+      "error_residual_cross_mean": -27.72683152611496,
+      "delta_mse": -50.35640689543513,
+      "optimal_unconstrained_multiplier_for_this_count_residual": 5.439560162020558
+    },
+    "shadow": {
+      "samples": 4890624,
+      "baseline_mean_error_counts": 0.2622213443519682,
+      "mean_correction_counts": 0.01684999705559045,
+      "residual_mse": 0.5346788058129187,
+      "error_residual_cross_mean": -0.10577689063808626,
+      "delta_mse": 0.3231250245367462,
+      "optimal_unconstrained_multiplier_for_this_count_residual": 0.1978325856347802
+    },
+    "highlight": {
+      "samples": 4706241,
+      "baseline_mean_error_counts": -14.471173703174147,
+      "mean_correction_counts": -0.08854072708983667,
+      "residual_mse": 43.362351821761784,
+      "error_residual_cross_mean": -266.1912373378244,
+      "delta_mse": -489.0201228538871,
+      "optimal_unconstrained_multiplier_for_this_count_residual": 6.138763839009164
+    },
+    "detail": {
+      "samples": 4671005,
+      "baseline_mean_error_counts": -6.920317362109439,
+      "mean_correction_counts": 0.02739089339446222,
+      "residual_mse": 38.692052995019274,
+      "error_residual_cross_mean": -230.2445944716394,
+      "delta_mse": -421.79713594825955,
+      "optimal_unconstrained_multiplier_for_this_count_residual": 5.950694694367295
+    }
+  },
+  "interpretation": "Positive cross term means the measured residual aligns with existing error and any small positive continuous scaling worsens that region. This is diagnostic correlation on validation pixels, not an inference-time oracle or a selected correction.",
+  "quality_approval": false
+}

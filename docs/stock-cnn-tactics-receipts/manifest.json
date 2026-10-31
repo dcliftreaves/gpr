@@ -5,9 +5,24 @@
     "sha256": "c7e03d18d9f01e3391f8bc7d43305f263e6f2aec637f179459346d649a6e5b95"
   },
   {
+    "path": "evaluate_stock_sr_spatial_gate_final.py",
+    "bytes": 4249,
+    "sha256": "ea9031cdd3bbc3812d3a62ce51f4f81faf57b8c48a002d734e7801604164e1a5"
+  },
+  {
     "path": "evaluate_stock_sr_spatial_gate_full.py",
     "bytes": 6137,
     "sha256": "85a2c20339ff4293b027bd0527478cf22a702bc0d0f668f567ce4ab1a4f64649"
+  },
+  {
+    "path": "final-protocol.json",
+    "bytes": 459,
+    "sha256": "fbe439092c17a8fc04c71142640a309195ec0421345323e1f402dd970212bd98"
+  },
+  {
+    "path": "final-summary.json",
+    "bytes": 30833,
+    "sha256": "aa0e856574e71892aafddf106dfc82bb6d6bfe0736500d3deabb89ec62e6454c"
   },
   {
     "path": "frozen.json",
@@ -63,6 +78,16 @@
     "path": "historical-registry.json",
     "bytes": 22765,
     "sha256": "259b52301b1915186a6d6e3ec9d9fe22f9dcb3c4d74e9a73e26ace829ec16fbe"
+  },
+  {
+    "path": "portability-protocol.json",
+    "bytes": 235,
+    "sha256": "1763efad989601487a871ba39a749e98e9ba530af00ec1b75c0f17a4d5e15339"
+  },
+  {
+    "path": "portability.json",
+    "bytes": 763,
+    "sha256": "a2e372017c8b7a3698d817aa96954705ef7e9f995ae9c7bf4934d0ae3def75fe"
   },
   {
     "path": "protocol.json",

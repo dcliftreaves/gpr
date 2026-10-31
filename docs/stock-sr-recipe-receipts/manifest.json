@@ -1,0 +1,92 @@
+[
+  {
+    "path": "all-full-protocol.json",
+    "bytes": 63219,
+    "sha256": "03b1c992ed6b1b651975df41ea03686f05c11431bad3929d5e85f2b994baf71b"
+  },
+  {
+    "path": "all-full-selection.json",
+    "bytes": 447219,
+    "sha256": "edd3c2be7cc68f2f2dd5369440248152d88ae34d80dcfb7bf85bb1c41fbaec8d"
+  },
+  {
+    "path": "all-full.stdout",
+    "bytes": 28426,
+    "sha256": "787196e9dfea009db7b973acc29434fe1ca766cda67c3ada4f7e7e7e08c983e0"
+  },
+  {
+    "path": "analyze_stock_sr_recipe_shadow.py",
+    "bytes": 4346,
+    "sha256": "66ba4810533e853f88c60c11b7f4b12ed948084a9c417d5b0d8eec4fd809ed7e"
+  },
+  {
+    "path": "frozen.json",
+    "bytes": 1939,
+    "sha256": "f2bece0e096bc26f022c60a4685b52c5aa00450d41eb749a591ceb6a5a1b75bd"
+  },
+  {
+    "path": "full-protocol.json",
+    "bytes": 24652,
+    "sha256": "7c8f454f687dc2d317b433a3f892676defb7d14c527a2fe231c02dd95a12ccea"
+  },
+  {
+    "path": "full-selection.json",
+    "bytes": 175683,
+    "sha256": "9210aed5d5595392a953dc94f0c6adb7f48a720e53f4becc1f9a4f83b7234389"
+  },
+  {
+    "path": "passed-3ce777f.json",
+    "bytes": 17966,
+    "sha256": "c1b360b97f918211735f90369d4f253262501e93a51c5580e5e713c591f17798"
+  },
+  {
+    "path": "protocol.json",
+    "bytes": 2584,
+    "sha256": "22391f06b79a56554d241c33a8bd85bb4ce9f5af223c5d007de0d9a25b9cc326"
+  },
+  {
+    "path": "shadow-analysis.json",
+    "bytes": 2314,
+    "sha256": "ac49f7b1e0483429ac3a35f698726c838b6594ed4a2be63950002b255cb362d0"
+  },
+  {
+    "path": "shadow-protocol.json",
+    "bytes": 367,
+    "sha256": "c089e5e23136092ff8d0d9bb22070c2e3d18a0e42f88df2cc99305f896fd0117"
+  },
+  {
+    "path": "snapshot-audit.json",
+    "bytes": 4105,
+    "sha256": "bf3d425e2892d52f3f8966159d0158c42f126819eca70f4938cc333ab70a9c4a"
+  },
+  {
+    "path": "stock_sr_recipe_comparison.stdout",
+    "bytes": 1921,
+    "sha256": "a2f811bfc0d3ec6f58732a27bf7cf7998075a85e983aa0721468e5199fd00a1b"
+  },
+  {
+    "path": "stock_sr_recipe_comparison_full.stdout",
+    "bytes": 10791,
+    "sha256": "5effe4349cd4d7b19e15c4abe4f6eb895eae6605f737ee9bd4dd9ace03826bea"
+  },
+  {
+    "path": "train_stock_sr_recipe_comparison.py",
+    "bytes": 10776,
+    "sha256": "4d039567294cc790cff6cac735d5e8d603759ad8cc96debcb90928ff3dae280d"
+  },
+  {
+    "path": "training.json",
+    "bytes": 234909,
+    "sha256": "57b909e961c75020fbdc3ae65df5338cf9a9d9c2dcc38548b86277ec30d6cf26"
+  },
+  {
+    "path": "validate_stock_sr_recipe_all_qualified.py",
+    "bytes": 6074,
+    "sha256": "fe0e455ee99adaa101461a9a7ef47572c77f5324c36c326332ec028cece695d9"
+  },
+  {
+    "path": "validate_stock_sr_recipe_comparison.py",
+    "bytes": 5595,
+    "sha256": "abb480648d5271238c3b21aa2f6d88432a003a0dfb2a9fd1b982875ff0fedcc0"
+  }
+]

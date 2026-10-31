@@ -111,8 +111,8 @@ values and bounds remain exact. The completed run has its own script hash.
 
 The [freeze](stock-cnn-tactics-receipts/frozen.json) binds base weights, gate,
 strength and full selection before historical final evaluation. **Final
-reference, CPU portability, editable/native integration, useful visible detail
-and temporal quality are not established for this diagnostic.** It runs only
+reference and CPU portability results are now available below. Editable/native
+integration, useful visible detail and temporal quality remain unestablished.** It runs only
 through the archived analysis wrapper; standard model loaders do not implement
 this gate. Supplied model files and production runtime are unchanged. This is
 an incremental diagnostic, not a substitute for reproducing the older recipe.
@@ -121,3 +121,24 @@ an incremental diagnostic, not a substitute for reproducing the older recipe.
 protocols, results, frozen candidate and selected historical evidence. Large
 arrays/photos stay external under
 `/Volumes/OWC_8TB/gpr_work/artifacts/stock_sr_spatial_gate_20261030`.
+
+## Frozen gate: historical-reference and CPU follow-up
+
+The fixed strong-1/8 candidate now passes all 32 regional checks: four
+historical references, four regions, two independent CPU/MPS baselines.
+[Final protocol](stock-cnn-tactics-receipts/final-protocol.json) and
+[results](stock-cnn-tactics-receipts/final-summary.json) preserve source, cache,
+output and code hashes. Pooled active gain is +0.0228792 dB MPS / +0.0228791 dB
+CPU, versus the supplied ungated diagnostic's +0.0072916 dB. All four CPU/MPS
+outputs differ by at most one count under the existing portability budget;
+[comparison](stock-cnn-tactics-receipts/portability.json). No final pixels select
+the gate or strength; these remain reused historical references, not blind data.
+
+This is a modest numeric gain, not useful restored-detail approval. No gate
+checkpoint replaces the supplied model, and standard/native/Pi media support
+for this gate remains unimplemented. More important architecture comparisons
+are proceeding against the audited older recipe.
+
+The [eight-case recipe comparison](stock-sr-recipe-comparison.md) now tests precleaning, explicit detail and structure-loss combinations on the stock pairs. It completes 24,000 training updates and 72 full-image inferences; all 18 shortlisted candidates fail full-image regional guards, so no model is selected. Patch-level detail gains do not transfer into a qualified complete-image result.
+
+A separate complete-family follow-up removes the recipe shortlist limit: all 48 patch-qualified settings are evaluated on complete validation images (192 total source/candidate results, 72 reused). Ten pass; the best full-recipe setting gains +0.00735 dB, below the current BIBO +0.02782 dB. It is retained as a frozen diagnostic, not a quality replacement. This corrects the shortlist gap without relabelling its failures.
