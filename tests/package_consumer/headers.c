@@ -19,10 +19,12 @@ static int c_preview_boundary(void) {
 #if HAS_PREVIEW
 #include "gpr_preview.h"
 #include "gpr_preview_queue.h"
+#include "gpr_preview_stream.h"
 static int c_display(void *user,const gpr_preview_frame_view *frame) { (void)user;(void)frame;return 0; }
 #endif
 int c_header_probe(void) {
 #if HAS_CAPTURE
+    if (gpr_capture_create_with_encoder_rows(0,0,0,0,0,0,0)!=GPR_CAPTURE_INVALID) return 0;
     if (gpr_capture_set_encoder_wait(0,0,0)!=GPR_CAPTURE_INVALID) return 0;
 #endif
 #if HAS_DECODER
@@ -30,6 +32,11 @@ int c_header_probe(void) {
 #endif
 #if HAS_PREVIEW
     gpr_gvid_config video={128,96,30,1,3,14,{'R','G','G','B'}};
+    gpr_preview_stream *stream=0;gpr_preview_wavelet_planes planes={0};
+    if (gpr_preview_stream_create(128,96,1024*1024,&stream)) return 0;
+    if (!gpr_preview_stream_buffer_bytes(stream) || gpr_preview_stream_finish(stream,&planes)!=GPR_PREVIEW_PAYLOAD) {gpr_preview_stream_destroy(stream);return 0;}
+    if (gpr_preview_stream_reset(stream)) {gpr_preview_stream_destroy(stream);return 0;}
+    gpr_preview_stream_destroy(stream);
     gpr_preview_calibration calibration;
     gpr_preview_plan *plan=0;
     gpr_preview_info info;
@@ -69,6 +76,7 @@ int c_header_probe(void) {
 #elif HAS_ENCODER
     vc5_encoder_parameters p;
     vc5_encoder_parameters_set_default(&p);
+    if (vc5_encoder_process_with_preview_rows(0,0,0,0,0,0)!=CODEC_ERROR_BAD_ARGUMENT) return 0;
     if (vc5_encoder_process_with_preview(0,0,0,0,0,0)!=CODEC_ERROR_BAD_ARGUMENT) return 0;
     return p.input_width > 0;
 #elif HAS_DECODER

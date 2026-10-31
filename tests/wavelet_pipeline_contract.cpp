@@ -36,8 +36,20 @@ int main(){
   for(auto &x:raw){rng=rng*1664525u+1013904223u;x=uint16_t((rng>>16)&((1u<<bits[f])-1));}
   vc5_encoder_parameters p;vc5_encoder_parameters_set_default(&p);p.input_width=w;p.input_height=h;p.input_pitch=w*2;p.pixel_format=formats[f];p.quality_setting=(VC5_ENCODER_QUALITY_SETTING)q;
   gpr_buffer input={raw.data(),raw.size()*2},a={},b={};Snapshot s;
-  unsetenv("GPR_PIPELINE_WAVELETS");REQUIRE(!vc5_encoder_process_with_preview(&p,&input,&a,nullptr,observe,&s));
-  s.compare=true;setenv("GPR_PIPELINE_WAVELETS","1",1);REQUIRE(!vc5_encoder_process_with_preview(&p,&input,&b,nullptr,observe,&s));
+
+#ifdef _WIN32
+  _putenv_s("GPR_PIPELINE_WAVELETS","");
+#else
+  unsetenv("GPR_PIPELINE_WAVELETS");
+#endif
+REQUIRE(!vc5_encoder_process_with_preview(&p,&input,&a,nullptr,observe,&s));
+  s.compare=true;
+#ifdef _WIN32
+  _putenv_s("GPR_PIPELINE_WAVELETS","1");
+#else
+  setenv("GPR_PIPELINE_WAVELETS","1",1);
+#endif
+REQUIRE(!vc5_encoder_process_with_preview(&p,&input,&b,nullptr,observe,&s));
   REQUIRE(s.calls==2&&a.size==b.size&&!std::memcmp(a.buffer,b.buffer,a.size));std::free(a.buffer);std::free(b.buffer);++cases;
  }
  std::printf("{\"cases\":%u,\"payloads_exact\":true,\"all_24_bands_exact\":true,\"view_metadata_exact\":true}\n",cases);

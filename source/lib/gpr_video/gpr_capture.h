@@ -88,6 +88,20 @@ typedef void (*gpr_capture_preview_fn)(void *user,uint64_t index,uint64_t timest
 int gpr_capture_create_with_encoder_preview(const gpr_capture_config *cfg,
     const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
     gpr_capture_preview_fn preview,void *preview_user,gpr_capture **out);
+/* Streaming counterpart to the coefficient observer. Borrowed rows expire on
+ * return. Different channels may run concurrently; keep per-channel state or
+ * synchronize shared state. Index/timestamp bind every row to its input frame.
+ * The encoded observer runs after all row callbacks finish; it may finalize
+ * and copy the completed preview before the next frame. On codec failure no
+ * encoded observer is guaranteed: discard partial preview at finish/destroy.
+ * The callback must not reenter encoding, submit/flush/finish/destroy, or throw.
+ * NULL keeps ordinary encoder memory behavior. Capture-only builds still do
+ * not depend on the decoder or preview library. */
+typedef void (*gpr_capture_preview_row_fn)(void *user,uint64_t index,uint64_t timestamp_ns,
+    const vc5_preview_row *row);
+int gpr_capture_create_with_encoder_rows(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *callbacks,gpr_capture_encoded_fn encoded,void *encoded_user,
+    gpr_capture_preview_row_fn rows,void *row_user,gpr_capture **out);
 /* Optional encoder-thread barrier after a frame is enqueued for storage and
  * its input lease released. The writer can progress while this callback waits.
  * Configure before the first successful submission; later changes return

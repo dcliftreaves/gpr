@@ -117,10 +117,40 @@ class Combined(unittest.TestCase):
             self.assertTrue(previews)
             if failed:self.assertEqual(len(previews),1)
 
+    def test_streamed_encoder_preview_matches_offline_and_isolates_failure(self):
+        self.downsample=4;self.profiles=self.root/'streamed-quarter-profiles'
+        stock_preview.prepare(self.base,self.profiles,args.compiler,4)
+        for leased in (False,True):
+            for failed in (False,True):
+                with self.subTest(leased=leased,failed=failed):
+                    output=self.root/f'streamed-{leased}-{failed}.gvid'
+                    options=['--frames','24','--preview-every','1','--preview-streamed','--preview-sync-stages']
+                    if leased:options+=['--leased']
+                    if failed:options+=['--preview-fail-after','1']
+                    events=self.capture(output,*options,preview=True,okay=not failed)
+                    final,summary,previews=self.verify(output,events,1,failed=failed)
+                    self.assertEqual(final['written'],24)
+                    self.assertTrue(summary['streamed_inverse'])
+                    self.assertEqual(summary['pipeline'],'encoder_wavelets')
+                    self.assertGreater(summary['stream_buffer_bytes'],0)
+                    self.assertLessEqual(summary['stream_buffer_bytes'],128*1024*1024)
+                    self.assertEqual(summary['reconstruction_scratch_bytes'],0)
+                    self.assertEqual(summary['replaced'],0)
+                    self.assertEqual(len(previews),1 if failed else 24)
+        output=self.root/'streamed-slow-display.gvid'
+        events=self.capture(output,'--frames','24','--preview-every','1','--preview-streamed','--preview-delay-ms','20',preview=True)
+        final,summary,previews=self.verify(output,events,1)
+        self.assertEqual(final['written'],24)
+        self.assertTrue(summary['streamed_inverse'])
+        self.assertLessEqual(summary['inflight_high_water'],2)
+
     def test_encoder_wavelets_reject_nonquarter_profile_before_output(self):
         output=self.root/'invalid-encoder-profile.gvid'
         self.capture(output,'--frames','2','--preview-from-encoder',preview=True,okay=False)
         self.assertFalse(output.exists())
+        streamed=self.root/'invalid-streamed-profile.gvid'
+        self.capture(streamed,'--frames','2','--preview-streamed',preview=True,okay=False)
+        self.assertFalse(streamed.exists())
 
     def test_serialized_compute_stages_preserve_frames_and_isolate_failure(self):
         self.downsample=4;self.profiles=self.root/'sync-quarter-profiles'

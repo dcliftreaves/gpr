@@ -18,13 +18,14 @@ typedef struct {
     vc5_preview_level channels[3][2]; /* GS/RG/BG, lower/upper level */
 } vc5_preview_coefficients;
 typedef void (*vc5_encoder_preview_fn)(void *user,const vc5_preview_coefficients *coefficients);
-/* Experimental synchronous row handoff, used by the private pipeline proof.
+/* Synchronous row handoff.
  * level0/1 correspond to encoder stages1/2. Every band points at this one
  * quantized row and is borrowed only until the callback returns. */
 typedef struct {
     uint32_t channel,level,row,width,height,prescale;
     const int16_t *bands[4];
     uint32_t quant[4];
+    size_t band_samples[4]; /* at least width for each used band */
 } vc5_preview_row;
 typedef void (*vc5_encoder_preview_row_fn)(void *user,const vc5_preview_row *row);
 #endif

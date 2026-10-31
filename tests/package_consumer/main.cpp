@@ -14,8 +14,10 @@
 #if HAS_PREVIEW
 #include "gpr_preview.h"
 #include "gpr_preview_queue.h"
+#include "gpr_preview_stream.h"
 #endif
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -63,6 +65,12 @@ struct Display {
     }
 };
 #endif
+#if HAS_PREVIEW && HAS_ENCODER
+struct StreamProbe {
+    gpr_preview_stream *stream=nullptr;std::atomic<int> error{0};
+    static void accept(void *user,const vc5_preview_row *row){auto &s=*static_cast<StreamProbe*>(user);int e=gpr_preview_stream_push(s.stream,row);if(e)s.error.store(e);}
+};
+#endif
 int main(int argc,char **argv) {
     try {
         check((argc==2 || argc==3) && c_header_probe(),"C client/defaults");
@@ -90,7 +98,7 @@ int main(int argc,char **argv) {
         gpr_capture_config cfg={}; cfg.video={128,96,30,1,3,14,{'R','G','G','B'}};
         cfg.stride_bytes=256; cfg.max_inflight=2; cfg.workspace_bytes=4*1024*1024;
         gpr_capture_callbacks callbacks={Recording::write,nullptr,&recording}; gpr_capture *capture=nullptr;
-        check(!gpr_capture_create_with_encoder_preview(&cfg,&callbacks,nullptr,nullptr,nullptr,nullptr,&capture),"capture create");
+        check(!gpr_capture_create_with_encoder_rows(&cfg,&callbacks,nullptr,nullptr,nullptr,nullptr,&capture),"capture create");
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture_owner(capture,gpr_capture_destroy);
         gpr_capture_frame frame={}; frame.data=capture_raw.data(); frame.size_bytes=capture_raw.size()*2; frame.timestamp_ns=123456;
         check(!gpr_capture_submit(capture,&frame,UINT32_MAX) && !gpr_capture_finish(capture),"capture submit/finish");
@@ -117,6 +125,18 @@ int main(int argc,char **argv) {
         for (size_t y=0;y<info.height;++y) for (size_t x=info.row_bytes;x<pitch;++x) check(rgb[y*pitch+x]==0xcd,"installed calibrated pitch");
         std::vector<uint8_t> expected;
         for (size_t y=0;y<info.height;++y) expected.insert(expected.end(),rgb.begin()+y*pitch,rgb.begin()+y*pitch+info.row_bytes);
+#if HAS_ENCODER
+        StreamProbe stream_probe;
+        check(!gpr_preview_stream_create(128,96,1024*1024,&stream_probe.stream),"installed streaming create");
+        std::unique_ptr<gpr_preview_stream,decltype(&gpr_preview_stream_destroy)> stream_owner(stream_probe.stream,gpr_preview_stream_destroy);
+        gpr_buffer streamed_payload={};
+        check(!vc5_encoder_process_with_preview_rows(&p,&src,&streamed_payload,nullptr,StreamProbe::accept,&stream_probe)&&!stream_probe.error,"installed row encoder");
+        std::unique_ptr<void,decltype(&std::free)> streamed_owner(streamed_payload.buffer,std::free);
+        check(streamed_payload.size==payload.size()&&!memcmp(streamed_payload.buffer,payload.data(),payload.size()),"installed streaming payload");
+        gpr_preview_wavelet_planes streamed_planes={};check(!gpr_preview_stream_finish(stream_probe.stream,&streamed_planes),"installed streaming finish");
+        std::vector<uint8_t> streamed_rgb(rgb.size(),0xcd);
+        check(!gpr_preview_plan_render_wavelets(plan.get(),&streamed_planes,streamed_rgb.data(),streamed_rgb.size(),pitch,&info)&&streamed_rgb==rgb,"installed streaming calibrated pixels");
+#endif
         Display display;gpr_preview_queue *created_queue=nullptr;
         gpr_preview_queue_config queue_config={payload.size(),expected.size(),Display::accept,&display,1};
         check(!gpr_preview_queue_create(&queue_config,&created_queue),"installed preview queue create");

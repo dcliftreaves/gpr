@@ -574,3 +574,11 @@ The [boundary/input-gate continuation](stock-sr-historical-boundary.md) adds 104
 The [calibrated mixed-camera continuation](stock-sr-calibrated-mixed.md) recovers archived per-frame camera metadata and audits 1,088 actual-stock patch pairs. A concrete CLI parameter-import failure on 65x65 gain maps is corrected and verified on Mac/Pi. Four training cases complete 3,200 updates; all eight checkpoints fail Nikon shadow guards, so model/backend quality status remains unchanged.
 
 The [sensor-gate and frozen-cascade follow-ups](stock-cnn-followups.md) complete the bounded comparisons without a replacement: 18 patch settings, 20 full gate outputs, ten complete cascade outputs and actual rendered comparisons. The only gate survivor is worse than supplied BIBO in pooled RGB; the cascade improves rendered Nikon fidelity but regresses every camera validation image. No thresholds or failed guards are relaxed. A separate [JSON boundary correction](stock-sdk-parameter-json.md) fixes the specific new hosted parameter-import failure, with fresh focused Mac/Pi passes.
+
+The optional [streaming encoder-derived preview](stock-wavelet-stream-prototype.md)
+now consumes bounded wavelet rows through public encoder/capture/preview APIs.
+Both new native-input Pi runs record and preview all 600 frames with exact
+payloads and calibrated pixels. They reach 19.9965/19.9980 durable fps, with
+171/47 late previews, so the strict 20 fps deadline gate remains open. Fresh
+Mac/Pi contracts and four relocated Mac package profiles pass; hosted results
+must be evaluated at the delivered revision.

@@ -20,6 +20,7 @@ int main(void) {
     if (gpr_capture_create(NULL,NULL,&capture)!=GPR_CAPTURE_INVALID || capture!=NULL) return 1;
     if (gpr_capture_create_with_observer(NULL,NULL,NULL,NULL,&capture)!=GPR_CAPTURE_INVALID || capture!=NULL) return 9;
     if (gpr_capture_create_with_encoder_preview(NULL,NULL,NULL,NULL,NULL,NULL,&capture)!=GPR_CAPTURE_INVALID || capture!=NULL) return 10;
+    if (gpr_capture_create_with_encoder_rows(NULL,NULL,NULL,NULL,NULL,NULL,&capture)!=GPR_CAPTURE_INVALID || capture!=NULL) return 11;
     if (gpr_capture_flush(NULL)!=GPR_CAPTURE_INVALID || gpr_capture_finish(NULL)!=GPR_CAPTURE_INVALID) return 2;
     if (gpr_capture_get_stats(NULL,NULL)!=GPR_CAPTURE_INVALID) return 3;
     if (gpr_gvid_crc32(0,"123456789",9)!=0xcbf43926u) return 4;

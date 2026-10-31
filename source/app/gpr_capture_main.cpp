@@ -2,6 +2,7 @@
 #include "gpr_capture.h"
 #if GPR_CAPTURE_HAS_PREVIEW
 #include "gpr_preview_queue.h"
+#include "gpr_preview_stream.h"
 #include "vc5_decoder.h"
 #endif
 #include <atomic>
@@ -99,6 +100,7 @@ struct Output {
     uint64_t preview_setup_ns=0;
     int preview_offer_error=0;
     bool preview_from_encoder=false;
+    std::unique_ptr<gpr_preview_stream,decltype(&gpr_preview_stream_destroy)> stream{nullptr,gpr_preview_stream_destroy};
     bool preview_sync_stages=false;
     uint64_t preview_flush_ns=0;
     gpr_rgb_buffer reconstructed[3]={};
@@ -169,11 +171,18 @@ struct Output {
         if (frame->index>=out.source_count) {out.preview_offer_error=GPR_PREVIEW_INVALID;return;}
         uint32_t source=out.source_for_frame[frame->index].load(std::memory_order_acquire);
         if (out.preview_from_encoder) {
-            gpr_preview_wavelet_planes planes={};planes.width=out.reconstructed[0].width;planes.height=out.reconstructed[0].height;
-            for (unsigned c=0;c<3;++c) {planes.samples[c]=static_cast<const int16_t *>(out.reconstructed[c].buffer);planes.sample_count[c]=out.reconstructed[c].size/2;}
+            gpr_preview_wavelet_planes planes={};
+            if (out.stream) {
+                out.preview_offer_error=gpr_preview_stream_finish(out.stream.get(),&planes);
+                if (out.preview_offer_error) return;
+            } else {
+                planes.width=out.reconstructed[0].width;planes.height=out.reconstructed[0].height;
+                for (unsigned c=0;c<3;++c) {planes.samples[c]=static_cast<const int16_t *>(out.reconstructed[c].buffer);planes.sample_count[c]=out.reconstructed[c].size/2;}
+            }
             out.preview_offer_error=gpr_preview_queue_offer_wavelets(out.preview.get(),out.plans[source].get(),frame->index,
                 frame->timestamp_ns,&planes,gpr_gvid_crc32(0,frame->payload,frame->payload_size));
             out.release_planes();
+            if (out.stream) gpr_preview_stream_reset(out.stream.get());
         } else out.preview_offer_error=gpr_preview_queue_offer(out.preview.get(),out.plans[source].get(),frame->index,
             frame->timestamp_ns,frame->payload,frame->payload_size);
 #else
@@ -189,6 +198,17 @@ struct Output {
         out.preview_flush_ns+=now_ns()-begin;
 #else
         (void)user;(void)index;
+#endif
+    }
+    static void rows(void *user,uint64_t index,uint64_t timestamp,const vc5_preview_row *row) {
+#if GPR_CAPTURE_HAS_PREVIEW
+        auto &out=*static_cast<Output *>(user);(void)timestamp;
+        if (!out.preview || out.preview_offer_error || index%out.preview_every) return;
+        // Errors latch in the stream atomically. Aggregate only after the
+        // encoder joins channel workers; never race on preview_offer_error.
+        gpr_preview_stream_push(out.stream.get(),row);
+#else
+        (void)user;(void)index;(void)timestamp;(void)row;
 #endif
     }
     static void coefficients(void *user,uint64_t index,uint64_t timestamp,const vc5_preview_coefficients *view) {
@@ -240,7 +260,7 @@ int main(int argc,char **argv) {
         cfg.metadata="{\"source_kind\":\"raw_fixture_replay\",\"calibration\":\"external_required\"}";
         cfg.metadata_size=std::strlen(static_cast<const char *>(cfg.metadata));
         uint32_t attempts=120,timeout=0;
-        bool paced=false,leased=false,preview_from_encoder=false,preview_sync_stages=false; Output output;
+        bool paced=false,leased=false,preview_from_encoder=false,preview_streamed=false,preview_sync_stages=false; Output output;
         std::string path; std::vector<std::string> inputs,metadata_paths,source_metadata;
         std::vector<std::string> preview_profiles;uint32_t preview_every=3,preview_delay=0,preview_fail_after=0;bool preview_option=false,preview_background=true;
         for (int a=1;a<argc;++a) {
@@ -257,6 +277,7 @@ int main(int argc,char **argv) {
                     "  [--preview-fail-after 0] (nonzero simulates failure after N accepted images)\n"
                     "  [--preview-foreground] (default is best-effort background priority)\n";
                 std::cout<<"  [--preview-from-encoder] (quarter-scale retained-band preview)\n";
+                std::cout<<"  [--preview-streamed] (quarter-scale bounded streaming preview)\n";
                 std::cout<<"  [--preview-sync-stages] (wait for display before the next encode; same pixels)\n";
 #endif
                 return 0;
@@ -266,6 +287,7 @@ int main(int argc,char **argv) {
             if (k=="--fsync-each") { output.sync_each=true; continue; }
             if (k=="--preview-foreground") {preview_background=false;preview_option=true;continue;}
             if (k=="--preview-from-encoder") {preview_from_encoder=true;preview_option=true;continue;}
+            if (k=="--preview-streamed") {preview_from_encoder=true;preview_streamed=true;preview_option=true;continue;}
             if (k=="--preview-sync-stages") {preview_sync_stages=true;preview_option=true;continue;}
             if (++a==argc) throw std::runtime_error("missing argument: "+k);
             std::string v=argv[a];
@@ -342,7 +364,12 @@ int main(int argc,char **argv) {
             output.preview_every=preview_every;output.preview_delay_ms=preview_delay;output.preview_fail_after=preview_fail_after;output.source_count=attempts;
             output.preview_from_encoder=preview_from_encoder;
             output.preview_sync_stages=preview_sync_stages;
-            if (preview_from_encoder) {
+            if (preview_streamed) {
+                gpr_preview_stream *stream=nullptr;
+                if (gpr_preview_stream_create(cfg.video.width,cfg.video.height,size_t(128)*1024*1024,&stream))
+                    throw std::runtime_error("streaming preview geometry/capacity rejected");
+                output.stream.reset(stream);
+            } else if (preview_from_encoder) {
                 size_t pixels=size_t((cfg.video.width+3)/4)*((cfg.video.height+3)/4);
                 if (pixels>(size_t(64)*1024*1024-1024*1024)/16) throw std::runtime_error("encoder preview scratch exceeds per-channel 64 MiB limit");
                 for (auto &arena:output.reconstruction) arena.bytes.resize(pixels*16+1024*1024,0);
@@ -365,8 +392,11 @@ int main(int argc,char **argv) {
         if (output.fd<0) throw std::runtime_error("cannot create new output file");
         gpr_capture_callbacks callbacks={Output::write,Output::complete,&output};
         uint64_t setup_begin=now_ns(); gpr_capture *created=nullptr;
-        if (gpr_capture_create_with_encoder_preview(&cfg,&callbacks,Output::encoded,&output,
-            preview_from_encoder ? Output::coefficients:nullptr,&output,&created)) throw std::runtime_error("capture create failed");
+        int create_error=preview_streamed ?
+            gpr_capture_create_with_encoder_rows(&cfg,&callbacks,Output::encoded,&output,Output::rows,&output,&created):
+            gpr_capture_create_with_encoder_preview(&cfg,&callbacks,Output::encoded,&output,
+                preview_from_encoder ? Output::coefficients:nullptr,&output,&created);
+        if (create_error) throw std::runtime_error("capture create failed");
         std::unique_ptr<gpr_capture,decltype(&gpr_capture_destroy)> capture(created,gpr_capture_destroy);
 #if GPR_CAPTURE_HAS_PREVIEW
         output.capture=created;PreviewBeforeCaptureDestruction preview_guard{output};
@@ -436,6 +466,8 @@ int main(int argc,char **argv) {
             }
             std::cout<<"{\"event\":\"preview_summary\",\"schema\":\"gpr.capture_preview.v1\",\"sink\":\"memory_crc\""
                 <<",\"pipeline\":\""<<(preview_from_encoder ? "encoder_wavelets":"compressed")<<"\""
+                <<",\"streamed_inverse\":"<<(preview_streamed ? "true":"false")
+                <<",\"stream_buffer_bytes\":"<<gpr_preview_stream_buffer_bytes(output.stream.get())
                 <<",\"reconstruction_scratch_bytes\":"<<(output.reconstruction[0].bytes.size()+output.reconstruction[1].bytes.size()+output.reconstruction[2].bytes.size())
                 <<",\"reconstruction_scratch_peak_bytes\":"<<(output.reconstruction[0].peak+output.reconstruction[1].peak+output.reconstruction[2].peak)
                 <<",\"every\":"<<preview_every<<",\"sink_delay_ms\":"<<preview_delay<<",\"offered\":"<<state.offered

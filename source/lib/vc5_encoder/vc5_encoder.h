@@ -125,6 +125,17 @@
         const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
         vc5_encoder_preview_fn preview,void *user);
 
+    /* Same validation/normalization and payload as process. Rows are borrowed
+     * until callback return. Different channels may call concurrently; each
+     * channel's levels are delivered serially in forward-pipeline order.
+     * Runs under the encoder lock: no reentrant encoding or exceptions across C.
+     * No callback occurs after return. On encoding failure discard any partial
+     * preview; observation does not imply payload recording or durability.
+     * NULL preserves ordinary encoding behavior and memory requirements. */
+    CODEC_ERROR vc5_encoder_process_with_preview_rows(const vc5_encoder_parameters *parameters,
+        const gpr_buffer *raw,gpr_buffer *vc5,gpr_rgb_buffer *rgb,
+        vc5_encoder_preview_row_fn rows,void *user);
+
 #ifdef __cplusplus
     }
 #endif

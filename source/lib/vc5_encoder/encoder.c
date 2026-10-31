@@ -1375,6 +1375,7 @@ static void TransformVertical(RECURSIVE_TRANSFORM_DATA *data, int row, int mode)
                 !encoder->retain_preview_bands ? 0:(size_t)(row/2)*data->output_pitch;
             view.bands[band]=(const PIXEL *)((const uint8_t *)data->output_ptr[band]+offset);
             view.quant[band]=wavelet->quant[band];
+            view.band_samples[band]=view.width;
         }
         encoder->preview_row_observer(encoder->preview_row_user,&view);
     }

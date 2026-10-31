@@ -71,6 +71,8 @@ struct gpr_capture {
     void *encoded_user=nullptr;
     gpr_capture_preview_fn preview=nullptr;
     void *preview_user=nullptr;
+    gpr_capture_preview_row_fn preview_rows=nullptr;
+    void *preview_row_user=nullptr;
     gpr_capture_encoder_wait_fn encoder_wait=nullptr;
     void *encoder_wait_user=nullptr;
     bool encoder_wait_active=false;
@@ -78,6 +80,12 @@ struct gpr_capture {
     static void coefficients(void *user,const vc5_preview_coefficients *view) noexcept {
         auto &context=*static_cast<PreviewContext *>(user);
         try {context.capture->preview(context.capture->preview_user,context.slot->index,context.slot->timestamp,view);}
+        catch (...) {context.capture->fail(GPR_CAPTURE_NOMEM);}
+    }
+    static void row_coefficients(void *user,const vc5_preview_row *row) noexcept {
+        auto &context=*static_cast<PreviewContext *>(user);
+        try {context.capture->preview_rows(context.capture->preview_row_user,
+            context.slot->index,context.slot->timestamp,row);}
         catch (...) {context.capture->fail(GPR_CAPTURE_NOMEM);}
     }
     std::vector<uint8_t> metadata;
@@ -158,7 +166,9 @@ struct gpr_capture {
                 auto start=Clock::now();
                 CODEC_ERROR error;
                 PreviewContext context={this,&slot};
-                error=vc5_encoder_process_with_preview(&p,&input,&compressed,nullptr,
+                if (preview_rows) error=vc5_encoder_process_with_preview_rows(&p,&input,
+                    &compressed,nullptr,row_coefficients,&context);
+                else error=vc5_encoder_process_with_preview(&p,&input,&compressed,nullptr,
                     preview ? coefficients:nullptr,&context);
                 slot.encode_ns=elapsed(start);
                 bool okay=!error && compressed.buffer && compressed.size && compressed.size<=slot.payload.size();
@@ -296,9 +306,10 @@ extern "C" int gpr_capture_create_with_observer(const gpr_capture_config *cfg,
     const gpr_capture_callbacks *cb,gpr_capture_encoded_fn encoded,void *encoded_user,gpr_capture **out) {
     return gpr_capture_create_with_encoder_preview(cfg,cb,encoded,encoded_user,nullptr,nullptr,out);
 }
-extern "C" int gpr_capture_create_with_encoder_preview(const gpr_capture_config *cfg,
+static int create_capture(const gpr_capture_config *cfg,
     const gpr_capture_callbacks *cb,gpr_capture_encoded_fn encoded,void *encoded_user,
-    gpr_capture_preview_fn preview,void *preview_user,gpr_capture **out) {
+    gpr_capture_preview_fn preview,void *preview_user,
+    gpr_capture_preview_row_fn rows,void *row_user,gpr_capture **out) {
     if (!out) return GPR_CAPTURE_INVALID;
     *out=nullptr;
     uint8_t header[64];
@@ -311,11 +322,22 @@ extern "C" int gpr_capture_create_with_encoder_preview(const gpr_capture_config 
         std::unique_ptr<gpr_capture> capture(new gpr_capture(*cfg,*cb));
         capture->encoded=encoded;capture->encoded_user=encoded_user;
         capture->preview=preview;capture->preview_user=preview_user;
+        capture->preview_rows=rows;capture->preview_row_user=row_user;
         capture->encoder=std::thread(&gpr_capture::encode_loop,capture.get());
         try { capture->writer=std::thread(&gpr_capture::write_loop,capture.get()); }
         catch (...) { capture->fail(GPR_CAPTURE_NOMEM); capture->encoder.join(); throw; }
         *out=capture.release(); return GPR_CAPTURE_OK;
     } catch (...) { return GPR_CAPTURE_NOMEM; }
+}
+extern "C" int gpr_capture_create_with_encoder_preview(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *cb,gpr_capture_encoded_fn encoded,void *encoded_user,
+    gpr_capture_preview_fn preview,void *preview_user,gpr_capture **out) {
+    return create_capture(cfg,cb,encoded,encoded_user,preview,preview_user,nullptr,nullptr,out);
+}
+extern "C" int gpr_capture_create_with_encoder_rows(const gpr_capture_config *cfg,
+    const gpr_capture_callbacks *cb,gpr_capture_encoded_fn encoded,void *encoded_user,
+    gpr_capture_preview_row_fn rows,void *row_user,gpr_capture **out) {
+    return create_capture(cfg,cb,encoded,encoded_user,nullptr,nullptr,rows,row_user,out);
 }
 extern "C" int gpr_capture_submit(gpr_capture *c,const gpr_capture_frame *frame,uint32_t timeout_ms) {
     if (!c || !frame || !frame->data || frame->metadata_size>GPR_GVID_METADATA_LIMIT ||

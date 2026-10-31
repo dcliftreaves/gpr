@@ -5,7 +5,7 @@ Audit date: 2026-10-31. The latest SDK CLI parameter-import correction is
 [run 41175893067](https://github.com/dcliftreaves/gpr/actions/runs/41175893067).
 The earlier `779bb47` source/evidence verification and shared Python GainMap
 simulation helper retain their focused Mac/Pi and real-camera receipts.
-New timing evidence below does not change encoder/capture source.
+The streaming-row integration below adds optional encoder/capture APIs and a bounded preview consumer; older timing evidence remains revision-bound.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
 is implemented in `f197f09`.
 Sources: the active goal, frozen runtime PR #95 (`8be29ee`), validation PR #96
@@ -311,3 +311,15 @@ the retained allocation extent. This narrows the material cost to retained-band
 processing rather than reservation alone. All 1,664 payloads and the 1,536
 actually reconstructed planes verify; no sustained capture test or timing
 gate closes, and production source/binary hashes are unchanged.
+
+## Streaming-row integration
+
+The [optional streaming preview](stock-wavelet-stream-prototype.md) is implemented,
+with new public row callbacks, a bounded inverse consumer and capture lifecycle
+integration. Fresh Release checks pass 29 Mac/23 SDK-less Pi CTests, eight frontend
+tests on each host and four relocated Mac package profiles. In the fixed native
+Pi ABBA comparison, both streamed runs record/preview all 600 frames exactly;
+controls record 548/599. The streamed runs retain 154/44 late writes and 171/47
+late previews at 19.9965/19.9980 durable fps. The strict combined gate remains
+open. No CNN weights or their quality scopes change. Hosted validation for this
+new source is pending publication; preceding ba2d89b passes all seven jobs.
