@@ -1,0 +1,22 @@
+[
+  {
+    "name": "mac-oracle-benchmark",
+    "command": [
+      "build/horizontal_inverse_test",
+      "--bench"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "mac-matrix",
+    "command": [
+      "ctest",
+      "--test-dir",
+      "build",
+      "--output-on-failure",
+      "-R",
+      "^(horizontal_inverse|encoder_preview_probe(_fast)?|encoder_preview_matrix(_fast)?)$"
+    ],
+    "returncode": 0
+  }
+]

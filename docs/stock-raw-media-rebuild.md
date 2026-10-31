@@ -548,3 +548,10 @@ without downsampling. Both fixed 600-attempt runs fail the combined floor:
 payloads, calibration and preview pixels remain exact. Earlier scoped FIFO
 passes do not establish timing for these inputs. All seven hosted jobs pass
 at source revision `3a52439`; this follow-up changes evidence, not runtime.
+
+A subsequent [explicit horizontal NEON comparison](stock-horizontal-inverse.md)
+is discarded after its 9.05% isolated Pi kernel gain fails to establish a
+consistent native-input combined recording/preview win. All 2,318 accepted
+comparison payloads and previews are exact; all four strict floors fail.
+Production source/binary remain unchanged. Hosted revision `9111564` now passes
+all seven jobs, with the full receipt archived in that follow-up.

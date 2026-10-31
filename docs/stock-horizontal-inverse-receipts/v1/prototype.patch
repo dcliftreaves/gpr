@@ -1,0 +1,67 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e304c73..3aacc8e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -358,6 +358,10 @@ if(GPR_BUILD_CODEC_TESTS)
+   add_executable(encoder_bounds_test tests/encoder_bounds.c)
+   target_link_libraries(encoder_bounds_test vc5_encoder)
+   add_executable(decoder_bounds_test tests/decoder_bounds.c)
++  add_executable(horizontal_inverse_test tests/horizontal_inverse_test.c)
++  target_link_libraries(horizontal_inverse_test vc5_decoder)
++  target_include_directories(horizontal_inverse_test PRIVATE source/lib/common/private)
++  add_test(NAME horizontal_inverse COMMAND horizontal_inverse_test)
+   add_executable(encoder_preview_probe tests/encoder_preview_probe.c)
+   target_link_libraries(encoder_preview_probe vc5_encoder vc5_decoder)
+   target_include_directories(encoder_preview_probe PRIVATE source/lib/common/private source/lib/vc5_encoder)
+diff --git a/source/lib/vc5_decoder/inverse.c b/source/lib/vc5_decoder/inverse.c
+index fcb58e6..aa2a991 100755
+--- a/source/lib/vc5_decoder/inverse.c
++++ b/source/lib/vc5_decoder/inverse.c
+@@ -17,6 +17,9 @@
+  */
+ 
+ #include "headers.h"
++#if defined(__aarch64__) && NEON
++#include <arm_neon.h>
++#endif
+ 
+ //! Rounding adjustment used by the inverse wavelet transforms
+ static const int32_t rounding = 4;
+@@ -246,6 +249,37 @@ STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, P
+     column++;
+     
+     // Process the rest of the columns up to the last column in the row
++#if defined(__aarch64__) && NEON
++    // Eight independent input positions produce sixteen interleaved outputs.
++    // Keep both halves in registers, preserving the scalar intermediate width,
++    // arithmetic rounding shifts and final signed saturation. Source rows are
++    // decoder scratch, separate from the output, and need only PIXEL alignment.
++    for (; column + 7 < last_column; column += 8) {
++        int16x8_t left = vld1q_s16(lowpass + column - 1);
++        int16x8_t right = vld1q_s16(lowpass + column + 1);
++        int16x8_t middle = vld1q_s16(lowpass + column);
++        int16x8_t detail = vld1q_s16(highpass + column);
++        int32x4_t delta0 = vsubl_s16(vget_low_s16(left), vget_low_s16(right));
++        int32x4_t delta1 = vsubl_s16(vget_high_s16(left), vget_high_s16(right));
++        int32x4_t center0 = vmovl_s16(vget_low_s16(middle));
++        int32x4_t center1 = vmovl_s16(vget_high_s16(middle));
++        int32x4_t detail0 = vmovl_s16(vget_low_s16(detail));
++        int32x4_t detail1 = vmovl_s16(vget_high_s16(detail));
++        int32x4_t bias = vdupq_n_s32(4);
++        int32x4_t even0 = vaddq_s32(vshrq_n_s32(vaddq_s32(delta0, bias), 3), vaddq_s32(center0, detail0));
++        int32x4_t even1 = vaddq_s32(vshrq_n_s32(vaddq_s32(delta1, bias), 3), vaddq_s32(center1, detail1));
++        int32x4_t odd0 = vaddq_s32(vshrq_n_s32(vsubq_s32(bias, delta0), 3), vsubq_s32(center0, detail0));
++        int32x4_t odd1 = vaddq_s32(vshrq_n_s32(vsubq_s32(bias, delta1), 3), vsubq_s32(center1, detail1));
++        if (descale_shift) {
++            even0 = vshlq_n_s32(even0, 1); even1 = vshlq_n_s32(even1, 1);
++            odd0 = vshlq_n_s32(odd0, 1); odd1 = vshlq_n_s32(odd1, 1);
++        }
++        int16x8x2_t pair;
++        pair.val[0] = vcombine_s16(vqmovn_s32(even0), vqmovn_s32(even1));
++        pair.val[1] = vcombine_s16(vqmovn_s32(odd0), vqmovn_s32(odd1));
++        vst2q_s16(output + 2 * column, pair);
++    }
++#endif
+     for (; column < last_column; column++)
+     {
+         int32_t even = 0;        // Result of convolution with even filter

@@ -129,3 +129,8 @@ Actual RAWs, source metadata and GVID media remain external under
 locally. Public receipts contain numeric events, code and hashes, without the
 photos or full source metadata. The [earlier scheduling study](stock-process-scheduling.md)
 retains its scoped passes and failures separately.
+
+The subsequent [horizontal inverse SIMD experiment](stock-horizontal-inverse.md)
+passes its independent oracle and improves the isolated Pi kernel by 9.05%,
+but its native-input combined ABBA comparison remains inconsistent and fails
+all four strict floors. The proposal is discarded; production stays unchanged.

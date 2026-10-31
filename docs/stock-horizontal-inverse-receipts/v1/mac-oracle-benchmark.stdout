@@ -1,0 +1,9 @@
+{"event":"oracle","cases":6000,"output_samples":6123184,"passed":true}
+{"event":"benchmark","run":0,"candidate":false,"seconds":0.015471000,"rows":153600,"checksum":5024150513}
+{"event":"benchmark","run":1,"candidate":true,"seconds":0.013003000,"rows":153600,"checksum":10048301026}
+{"event":"benchmark","run":2,"candidate":true,"seconds":0.012765000,"rows":153600,"checksum":15072451539}
+{"event":"benchmark","run":3,"candidate":false,"seconds":0.015433000,"rows":153600,"checksum":20096602052}
+{"event":"benchmark","run":4,"candidate":true,"seconds":0.013112000,"rows":153600,"checksum":25120752565}
+{"event":"benchmark","run":5,"candidate":false,"seconds":0.015502000,"rows":153600,"checksum":30144903078}
+{"event":"benchmark","run":6,"candidate":false,"seconds":0.015424000,"rows":153600,"checksum":35169053591}
+{"event":"benchmark","run":7,"candidate":true,"seconds":0.012847000,"rows":153600,"checksum":40193204104}

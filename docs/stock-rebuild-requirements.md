@@ -1,8 +1,8 @@
 # Stock rebuild requirement ledger
 
 Audit date: 2026-10-30. Implementation source inspected: `f197f09`; prior hosted revision `7f9215e`.
-Published source verification: `3a52439` (all seven hosted jobs pass in
-[run 41162090861](https://github.com/dcliftreaves/gpr/actions/runs/41162090861)).
+Published source/evidence verification: `9111564` (all seven hosted jobs pass in
+[run 41163202174](https://github.com/dcliftreaves/gpr/actions/runs/41163202174)).
 The shared Python GainMap simulation helper also has focused Mac/Pi and real-camera receipts.
 New timing evidence below does not change production source.
 Encoder/reconstruction core remains `f1e08c8`; bounded preview-plane spacing
@@ -249,3 +249,10 @@ weights are not a drop-in stock substitute. [Mission 1 source grouping](stock-sr
 binds 42 cached RAW references and a conservative future scene split; original
 GPRs are unavailable for fresh redecoding and per-frame calibration remains to
 bind before new training claims. The old PRs remain untouched.
+
+The [horizontal inverse SIMD follow-up](stock-horizontal-inverse.md) retains
+a new actual-input user-cycle profile and two exact SIMD proposals. Rounded
+shift-and-accumulate improves the isolated Pi helper by 9.05%, but native
+combined ABBA remains inconsistent and every run fails the strict floor. The
+proposal is discarded; production hashes are unchanged. This is evidence for
+further combined-path investigation, not a new runtime optimization or closure.

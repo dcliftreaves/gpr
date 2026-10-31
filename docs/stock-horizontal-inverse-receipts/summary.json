@@ -1,0 +1,26 @@
+{
+  "schema": "gpr.stock_horizontal_inverse_decision.v1",
+  "decision": "discard_runtime_proposal",
+  "reason": "V2 isolated horizontal kernel improves, but native combined ABBA fails every strict floor and does not establish consistent workflow improvement",
+  "baseline_revision": "9111564e4e0fa321ee485ca7be4e92476ce1a340",
+  "isolated": [
+    {
+      "revision": "v1",
+      "baseline_median_seconds": 0.0993700615,
+      "candidate_median_seconds": 0.1069093785,
+      "candidate_change_percent": 7.5871111340713115
+    },
+    {
+      "revision": "v2",
+      "baseline_median_seconds": 0.09943099350000001,
+      "candidate_median_seconds": 0.0904337355,
+      "candidate_change_percent": -9.048745952639015
+    }
+  ],
+  "combined_frames_verified": 2318,
+  "combined_previews_verified": 2318,
+  "diagnostic_frames_verified": 113,
+  "production_source_changed": false,
+  "production_binary_changed": false,
+  "source_scope": "Two archived experimental revisions; source tests/matrix belong to these proposals, not newly registered production tests"
+}

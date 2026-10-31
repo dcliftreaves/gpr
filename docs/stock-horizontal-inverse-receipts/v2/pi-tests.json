@@ -1,0 +1,25 @@
+[
+  {
+    "name": "pi-oracle-benchmark",
+    "command": [
+      "taskset",
+      "-c",
+      "1",
+      "/mnt/ssd/gpr_work/stock-horizontal-inverse-20261030/build/horizontal_inverse_test",
+      "--bench"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "pi-matrix",
+    "command": [
+      "ctest",
+      "--test-dir",
+      "/mnt/ssd/gpr_work/stock-horizontal-inverse-20261030/build",
+      "--output-on-failure",
+      "-R",
+      "^(horizontal_inverse|encoder_preview_probe(_fast)?|encoder_preview_matrix(_fast)?)$"
+    ],
+    "returncode": 0
+  }
+]

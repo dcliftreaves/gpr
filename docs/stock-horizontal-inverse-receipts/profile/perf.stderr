@@ -1,0 +1,2 @@
+[ perf record: Woken up 201 times to write data ]
+[ perf record: Captured and wrote 81.551 MB /mnt/ssd/gpr_work/stock-native12-profile-20261030/perf.data (9995 samples) ]
