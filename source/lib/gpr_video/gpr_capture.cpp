@@ -104,12 +104,8 @@ struct gpr_capture {
         : cfg(config), callbacks(cb), slots(config.max_inflight), workspace(config.workspace_bytes) {
         if (config.metadata_size) metadata.assign(static_cast<const uint8_t *>(config.metadata),
                     static_cast<const uint8_t *>(config.metadata)+config.metadata_size);
-        size_t raw_size = size_t(cfg.video.width)*cfg.video.height*2;
-        size_t payload_bound = raw_size+raw_size/2+1024*1024;
         available.reserve(slots.size()); raw_queue.reserve(slots.size()); encoded_queue.reserve(slots.size());
         for (size_t i=0; i<slots.size(); ++i) {
-            slots[i].raw.resize(raw_size);
-            slots[i].payload.resize(payload_bound);
             slots[i].metadata.reserve(GPR_GVID_METADATA_LIMIT);
             available.push_back(i);
         }
@@ -162,7 +158,9 @@ struct gpr_capture {
                     index=raw_queue.front(); raw_queue.erase(raw_queue.begin()); owned=index;
                 }
                 Slot &slot=slots[index];
-                gpr_buffer input={const_cast<uint8_t *>(slot.input),slot.raw.size()}, compressed={nullptr,0};
+                size_t raw_size=size_t(cfg.video.width)*cfg.video.height*2;
+                size_t payload_bound=raw_size+raw_size/2+1024*1024;
+                gpr_buffer input={const_cast<uint8_t *>(slot.input),raw_size}, compressed={nullptr,0};
                 auto start=Clock::now();
                 CODEC_ERROR error;
                 PreviewContext context={this,&slot};
@@ -170,13 +168,23 @@ struct gpr_capture {
                     &compressed,nullptr,row_coefficients,&context);
                 else error=vc5_encoder_process_with_preview(&p,&input,&compressed,nullptr,
                     preview ? coefficients:nullptr,&context);
+                // Keep codec output owned even if allocating the queued copy
+                // throws. It must be freed before resetting the codec arena.
+                std::unique_ptr<void,decltype(p.mem_free)> output(compressed.buffer,p.mem_free);
                 slot.encode_ns=elapsed(start);
-                bool okay=!error && compressed.buffer && compressed.size && compressed.size<=slot.payload.size();
+                bool okay=!error && compressed.buffer && compressed.size && compressed.size<=payload_bound;
                 if (okay) {
+                    // Allocate the actual payload, retaining the largest seen
+                    // capacity for reuse. Exact growth avoids vector's geometric
+                    // expansion beyond the checked per-frame upper bound.
+                    if (compressed.size>slot.payload.size()) {
+                        std::vector<uint8_t> grown(compressed.size);
+                        slot.payload.swap(grown);
+                    }
                     slot.payload_size=compressed.size;
                     std::memcpy(slot.payload.data(),compressed.buffer,compressed.size);
                 }
-                p.mem_free(compressed.buffer);
+                output.reset();
                 workspace.reset();
                 release_input(slot);
                 if (okay && encoded) {
@@ -362,13 +370,18 @@ extern "C" int gpr_capture_submit(gpr_capture *c,const gpr_capture_frame *frame,
         c->stats.submit_wait_ns+=elapsed(wait_begin);
         if (c->stats.error) return c->stats.error;
         if (c->closing) return GPR_CAPTURE_CLOSED;
-        size_t index=c->available.back(); c->available.pop_back();
+        size_t index=c->available.back();
+        Slot &slot=c->slots[index];
+        size_t row_bytes=size_t(c->cfg.video.width)*2;
+        // Allocate before accepting ownership: allocation failure must not
+        // consume a slot or invoke the rejected caller's lease callback.
+        if (!frame->release) slot.raw.resize(row_bytes*c->cfg.video.height);
+        else std::vector<uint8_t>().swap(slot.raw);
+        c->available.pop_back();
         ++c->stats.inflight;
         c->stats.inflight_high_water=std::max(c->stats.inflight_high_water,c->stats.inflight);
-        Slot &slot=c->slots[index];
-        // Copy under the mutex: fixed memory, no allocations, cancel/finish
+        // Copy under the mutex: cancel/finish
         // observe a completely owned frame. Storage callbacks never hold it.
-        size_t row_bytes=size_t(c->cfg.video.width)*2;
         const uint8_t *source=static_cast<const uint8_t *>(frame->data);
         if (frame->release) slot.input=source;
         else {

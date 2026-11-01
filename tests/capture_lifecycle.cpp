@@ -214,7 +214,9 @@ static void leased_inputs() {
     {
         auto cfg=config(); cfg.stride_bytes=256;
         Sink sink; Capture c(cfg,sink); Lease lease;
-        auto padded=image(6); std::vector<uint8_t> packed(128*96*2);
+        // Model a six-row bottom crop leased from the original sensor buffer:
+        // configured geometry covers the prefix, without a repacking copy.
+        auto padded=image(6); std::vector<uint8_t> packed(128*(96+6)*2,0xff);
         for (unsigned y=0;y<96;++y) std::memcpy(packed.data()+y*256,padded.data()+y*272,256);
         auto f=frame(packed,0); f.release=Lease::release; f.release_user=&lease;
         check(!gpr_capture_submit(c.p,&f,0),"successful lease submit"); lease.wait();
@@ -239,6 +241,31 @@ static void leased_inputs() {
     check(first.worker==second.worker && first.worker!=std::this_thread::get_id(),"lease release thread");
     gpr_capture_stats stats={}; gpr_capture_get_stats(c.p,&stats);
     check(stats.inflight==0 && stats.discarded==2,"lease cancel accounting");
+}
+static void alternating_slot_ownership() {
+    auto cfg=config(1);cfg.stride_bytes=256;
+    Sink sink;Capture capture(cfg,sink);
+    std::vector<std::vector<uint8_t>> expected;
+    Lease lease;
+    for (unsigned i=0;i<4;++i) {
+        auto padded=image(i+20);
+        std::vector<uint8_t> packed(128*96*2);
+        for (unsigned y=0;y<96;++y)
+            std::memcpy(packed.data()+y*256,padded.data()+y*272,256);
+        // Start with a short payload, then exercise actual-size growth and
+        // reuse while the same slot alternates between copy and lease input.
+        if (!i) {std::fill(packed.begin(),packed.end(),0);std::fill(padded.begin(),padded.end(),0);}
+        expected.push_back(reference(padded));
+        auto f=frame(packed,i);
+        if (i%2) {f.release=Lease::release;f.release_user=&lease;}
+        check(!gpr_capture_submit(capture.p,&f,UINT32_MAX),"alternating input submit");
+        if (!(i%2)) std::fill(packed.begin(),packed.end(),0);
+        check(!gpr_capture_flush(capture.p),"alternating input flush");
+    }
+    check(!gpr_capture_finish(capture.p),"alternating input finish");
+    check(lease.releases==2,"alternating input lease release count");
+    check(expected[0].size()<expected[1].size(),"payload growth not exercised");
+    validate(sink,expected);
 }
 static void observer_lifetime() {
     Sink sink;sink.block_observer=true;
@@ -330,7 +357,7 @@ int main(int argc,char **argv) {
             setenv(flag,"1",1);
 #endif
         }
-        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); observer_lifetime(); formats();encoder_wait_barrier();
+        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); alternating_slot_ownership(); observer_lifetime(); formats();encoder_wait_barrier();
         std::cout<<"PASS: bounded capture, copy/lease ownership, padded stride, timestamps, stock payloads, flush/finish, writer failures, cancellation, concurrent SDK/capture\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }
