@@ -30,6 +30,10 @@ def parse(data):
 
 
 class Container(unittest.TestCase):
+    def test_v2_geometry_limits_remain_unchanged(self):
+        for w,h in ((11664,8750),(50,50),(8192,6152)):
+            data=bytearray(clip());struct.pack_into('<II',data,12,w,h)
+            with self.subTest(width=w,height=h),self.assertRaises(ValueError):parse(data)
     def test_roundtrip(self):
         self.assertEqual(parse(clip()), [(0, 0, b"test")])
 

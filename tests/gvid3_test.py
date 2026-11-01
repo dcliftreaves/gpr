@@ -42,6 +42,19 @@ def parse(data, recover=False):
 
 
 class V3(unittest.TestCase):
+    def test_native_bayer_geometry_and_limits(self):
+        for w,h,okay in ((11664,8750,True),(11656,8742,True),(50,50,True),
+                         (16384,8192,True),(16384,8194,False),(16386,48,False),
+                         (48,16386,False),(11665,8750,False),(0,48,False)):
+            data=bytearray(fixture())
+            struct.pack_into('<II',data,12,w,h)
+            struct.pack_into('<I',data,56,zlib.crc32(data[:56]))
+            with self.subTest(width=w,height=h):
+                if okay:
+                    header=video.read_header(io.BytesIO(data))
+                    self.assertEqual((header['width'],header['height']),(w,h))
+                else:
+                    with self.assertRaises(ValueError):video.read_header(io.BytesIO(data))
     def test_metadata_requires_unambiguous_finite_json_object(self):
         for metadata in (b'{"a":NaN}', b'{"a":1e999}', b'{"a":1,"a":2}', b'[]', b'{"a":"\xff"}'):
             with self.subTest(metadata=metadata), self.assertRaises(ValueError):

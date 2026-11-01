@@ -66,7 +66,8 @@ static int metadata_valid(const void *data, size_t size) {
 int gpr_gvid_write_header(uint8_t out[64], const gpr_gvid_config *cfg,
                           const void *metadata, size_t size) {
     if (!out || !cfg || !metadata_valid(metadata, size) || !cfg->width || !cfg->height ||
-        cfg->width > 8192 || cfg->height > 6144 || cfg->width % 8 || cfg->height % 8 ||
+        cfg->width > GPR_GVID_MAX_DIMENSION || cfg->height > GPR_GVID_MAX_DIMENSION ||
+        (uint64_t)cfg->width*cfg->height > GPR_GVID_MAX_PIXELS || cfg->width % 2 || cfg->height % 2 ||
         !cfg->fps_num || !cfg->fps_den || cfg->fps_num > 240000 || cfg->fps_den > 10000 ||
         (uint64_t)cfg->fps_num > 240ULL * cfg->fps_den || cfg->quality > 5 ||
         (cfg->sample_bits != 12 && cfg->sample_bits != 14 && cfg->sample_bits != 16) ||

@@ -37,7 +37,10 @@ def read_header(f):
         raise ValueError("unsupported GVID profile (requires stock VC-5 v2/v3)")
     if version == 2 and (bayer, bits, fs, reserved) != (b"RGGB", 14, 32, bytes(20)):
         raise ValueError("unsupported GVID v2 profile")
-    if not (0 < w <= 8192 and 0 < h <= 6144 and w % 8 == h % 8 == 0
+    geometry = (0 < w <= 16384 and 0 < h <= 16384 and w*h <= 128*1024*1024 and w % 2 == h % 2 == 0)
+    if version == 2:
+        geometry = (0 < w <= 8192 and 0 < h <= 6144 and w % 8 == h % 8 == 0)
+    if not (geometry
             and 0 < num <= 240000 and 0 < den <= 10000 and num <= 240 * den and 0 <= q <= 5):
         raise ValueError("invalid clip dimensions, frame rate or quality")
     if version == 2 and (den != 1 or num > 240):

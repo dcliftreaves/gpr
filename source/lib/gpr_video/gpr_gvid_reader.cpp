@@ -46,6 +46,7 @@ struct gpr_gvid_reader {
         v.quality=uint32_t(le(h+28,4)); std::memcpy(v.cfa,h+32,4); v.sample_bits=uint32_t(le(h+36,4));
         uint8_t check[64]; require(!gpr_gvid_write_header(check,&v,nullptr,0));
         if (info.version==2) {
+            require(v.width<=8192 && v.height<=6144 && !(v.width%8) && !(v.height%8));
             require(!std::memcmp(v.cfa,"RGGB",4) && v.sample_bits==14 && v.fps_den==1 &&
                     v.fps_num<=240 && le(h+40,4)==32);
             for (unsigned i=44;i<64;++i) require(h[i]==0);
