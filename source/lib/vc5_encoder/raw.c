@@ -270,29 +270,29 @@ void UnpackImage_14(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_P
 /** ------------------- **/
 
 #if ENABLED(NEON)
-static inline uint16x4_t GatherChannel4(const uint16_t *row)
+static inline uint16x4_t GatherChannel4(const uint16_t *row, unsigned shift)
 {
-    uint64_t packed = (uint64_t)EncoderLogCurve[row[0] >> 2] |
-        ((uint64_t)EncoderLogCurve[row[2] >> 2] << 16) |
-        ((uint64_t)EncoderLogCurve[row[4] >> 2] << 32) |
-        ((uint64_t)EncoderLogCurve[row[6] >> 2] << 48);
+    uint64_t packed = (uint64_t)EncoderLogCurve[row[0] >> shift] |
+        ((uint64_t)EncoderLogCurve[row[2] >> shift] << 16) |
+        ((uint64_t)EncoderLogCurve[row[4] >> shift] << 32) |
+        ((uint64_t)EncoderLogCurve[row[6] >> shift] << 48);
     return vcreate_u16(packed);
 }
 
-static inline void UnpackChannel14Impl(const uint16_t *row1, const uint16_t *row2,
-    PIXEL *output, int width, int channel)
+static inline void UnpackChannelWordImpl(const uint16_t *row1, const uint16_t *row2,
+    PIXEL *output, int width, int channel, unsigned shift)
 {
     const int16x4_t midpoint = vdup_n_s16(4096);
     for (int x = 0; x < width; x += 4) {
-        int16x4_t g1 = vreinterpret_s16_u16(GatherChannel4(row1 + 2*x + 1));
-        int16x4_t g2 = vreinterpret_s16_u16(GatherChannel4(row2 + 2*x));
+        int16x4_t g1 = vreinterpret_s16_u16(GatherChannel4(row1 + 2*x + 1,shift));
+        int16x4_t g2 = vreinterpret_s16_u16(GatherChannel4(row2 + 2*x,shift));
         int16x4_t gs = vhadd_s16(g1, g2);
         int16x4_t value;
         if (channel == 0) value = gs;
         else if (channel == 3) value = vhadd_s16(vsub_s16(g1, g2), midpoint);
         else {
             int16x4_t color = vreinterpret_s16_u16(GatherChannel4(
-                channel == 1 ? row1 + 2*x : row2 + 2*x + 1));
+                channel == 1 ? row1 + 2*x : row2 + 2*x + 1,shift));
             value = vhadd_s16(color, vsub_s16(midpoint, gs));
         }
         vst1_s16(output + x, value);
@@ -311,10 +311,26 @@ void UnpackChannelRow14(const PACKED_IMAGE *input, int row, int channel, PIXEL *
     }
 #endif
     switch (channel) {
-        case 0: UnpackChannel14Impl(row1, row2, output, input->width/2, 0); break;
-        case 1: UnpackChannel14Impl(row1, row2, output, input->width/2, 1); break;
-        case 2: UnpackChannel14Impl(row1, row2, output, input->width/2, 2); break;
-        case 3: UnpackChannel14Impl(row1, row2, output, input->width/2, 3); break;
+        case 0: UnpackChannelWordImpl(row1, row2, output, input->width/2, 0,2); break;
+        case 1: UnpackChannelWordImpl(row1, row2, output, input->width/2, 1,2); break;
+        case 2: UnpackChannelWordImpl(row1, row2, output, input->width/2, 2,2); break;
+        case 3: UnpackChannelWordImpl(row1, row2, output, input->width/2, 3,2); break;
+    }
+}
+
+/* Identical stock log-domain arithmetic to UnpackImage_WordBayer, but
+ * materialize only the channel row consumed by the recursive transform.
+ * Dispatch requires width divisible by eight and uint16-aligned rows. */
+void UnpackChannelRow16(const PACKED_IMAGE *input, int row, int channel, PIXEL *output)
+{
+    const uint16_t *row1=(const uint16_t *)((const uint8_t *)input->buffer+input->offset+
+        (size_t)row*2*input->pitch);
+    const uint16_t *row2=(const uint16_t *)((const uint8_t *)row1+input->pitch);
+    switch (channel) {
+        case 0: UnpackChannelWordImpl(row1,row2,output,input->width/2,0,4); break;
+        case 1: UnpackChannelWordImpl(row1,row2,output,input->width/2,1,4); break;
+        case 2: UnpackChannelWordImpl(row1,row2,output,input->width/2,2,4); break;
+        case 3: UnpackChannelWordImpl(row1,row2,output,input->width/2,3,4); break;
     }
 }
 #endif

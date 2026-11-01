@@ -99,6 +99,16 @@ int main(int argc,char **argv) {
                     const auto before=input;
                     auto compressed=encode(input,offset,pitch,width,height,f,quality);
                     check(compressed==reference,"Bayer format changed canonical stock payload");
+                    if (f.encoder==VC5_ENCODER_PIXEL_FORMAT_RGGB_16) {
+                        // Compare aligned padded rows (streaming/vector path)
+                        // against the byte-unaligned scalar fallback above.
+                        unsigned aligned_pitch=width*2+16;
+                        std::vector<uint8_t> aligned(aligned_pitch*height,0xDA);
+                        for (unsigned y=0;y<height;++y)
+                            std::memcpy(aligned.data()+y*aligned_pitch,input.data()+offset+y*pitch,width*2);
+                        check(encode(aligned,0,aligned_pitch,width,height,f,quality)==compressed,
+                              "aligned RGGB16 streaming differs from scalar fallback");
+                    }
                     check(input==before,"input or padding modified");
                     auto output=decode(compressed,f.decoder);
                     check(output.size()==canonical.size(),"output dimensions");

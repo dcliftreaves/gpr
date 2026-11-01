@@ -55,6 +55,7 @@ static double EncoderWallTime(void)
 }
 
 extern void UnpackChannelRow14(const PACKED_IMAGE *, int, int, PIXEL *);
+extern void UnpackChannelRow16(const PACKED_IMAGE *, int, int, PIXEL *);
 extern void FilterVerticalDirect(PIXEL **, PIXEL **, PIXEL **, int, int32_t *, int32_t *, int);
 static CODEC_ERROR EncodeHighpassIncremental(BITSTREAM *, ENCODER_CODESET *, PIXEL *,
     DIMENSION, DIMENSION, DIMENSION, uint32_t *, bool);
@@ -62,8 +63,10 @@ static CODEC_ERROR EncodeHighpassIncremental(BITSTREAM *, ENCODER_CODESET *, PIX
 static int UseStreamingUnpack(const PACKED_IMAGE *input)
 {
 #if ENABLED(NEON)
-    return getenv("GPR_STREAM_UNPACK") != NULL &&
-        input->format == PIXEL_FORMAT_RAW_RGGB_14 && input->width % 8 == 0;
+    return getenv("GPR_STREAM_UNPACK") != NULL && input->width % 8 == 0 &&
+        (input->format == PIXEL_FORMAT_RAW_RGGB_14 ||
+         (input->format == PIXEL_FORMAT_RAW_RGGB_16 && !(input->pitch&1) &&
+          !(((uintptr_t)input->buffer+input->offset)&1)));
 #else
     return 0;
 #endif
@@ -1385,7 +1388,9 @@ static PIXEL *GetTransformInputRow(RECURSIVE_TRANSFORM_DATA *data, int row)
 {
     if (data->packed_input != NULL) {
 #if ENABLED(NEON)
-        UnpackChannelRow14(data->packed_input, row, data->channel, data->unpack_row);
+        if (data->packed_input->format==PIXEL_FORMAT_RAW_RGGB_16)
+            UnpackChannelRow16(data->packed_input, row, data->channel, data->unpack_row);
+        else UnpackChannelRow14(data->packed_input, row, data->channel, data->unpack_row);
 #endif
         return data->unpack_row;
     }

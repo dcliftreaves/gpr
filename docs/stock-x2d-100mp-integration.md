@@ -77,6 +77,49 @@ provides an aligned integration option; it is not claimed as an encoder
 optimization. Sensor readout, DMA or firmware interfaces may have different
 requirements and need their own measurements.
 
+## RGGB16 row streaming
+
+The original streaming-unpack dispatch admitted only RGGB14. Aligned RGGB16
+still materialized all four component planes, approximately one additional
+16-bit RAW frame. The new NEON row adapter uses the same 16-to-12-bit shift,
+log lookup and green/color-difference arithmetic as the scalar stock path,
+but materializes only the channel row required by the recursive transform.
+It keeps the existing four channel workers and changes no quantizer or payload
+format. The 14-bit assembly routine is not applied to 16-bit values.
+
+Dispatch requires `GPR_STREAM_UNPACK`, NEON, RGGB16, width divisible by eight,
+and uint16-aligned source rows. Byte-unaligned addresses and odd pitches retain
+the existing memcpy-based scalar fallback. This preserves the alignment fixes.
+
+Three M5 trials per version each replayed six aligned 11664 by 8744 real frames,
+with one leased slot and a 1 MiB tracking arena:
+
+| Metric | Before RGGB16 streaming | After |
+| --- | ---: | ---: |
+| Maximum process RSS, input fixture included | 491.2 MiB | 294.6 MiB |
+| Peak live fallback allocation requests | 938.0 MiB | 741.6 MiB |
+| Median of per-run median encode times | 39.263 ms | 38.445 ms |
+
+All 36 payloads match byte for byte and all recordings have verified END3.
+The repeat measurement establishes a memory improvement; the small timing
+difference is not a claim of statistically established acceleration. A new
+calibrated three-frame extraction matches the unchanged standalone SDK's
+payloads, decoded counts and adjusted calibration.
+
+A separate deterministic full-range synthetic noise input produced 106.3 MB
+per Q3 frame. Peak RSS fell from 761.5 to 565.0 MiB; encode medians were 56.139
+and 56.172 ms. All four payloads match. This deliberately difficult input is
+not a photographic quality example, but demonstrates that one real image's
+11 MB payload and 295 MiB footprint cannot establish a camera-wide memory fit.
+Compressed-band lifetime, final output capacity and the queued payload copy
+remain memory targets. Fallback allocator requests still exceed physical free
+RAM even though many reserved pages are untouched.
+
+The expanded Release suite passes 25/25 CTest entries. Bayer tests explicitly
+compare aligned/padded RGGB16 rows against the unaligned scalar path across
+six quality presets and edge/full-range samples; historical RGGB14 payloads
+remain exact. No Pi or camera result is inferred from these M5 checks.
+
 ## Validation and remaining integration
 
 Five capture-only CTest entries pass: lifecycle/ownership, C API/native reader,
@@ -107,6 +150,13 @@ Compact, photo-free receipts record [M5 encode timing](stock-x2d-receipts/m5-enc
 [native round trip](stock-x2d-receipts/native-roundtrip.json),
 [aligned round trip](stock-x2d-receipts/aligned-roundtrip.json) and
 [implementation source hashes](stock-x2d-receipts/sources.json).
+The next measurements are [16-bit streaming memory](stock-x2d-receipts/stream16-memory.json),
+[synthetic-noise stress](stock-x2d-receipts/stream16-noise.json), and the
+[post-change calibrated round trip](stock-x2d-receipts/stream16-roundtrip.json).
+The newly built SDK also [matches the unchanged SDK's payload and decoded
+counts](stock-x2d-receipts/stream16-sdk.json), and the
+[uncropped 8750-row source](stock-x2d-receipts/stream16-native.json) matches its
+previous scalar payload, covering a non-multiple-of-eight source height.
 Original photo, RAW pixels, private calibration and machine-local logs are not
 included. These are reproducible method descriptions and recorded results;
 reproduction needs an independently supplied matching source image.
