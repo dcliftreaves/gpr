@@ -113,11 +113,16 @@ that copy buffer. Leased submissions retain the caller's sensor buffer until
 release, without reserving a second RAW image. Submission can allocate and its
 timeout bounds waiting, not allocation or copying time.
 
-Queued payload storage grows to actual encoded size, retaining the largest
-seen size for slot reuse. Every payload remains checked against
-`1.5 * raw_bytes + 1 MiB`; it is not capped at a particular scene's compressed
-size. Growth temporarily owns the old and new buffers. Codec output, codec
-workspace, camera-owned leases, thread stacks and writer buffers are additional.
+Standalone malloc codec output now transfers directly to the queued slot,
+which frees it after writer completion or discard. Tracked fallback malloc
+blocks are detached from the workspace before its reset. Arena slices still
+require a queued copy because the arena is reused by the next encode; that
+copy grows to actual payload size. Every payload remains checked against
+`1.5 * raw_bytes + 1 MiB`; it is not capped at one scene's compressed size.
+Transferred buffers retain the codec's original capacity, including unused
+space. Workspace fallback stats exclude blocks after ownership transfers to
+the queue; those stats are not total capture-memory accounting. Codec output,
+codec workspace, camera-owned leases, stacks and writer buffers are additional.
 This remains bounded by geometry/queue limits, rather than a fixed process RAM
 budget. Allocation failure closes capture with NOMEM; rejected leases remain
 caller-owned. The app reports peak process RSS separately from workspace usage.

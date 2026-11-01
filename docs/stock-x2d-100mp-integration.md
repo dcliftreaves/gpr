@@ -77,6 +77,36 @@ provides an aligned integration option; it is not claimed as an encoder
 optimization. Sensor readout, DMA or firmware interfaces may have different
 requirements and need their own measurements.
 
+## Queued codec-output ownership
+
+After RGGB16 streaming, capture transfers standalone codec malloc output to
+the queued frame rather than copying it again. Arena-backed output still
+copies because its lifetime ends at arena reset. Detached fallback allocations
+are removed from workspace tracking and freed only after writer completion or
+discard. The observer's borrowed pointer remains valid through its callback.
+Encoded channel bands are released after appending their bytes to the final
+stream, before assembling the next channel. Output bytes remain unchanged.
+
+An additional short M5 comparison used three frames per case, one/two leased
+slots and a 1 MiB tracking arena:
+
+| Input / slots | Before peak RSS | After peak RSS |
+| --- | ---: | ---: |
+| Real X2D / one | 294.6 MiB | 282.2 MiB |
+| Real X2D / two | 307.1 MiB | 292.8 MiB |
+| Synthetic noise / one | 565.0 MiB | 463.6 MiB |
+| Synthetic noise / two | 666.4 MiB | 565.0 MiB |
+
+All 24 payloads match within their source, and all END3 checks pass. These are
+single short runs per case, not sustained performance distributions. The
+stress case still exceeds the original camera's idle available-memory
+observations. No camera RAM fit or frame-rate promise follows from the result.
+The remaining fixed-capacity codec output and compressed-band reservations
+still require attention. Tests hold the first writer blocked while the second
+frame encodes, covering malloc ownership, detached fallback, arena-copy output
+and arena reuse. Existing failure, cancellation and observer-lifetime checks
+also pass in the 25-test Release suite.
+
 ## RGGB16 row streaming
 
 The original streaming-unpack dispatch admitted only RGGB14. Aligned RGGB16
@@ -157,6 +187,8 @@ The newly built SDK also [matches the unchanged SDK's payload and decoded
 counts](stock-x2d-receipts/stream16-sdk.json), and the
 [uncropped 8750-row source](stock-x2d-receipts/stream16-native.json) matches its
 previous scalar payload, covering a non-multiple-of-eight source height.
+The [queued-output ownership comparison](stock-x2d-receipts/payload-ownership.json)
+records the following memory step and its payload-identity checks.
 Original photo, RAW pixels, private calibration and machine-local logs are not
 included. These are reproducible method descriptions and recorded results;
 reproduction needs an independently supplied matching source image.

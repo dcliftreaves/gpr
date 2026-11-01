@@ -45,6 +45,13 @@ struct Workspace {
             fallback_bytes -= it->second; std::free(p); fallback.erase(it);
         }
     }
+    // Only standalone malloc blocks can outlive an arena reset. Transfer
+    // their ownership to the queued frame; never detach an arena slice.
+    bool detach(void *p) noexcept {
+        auto it=fallback.find(p);
+        if (it==fallback.end()) return false;
+        fallback_bytes-=it->second;fallback.erase(it);return true;
+    }
     void reset() noexcept {
         for (const auto &entry : fallback) std::free(entry.first);
         fallback.clear(); fallback_bytes = 0; offset = 0;
@@ -69,7 +76,10 @@ uint32_t copy_and_crc32(uint8_t *dst, const void *src, size_t size) {
     return crc;
 }
 struct Slot {
+    struct FreePayload {void operator()(uint8_t *p) const {std::free(p);}};
     std::vector<uint8_t> raw, payload, metadata;
+    std::unique_ptr<uint8_t,FreePayload> encoded;
+    const uint8_t *payload_data() const {return encoded ? encoded.get():payload.data();}
     size_t payload_size = 0;
     uint32_t payload_crc = 0;
     uint64_t index = 0, timestamp = 0, encode_ns = 0;
@@ -126,6 +136,7 @@ struct gpr_capture {
         }
     }
     void release_locked(size_t i, bool discard) {
+        slots[i].encoded.reset();
         available.push_back(i); --stats.inflight;
         if (discard) ++stats.discarded;
         changed.notify_all();
@@ -189,22 +200,29 @@ struct gpr_capture {
                 slot.encode_ns=elapsed(start);
                 bool okay=!error && compressed.buffer && compressed.size && compressed.size<=payload_bound;
                 if (okay) {
-                    // Allocate the actual payload, retaining the largest seen
-                    // capacity for reuse. Exact growth avoids vector's geometric
-                    // expansion beyond the checked per-frame upper bound.
-                    if (compressed.size>slot.payload.size()) {
-                        std::vector<uint8_t> grown(compressed.size);
-                        slot.payload.swap(grown);
+                    if (!cfg.workspace_bytes || workspace.detach(compressed.buffer)) {
+                        // The storage worker owns the standalone codec output
+                        // until completion/discard, independent of arena reset.
+                        slot.encoded.reset(static_cast<uint8_t *>(output.release()));
+                        slot.payload_crc=gpr_gvid_crc32(0,slot.encoded.get(),compressed.size);
+                        std::vector<uint8_t>().swap(slot.payload);
+                    } else {
+                        // Arena slices expire at reset and still need a copy.
+                        // Exact growth avoids vector expansion past the bound.
+                        if (compressed.size>slot.payload.size()) {
+                            std::vector<uint8_t> grown(compressed.size);
+                            slot.payload.swap(grown);
+                        }
+                        slot.payload_crc=copy_and_crc32(slot.payload.data(),compressed.buffer,compressed.size);
                     }
                     slot.payload_size=compressed.size;
-                    slot.payload_crc=copy_and_crc32(slot.payload.data(),compressed.buffer,compressed.size);
                 }
                 output.reset();
                 workspace.reset();
                 release_input(slot);
                 if (okay && encoded) {
                     gpr_capture_encoded_frame frame={slot.index,slot.timestamp,slot.encode_ns,
-                        slot.payload.data(),slot.payload_size};
+                        slot.payload_data(),slot.payload_size};
                     encoded(encoded_user,&frame);
                 }
                 gpr_capture_encoder_wait_fn wait=nullptr;void *wait_user=nullptr;
@@ -282,7 +300,7 @@ struct gpr_capture {
                     bool okay=!gpr_gvid_write_frame_with_crc(frame,slot.index,slot.timestamp,
                         slot.payload_size,slot.payload_crc,slot.metadata.data(),slot.metadata.size()) &&
                         emit(frame,48,&crc) && emit(slot.metadata.data(),slot.metadata.size(),&crc) &&
-                        emit(slot.payload.data(),slot.payload_size,nullptr);
+                        emit(slot.payload_data(),slot.payload_size,nullptr);
                     // Reuse the cache-hot payload checksum computed during encode copy
                     // rather than scanning the multi-MB payload again on the writer thread.
                     if (okay) {

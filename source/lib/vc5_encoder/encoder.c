@@ -1891,6 +1891,10 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
                     *codec = prepared->codec;
                     codec->channel_number = channel_number+1;
                     codec->subband_number = 0;
+                    // All channel bytes are now in the final stream. Retire
+                    // its encoded bands before appending the next channel.
+                    gpr_aligned_free(encoder->allocator,thread[channel_index].band_workspace);
+                    thread[channel_index].band_workspace=NULL;
                     continue;
                 }
                 if (size > output_stream->location.memory.size - output_stream->byte_count)
