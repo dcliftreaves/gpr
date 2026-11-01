@@ -1,0 +1,39 @@
+{
+  "schema": "x2d.calibrated.gvid.roundtrip.v1",
+  "width": 11664,
+  "height": 8750,
+  "sample_bits": 16,
+  "cfa": "RGGB",
+  "camera_tested": false,
+  "fresh_sensor_frames": false,
+  "frames": [
+    {
+      "index": 0,
+      "pts_ns": 1118696155713666,
+      "payload_sha256": "2a5265e9db206f3b0642b059415929347331c22bc2823b909237971891f5c691",
+      "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe",
+      "calibration_preserved": true
+    },
+    {
+      "index": 1,
+      "pts_ns": 1118696155736541,
+      "payload_sha256": "2a5265e9db206f3b0642b059415929347331c22bc2823b909237971891f5c691",
+      "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe",
+      "calibration_preserved": true
+    },
+    {
+      "index": 2,
+      "pts_ns": 1118696202424416,
+      "payload_sha256": "2a5265e9db206f3b0642b059415929347331c22bc2823b909237971891f5c691",
+      "decoded_raw_sha256": "ea4d4aef9a49280f41e00f11cf2cfb06f9a442a71c13f7e4341cb6fff1265dbe",
+      "calibration_preserved": true
+    }
+  ],
+  "limitations": "One repeated real X2D frame, desktop M5. Actual monotonic replay timestamps, not a paced sensor recording. No CNN or preview. Codec remains lossy.",
+  "end_marker_verified": true,
+  "all_payloads_match_standalone": true,
+  "all_decoded_counts_match_standalone": true,
+  "all_calibration_preserved": true,
+  "source_raw_sha256": "0c8e2aca96da6807a8396ad0ebe885ee3caca30cfe97bfcd2bd72f35589a6266",
+  "sdk_sha256": "73631db9fec2fb5f618ce9c0725a479be73cdec97ab56327488ed310c8207878"
+}

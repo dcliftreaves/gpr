@@ -1,0 +1,148 @@
+{
+  "schema": "x2d.aligned.crop.benchmark.v1",
+  "width": 11664,
+  "original_height": 8750,
+  "cropped_height": 8744,
+  "removed_bottom_rows": 6,
+  "removed_fraction": 0.0006857142857142857,
+  "paired_alternating_order": true,
+  "rows": [
+    {
+      "geometry": "native",
+      "encoder_median_ms": 43.687,
+      "process_median_ms": 70.431833,
+      "max_rss_mib": 486.703125,
+      "trials": [
+        {
+          "process_s": 0.0755475,
+          "encoder_s": 0.043818,
+          "rss_bytes": 510296064,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.08227812500000004,
+          "encoder_s": 0.043687,
+          "rss_bytes": 510296064,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.06985324999999998,
+          "encoder_s": 0.043596,
+          "rss_bytes": 510345216,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.07078062500000004,
+          "encoder_s": 0.043954,
+          "rss_bytes": 510312448,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.070431833,
+          "encoder_s": 0.043914,
+          "rss_bytes": 510328832,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.06956095899999992,
+          "encoder_s": 0.043466,
+          "rss_bytes": 510345216,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.07055420899999998,
+          "encoder_s": 0.04384,
+          "rss_bytes": 510296064,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.07077387499999999,
+          "encoder_s": 0.043556,
+          "rss_bytes": 510312448,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.06978720800000016,
+          "encoder_s": 0.04344,
+          "rss_bytes": 510279680,
+          "gpr_bytes": 11071638
+        },
+        {
+          "process_s": 0.07000041700000015,
+          "encoder_s": 0.043801,
+          "rss_bytes": 510296064,
+          "gpr_bytes": 11071638
+        }
+      ]
+    },
+    {
+      "geometry": "aligned_crop",
+      "encoder_median_ms": 43.721000000000004,
+      "process_median_ms": 71.12270900000006,
+      "max_rss_mib": 486.359375,
+      "trials": [
+        {
+          "process_s": 0.070465042,
+          "encoder_s": 0.04384,
+          "rss_bytes": 509919232,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07050075,
+          "encoder_s": 0.043795,
+          "rss_bytes": 509935616,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07069141700000003,
+          "encoder_s": 0.043578,
+          "rss_bytes": 509984768,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07132983399999998,
+          "encoder_s": 0.044158,
+          "rss_bytes": 509935616,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07112270900000006,
+          "encoder_s": 0.043784,
+          "rss_bytes": 509935616,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07042841700000002,
+          "encoder_s": 0.043648,
+          "rss_bytes": 509952000,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07114758300000001,
+          "encoder_s": 0.043819,
+          "rss_bytes": 509952000,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.07418562500000014,
+          "encoder_s": 0.043711,
+          "rss_bytes": 509952000,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.08512112499999991,
+          "encoder_s": 0.043477,
+          "rss_bytes": 509935616,
+          "gpr_bytes": 11065166
+        },
+        {
+          "process_s": 0.0710951660000001,
+          "encoder_s": 0.043721,
+          "rss_bytes": 509968384,
+          "gpr_bytes": 11065166
+        }
+      ]
+    }
+  ],
+  "encoder_speedup": 0.9992223416664759
+}
