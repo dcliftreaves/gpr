@@ -33,6 +33,7 @@ struct Sink {
         check(frame->timestamp_ns==900000000000ULL+frame->index*33410000,"observer timestamp");
         check(frame->payload && frame->payload_size>=64 && !std::memcmp(frame->payload,"VC-5",4),"observer payload");
         s.observed.emplace_back(frame->payload,frame->payload+frame->payload_size);
+        s.changed.notify_all();
         if (s.block_observer) {
             s.observer_entered=true;s.changed.notify_all();
             s.changed.wait(lock,[&]{return s.observer_released;});
@@ -242,6 +243,25 @@ static void leased_inputs() {
     gpr_capture_stats stats={}; gpr_capture_get_stats(c.p,&stats);
     check(stats.inflight==0 && stats.discarded==2,"lease cancel accounting");
 }
+static void payload_allocator_paths() {
+    // Exercise direct malloc ownership, detached arena fallback, and the
+    // required copy when codec output is a slice of the reusable arena.
+    for (size_t arena : {size_t(0),size_t(1),size_t(4)*1024*1024}) {
+        Sink sink;sink.block=true;Capture capture(config(2,arena),sink);
+        auto a=image(31),b=image(32);
+        auto first=frame(a,0);check(!gpr_capture_submit(capture.p,&first,UINT32_MAX),"payload path first submit");
+        sink.wait();
+        auto second=frame(b,1);check(!gpr_capture_submit(capture.p,&second,UINT32_MAX),"payload path second submit");
+        bool second_encoded;
+        {
+            std::unique_lock<std::mutex> lock(sink.mutex);
+            second_encoded=sink.changed.wait_for(lock,std::chrono::seconds(5),[&]{return sink.observed.size()==2;});
+        }
+        sink.unblock();check(!gpr_capture_finish(capture.p),"payload path finish");
+        check(second_encoded,"second encode did not overlap blocked first write");
+        validate(sink,{reference(a),reference(b)});
+    }
+}
 static void alternating_slot_ownership() {
     auto cfg=config(1);cfg.stride_bytes=256;
     Sink sink;Capture capture(cfg,sink);
@@ -357,7 +377,7 @@ int main(int argc,char **argv) {
             setenv(flag,"1",1);
 #endif
         }
-        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); alternating_slot_ownership(); observer_lifetime(); formats();encoder_wait_barrier();
+        ownership(argc>1 ? argv[1] : nullptr); lifecycle(); errors(); concurrent_instances(); leased_inputs(); payload_allocator_paths(); alternating_slot_ownership(); observer_lifetime(); formats();encoder_wait_barrier();
         std::cout<<"PASS: bounded capture, copy/lease ownership, padded stride, timestamps, stock payloads, flush/finish, writer failures, cancellation, concurrent SDK/capture\n";
         return 0;
     } catch (const std::exception &e) { std::cerr<<e.what()<<'\n'; return 1; }
