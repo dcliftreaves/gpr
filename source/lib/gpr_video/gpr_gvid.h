@@ -27,6 +27,11 @@ extern "C" {
 #define GPR_GVID_HEADER_BYTES 64
 #define GPR_GVID_RECORD_BYTES 48
 #define GPR_GVID_METADATA_LIMIT 65536
+/* v3 admits native 100 MP Bayer frames without implicit crop or padding.
+ * Dimensions are even; callers must still bound payload/workspace memory.
+ * Legacy v2 readers retain their original 8192x6144 / multiple-of-eight gate. */
+#define GPR_GVID_MAX_DIMENSION 16384
+#define GPR_GVID_MAX_PIXELS (128ULL * 1024 * 1024)
 
 typedef struct {
     uint32_t width, height, fps_num, fps_den, quality;
