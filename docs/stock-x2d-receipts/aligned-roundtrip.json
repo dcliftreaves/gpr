@@ -1,0 +1,60 @@
+{
+  "schema": "x2d.calibrated.gvid.roundtrip.v1",
+  "width": 11664,
+  "height": 8744,
+  "sample_bits": 16,
+  "crop": {
+    "source_width": 11664,
+    "source_height": 8750,
+    "width": 11664,
+    "height": 8744,
+    "left": 0,
+    "top": 0,
+    "removed_right_columns": 0,
+    "removed_bottom_rows": 6,
+    "omitted": [
+      {
+        "code": 700,
+        "reason": "opaque XMP may contain stale crop geometry"
+      }
+    ],
+    "changed_image_tags": [
+      50829,
+      50720
+    ],
+    "changed_exif_tags": []
+  },
+  "cfa": "RGGB",
+  "camera_tested": false,
+  "fresh_sensor_frames": false,
+  "frames": [
+    {
+      "index": 0,
+      "pts_ns": 1119070302547875,
+      "payload_sha256": "3d11f901bfc5d2d69141712ac86dd83e36c77d2b46bfbca7c7b0e09ed1af58a8",
+      "decoded_raw_sha256": "e86cb25a6cd65d69807c1cb0fa62e34c7e2e38e712d530eafead556e4d8ecb1f",
+      "calibration_preserved": true
+    },
+    {
+      "index": 1,
+      "pts_ns": 1119070302571333,
+      "payload_sha256": "3d11f901bfc5d2d69141712ac86dd83e36c77d2b46bfbca7c7b0e09ed1af58a8",
+      "decoded_raw_sha256": "e86cb25a6cd65d69807c1cb0fa62e34c7e2e38e712d530eafead556e4d8ecb1f",
+      "calibration_preserved": true
+    },
+    {
+      "index": 2,
+      "pts_ns": 1119070348469583,
+      "payload_sha256": "3d11f901bfc5d2d69141712ac86dd83e36c77d2b46bfbca7c7b0e09ed1af58a8",
+      "decoded_raw_sha256": "e86cb25a6cd65d69807c1cb0fa62e34c7e2e38e712d530eafead556e4d8ecb1f",
+      "calibration_preserved": true
+    }
+  ],
+  "limitations": "One repeated real X2D frame, desktop M5. Actual monotonic replay timestamps, not a paced sensor recording. No CNN or preview. Codec remains lossy.",
+  "end_marker_verified": true,
+  "all_payloads_match_standalone": true,
+  "all_decoded_counts_match_standalone": true,
+  "all_calibration_preserved": true,
+  "source_raw_sha256": "b464ba69a644103e9c04445cf1d48a358db3571588b5f7223033928246e9db8d",
+  "sdk_sha256": "73631db9fec2fb5f618ce9c0725a479be73cdec97ab56327488ed310c8207878"
+}

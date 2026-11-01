@@ -303,6 +303,8 @@ if(GPR_BUILD_VIDEO_TESTS)
   add_test(NAME capture_c_api COMMAND capture_c_api_test)
   find_program(GPR_VIDEO_PYTHON NAMES python3 python)
   if(GPR_VIDEO_PYTHON)
+    add_test(NAME stock_crop COMMAND ${GPR_VIDEO_PYTHON}
+      ${CMAKE_SOURCE_DIR}/tests/stock_crop_test.py)
     add_test(NAME gvid3_conformance COMMAND ${GPR_VIDEO_PYTHON}
       ${CMAKE_SOURCE_DIR}/tests/gvid3_test.py --native-writer $<TARGET_FILE:capture_lifecycle_test>)
     add_test(NAME gvid2_compatibility COMMAND ${GPR_VIDEO_PYTHON}

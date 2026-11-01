@@ -1,0 +1,8 @@
+{
+  "source/lib/gpr_video/gpr_capture.cpp": "b2b825a943871d8353d8f06795437626ac5d5c5ec9a4f697ee6fa08dff5bc628",
+  "source/lib/gpr_video/gpr_gvid.c": "2b6e7c09fb9fa6111a46d43a2451e3cbaf33c5ee5be7a7efa0777675f883e6d9",
+  "source/lib/gpr_video/gpr_gvid.h": "fceb8b71a2e1e4f105366d05b0e7c2fc47950042eb6d30d99e2c9ffdd894c48c",
+  "source/lib/gpr_video/gpr_gvid_reader.cpp": "0f32b660c31cf685628bcb07e7c1775520709012a3e49c467756c9429e4968c0",
+  "tools/stock_video.py": "e49400565f8665ddb01a19d2f6f0047da41487f6b695d974086f144d159cc249",
+  "tools/stock_crop.py": "01f3d77ab249dfda0617260ac8bf9094ca013c3b61fa94e46b60ad1555fd81cf"
+}

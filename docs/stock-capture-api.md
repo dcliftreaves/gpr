@@ -107,13 +107,23 @@ scheduling is unchanged. See [measurements and limits](stock-preview-compute-sta
 
 ## Allocation and optimization policy
 
-Frame slots are preallocated and first-touched at create. Each slot reserves
-`raw_bytes + 1.5 * raw_bytes + 1 MiB` plus bounded metadata; the reusable
-workspace is additional. At 4096×3072 with four slots and a 192 MiB workspace,
-the main reservation is about **436 MiB**, before input fixtures, stacks and
-runtime overhead. Leased input currently retains the allocated copy buffers
-but avoids their per-frame copies. Reducing that reservation is still work.
-The app reports peak process RSS separately from workspace peak usage.
+Slot bookkeeping and bounded metadata are reserved at create. A slot allocates
+RAW storage on its first copied submission; switching it to a lease releases
+that copy buffer. Leased submissions retain the caller's sensor buffer until
+release, without reserving a second RAW image. Submission can allocate and its
+timeout bounds waiting, not allocation or copying time.
+
+Queued payload storage grows to actual encoded size, retaining the largest
+seen size for slot reuse. Every payload remains checked against
+`1.5 * raw_bytes + 1 MiB`; it is not capped at a particular scene's compressed
+size. Growth temporarily owns the old and new buffers. Codec output, codec
+workspace, camera-owned leases, thread stacks and writer buffers are additional.
+This remains bounded by geometry/queue limits, rather than a fixed process RAM
+budget. Allocation failure closes capture with NOMEM; rejected leases remain
+caller-owned. The app reports peak process RSS separately from workspace usage.
+See the [100 MP experiment](stock-x2d-100mp-integration.md) for measured savings and
+remaining camera-memory constraints. Older timing receipts below used the
+previous eager allocation policy and are historical measurements.
 
 The optional arena is a preferred reusable reservation, **not a hard process
 memory cap**. Allocations that exceed it use tracked malloc fallback and are
