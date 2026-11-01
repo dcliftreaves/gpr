@@ -1,0 +1,10 @@
+{
+  "new_sdk_sha256": "4f9109e4c576498050a3e9fa98e5a3296adbf34e02599ea9ae249beec2e106af",
+  "payload_sha256": "3d11f901bfc5d2d69141712ac86dd83e36c77d2b46bfbca7c7b0e09ed1af58a8",
+  "decoded_raw_sha256": "e86cb25a6cd65d69807c1cb0fa62e34c7e2e38e712d530eafead556e4d8ecb1f",
+  "old_sdk_payload_exact": true,
+  "old_sdk_decoded_counts_exact": true,
+  "width": 11664,
+  "height": 8744,
+  "sample_bits": 16
+}
