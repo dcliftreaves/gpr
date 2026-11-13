@@ -40,6 +40,9 @@ int gpr_gvid_write_header(uint8_t out[64], const gpr_gvid_config *cfg,
 int gpr_gvid_write_frame(uint8_t out[48], uint64_t index, uint64_t timestamp_ns,
                          const void *payload, size_t payload_size,
                          const void *metadata, size_t metadata_size);
+int gpr_gvid_write_frame_with_crc(uint8_t out[48], uint64_t index, uint64_t timestamp_ns,
+                                  size_t payload_size, uint32_t payload_crc32,
+                                  const void *metadata, size_t metadata_size);
 void gpr_gvid_write_end(uint8_t out[48], uint64_t count, uint64_t timestamp_ns,
                         uint64_t payload_bytes, uint32_t stream_crc32);
 #ifdef __cplusplus

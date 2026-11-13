@@ -87,6 +87,45 @@ class V3(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse(data[:offset+first_size] + data[-48:])
 
+    def test_crc32_combine_algebraic_equivalence(self):
+        for a, b in ((b"header-bytes", b"payload-bytes"), (b"", b"nonempty"), (b"x" * 1024, b"y" * 4096)):
+            c1 = zlib.crc32(a)
+            c2 = zlib.crc32(b)
+            combined = video.crc32_combine(c1, c2, len(b))
+            self.assertEqual(combined, zlib.crc32(a + b))
+
+    def test_scan_index_and_o1_seek_record(self):
+        data = fixture()
+        f = io.BytesIO(data)
+        header = video.read_header(f)
+        entries = video.scan_index(f, header)
+        self.assertEqual(len(entries), 2)
+        self.assertTrue(header["_complete"] and header["_end_marker_verified"])
+        rec1 = video.seek_record(f, header, entries[1])
+        self.assertEqual(rec1["index"], 1)
+        self.assertEqual(rec1["pts_ns"], 900_033_410_000)
+        self.assertEqual(rec1["payload"], b"second-stock-payload")
+        self.assertEqual(rec1["metadata"], {"exposure_us": 1000})
+        # Corrupting payload byte in frame 1 must fail seek_record checksum verification
+        bad = bytearray(data)
+        bad[entries[1]["payload_offset"]] ^= 0xFF
+        with self.assertRaises(ValueError):
+            video.seek_record(io.BytesIO(bad), header, entries[1])
+
+    def test_clip_static_and_per_frame_calibration_inheritance(self):
+        header = {
+            "metadata": {
+                "raw_metadata": {"black_level": [256, 256, 256, 256], "white_level": 16383, "iso": 100},
+                "optical_stackup": {"model": "mission1_polar_24coeff_v1", "gain_db": 0.2455},
+            }
+        }
+        frame_meta = {"raw_metadata_overrides": {"iso": 400, "exposure_us": 8333}}
+        resolved = video.resolve_frame_calibration(header, frame_meta)
+        self.assertEqual(resolved["black_level"], [256, 256, 256, 256])
+        self.assertEqual(resolved["iso"], 400)
+        self.assertEqual(resolved["exposure_us"], 8333)
+        self.assertEqual(resolved["optical_stackup"]["model"], "mission1_polar_24coeff_v1")
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

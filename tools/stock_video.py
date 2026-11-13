@@ -81,6 +81,183 @@ def decode_metadata(data):
     return value
 
 
+def _gf2_matrix_times(mat, vec):
+    total = 0
+    idx = 0
+    while vec:
+        if vec & 1:
+            total ^= mat[idx]
+        vec >>= 1
+        idx += 1
+    return total
+
+
+def _gf2_matrix_square(square, mat):
+    for n in range(32):
+        square[n] = _gf2_matrix_times(mat, mat[n])
+
+
+def crc32_combine(crc1, crc2, len2):
+    """Combine two IEEE 802.3 CRC-32 checksums in O(log(len2)) without scanning bytes."""
+    if len2 <= 0:
+        return crc1 & 0xFFFFFFFF
+    even = [0] * 32
+    odd = [0] * 32
+    odd[0] = 0xEDB88320
+    row = 1
+    for n in range(1, 32):
+        odd[n] = row
+        row <<= 1
+    _gf2_matrix_square(even, odd)
+    _gf2_matrix_square(odd, even)
+    crc1 &= 0xFFFFFFFF
+    crc2 &= 0xFFFFFFFF
+    while True:
+        _gf2_matrix_square(even, odd)
+        if len2 & 1:
+            crc1 = _gf2_matrix_times(even, crc1)
+        len2 >>= 1
+        if len2 == 0:
+            break
+        _gf2_matrix_square(odd, even)
+        if len2 & 1:
+            crc1 = _gf2_matrix_times(odd, crc1)
+        len2 >>= 1
+        if len2 == 0:
+            break
+    return (crc1 ^ crc2) & 0xFFFFFFFF
+
+
+def resolve_frame_calibration(header, frame_metadata, fallback=None):
+    """Resolve per-frame calibration by inheriting clip-static raw_metadata + optical_stackup
+    and applying compact per-frame dynamic overrides (e.g. exposure, gain, white balance)."""
+    clip_meta = header.get("metadata", {})
+    base_cal = clip_meta.get("raw_metadata", fallback)
+    frame_cal = frame_metadata.get("raw_metadata")
+    overrides = frame_metadata.get("raw_metadata_overrides")
+    if frame_cal is not None:
+        resolved = dict(frame_cal) if isinstance(frame_cal, dict) else frame_cal
+    elif base_cal is not None:
+        resolved = dict(base_cal) if isinstance(base_cal, dict) else base_cal
+    else:
+        return None
+    if isinstance(resolved, dict):
+        if isinstance(overrides, dict):
+            resolved.update(overrides)
+        if "optical_stackup" in clip_meta and "optical_stackup" not in resolved:
+            resolved["optical_stackup"] = clip_meta["optical_stackup"]
+    return resolved
+
+
+def scan_index(f, header, recover=False):
+    """Build an O(1) random-access frame index by reading only 48-byte FRM3 / 32-byte FRM2
+    record headers and seeking over payloads, while algebraically verifying END3 stream_crc."""
+    index = 0
+    total = 0
+    last_pts = 0
+    version = header["version"]
+    crc = header.get("_stream_crc", 0)
+    record_size = FRAME.size if version == 2 else RECORD3.size
+    header["_complete"] = False
+    header["_end_marker_verified"] = False
+    file_end = f.seek(0, 2)
+    f.seek(CLIP.size + header.get("_metadata_size", 0))
+    entries = []
+    while True:
+        try:
+            record_offset = f.tell()
+            data = f.read(record_size)
+            if not data and version == 2:
+                if not index:
+                    raise ValueError("empty clip")
+                header["_complete"] = True
+                return entries
+            if len(data) != record_size:
+                raise ValueError("truncated frame header or missing END3")
+            if version == 3 and data[:4] == b"END3":
+                magic, size, count, timestamp, byte_count, stream_crc, end_crc, z1, z2 = RECORD3.unpack(data)
+                if (size != 48 or count != index or timestamp != last_pts or byte_count != total
+                        or stream_crc != crc or end_crc != zlib.crc32(data[:36]) or z1 or z2 or f.read(1)):
+                    raise ValueError("invalid recording end marker or trailing data")
+                header["_complete"] = header["_end_marker_verified"] = True
+                return entries
+            if version == 2:
+                magic, size, number, pts, length = FRAME.unpack(data)
+                if magic != b"FRM2" or size != 32 or pts != number * 1_000_000_000 // header["fps_num"]:
+                    raise ValueError("invalid frame header or timestamp")
+                meta_size, payload_crc, meta_crc, header_crc = 0, None, None, None
+            else:
+                magic, size, number, pts, length, meta_size, payload_crc, meta_crc, header_crc = RECORD3.unpack(data)
+                if (magic != b"FRM3" or size != 48 or meta_size > 65536 or header_crc != zlib.crc32(data[:44])
+                        or (index and pts <= last_pts)):
+                    raise ValueError("invalid v3 frame header or timestamp")
+            if number != index:
+                raise ValueError("invalid frame sequence")
+            if not 0 < length <= header["width"] * header["height"] * 8:
+                raise ValueError("invalid payload length")
+            meta_offset = f.tell()
+            payload_offset = meta_offset + meta_size
+            if payload_offset + length > file_end:
+                raise ValueError("truncated payload")
+            f.seek(payload_offset + length)
+            if version == 3:
+                crc = zlib.crc32(data, crc)
+                crc = crc32_combine(crc, meta_crc, meta_size)
+                crc = crc32_combine(crc, payload_crc, length)
+            entries.append(dict(
+                index=number,
+                pts_ns=pts,
+                record_offset=record_offset,
+                metadata_offset=meta_offset,
+                metadata_bytes=meta_size,
+                payload_offset=payload_offset,
+                bytes=length,
+                payload_crc32=payload_crc,
+                metadata_crc32=meta_crc,
+                header_crc32=header_crc,
+            ))
+            index += 1
+            last_pts = pts
+            total += length
+        except ValueError as error:
+            if not recover:
+                raise
+            header["_recovery_error"] = str(error)
+            return entries
+
+
+def seek_record(f, header, entry):
+    """Random-access read and CRC-verify a single GVID record in O(1) using its index entry."""
+    version = header["version"]
+    record_size = FRAME.size if version == 2 else RECORD3.size
+    f.seek(entry["record_offset"])
+    data = f.read(record_size)
+    if len(data) != record_size:
+        raise ValueError("truncated frame header at indexed offset")
+    if version == 2:
+        magic, size, number, pts, length = FRAME.unpack(data)
+        if (magic != b"FRM2" or size != 32 or number != entry["index"]
+                or pts != entry["pts_ns"] or length != entry["bytes"]):
+            raise ValueError("indexed v2 frame header mismatch")
+        meta_size, metadata = 0, b""
+    else:
+        magic, size, number, pts, length, meta_size, payload_crc, meta_crc, header_crc = RECORD3.unpack(data)
+        if (magic != b"FRM3" or size != 48 or number != entry["index"] or pts != entry["pts_ns"]
+                or length != entry["bytes"] or meta_size != entry["metadata_bytes"]
+                or header_crc != zlib.crc32(data[:44])):
+            raise ValueError("indexed v3 frame header mismatch")
+        metadata = f.read(meta_size)
+        if len(metadata) != meta_size or zlib.crc32(metadata) != meta_crc:
+            raise ValueError("invalid frame metadata length/checksum at indexed offset")
+    payload = f.read(length)
+    if len(payload) != length:
+        raise ValueError("truncated payload at indexed offset")
+    if version == 3 and zlib.crc32(payload) != payload_crc:
+        raise ValueError("payload checksum mismatch at indexed offset")
+    return dict(index=number, pts_ns=pts, payload=payload,
+                metadata=decode_metadata(metadata), metadata_bytes=meta_size)
+
+
 def records(f, header, recover=False):
     index = 0
     total = 0
@@ -250,10 +427,11 @@ def restore(raw, width, height, model, device, tile, halo, scale=1):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("inspect", "extract", "restore"))
+    parser.add_argument("action", choices=("inspect", "index", "extract", "restore"))
     parser.add_argument("clip", type=Path)
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--decoder", type=Path, help="stock_video executable")
+    parser.add_argument("--start-frame", type=int, default=0, help="random-access starting frame index via O(1) header index")
     parser.add_argument("--limit", type=int, default=0, help="0 exports all; inspection always validates all")
     parser.add_argument("--cnn-root", type=Path, help="external architecture override; default: bundled BIBO")
     parser.add_argument("--checkpoint", type=Path)
@@ -280,18 +458,18 @@ def main():
     if standalone is not None and (args.action!='restore' or args.cnn_root or args.coreml_package or metal or args.device!='cpu'):
         parser.error('standalone native requires restore and cannot combine Python backends/devices')
     if metal is not None and args.action!='restore':parser.error('Metal options require restore')
-    if args.limit < 0 or args.tile < 8 or args.tile % 8 or args.halo < 0 or args.halo % 8:
-        parser.error("invalid frame limit, tile or halo (spatial sizes must be multiples of 8)")
-    if args.action != "inspect" and args.out_dir is None:
+    if args.start_frame < 0 or args.limit < 0 or args.tile < 8 or args.tile % 8 or args.halo < 0 or args.halo % 8:
+        parser.error("invalid start-frame, frame limit, tile or halo (spatial sizes must be multiples of 8)")
+    if args.action not in ("inspect", "index") and args.out_dir is None:
         parser.error("--out-dir is required")
     if args.action == "restore" and not all((args.decoder, args.checkpoint)):
         parser.error("restore requires --decoder and --checkpoint")
     if args.scale!=1 and args.action!='restore': parser.error('--scale requires restore')
     if args.coreml_package and args.action!='restore':parser.error('--coreml-package requires restore')
     if args.scale!=1 and args.reference_raw: parser.error('2x reference comparison requires an explicit high-resolution benchmark')
-    if args.reference_raw and (not args.decoder or args.action == "inspect"):
+    if args.reference_raw and (not args.decoder or args.action in ("inspect", "index")):
         parser.error("reference measurements require extraction/restore with --decoder")
-    if args.editable and args.action == "inspect":
+    if args.editable and args.action in ("inspect", "index"):
         parser.error("editable exports require extract/restore")
     if args.editable in ("dng", "both") and not args.decoder:
         parser.error("editable DNG export requires --decoder")
@@ -316,9 +494,32 @@ def main():
         header = read_header(f)
         if (model is not None or standalone is not None) and (header["bayer"], header["sample_bits"]) != ("RGGB", 14):
             raise ValueError("the current CNN checkpoint adapter requires RGGB14")
+        if args.action == "index":
+            idx_entries = scan_index(f, header, args.recover)
+            report = dict(
+                schema="gpr.stock_video.index.v1",
+                clip_sha256=sha256(args.clip),
+                header={k: v for k, v in header.items() if not k.startswith("_")},
+                frame_count=len(idx_entries),
+                complete=header["_complete"],
+                end_marker_verified=header["_end_marker_verified"],
+                recovery_error=header.get("_recovery_error"),
+                frames=idx_entries,
+            )
+            result = json.dumps(report, indent=2) + "\n"
+            if args.out_dir:
+                (args.out_dir / "index.json").write_text(result)
+            print(result, end="")
+            return
         report = dict(schema="gpr.stock_video.inspect.v1", clip_sha256=sha256(args.clip),
                       header={k: v for k, v in header.items() if not k.startswith("_")}, frames=[], cnn=model_info)
-        for record in records(f, header, args.recover):
+        if args.start_frame > 0 and args.action in ("extract", "restore"):
+            idx_entries = scan_index(f, header, args.recover)
+            selected_entries = idx_entries[args.start_frame : (args.start_frame + args.limit) if args.limit else None]
+            record_iter = (seek_record(f, header, entry) for entry in selected_entries)
+        else:
+            record_iter = records(f, header, args.recover)
+        for record in record_iter:
             index, pts, payload = record["index"], record["pts_ns"], record["payload"]
             row = dict(index=index, pts_ns=pts, bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest())
             if header["version"] == 3:
@@ -327,10 +528,10 @@ def main():
             calibration = None
             if args.editable:
                 import raw_media
-                calibration = record["metadata"].get("raw_metadata", header.get("metadata", {}).get("raw_metadata", fallback_metadata))
+                calibration = resolve_frame_calibration(header, record["metadata"], fallback_metadata)
                 raw_media.validate(calibration, header)
                 row["raw_metadata_sha256"] = hashlib.sha256(json.dumps(calibration, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-            if args.action != "inspect" and (not args.limit or index < args.limit):
+            if args.action != "inspect" and index >= args.start_frame and (not args.limit or (index - args.start_frame) < args.limit):
                 vc5 = args.out_dir / f"{index:06d}.vc5"
                 vc5.write_bytes(payload)
                 if args.editable in ("gpr", "both"):
