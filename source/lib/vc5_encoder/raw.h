@@ -22,12 +22,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    /* Stock 12-bit log-domain transform for additional word-packed input formats. */
+    void UnpackImage_WordBayer(const PACKED_IMAGE *input, UNPACKED_IMAGE *output);
     
     void UnpackImage_14(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, bool rggb );
 
     void UnpackImage_12(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, bool rggb );
     
     void UnpackImage_12P(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, bool rggb );
+
+    /* Opt-in in-camera optical/Poisson soft-coring threshold in 12-bit log-difference
+     * units (0 when GPR_OPTICAL_CORING is unset or "0", preserving 100% stock VC-5 identity). */
+    int gpr_optical_coring_tau(void);
     
 #ifdef __cplusplus
 }

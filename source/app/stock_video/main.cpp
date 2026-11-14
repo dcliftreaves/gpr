@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
         unsigned width = 4096, height = 3072, fps = 30, quality = 4;
         size_t frames = 120, arena_mib = 192;
         bool paced = false, sync_each = false;
-        std::string output, decode;
+        std::string output, decode, cfa="RGGB";
+        unsigned sample_bits=14;
         std::vector<std::string> inputs;
         for (int a = 1; a < argc; ++a) {
             std::string k = argv[a];
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
                 std::cout << "stock_video --input frame.raw [--input another.raw] --output clip.gvid\n"
                   "  [--width 4096 --height 3072 --quality 4 --fps 30 --frames 120]\n"
                   "  [--arena-mib 192] [--paced] [--fsync-each]\n"
-                  "stock_video --decode frame.vc5 --output frame.raw --width 4096 --height 3072\n";
+                  "stock_video --decode frame.vc5 --output frame.raw --width 4096 --height 3072 [--cfa RGGB --sample-bits 14]\n";
                 return 0;
             }
             if (k == "--paced") { paced = true; continue; }
@@ -96,10 +97,12 @@ int main(int argc, char **argv) {
             if (k == "--input") inputs.push_back(v);
             else if (k == "--output") output = v;
             else if (k == "--decode") decode = v;
+            else if (k == "--cfa") cfa = v;
             else {
                 uint64_t n = number(v);
                 if (n > UINT32_MAX) throw std::runtime_error("option too large");
                 if (k == "--width") width = unsigned(n);
+                else if (k == "--sample-bits") sample_bits = unsigned(n);
                 else if (k == "--height") height = unsigned(n);
                 else if (k == "--fps") fps = unsigned(n);
                 else if (k == "--quality") quality = unsigned(n);
@@ -112,6 +115,9 @@ int main(int argc, char **argv) {
             width > 8192 || height > 6144 || !fps || fps > 240 || quality > 5 ||
             !frames || frames > 1000000 || arena_mib > 2048)
             throw std::runtime_error("invalid dimensions, quality, rate, frame count or workspace");
+        if ((cfa!="RGGB" && cfa!="GBRG" && cfa!="GRBG" && cfa!="BGGR") ||
+            (sample_bits!=12 && sample_bits!=14 && sample_bits!=16))
+            throw std::runtime_error("invalid Bayer format");
         const size_t raw_size = size_t(width) * height * 2;
         if (!decode.empty()) {
             if (!inputs.empty()) throw std::runtime_error("decode and encode are exclusive");
@@ -120,7 +126,13 @@ int main(int argc, char **argv) {
             vc5_decoder_parameters p = {};
             vc5_decoder_parameters_set_default(&p);
             p.mem_alloc = malloc; p.mem_free = free;
-            p.pixel_format = VC5_DECODER_PIXEL_FORMAT_RGGB_14;
+            static const VC5_DECODER_PIXEL_FORMAT formats[4][3] = {
+                {VC5_DECODER_PIXEL_FORMAT_RGGB_12,VC5_DECODER_PIXEL_FORMAT_RGGB_14,VC5_DECODER_PIXEL_FORMAT_RGGB_16},
+                {VC5_DECODER_PIXEL_FORMAT_GBRG_12,VC5_DECODER_PIXEL_FORMAT_GBRG_14,VC5_DECODER_PIXEL_FORMAT_GBRG_16},
+                {VC5_DECODER_PIXEL_FORMAT_GRBG_12,VC5_DECODER_PIXEL_FORMAT_GRBG_14,VC5_DECODER_PIXEL_FORMAT_GRBG_16},
+                {VC5_DECODER_PIXEL_FORMAT_BGGR_12,VC5_DECODER_PIXEL_FORMAT_BGGR_14,VC5_DECODER_PIXEL_FORMAT_BGGR_16}};
+            unsigned phase=cfa=="RGGB" ? 0:cfa=="GBRG" ? 1:cfa=="GRBG" ? 2:3;
+            p.pixel_format=formats[phase][(sample_bits-12)/2];
             CODEC_ERROR err = vc5_decoder_process(&p, &compressed, &raw, NULL);
             std::unique_ptr<void, decltype(&free)> owner(raw.buffer, free);
             if (err || !raw.buffer || raw.size != raw_size)
@@ -130,6 +142,7 @@ int main(int argc, char **argv) {
             return 0;
         }
         if (inputs.empty() || inputs.size() > 16) throw std::runtime_error("supply 1..16 RAW inputs");
+        if (cfa!="RGGB" || sample_bits!=14) throw std::runtime_error("GVID v2 writer requires RGGB14");
         std::vector<std::vector<unsigned char>> raw;
         for (const auto &path : inputs) {
             raw.push_back(read_file(path));
