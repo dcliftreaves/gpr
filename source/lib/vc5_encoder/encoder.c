@@ -1599,6 +1599,23 @@ static void ForwardWaveletTransform(TRANSFORM *transform, const COMPONENT_ARRAY 
     SetRecursiveTransformData( &transform_data[0], transform, input_image_component, midpoints[0], multipliers[0], lowpass_buffer, highpass_buffer, midpoint_prequant, 0 );
     SetRecursiveTransformData( &transform_data[1], transform, input_image_component, midpoints[1], multipliers[1], lowpass_buffer, highpass_buffer, midpoint_prequant, 1 );
     SetRecursiveTransformData( &transform_data[2], transform, input_image_component, midpoints[2], multipliers[2], lowpass_buffer, highpass_buffer, midpoint_prequant, 2 );
+    if (gpr_optical_coring_tau() > 0) {
+        const char *coring_env = getenv("GPR_OPTICAL_CORING");
+        const int coring_mode = coring_env ? atoi(coring_env) : 0;
+        /* Tier 1 (GPR_OPTICAL_CORING>=1): C_G (channel 3) green-phase difference
+         * deadzone across wavelet stages.
+         * Tier 2 (GPR_OPTICAL_CORING>=2): Also apply Stage-0 ([0.25, 0.50] cyc/px
+         * OLPF-attenuated highpass) deadzone across all channels. */
+        for (int band = 1; band < MAX_BAND_COUNT; band++) {
+            if (channel == 3) {
+                midpoints[0][band] = 0;
+                midpoints[1][band] = 0;
+                midpoints[2][band] = 0;
+            } else if (coring_mode >= 2) {
+                midpoints[0][band] = 0;
+            }
+        }
+    }
     
     if ((encoder->preview_row_observer || getenv("GPR_PIPELINE_WAVELETS")) && transform_data[2].input_height>=6)
         ForwardWaveletPipelined(transform_data);
