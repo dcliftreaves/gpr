@@ -18,6 +18,9 @@ The stock codec remains lossy, including its historical logarithmic conversion.
 
 ## Start here
 
+- **[MISSION 1 / HERO PRO Product & Marketing Proposal (`GPR_PRODUCT_PROPOSAL.md`)](GPR_PRODUCT_PROPOSAL.md)** — How these tools translate into 6 ship-ready, marketable customer features (**HyperBurst RAW™**, **SmartRAW™ Auto**, **Sparse-8K™**, **CineRAW™ `.GVID` 4K Video**, **Fixed-Lens Optical AI™**, and **TrueGrain™ Synthesis**) with GoPro Labs QR commands and Pi 5 / M5 Max receipts
+- [High-Bitrate 12 MP vs. Sparse-8K Wavelets & Scene-Adaptive Auto Mode](docs/stock-sparse-8k-and-auto-mode.md)
+- [Clean-Sheet Zero-DC Neural Restoration & Fixed-Lens Optical Physics](docs/stock-clean-sheet-m5-max.md)
 - [Feature overview, supported scope and finish line](docs/stock-raw-media-overview.md)
 - [Build and run the core workflow](docs/stock-raw-media-rebuild.md#core-workflow)
 - [Capture API](docs/stock-capture-api.md) · [Desktop workflow](docs/stock-upres-workflow.md) · [Native reconstruction](docs/stock-native-runtime.md)

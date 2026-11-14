@@ -88,6 +88,21 @@ int gpr_optical_coring_tau(void)
     return val > 127 ? 127 : val;
 }
 
+int gpr_sparse_8k_tau(void)
+{
+    const char *env = getenv("GPR_SPARSE_8K");
+    if (!env || !env[0] || (env[0] == '0' && !env[1])) return 0;
+    int val = atoi(env);
+    if (val <= 0) return 0;
+    /* GPR_SPARSE_8K=1 uses the calibrated Stage-0 sparse deadzone tau=4 (in
+     * pre-quantized Stage-0 highpass units, before divisor=8).
+     * GPR_SPARSE_8K=2 uses an aggressive sparse deadzone tau=12 for ultra-compact 8K.
+     * Explicit values >2 set tau directly (clamped to [1, 127]). */
+    if (val == 1) return 4;
+    if (val == 2) return 12;
+    return val > 127 ? 127 : val;
+}
+
 static inline int32_t soft_core_s32(int32_t d, int32_t tau)
 {
     int32_t clamped = d < -tau ? -tau : (d > tau ? tau : d);
