@@ -54,9 +54,24 @@ struct Workspace {
 thread_local Workspace *current_workspace = nullptr;
 void *workspace_alloc(size_t n) { return current_workspace ? current_workspace->alloc(n) : nullptr; }
 void workspace_free(void *p) { if (current_workspace) current_workspace->free(p); }
+uint32_t copy_and_crc32(uint8_t *dst, const void *src, size_t size) {
+    const uint8_t *p = static_cast<const uint8_t *>(src);
+    uint32_t crc = 0;
+    constexpr size_t kChunk = 65536;
+    while (size > 0) {
+        size_t n = std::min(size, kChunk);
+        std::memcpy(dst, p, n);
+        crc = gpr_gvid_crc32(crc, dst, n);
+        dst += n;
+        p += n;
+        size -= n;
+    }
+    return crc;
+}
 struct Slot {
     std::vector<uint8_t> raw, payload, metadata;
     size_t payload_size = 0;
+    uint32_t payload_crc = 0;
     uint64_t index = 0, timestamp = 0, encode_ns = 0;
     const uint8_t *input = nullptr;
     gpr_capture_release_fn release = nullptr;
@@ -174,7 +189,7 @@ struct gpr_capture {
                 bool okay=!error && compressed.buffer && compressed.size && compressed.size<=slot.payload.size();
                 if (okay) {
                     slot.payload_size=compressed.size;
-                    std::memcpy(slot.payload.data(),compressed.buffer,compressed.size);
+                    slot.payload_crc=copy_and_crc32(slot.payload.data(),compressed.buffer,compressed.size);
                 }
                 p.mem_free(compressed.buffer);
                 workspace.reset();
@@ -256,16 +271,14 @@ struct gpr_capture {
                     }
                     Slot &slot=slots[owned];
                     auto start=Clock::now(); uint8_t frame[48];
-                    bool okay=!gpr_gvid_write_frame(frame,slot.index,slot.timestamp,slot.payload.data(),
-                        slot.payload_size,slot.metadata.data(),slot.metadata.size()) &&
+                    bool okay=!gpr_gvid_write_frame_with_crc(frame,slot.index,slot.timestamp,
+                        slot.payload_size,slot.payload_crc,slot.metadata.data(),slot.metadata.size()) &&
                         emit(frame,48,&crc) && emit(slot.metadata.data(),slot.metadata.size(),&crc) &&
                         emit(slot.payload.data(),slot.payload_size,nullptr);
-                    // Reuse the payload checksum rather than scanning a multi-MB
-                    // frame twice. Combine is algebraically the same stream CRC.
+                    // Reuse the cache-hot payload checksum computed during encode copy
+                    // rather than scanning the multi-MB payload again on the writer thread.
                     if (okay) {
-                        uint32_t payload_crc=uint32_t(frame[36]) | uint32_t(frame[37])<<8 |
-                            uint32_t(frame[38])<<16 | uint32_t(frame[39])<<24;
-                        crc=uint32_t(crc32_combine(crc,payload_crc,z_off_t(slot.payload_size)));
+                        crc=uint32_t(crc32_combine(crc,slot.payload_crc,z_off_t(slot.payload_size)));
                     }
                     uint64_t write_ns=elapsed(start);
                     {

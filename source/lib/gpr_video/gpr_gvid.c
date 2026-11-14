@@ -82,16 +82,24 @@ int gpr_gvid_write_header(uint8_t out[64], const gpr_gvid_config *cfg,
     put(out+56, gpr_gvid_crc32(0, out, 56), 4);
     return 0;
 }
-int gpr_gvid_write_frame(uint8_t out[48], uint64_t index, uint64_t timestamp_ns,
-                         const void *payload, size_t payload_size,
-                         const void *metadata, size_t metadata_size) {
-    if (!out || !payload || !payload_size || !metadata_valid(metadata, metadata_size)) return -1;
+int gpr_gvid_write_frame_with_crc(uint8_t out[48], uint64_t index, uint64_t timestamp_ns,
+                                  size_t payload_size, uint32_t payload_crc32,
+                                  const void *metadata, size_t metadata_size) {
+    if (!out || !payload_size || !metadata_valid(metadata, metadata_size)) return -1;
     memset(out, 0, 48); memcpy(out, "FRM3", 4); put(out+4, 48, 4);
     put(out+8, index, 8); put(out+16, timestamp_ns, 8); put(out+24, payload_size, 8);
-    put(out+32, metadata_size, 4); put(out+36, gpr_gvid_crc32(0, payload, payload_size), 4);
+    put(out+32, metadata_size, 4); put(out+36, payload_crc32, 4);
     put(out+40, gpr_gvid_crc32(0, metadata, metadata_size), 4);
     put(out+44, gpr_gvid_crc32(0, out, 44), 4);
     return 0;
+}
+int gpr_gvid_write_frame(uint8_t out[48], uint64_t index, uint64_t timestamp_ns,
+                         const void *payload, size_t payload_size,
+                         const void *metadata, size_t metadata_size) {
+    if (!payload || !payload_size) return -1;
+    return gpr_gvid_write_frame_with_crc(out, index, timestamp_ns, payload_size,
+                                         gpr_gvid_crc32(0, payload, payload_size),
+                                         metadata, metadata_size);
 }
 void gpr_gvid_write_end(uint8_t out[48], uint64_t count, uint64_t timestamp_ns,
                         uint64_t payload_bytes, uint32_t stream_crc32) {
