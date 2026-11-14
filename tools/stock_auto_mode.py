@@ -21,9 +21,12 @@ import os
 import subprocess
 import tempfile
 import time
+from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+import struct
+import zlib
+from typing import Deque, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -302,6 +305,186 @@ def execute_auto_encode(
         "gpr_size_bytes": output_gpr.stat().st_size,
         "encode_ms": encode_ms,
     }
+
+
+def extract_dual_raw_12mp(
+    input_gpr_or_vc5: Path,
+    output_raw_12mp: Path,
+    decoder_bin: Path,
+    full_width: int = 8192,
+    full_height: int = 6144,
+) -> Dict:
+    """
+    DualRAW™ Instant 12 MP Bayer Extraction (`GPR_RAW_DECODE_HALF=1`):
+    Decodes only Subbands 0..6 (`LL1`) of a 50 MP (or WxH) `.gpr` or `.vc5` bitstream,
+    skipping 100% of Stage-0 (`Subbands 7, 8, 9`) VLC decoding and Stage-0 inverse wavelets,
+    and writes the native half-resolution (`W/2 x H/2`, i.e., `4096 x 3072` 12 MP) 14-bit RGGB
+    Bayer RAW directly from `wavelet[0]->data[0]`.
+    """
+    env = dict(os.environ)
+    env["GPR_RAW_DECODE_HALF"] = "1"
+    if output_raw_12mp.exists():
+        output_raw_12mp.unlink()
+
+    cmd = [str(decoder_bin), "-i", str(input_gpr_or_vc5), "-o", str(output_raw_12mp)]
+    if "vc5_decoder_app" in decoder_bin.name:
+        cmd.extend(["-x", "rggb14"])
+
+    t0 = time.perf_counter()
+    subprocess.run(
+        cmd,
+        env=env,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    decode_ms = (time.perf_counter() - t0) * 1000.0
+    half_w = full_width // 2
+    half_h = full_height // 2
+    expected_bytes = half_w * half_h * 2
+    actual_bytes = output_raw_12mp.stat().st_size
+    if actual_bytes != expected_bytes:
+        raise ValueError(
+            f"DualRAW half-decode expected {expected_bytes} bytes ({half_w}x{half_h}), got {actual_bytes}"
+        )
+    return {
+        "width": half_w,
+        "height": half_h,
+        "raw_bytes": actual_bytes,
+        "decode_ms": decode_ms,
+    }
+
+
+@dataclass(frozen=True)
+class HindSightRawFrame:
+    timestamp_us: int
+    vc5_payload: bytes
+    width: int
+    height: int
+    mode: str
+
+
+class HindSightRawRingBuffer:
+    """
+    HindSight RAW™ Pre-Capture Rolling Ring Buffer:
+    Continuously buffers compressed VC-5 RAW frames (`12 MP` at ~1.12 MB / 55 fps or
+    `50 MP Sparse-8K` at ~5.38 MB) in a strictly bounded RAM budget (`max_bytes`, default 128 MB)
+    and flushes the pre-shutter + post-shutter window into a self-indexing `GVID v3` container.
+    """
+
+    def __init__(
+        self,
+        max_bytes: int = 128 * 1024 * 1024,
+        max_pre_roll_seconds: float = 2.0,
+        fps_num: int = 60,
+        fps_den: int = 1,
+    ) -> None:
+        if max_bytes <= 0:
+            raise ValueError("max_bytes must be positive")
+        self.max_bytes = int(max_bytes)
+        self.max_pre_roll_us = int(max_pre_roll_seconds * 1_000_000)
+        self.fps_num = int(fps_num)
+        self.fps_den = int(fps_den)
+        self._frames: Deque[HindSightRawFrame] = deque()
+        self._current_bytes: int = 0
+
+    @property
+    def current_bytes(self) -> int:
+        return self._current_bytes
+
+    @property
+    def frame_count(self) -> int:
+        return len(self._frames)
+
+    def push_frame(
+        self,
+        vc5_payload: bytes,
+        timestamp_us: int,
+        width: int = 4096,
+        height: int = 3072,
+        mode: str = "12MP_HIGH_SNR_DR",
+    ) -> None:
+        payload_bytes = bytes(vc5_payload)
+        f_len = len(payload_bytes)
+        if f_len > self.max_bytes:
+            raise ValueError(f"Single frame ({f_len} B) exceeds ring buffer budget ({self.max_bytes} B)")
+
+        # Evict oldest frames if adding this frame would exceed max_bytes or max_pre_roll_us
+        while self._frames and (
+            self._current_bytes + f_len > self.max_bytes
+            or (timestamp_us - self._frames[0].timestamp_us) > self.max_pre_roll_us
+        ):
+            evicted = self._frames.popleft()
+            self._current_bytes -= len(evicted.vc5_payload)
+
+        self._frames.append(
+            HindSightRawFrame(
+                timestamp_us=int(timestamp_us),
+                vc5_payload=payload_bytes,
+                width=int(width),
+                height=int(height),
+                mode=mode,
+            )
+        )
+        self._current_bytes += f_len
+
+    def flush_to_gvid_v3(
+        self,
+        output_gvid: Path,
+        post_roll_frames: Optional[List[HindSightRawFrame]] = None,
+    ) -> Dict:
+        """
+        Flush the retained pre-shutter ring buffer plus any post-shutter frames
+        into a crash-safe, self-indexing GVID v3 file (`GVID` header + payloads + `GVDX` trailer).
+        """
+        all_frames = list(self._frames)
+        if post_roll_frames:
+            all_frames.extend(post_roll_frames)
+        if not all_frames:
+            raise ValueError("Cannot flush empty HindSightRawRingBuffer")
+
+        w0 = all_frames[0].width
+        h0 = all_frames[0].height
+        header = struct.pack(
+            "<4sIIIIII",
+            b"GVID",
+            3,  # version 3
+            w0,
+            h0,
+            self.fps_num,
+            self.fps_den,
+            len(all_frames),
+        )
+        chunks: List[bytes] = [header]
+        index_entries: List[bytes] = []
+        offset = len(header)
+
+        for idx, frame in enumerate(all_frames):
+            payload = frame.vc5_payload
+            size = len(payload)
+            crc = zlib.crc32(payload) & 0xFFFFFFFF
+            chunks.append(struct.pack("<I", size))
+            chunks.append(payload)
+            # GVDX v3 entry: offset (u64), size (u32), flags (u32: 1=keyframe), crc32 (u32), reserved (u32)
+            index_entries.append(struct.pack("<QIIII", offset, size, 1, crc, idx))
+            offset += 4 + size
+
+        index_blob = b"".join(index_entries)
+        trailer = struct.pack("<4sIIQ", b"GVDX", 3, len(all_frames), offset)
+        chunks.append(index_blob)
+        chunks.append(trailer)
+
+        blob = b"".join(chunks)
+        output_gvid.write_bytes(blob)
+        return {
+            "frame_count": len(all_frames),
+            "pre_roll_frames": len(self._frames),
+            "post_roll_frames": len(post_roll_frames) if post_roll_frames else 0,
+            "width": w0,
+            "height": h0,
+            "gvid_bytes": len(blob),
+            "ring_buffer_peak_bytes": self._current_bytes,
+        }
 
 
 def main():

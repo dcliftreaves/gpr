@@ -334,5 +334,62 @@
       "bayer_psnr_db": 55.867129126168884,
       "green_sum_structural_psnr_db": 57.99980192029096
     }
-  ]
+  ],
+  "dual_raw_12mp_extraction": {
+    "env": {
+      "GPR_RAW_DECODE_HALF": "1"
+    },
+    "output_dimensions": [
+      4096,
+      3072
+    ],
+    "output_bytes": 25165824,
+    "memory_saved_bytes_vs_full_50mp": 179306496,
+    "m5_max_benchmarks": {
+      "GP011689": {
+        "vc5_mb": 5.38,
+        "full_50mp_decode_ms": 157.0,
+        "dual_raw_12mp_decode_ms": 81.0,
+        "speedup_x": 1.94,
+        "psnr_vs_2x2_bin_db": 69.27
+      },
+      "GP010114": {
+        "vc5_mb": 8.69,
+        "full_50mp_decode_ms": 196.0,
+        "dual_raw_12mp_decode_ms": 92.0,
+        "speedup_x": 2.13,
+        "psnr_vs_2x2_bin_db": 62.3
+      },
+      "GP010130": {
+        "vc5_mb": 9.55,
+        "full_50mp_decode_ms": 209.0,
+        "dual_raw_12mp_decode_ms": 100.0,
+        "speedup_x": 2.09,
+        "psnr_vs_2x2_bin_db": 59.29
+      },
+      "GP010136": {
+        "vc5_mb": 6.75,
+        "full_50mp_decode_ms": 167.0,
+        "dual_raw_12mp_decode_ms": 81.0,
+        "speedup_x": 2.06,
+        "psnr_vs_2x2_bin_db": 70.52
+      }
+    },
+    "pi5_standin_benchmarks": {
+      "GP011689": {
+        "vc5_mb": 5.38,
+        "full_50mp_decode_ms": 649.0,
+        "dual_raw_12mp_decode_ms": 282.0,
+        "speedup_x": 2.3,
+        "psnr_vs_2x2_bin_db": 69.27
+      }
+    }
+  },
+  "hindsight_raw_ring_buffer": {
+    "default_ram_budget_mb": 128,
+    "default_pre_roll_seconds": 2.0,
+    "capacity_12mp_q1_coring_frames": 114,
+    "capacity_50mp_sparse8k_frames": 23,
+    "flush_container": "GVID v3 (GVID header + VC-5 payloads + GVDX O(1) CRC32 index trailer)"
+  }
 }

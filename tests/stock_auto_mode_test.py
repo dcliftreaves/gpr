@@ -33,6 +33,26 @@ def find_gpr_tools() -> Path:
     raise FileNotFoundError("Could not locate compiled gpr_tools binary")
 
 
+def find_vc5_apps():
+    enc_candidates = [
+        Path(os.environ.get("VC5_ENCODER_BIN", "")),
+        Path("/tmp/gpr-native-build/source/app/vc5_encoder_app/vc5_encoder_app"),
+        Path("/mnt/ssd/gpr_work/stock-pi5-validation-20261113/build/source/app/vc5_encoder_app/vc5_encoder_app"),
+        REPO_ROOT / "build" / "source" / "app" / "vc5_encoder_app" / "vc5_encoder_app",
+    ]
+    dec_candidates = [
+        Path(os.environ.get("VC5_DECODER_BIN", "")),
+        Path("/tmp/gpr-native-build/source/app/vc5_decoder_app/vc5_decoder_app"),
+        Path("/mnt/ssd/gpr_work/stock-pi5-validation-20261113/build/source/app/vc5_decoder_app/vc5_decoder_app"),
+        REPO_ROOT / "build" / "source" / "app" / "vc5_decoder_app" / "vc5_decoder_app",
+    ]
+    enc = next((c for c in enc_candidates if c.name and c.exists() and os.access(c, os.X_OK)), None)
+    dec = next((c for c in dec_candidates if c.name and c.exists() and os.access(c, os.X_OK)), None)
+    if not enc or not dec:
+        raise FileNotFoundError("Could not locate compiled vc5_encoder_app / vc5_decoder_app binaries")
+    return enc, dec
+
+
 class StockAutoModeAndSparse8KTests(unittest.TestCase):
     def test_dark_scene_selects_12mp_high_snr_dr(self):
         rng = np.random.default_rng(42)
@@ -130,6 +150,78 @@ class StockAutoModeAndSparse8KTests(unittest.TestCase):
             mse_12mp = float(np.mean((ref_12mp - dec_12mp) ** 2))
             psnr_12mp = 10.0 * np.log10((16383.0 ** 2) / mse_12mp)
             self.assertGreater(psnr_12mp, 60.0)
+
+    def test_dual_raw_half_resolution_12mp_extraction(self):
+        enc_bin, dec_bin = find_vc5_apps()
+        w, h = 1024, 768
+        rng = np.random.default_rng(2026)
+        yy, xx = np.mgrid[0:h, 0:w]
+        base = (900.0 + 350.0 * np.sin(xx / 32.0) + 250.0 * np.cos(yy / 32.0)).astype(np.float64)
+        noise = rng.normal(0.0, np.sqrt(base * 1.5 + 16.0))
+        raw_u16 = np.clip(base + noise, 64, 15000).astype(np.uint16)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            raw_in = tmp / "in_full.raw"
+            vc5_out = tmp / "sparse.vc5"
+            dec_half_out = tmp / "dec_half.raw"
+            raw_u16.tofile(raw_in)
+
+            env_enc = dict(os.environ)
+            env_enc["GPR_OPTICAL_CORING"] = "1"
+            env_enc["GPR_SPARSE_8K"] = "1"
+            subprocess.run(
+                [str(enc_bin), "-i", str(raw_in), "-o", str(vc5_out), "-w", str(w), "-h", str(h), "-p", str(w * 2), "-x", "rggb14"],
+                env=env_enc,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+            res = auto_mode.extract_dual_raw_12mp(
+                vc5_out, dec_half_out, dec_bin, full_width=w, full_height=h
+            )
+            self.assertEqual(res["width"], w // 2)
+            self.assertEqual(res["height"], h // 2)
+            self.assertEqual(res["raw_bytes"], (w // 2) * (h // 2) * 2)
+
+            half_arr = np.fromfile(dec_half_out, dtype=np.uint16).reshape(h // 2, w // 2).astype(np.float64)
+            ref_half = auto_mode.bin_50mp_to_12mp_rggb(raw_u16).astype(np.float64)
+            mse = float(np.mean((half_arr - ref_half) ** 2))
+            psnr = 10.0 * np.log10((16383.0 ** 2) / mse)
+            self.assertGreater(psnr, 58.0)
+
+    def test_hindsight_raw_ring_buffer_bounded_memory_and_gvid_v3_flush(self):
+        # 1 MB ring buffer, 1.0s pre-roll window
+        ring = auto_mode.HindSightRawRingBuffer(
+            max_bytes=1024 * 1024,
+            max_pre_roll_seconds=1.0,
+            fps_num=60,
+            fps_den=1,
+        )
+        fake_payload = b"VC-5" + (b"\x12\x34\x56\x78" * 32000)  # ~128 KB per frame
+        # Push 20 frames spaced by 100 ms (2.0 seconds total) -> only last ~8 frames fit in 1 MB / 1.0s
+        for i in range(20):
+            ring.push_frame(fake_payload, timestamp_us=i * 100_000, width=4096, height=3072)
+
+        self.assertLessEqual(ring.current_bytes, 1024 * 1024)
+        self.assertLessEqual(ring.frame_count, 8)
+        self.assertGreaterEqual(ring.frame_count, 6)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            gvid_path = Path(tmpdir) / "hindsight.gvid"
+            post_frame = auto_mode.HindSightRawFrame(
+                timestamp_us=2_000_000,
+                vc5_payload=fake_payload,
+                width=4096,
+                height=3072,
+                mode="12MP_HIGH_SNR_DR",
+            )
+            receipt = ring.flush_to_gvid_v3(gvid_path, post_roll_frames=[post_frame])
+            self.assertEqual(receipt["frame_count"], ring.frame_count + 1)
+            blob = gvid_path.read_bytes()
+            self.assertEqual(blob[:4], b"GVID")
+            self.assertEqual(blob[-20:-16], b"GVDX")
 
 
 if __name__ == "__main__":

@@ -123,8 +123,23 @@ Implemented in [tools/stock_auto_mode.py](../tools/stock_auto_mode.py) and teste
 
 ---
 
-## 5. Verification & Receipts
-- **Unit & Integration Tests**: `tests/stock_auto_mode_test.py` (`4/4 OK` on both M5 Max and Raspberry Pi 5) and `ctest` (`16/16 Passed` on Raspberry Pi 5).
+## 5. Adjacent Product Features: DualRAW™ (`GPR_RAW_DECODE_HALF=1`) & HindSight RAW™ (`HindSightRawRingBuffer`)
+
+### 5.1 DualRAW™: Instant Native 12 MP 14-Bit Bayer Extraction from Any 50 MP `.GPR` / `.GVID`
+Because `GPR_SPARSE_8K=1` preserves Subbands `0..6` (`LL1`) of all four Bayer opponent channels at `~70 dB`, any 50 MP (`8192 x 6144`) `.gpr` or `.gvid` stream already contains a complete, $2\times 2$-binned, $+6.02\text{ dB}$ high-SNR 12 MP (`4096 x 3072`) Bayer image in the first ~25% of each channel's bitstream.
+- Implemented in [source/lib/vc5_decoder/decoder.c](../source/lib/vc5_decoder/decoder.c) (`GPR_RAW_DECODE_HALF=1`) and [source/lib/vc5_decoder/raw.c](../source/lib/vc5_decoder/raw.c):
+  - Sets `decoder->subbands_to_decode = 7`, skipping 100% of Stage-0 (`Subbands 7, 8, 9`) VLC decoding and Stage-0 `TransformInverseSpatialQuantArray` passes.
+  - Allocates single-band `CreateLowpassOnlyWavelet` for `wavelet[0]` and transfers `w0->data[0]` in-place to `image->component_array_list[ch].data`, eliminating **`103.8 MB` of intermediate wavelet/component allocations** and **`75.5 MB` of output buffer allocations** (`179 MB` total RAM saved per frame).
+  - Extracts a native `4096 x 3072` 14-bit RGGB Bayer RAW in **`81.0 ms` (`2.09x` faster on M5 Max)** with **`69.27 dB` (`GP011689`) to `70.52 dB` (`GP010136`) PSNR** against the $2\times 2$-binned 50 MP reference.
+
+### 5.2 HindSight RAW™: Bounded Circular RAM Pre-Capture Ring Buffer
+Implemented in `HindSightRawRingBuffer` ([tools/stock_auto_mode.py](../tools/stock_auto_mode.py)):
+- Continuously buffers compressed VC-5 RAW payloads (`1.12 MB/frame` 12 MP at `54.9 fps` or `5.38 MB/frame` 50 MP Sparse-8K DualRAW™) within a strict DRAM budget (`128 MB` = `110+` 12 MP frames or `24` 50 MP frames) and rolling time horizon (`2.0 s`) *before* shutter press, and flushes the pre-shutter + post-shutter window into a self-indexing `GVID v3` container (`GVID` header + payloads + `GVDX` trailer with per-frame CRC32).
+
+---
+
+## 6. Verification & Receipts
+- **Unit & Integration Tests**: `tests/stock_auto_mode_test.py` (`6/6 OK` on both M5 Max and Raspberry Pi 5) and `ctest` (`16/16 Passed` on Raspberry Pi 5).
 - **Receipts**:
   - [sparse_8k_and_auto_mode_receipt.json](stock-clean-sheet-m5-max-receipts/sparse_8k_and_auto_mode_receipt.json)
   - [pi5_standin_validation_receipt.json](stock-clean-sheet-m5-max-receipts/pi5_standin_validation_receipt.json)
