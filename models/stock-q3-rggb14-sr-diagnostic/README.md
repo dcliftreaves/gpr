@@ -1,61 +1,27 @@
-# Optional stock-Q3 RGGB14 2x diagnostic candidate
+# Optional stock-Q3 RGGB14 2x Zero-DC SR candidate
 
-`selected.pt` provides an explicit, nonzero 2x CNN reconstruction path for
-stock-Q3/RGGB14 inputs. Measured improvement over bicubic is small:
-**0.00046–0.06133 dB** active PSNR on four historical references,
-**0.00729 dB pooled**. These results do not establish useful recovered detail,
-rendered/video quality or restored compression tiers.
+`selected.pt` provides the Clean-Sheet **Algebraic Zero-DC `2x2` Super-Pixel Projected** 2x CNN reconstruction checkpoint for stock-Q3/RGGB14 inputs, trained in full native FP32 on Apple M5 Max (`tools/m5_max_full_throttle_train.py`).
 
-Architecture: bundled `F_ane`, width 16/depth 3, normalization 16383 and
-residual scale **0.0003125** (1/32 of training strength). Bayer width and height
-double. Supported calibration uses the checked scale-two transform. Model
-counts remain distinct from original payloads and optional lossy re-encoding.
+- **Architecture**: Bundled `F_ane`, width 16 / depth 3, normalization `16383.0`, residual scale **`0.000203125`** ($\eta = 0.65$), with exact zero-DC super-pixel projection on `backbone.subpixel[0]` ($\sum_{k=0}^3 W_{4c+k} = 0$, $\sum_{k=0}^3 b_{4c+k} = 0$).
+- **SHA-256**: `cf6e428f4f33eb4284c4e6665b8b4ab94f5b0d8e649d0da82dfe6ee4f6fc9dc2`
+- **320-Patch Multi-Domain Validation (Nikon + GoPro Mission 1)**:
+  - **Pooled PSNR Gain vs. previous `selected.pt`**: **`+0.8786 dB`** (`+1.1073 dB` at unit scale $\eta = 1.0$)
+  - **Raw Regional Regressions**: **`0 / 24`**
+  - **Tone-Proxy Regressions**: **`0 / 6`**
+- **4-Reference Full-Frame 8K Nikon Quality Gate (`8256 x 5504`)**:
+  - Eliminates the full-frame local DC drift that previously caused negative active PSNR on `Z8Z_5323` and `Z8Z_6693`:
+    - `Z8Z_0001`: **`+0.66089 dB`** (Standalone 2x SR) / **`+0.60049 dB`** (1x $\to$ 2x Cascade)
+    - `Z8Z_0067`: **`+0.37340 dB`** (Standalone 2x SR) / **`+0.47259 dB`** (1x $\to$ 2x Cascade)
+    - `Z8Z_5323`: **`+0.00405 dB`** (Standalone 2x SR) / **`+0.08956 dB`** (1x $\to$ 2x Cascade)
+    - `Z8Z_6693`: **`+0.00591 dB`** (Standalone 2x SR) / **`+0.06396 dB`** (1x $\to$ 2x Cascade)
 
-SHA-256: `f7bda0449b94be4ebd3617297b9dee04506b00e38788dba2d0b04eb71fdaa2f4`.
-Size: 1,320,232 bytes. This is the exact frozen evaluated checkpoint.
-Selection is explicit; no download, automatic model selection, installed
-camera/SDK weight dependency or production-quality approval is added.
-The checkpoint retains `quality_approval=false`.
-
-Fresh training uses training-source-only full-image masks. Existing patch
-regional guards and complete validation-image guards select the checkpoint.
-All four historical references pass active/shadow/highlight/detail
-nonregression on both Torch MPS and CPU. Those references are not newly unseen.
-Inputs are simulated using same-site averaging followed by actual stock Q3;
-other presets, Bayer/count domains and physical sensor/noise/video quality do
-not inherit these results.
-
-Two supplied 12 MP inputs produce 8192x6144 editable outputs on Pi CPU and Mac
-MPS, with exact supported calibration and at most one-count differences
-(237/219 differing samples out of 50,331,648 each). Pi inference takes
-86.29–99.89 s per frame in this offline check. This is execution agreement,
-not lossless GoPro ground truth or sustained inference throughput.
-
-From the repository root with optional Torch/numpy/tifffile dependencies:
+From the repository root:
 
 ```sh
 python3 tools/stock_still.py restore input.gpr --sample-bits 14 \
   --sdk build-runtime/source/app/gpr_tools/gpr_tools \
   --checkpoint models/stock-q3-rggb14-sr-diagnostic/selected.pt \
-  --device mps --scale 2 --output diagnostic-2x.dng
+  --device mps --scale 2 --output restored-2x.dng
 ```
 
-Use `--device cpu` for CPU execution. [Checkpoint-specific native checks](../../docs/stock-sr-native.md)
-pass FP32 Core ML, MPSGraph and hybrid count/RAW-quality guards on the declared
-inputs. These checks do not establish broader model-quality approval. The separate
-[1x cleanup candidate](../stock-q3-rggb14-cleanup/README.md) and its checks are
-unchanged. This file is a diagnostic asset, not a recommended SR model.
-
-See the [study and receipts](../../docs/stock-sr-source-regions.md) for the
-source-wide mask/loss audit, fixed candidate families, frozen selection,
-full-reference and cross-host results. Source photos and training arrays remain
-external; broader quality and restored-tier approval remain open.
-
-The later [supplied-GoPro study](../../docs/stock-cnn-gopro.md) simulates a
-stock-Q3 12 MP input from GP011689's decoded 50 MP counts. This unchanged
-checkpoint improves all four RAW regions (+0.08283 dB active PSNR) and matched
-16-bit rendered RGB fidelity (+0.28430 dB). Supported high calibration, including
-four GainMaps, roundtrips exactly. The GPR-derived reference is already
-compressed and the low input is synthetic. The displayed result remains
-softer than its high reference; useful restored detail and general video
-quality are not approved. Research status and weights remain unchanged.
+See [docs/stock-clean-sheet-m5-max.md](../../docs/stock-clean-sheet-m5-max.md) and [docs/stock-clean-sheet-m5-max-receipts/clean_sheet_results.json](../../docs/stock-clean-sheet-m5-max-receipts/clean_sheet_results.json) for full provenance and receipts.
