@@ -424,3 +424,17 @@ if(GPR_BUILD_CODEC_TESTS AND TARGET vc5_encoder AND TARGET vc5_decoder)
   target_link_libraries(wavelet_stream_benchmark PRIVATE vc5_encoder vc5_decoder)
   endif()
 endif()
+
+# Host-only research checks; never pull Torch into the camera codec build.
+option(GPR_BUILD_SIGNAL_TESTS "Test the offline signal RAW round trip (numpy/tifffile/Torch required)" OFF)
+if(GPR_BUILD_SIGNAL_TESTS)
+  if(CMAKE_VERSION VERSION_LESS 3.12 OR NOT GPR_BUILD_LEGACY_CLI OR NOT GPR_BUILD_ENCODER OR NOT GPR_BUILD_DECODER)
+    message(FATAL_ERROR "Signal tests require CMake >= 3.12 and both legacy codec apps")
+  endif()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  enable_testing()
+  add_test(NAME signal_raw_roundtrip COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/signal_raw_test.py
+    --encoder $<TARGET_FILE:vc5_encoder_app> --decoder $<TARGET_FILE:vc5_decoder_app> -v)
+  set_tests_properties(signal_raw_roundtrip PROPERTIES TIMEOUT 180)
+endif()
