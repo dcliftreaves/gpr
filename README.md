@@ -1,41 +1,33 @@
-# Editable RAW stills and video on stock VC-5
+# GPR: editable RAW, camera knowledge and reproducible looks
 
-Keep Bayer RAW and camera calibration when capturing. Choose the desktop
-rendering, cleanup and output resolution later.
+Fast Bayer capture should leave the photographer room to choose the final image. This maintained fork combines stock-compatible VC-5 compression, GPR stills and checked GVID RAW video with explicit camera calibration and an optional desktop finishing path.
 
-This fork rebuilds the still/video feature suite on the stock-compatible
-encoder from PRs #99/#100. It adds three connected workflows:
+We are evolving the project independently while retaining its GoPro origins, contributor credits and dual Apache-2.0/MIT license. [Project direction](VISION.md) explains how optical knowledge, sensor noise, grain and optional AI fit together.
 
-| Workflow | What you can do |
+| Available foundation | What it provides |
 |---|---|
-| **RAW photography** | Encode high-bit-depth Bayer stills with an explicit compression preset; retain supported calibration and editable DNG/GPR output. |
-| **RAW video** | Record independently compressed Bayer frames with timestamps and calibration, show a native preview, and recover editable frames or wrap the recording in MOV. |
-| **Desktop finishing** | Render calibrated ProRes or optionally run offline 1x cleanup / 2x reconstruction, keeping editable RAW outputs. |
+| RAW codec | Optimized stock-compatible VC-5; four Bayer layouts and 12/14/16-bit word domains; explicit quality settings |
+| GVID video | Bounded asynchronous capture, copied or leased inputs, timestamps, calibration, checksums, strict completion and explicit prefix recovery |
+| Editable output | Calibrated GPR/DNG frames and an offline movie workflow for ordered camera stills, including 100 MP-class images |
+| Rendering | Camera color/shading-aware SDK rendering, preserved lens-warp and baseline metadata, oriented JPEG exports, optional native preview and MOV transport |
 
-The camera path does not require a CNN. Reconstruction is an optional desktop
-step; a working inference engine does not establish restored image quality.
-The stock codec remains lossy, including its historical logarithmic conversion.
+The camera path requires no CNN, cloud service or model download. The codec is lossy, including historical VC-5 companding. New reconstruction/grain proposals remain separate from verified release behavior.
 
-## Start here
+## Build and try
 
-- [Feature overview, supported scope and finish line](docs/stock-raw-media-overview.md)
-- [Build and run the core workflow](docs/stock-raw-media-rebuild.md#core-workflow)
-- [Capture API](docs/stock-capture-api.md) · [Desktop workflow](docs/stock-upres-workflow.md) · [Native reconstruction](docs/stock-native-runtime.md)
-- [PR review order and eight-commit cleanup plan](docs/stock-review-plan.md)
+```sh
+cmake --preset raw-video
+cmake --build --preset raw-video
+ctest --preset raw-video
+```
 
-## Current limits
+Start with the [production workflow guide](docs/stock-production.md) for SDK builds, a movie from 50 camera stills, editable exports, recovery and Pi 5 storage qualification. See [release evidence and limits](docs/stock-release-20261121.md) and [upstream review/attribution](docs/stock-upstream-review.md).
 
-The still, recording, preview and desktop software paths are implemented and
-have Mac/Pi validation. Native 12 MP recording plus preview still misses the
-strict 20 fps / zero-late-delivery gate. The supplied 1x model has scoped
-positive results; 2x remains a research candidate with modest gains. Useful
-broad 2x detail, motion quality and restored compression tiers are not approved.
-Sensor delivery, a physical rear display, SD durability and camera firmware
-integration remain unverified. No deployed GoPro firmware claim follows.
+The SDK render port matches upstream PR #68 pixel for pixel in 48 bundled-sample comparisons on M5. That verifies the port, not an exact camera-JPEG match across cameras or firmware. Performance reporting uses **Raspberry Pi 5** as the embedded reference; M5 is a development and correctness host.
 
-This is a separate [fork draft PR #101](https://github.com/dcliftreaves/gpr/pull/101).
-Existing feature/validation PRs remain open. Old codec/model size and quality
-claims are not carried over to this architecture.
+Sensor acquisition, target-camera storage/display scheduling, power and thermal qualification still need measurements on the actual camera. Encoder throughput, paced replay, durable recording rate and playback frame rate are different quantities. The release guide records them separately.
+
+The documentation below is the historical GPR SDK introduction. Fork workflows and current support boundaries are described above; older experimental evidence is not a blanket release guarantee.
 
 ---
 
@@ -106,7 +98,7 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ## Setup Source Code
 
-Clone the project from Github (`git clone https://github.com/gopro/gpr`). You will need [CMake](https://cmake.org/download/) version 3.5.1 or better to compile source code.
+Clone the project from Github (`git clone https://github.com/dcliftreaves/gpr`). You will need [CMake](https://cmake.org/download/) version 3.20 or better to compile source code.
 
 ### Compiling Source Code
 

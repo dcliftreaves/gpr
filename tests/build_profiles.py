@@ -159,6 +159,8 @@ def main():
         for path in ('CMakeLists.txt', 'LICENSE.txt', 'LICENSE-MIT', 'LICENSE-APACHE'):
             shutil.copy2(root/path, src/path)
         shutil.copytree(root/'cmake', src/'cmake')
+        for name in ('README.md','VISION.md','CONTRIBUTING.md'):
+            shutil.copy2(root/name,src/name)
         shutil.copytree(root/'tests', src/'tests', ignore=shutil.ignore_patterns('__pycache__'))
         (src/'docs').mkdir()
         for doc in (root/'docs').glob('stock-*'):

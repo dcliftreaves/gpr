@@ -1,0 +1,28 @@
+{
+  "width": 11664,
+  "height": 8744,
+  "sample_bits": 16,
+  "frames": [
+    {
+      "index": 0,
+      "calibration_preserved": true,
+      "decoded_bytes": 203980032,
+      "payload_sha256": "74bbc4b1cfa5538638baf8b3848c8bd5d4771cdd8bbef004dab62f1e3e818e92"
+    },
+    {
+      "index": 1,
+      "calibration_preserved": true,
+      "decoded_bytes": 203980032,
+      "payload_sha256": "2dfbc2558bdafd6782cb0f0430c3777889763bc2cc568c425c6dfec2a1109015"
+    },
+    {
+      "index": 2,
+      "calibration_preserved": true,
+      "decoded_bytes": 203980032,
+      "payload_sha256": "c8fabcc05097c087196d72b9facab6ab9dd7b5e7b9c4dfbc08c16008bc590593"
+    }
+  ],
+  "end_marker_verified": true,
+  "cnn": false,
+  "distinct_real_inputs": 3
+}

@@ -1,31 +1,15 @@
-# How to Contribute
+# Contributing
 
-Want to contribute to GPR? Please take a moment to review this document in order to make your contribution and the process around it easier and more effective for everyone.
+Start with the [production build and test guide](docs/stock-production.md). Keep the non-CNN capture path independently buildable. Optional desktop tools and research models should have explicit dependencies and fallbacks.
 
-## Issue tracker
+For codec optimizations, preserve historical VC-5 fixtures and compare fast/reference payloads byte for byte. Check Bayer phase, word/packed domain, padded or unaligned rows, allocator failure and format boundaries. Report Raspberry Pi 5 measurements with source revision, scene/input hash, quality, workspace, warmup and timing boundaries. M5 results are useful for development, but do not predict a camera's performance.
 
-The [issue tracker](https://www.github.com/gopro/gpr/issues) is the best place to report a bug. Please make sure to check the following guide on how to use the issue tracker :
+For capture/container changes, test ownership, backpressure, write failures, cancellation, completion and interrupted-file recovery. Separate encode time, buffered throughput, flush-inclusive recording rate and per-frame deadlines. Keep failed configurations in the evidence rather than removing them from a summary.
 
-### Reporting a bug
- 
-- If you really think it is a bug, consult the list of issues and make sure nobody has reported it yet. This will avoid duplication of effort.
-- If it hasn't been reported yet, submit a new issue.
+For rendering/calibration changes, document which quantities are preserved and which are deliberately transformed. An implementation match to a reference renderer is not proof of an exact camera-JPEG match. Use paired captures when making that claim, and test neutral/color behavior, clipping, spatial corrections, orientation and bit-depth agreement. Include a small synthetic regression for the failure the change addresses.
 
-### Suggesting a feature
+For learned reconstruction or grain work, describe the model/profile identity, working domain, physical assumptions, training/evaluation split and temporal behavior. Keep source capture and derived interpretation distinguishable. Do not call statistical grain synthesis exact noise recovery. See [the project direction](VISION.md) and [research notes](docs/stock-project-research.md).
 
-- Consult the roadmap within [projects](https://github.com/gopro/gpr/projects) to know if it is planned.
-- Consult the list of things that **won't** be implemented.
-- Read up on what type of feature requests are accepted.
-- See if anybody has not requested the feature yet.
-- If it hasn't beed requested yet, submit a new request as an issue.
+Credit upstream authors and link the exact PR/revision when importing work. Explain adaptations and intentionally excluded changes. Keep new commits focused on behavior a reviewer can assess; keep experimental evidence clearly labeled. Use redistributable fixtures or synthetic data, and do not commit private photographs or access credentials.
 
-### Submitting a pull-request
-
-- All contributors must sign a [contributor license agreement (CLA)](https://cla.gopro.com). Your code will not be reviewed and accepted by the Admins until this has been received.
-- To be sure your changes could be interesting and accepted, ask about your patch on Discourse.
-- Fork the repository and work on the `master` branch, while respecting the imposed guidelines.
-- Add tests if needed, and make sure that all of them pass.
-- Document the code according to the guidelines, and make sure the build is OK. If you encounter some problem with the Closure Compiler part, don't hesitate to ask.
-- Submit a pull request for your changes.
-- The Admins will review your work and may optionally request conformance, functional or other changes. Work with them to resolve any issues.
-- Upon acceptance, your code will be added to the main branch and available for all.
+This guide covers this fork. Contributions sent to `gopro/gpr` follow that project's separate review and CLA requirements.

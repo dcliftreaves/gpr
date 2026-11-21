@@ -1,0 +1,89 @@
+{
+  "schema": "gpr.recording_qualification.v1",
+  "cnn": false,
+  "scope": "paced RAW fixture replay with final fsync; not camera acquisition",
+  "before": {
+    "platform": "Linux-6.12.109+rpt-rpi-2712-aarch64-with-glibc2.36",
+    "machine": "aarch64",
+    "model": "Raspberry Pi 5 Model B Rev 1.0",
+    "temperature_millic": "52350",
+    "governor": "ondemand",
+    "throttled": "throttled=0x0"
+  },
+  "after": {
+    "platform": "Linux-6.12.109+rpt-rpi-2712-aarch64-with-glibc2.36",
+    "machine": "aarch64",
+    "model": "Raspberry Pi 5 Model B Rev 1.0",
+    "temperature_millic": "60600",
+    "governor": "ondemand",
+    "throttled": "throttled=0x0"
+  },
+  "requested_fps": 3,
+  "duration_seconds": 60,
+  "quality": 3,
+  "workspace_mib": 512,
+  "writeback_mib": 8,
+  "required_durable_fps": 2.9699999999999998,
+  "process_seconds": 62.66848620102974,
+  "capture_binary_sha256": "73ddbe4c589e89c6b51a075e03314494cf989c0503a6b81005fe1fa8e6681679",
+  "inputs": [
+    {
+      "name": "raw100.raw",
+      "sha256": "dddcee26729d391e252277934395f5a151920eb6869a8f4de74e91306aedcb66"
+    },
+    {
+      "name": "000001.raw",
+      "sha256": "2936ca305401b479defed0508ae3fd950ee3b25ceae58438645d1b595c3f1857"
+    },
+    {
+      "name": "000002.raw",
+      "sha256": "70a125826a6b3f239f4d52efa529dc4cb8fb3a112155889efeee543e7ead5489"
+    }
+  ],
+  "width": 11664,
+  "height": 8744,
+  "sample_bits": 16,
+  "capture_returncode": 0,
+  "qualified": true,
+  "capture": {
+    "event": "summary",
+    "schema": "gpr.capture_replay.v1",
+    "attempts": 180,
+    "accepted": 180,
+    "written": 180,
+    "overruns": 0,
+    "queue": 4,
+    "inflight_high_water": 2,
+    "leased": true,
+    "fsync_each": false,
+    "writeback_mib": 8,
+    "writeback_requests": 180,
+    "writeback_scheduled_bytes": 3195895808,
+    "writeback_page_bytes": 16384,
+    "fps_num": 3,
+    "fps_den": 1,
+    "quality": 3,
+    "buffered_fps": 3.00828,
+    "durable_fps": 3.00598,
+    "encode_median_ms": 155.676,
+    "write_p95_ms": 10.8136,
+    "capture_to_written_p95_ms": 204.017,
+    "deadline_misses": 1,
+    "final_fsync_s": 0.0458803,
+    "submit_s": 0.000915603,
+    "queue_wait_s": 1.2463e-05,
+    "setup_s": 0.096606,
+    "workspace_peak_bytes": 477341312,
+    "workspace_fallback_peak_bytes": 301313877,
+    "peak_rss_bytes": 1211645952,
+    "payload_bytes": 3195589440,
+    "complete": true
+  },
+  "verified_frames": 180,
+  "end_marker_verified": true,
+  "calibration_verified": true,
+  "repeated_input_payloads_stable": true,
+  "clip_bytes": 3195903074,
+  "zero_deadline_misses": false,
+  "clip_retained": false
+}
