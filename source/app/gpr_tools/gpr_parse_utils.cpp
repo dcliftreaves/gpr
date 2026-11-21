@@ -492,6 +492,27 @@ void parse_tuning_info( cJSON* pTuningInfo, gpr_tuning_info& tuning_info )
     pJSON = pJSON->next;
 
     tuning_info.pixel_format = (GPR_PIXEL_FORMAT)pJSON->valueint;
+    // Optional named extensions preserve legacy metadata JSON compatibility.
+    const char *names[]={"baseline_exposure","baseline_noise","baseline_sharpness"};
+    double *values[]={&tuning_info.baseline_exposure,&tuning_info.baseline_noise,&tuning_info.baseline_sharpness};
+    for (int i=0;i<3;++i) {
+        cJSON *value=cJSON_GetObjectItem(pTuningInfo,names[i]);
+        if (value && cJSON_IsNumber(value) && isfinite(value->valuedouble)) *values[i]=value->valuedouble;
+    }
+    cJSON *warp=cJSON_GetObjectItem(pTuningInfo,"warp");
+    if (warp && cJSON_IsObject(warp)) {
+        cJSON *planes=cJSON_GetObjectItem(warp,"planes"),*flags=cJSON_GetObjectItem(warp,"flags");
+        cJSON *cx=cJSON_GetObjectItem(warp,"center_x"),*cy=cJSON_GetObjectItem(warp,"center_y");
+        cJSON *radial=cJSON_GetObjectItem(warp,"radial"),*tan=cJSON_GetObjectItem(warp,"tangential");
+        if (planes && flags && cx && cy && cJSON_GetArraySize(radial)==12 && cJSON_GetArraySize(tan)==6) {
+            gpr_warp_rectilinear parsed={};parsed.planes=planes->valueint;parsed.flags=flags->valueint;
+            parsed.center_x=cx->valuedouble;parsed.center_y=cy->valuedouble;
+            for (int i=0;i<12;++i) parsed.radial[i/4][i%4]=cJSON_GetArrayItem(radial,i)->valuedouble;
+            for (int i=0;i<6;++i) parsed.tangential[i/2][i%2]=cJSON_GetArrayItem(tan,i)->valuedouble;
+            if (gpr_warp_rectilinear_is_valid(&parsed)) tuning_info.warp=parsed;
+        }
+    }
+
 }
 
 int gpr_parameters_parse( gpr_parameters* parameters, const char* input_file_path )

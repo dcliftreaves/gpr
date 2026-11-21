@@ -17,7 +17,9 @@
  */
 
 #include <stdio.h>
+#ifndef _WIN32
 #include <strings.h>
+#endif
 #include <string.h>
 #include <stdbool.h>
 #include <limits.h>
@@ -26,6 +28,8 @@
 
 #if defined __GNUC__
 #define stricmp strcasecmp
+#elif defined _WIN32
+#define stricmp _stricmp
 #else
 #endif // if defined __GNUC__
 
@@ -34,7 +38,7 @@
 #include "gpr_print_utils.h"
 
 #if GPR_JPEG_AVAILABLE
-#include "jpeg.h"
+#include "gpr_jpeg.h"
 #endif
 
 #define MAX_FILE_PATH 256
@@ -98,9 +102,10 @@ static FILE_TYPE GetFileType( const char* file_path )
 
 int dng_convert_main(const char*  input_file_path, unsigned int input_width, unsigned int input_height, size_t input_pitch, size_t input_skip_rows, const char* input_pixel_format,
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
-                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality, bool enable_preview )
+                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality, bool enable_preview, bool apple_compatible_dng )
 {
     bool success;
+    if (GetFileType(output_file_path)==FILE_TYPE_JPG) rgb_file_bits=8;
     bool write_buffer_to_file = true;
     
     FILE_TYPE input_file_type  = GetFileType( input_file_path );
@@ -192,6 +197,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     
     if (!enable_preview) params.enable_preview = false;
+    params.apple_compatible_dng=apple_compatible_dng;
     if( gpmf_file_path != NULL && strcmp(gpmf_file_path, "") )
     {
         if( params.gpmf_payload.buffer ) allocator.Free(params.gpmf_payload.buffer);
@@ -298,9 +304,9 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         }
         else if( output_file_type == FILE_TYPE_JPG )
         {
-            write_buffer_to_file = false;
 #if GPR_JPEG_AVAILABLE
-            tje_encode_to_file( output_file_path, rgb_buffer.width, rgb_buffer.height, 3, rgb_buffer.buffer );
+            success=gpr_encode_rgb_to_jpg(&allocator,rgb_buffer.buffer,rgb_buffer.width,rgb_buffer.height,
+                3,gpr_adobe_orientation_to_exif(params.tuning_info.orientation),&output_buffer);
 #else
             printf("JPG writing capability is disabled. You could still write to a PPM file");
 #endif

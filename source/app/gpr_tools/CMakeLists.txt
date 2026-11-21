@@ -10,7 +10,7 @@ include_directories( "../common" )
 include_directories( "../common/cJSON" )
 include_directories( "../common/argument_parser" )
 include_directories( "../common/TinyJPEG" )
-include_directories( "../../lib/common/public" )
+include_directories( "../../lib/common/public" "../../lib/common/private" )
 include_directories( "../../lib/vc5_common" )
 
 if(TARGET vc5_decoder)
@@ -31,12 +31,12 @@ include_directories( "../../lib/md5_lib" )
 include_directories( "../../lib/dng_sdk" )
 include_directories( "../../lib/gpr_sdk/public" )
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+if(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
   include_directories( "../../lib/tiny_jpeg" )
   add_definitions("-DGPR_JPEG_AVAILABLE=1")  
-else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+else(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
   add_definitions("-DGPR_JPEG_AVAILABLE=0")
-endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+endif(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
 
 # add executable
 add_executable( ${EXE_NAME} ${GPRTOOLS_SRC_FILES} ${GPRTOOLS_INC_FILES} )
@@ -44,9 +44,9 @@ add_executable( ${EXE_NAME} ${GPRTOOLS_SRC_FILES} ${GPRTOOLS_INC_FILES} )
 # Linked libraries
 target_link_libraries( ${EXE_NAME} gpr_sdk )
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+if(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
   target_link_libraries( ${EXE_NAME} tiny_jpeg )
-endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+endif(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
 
 target_link_libraries( ${EXE_NAME} dng_sdk xmp_core )
 

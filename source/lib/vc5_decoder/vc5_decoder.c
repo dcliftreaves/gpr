@@ -34,7 +34,8 @@ static CODEC_ERROR vc5_decoder_process_internal(
                                 const gpr_buffer*               vc5_buffer,
                                       gpr_buffer*               raw_buffer,
                                       gpr_rgb_buffer*           rgb_buffer,
-                                      int                       wavelet_channel)
+                                      int                       wavelet_channel,
+                                const RGB_PARAMETERS     *calibrated_rgb)
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
 
@@ -82,6 +83,7 @@ static CODEC_ERROR vc5_decoder_process_internal(
     parameters.rgb_bits        = decoding_parameters->rgb_bits;
     parameters.rgb_gain        = decoding_parameters->rgb_gain;
     parameters.wavelet_channel = wavelet_channel;
+    parameters.calibrated_rgb = calibrated_rgb;
     
     if( rgb_buffer == NULL )
     {
@@ -191,7 +193,7 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters* decoding_parameter
                                 gpr_rgb_buffer* rgb_buffer)
 {
     return vc5_decoder_process_internal(decoding_parameters, vc5_buffer,
-                                        raw_buffer, rgb_buffer, -1);
+                                        raw_buffer, rgb_buffer, -1, NULL);
 }
 
 CODEC_ERROR vc5_decoder_process_wavelet_channel(
@@ -206,7 +208,43 @@ CODEC_ERROR vc5_decoder_process_wavelet_channel(
          decoding_parameters->rgb_resolution != GPR_RGB_RESOLUTION_SIXTEENTH))
         return CODEC_ERROR_BAD_ARGUMENT;
     return vc5_decoder_process_internal(decoding_parameters, vc5_buffer, NULL,
-                                        wavelet_buffer, (int)channel);
+                                        wavelet_buffer, (int)channel, NULL);
+}
+
+CODEC_ERROR vc5_decoder_process_calibrated(const vc5_decoder_parameters *parameters,
+    const gpr_buffer *vc5,const RGB_PARAMETERS *rgb,gpr_rgb_buffer *output)
+{
+    if (!parameters || !rgb || !output || rgb->bits!=parameters->rgb_bits ||
+        rgb->resolution!=parameters->rgb_resolution ||
+        rgb->black_level<0 || rgb->black_level>65535 ||
+        !isfinite(rgb->baseline_exposure) || fabsf(rgb->baseline_exposure)>32)
+        return CODEC_ERROR_BAD_ARGUMENT;
+    for (int i=0;i<3;++i) for (int j=0;j<3;++j)
+        if (!isfinite(rgb->color_matrix[i][j]) || fabsf(rgb->color_matrix[i][j])>16)
+            return CODEC_ERROR_BAD_ARGUMENT;
+    const gpr_rgb_gain *gain=&rgb->white_balance_gain;
+    if (gain->r_gain_num<1 || gain->r_gain_num>1024 || gain->g_gain_num<1 ||
+        gain->g_gain_num>1024 || gain->b_gain_num<1 || gain->b_gain_num>1024 ||
+        gain->r_gain_pow2_den<0 || gain->r_gain_pow2_den>16 ||
+        gain->g_gain_pow2_den<0 || gain->g_gain_pow2_den>16 ||
+        gain->b_gain_pow2_den<0 || gain->b_gain_pow2_den>16)
+        return CODEC_ERROR_BAD_ARGUMENT;
+    const RGB_SHADING_MAP *map=&rgb->shading_map;
+    if (map->samples[0] || map->samples[1] || map->samples[2]) {
+        if (!map->samples[0] || !map->samples[1] || !map->samples[2] ||
+            map->points_v<1 || map->points_h<1 || map->points_v>1024 || map->points_h>1024 ||
+            !isfinite(map->origin_v) || !isfinite(map->origin_h) ||
+            !isfinite(map->spacing_v) || !isfinite(map->spacing_h) ||
+            map->spacing_v<1e-6f || map->spacing_h<1e-6f ||
+            fabsf(map->origin_v)>16 || fabsf(map->origin_h)>16)
+            return CODEC_ERROR_BAD_ARGUMENT;
+        for (int c=0;c<3;++c) for (size_t i=0;i<(size_t)map->points_v*map->points_h;++i)
+            if (!isfinite(map->samples[c][i]) || map->samples[c][i]<0 || map->samples[c][i]>64)
+                return CODEC_ERROR_BAD_ARGUMENT;
+    }
+    vc5_decoder_parameters checked=*parameters;
+    checked.rgb_gain=rgb->white_balance_gain;
+    return vc5_decoder_process_internal(&checked,vc5,NULL,output,-1,rgb);
 }
 
 static CODEC_ERROR reconstruct_preview(const vc5_preview_coefficients *input,

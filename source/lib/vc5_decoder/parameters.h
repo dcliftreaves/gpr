@@ -28,6 +28,7 @@
 
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
+#include "rgb.h"
 
 #include "vc5_decoder.h"
 
@@ -104,6 +105,7 @@ typedef struct _decoder_parameters
 
     /* Internal reduced-preview mode: decode one GS/RG/BG wavelet channel. */
     int                         wavelet_channel;
+    const RGB_PARAMETERS       *calibrated_rgb;
     
     gpr_allocator allocator;
     

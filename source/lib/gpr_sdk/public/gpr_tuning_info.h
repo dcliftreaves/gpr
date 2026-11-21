@@ -126,6 +126,28 @@
         
     } gpr_gain_map;
 
+#define GPR_WARP_MAX_PLANES 3
+
+    // Full-fidelity representation of a DNG OpcodeList3 WarpRectilinear opcode:
+    // r_src = r * (k0 + k1*r^2 + k2*r^4 + k3*r^6) + tangential terms, with r
+    // normalized by the distance from center to the farthest corner (DNG spec).
+    // Camera-original GoPro warps carry only per-plane k0 (chromatic aberration
+    // scaling); synthesized lens-distortion profiles populate the higher terms.
+    typedef struct
+    {
+        uint32_t    planes;                             // 0 = no warp present; 1 or 3 otherwise
+
+        uint32_t    flags;                              // DNG opcode flags (1 = optional, 2 = skip for preview)
+
+        double      center_x;                           // optical center, normalized [0..1]
+        double      center_y;
+
+        double      radial[GPR_WARP_MAX_PLANES][4];     // k0..k3 per plane
+
+        double      tangential[GPR_WARP_MAX_PLANES][2];
+
+    } gpr_warp_rectilinear;
+
     typedef struct
     {
         GPR_ORIENTATION         orientation;
@@ -148,9 +170,15 @@
         
         GPR_PIXEL_FORMAT        pixel_format;
 
+        /* Appended in fork 0.2: retain the full measured optical calibration. */
+        gpr_warp_rectilinear    warp;
+        double baseline_exposure, baseline_noise, baseline_sharpness;
     } gpr_tuning_info;
 
     int32_t gpr_tuning_info_get_dgain_saturation_level(const gpr_tuning_info* x, GPR_RAW_CHANNEL channel);
+
+    int gpr_warp_rectilinear_is_valid(const gpr_warp_rectilinear *warp);
+    int gpr_warp_rectilinear_is_ca_only(const gpr_warp_rectilinear *warp);
 
     void gpr_tuning_info_set_defaults( gpr_tuning_info* x );
 

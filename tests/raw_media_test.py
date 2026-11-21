@@ -350,6 +350,76 @@ class Media(unittest.TestCase):
                     with tifffile.TiffFile(case/'padded.dng') as f:
                         self.assertTrue(np.array_equal(raw_page(f).asarray(),raw))
 
+    def test_sdk_full_optics_baselines_and_explicit_apple_export(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); meta=metadata()
+            planes=[]
+            for channel in range(3):
+                planes.extend((1.+channel/1000, .001+channel*.0001, -.00001, .000001, .00002, -.00003))
+            body=struct.pack('>I20d',3,*planes,.47,.53)
+            warp=struct.pack('>5I',1,1,0x01030000,3,len(body))+body
+            meta['image'] += [media.record(51022,7,len(warp),warp),
+                              media.record(50730,10,1,struct.pack('<2i',-3,10)),
+                              media.record(50731,5,1,struct.pack('<2I',11,10)),
+                              media.record(50732,5,1,struct.pack('<2I',9,10))]
+            records=[]
+            for site in (3,1,0,2): # Deliberately shuffled: identify greens by CFA cells.
+                area=struct.pack('>8I',site//2,site%2,96,128,0,1,2,2)
+                grid=struct.pack('>2I4dI4f',2,2,1.,1.,0.,0.,1,*([1.+site/8]*4))
+                records.append(struct.pack('>4I',9,0x01030000,1,len(area+grid))+area+grid)
+            maps=struct.pack('>I',4)+b''.join(records)
+            meta['image']=[t for t in meta['image'] if t['code']!=51009]+[media.record(51009,7,len(maps),maps)]
+            source=root/'source.dng'; encoded=root/'encoded.gpr'; decoded=root/'decoded.dng'
+            media.write(source,meta,np.arange(128*96,dtype='<u2').tobytes())
+            run([args.sdk,'-i',source,'-o',encoded,'--no-preview'])
+            run([args.sdk,'-i',encoded,'-o',decoded])
+            with tifffile.TiffFile(decoded) as f:
+                page=f.pages[0]
+                if 33422 not in page.tags:page=next(p for p in page.pages if 33422 in p.tags)
+                self.assertEqual(page.tags[51022].value,warp)
+                self.assertEqual(page.tags[51009].value,maps)
+                self.assertAlmostEqual(page.tags[50730].value[0]/page.tags[50730].value[1],-.3)
+                self.assertAlmostEqual(page.tags[50731].value[0]/page.tags[50731].value[1],1.1)
+                self.assertAlmostEqual(page.tags[50732].value[0]/page.tags[50732].value[1],.9)
+            apple=root/'apple.dng';run([args.sdk,'-i',encoded,'-o',apple,'--apple-compatible-dng'])
+            with tifffile.TiffFile(apple) as f:
+                page=f.pages[0]
+                if 33422 not in page.tags:page=next(p for p in page.pages if 33422 in p.tags)
+                adjusted=page.tags[51009].value
+                self.assertNotEqual(adjusted,maps)
+                # All headers and non-green maps stay byte-for-byte unchanged.
+                offset=4;green=[]
+                for old in records:
+                    n=len(old);new=adjusted[offset:offset+n];site=struct.unpack_from('>2I',old,16)
+                    self.assertEqual(new[:92],old[:92])
+                    if (site[0]&1)!=(site[1]&1):green.append(new[92:])
+                    else:self.assertEqual(new,old)
+                    offset+=n
+                self.assertEqual(green[0],green[1])
+            dumped=run([args.sdk,'-i',encoded,'-d','1'])
+            params=json.loads(dumped.stdout[dumped.stdout.index('{'):])
+            self.assertAlmostEqual(params['tuning_info']['baseline_exposure'],-.3)
+            self.assertEqual(params['tuning_info']['warp']['planes'],3)
+            self.assertEqual(params['tuning_info']['warp']['radial'][:4],planes[:4])
+            metadata_json=root/'metadata.json';metadata_json.write_text(json.dumps(params))
+            raw=root/'source.raw';np.arange(128*96,dtype='<u2').tofile(raw)
+            repacked=root/'json.dng';run([args.sdk,'-i',raw,'-a',metadata_json,'-o',repacked])
+            with tifffile.TiffFile(repacked) as f:
+                page=f.pages[0]
+                if 33422 not in page.tags:page=next(p for p in page.pages if 33422 in p.tags)
+                self.assertEqual(page.tags[51022].value,warp)
+            from PIL import Image
+            jpg=root/'render.jpg';run([args.sdk,'-i',encoded,'-o',jpg,'-r','4:1','-b','16'])
+            with Image.open(jpg) as image:
+                self.assertEqual(image.mode,'RGB')
+                self.assertEqual(image.getexif().get(274),1)
+            workflow=root/'workflow'
+            run([sys.executable,Path(__file__).resolve().parents[1]/'tools/raw_sequence.py',
+                 *([source]*50),'--output',workflow,'--sdk',args.sdk,'--quality','3','--sample-bits','14'])
+            self.assertEqual(json.loads((workflow/'workflow.json').read_text())['verified_frames'],50)
+
+
+
     def test_sdk_packed_input_and_metadata_rejection(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

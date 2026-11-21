@@ -105,24 +105,24 @@ if(GPR_ENABLE_IPO AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND
   endif()
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+if(EXISTS "${gpr_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${gpr_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_BRANCH
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
 
   execute_process(
     COMMAND git log -1 --format=%h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${gpr_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
-else(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+else(EXISTS "${gpr_SOURCE_DIR}/.git")
   set(GIT_BRANCH "")
   set(GIT_COMMIT_HASH "")
-endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+endif(EXISTS "${gpr_SOURCE_DIR}/.git")
 
 message(STATUS "Git current branch: ${GIT_BRANCH}")
 message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
@@ -200,7 +200,7 @@ if(GPR_BUILD_RENDER_TOOLS)
     if(GPR_BUILD_MOV_TOOLS)
       set(GPR_RENDER_MOV_ARGS --mov-bridge $<TARGET_FILE:gpr_mov>)
     endif()
-    add_test(NAME stock_prores COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_prores_test.py
+    add_test(NAME stock_prores COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/stock_prores_test.py
       --decoder $<TARGET_FILE:stock_video> --renderer $<TARGET_FILE:gpr_render> --encoder $<TARGET_FILE:gpr_prores>
       --ffprobe ${GPR_RENDER_FFPROBE} --ffmpeg ${GPR_RENDER_FFMPEG} ${GPR_RENDER_MOV_ARGS})
     set_tests_properties(stock_prores PROPERTIES TIMEOUT 300)
@@ -223,7 +223,7 @@ if(GPR_BUILD_MOV_TOOLS)
     if(NOT GPR_FFPROBE OR NOT GPR_MOV_FFMPEG_EXECUTABLE)
       message(FATAL_ERROR "GPR_BUILD_MOV_TESTS requires ffprobe and ffmpeg")
     endif()
-    add_test(NAME stock_mov COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_mov_test.py
+    add_test(NAME stock_mov COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/stock_mov_test.py
       --bridge $<TARGET_FILE:gpr_mov> --ffprobe ${GPR_FFPROBE} --ffmpeg ${GPR_MOV_FFMPEG_EXECUTABLE})
     set_tests_properties(stock_mov PROPERTIES TIMEOUT 900)
   endif()
@@ -244,28 +244,28 @@ if(GPR_BUILD_PREVIEW_TESTS)
   add_executable(preview_contract_test tests/preview_contract.cpp)
   target_compile_features(preview_contract_test PRIVATE cxx_std_11)
   target_link_libraries(preview_contract_test gpr_preview)
-  add_test(NAME preview_contract COMMAND preview_contract_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+  add_test(NAME preview_contract COMMAND preview_contract_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview)
   set_tests_properties(preview_contract PROPERTIES TIMEOUT 60)
   add_executable(preview_wavelet_queue_test tests/preview_wavelet_queue_test.cpp)
   target_compile_features(preview_wavelet_queue_test PRIVATE cxx_std_11)
   target_link_libraries(preview_wavelet_queue_test gpr_preview)
-  add_test(NAME preview_wavelet_queue COMMAND preview_wavelet_queue_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
+  add_test(NAME preview_wavelet_queue COMMAND preview_wavelet_queue_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
   set_tests_properties(preview_wavelet_queue PROPERTIES TIMEOUT 60)
   add_executable(preview_queue_test tests/preview_queue_test.cpp)
   target_compile_features(preview_queue_test PRIVATE cxx_std_11)
   target_link_libraries(preview_queue_test gpr_preview)
-  add_test(NAME preview_queue COMMAND preview_queue_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
+  add_test(NAME preview_queue COMMAND preview_queue_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
   set_tests_properties(preview_queue PROPERTIES TIMEOUT 60)
   if(NEON AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
-    add_test(NAME preview_scalar_contract COMMAND preview_contract_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+    add_test(NAME preview_scalar_contract COMMAND preview_contract_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview)
     set_tests_properties(preview_scalar_contract PROPERTIES TIMEOUT 60 ENVIRONMENT "GPR_PREVIEW_SCALAR=1")
   endif()
   if(TARGET gpr_preview_app)
     find_package(PythonInterp 3 REQUIRED)
-    add_test(NAME preview_cli COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/preview_cli.py $<TARGET_FILE:gpr_preview_app>)
+    add_test(NAME preview_cli COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/preview_cli.py $<TARGET_FILE:gpr_preview_app>)
     set_tests_properties(preview_cli PROPERTIES TIMEOUT 180)
     if(TARGET gpr_preview_profile)
-      add_test(NAME stock_preview_profiles COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_preview_test.py
+      add_test(NAME stock_preview_profiles COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/stock_preview_test.py
         --compiler $<TARGET_FILE:gpr_preview_profile> --player $<TARGET_FILE:gpr_preview_app>)
       set_tests_properties(stock_preview_profiles PROPERTIES TIMEOUT 300)
     endif()
@@ -282,7 +282,7 @@ if(GPR_BUILD_CAPTURE_APP)
     target_compile_definitions(gpr_capture_app PRIVATE GPR_CAPTURE_HAS_PREVIEW=1)
     target_link_libraries(gpr_capture_app gpr_preview)
     if(GPR_BUILD_PREVIEW_TESTS AND TARGET gpr_preview_profile AND TARGET gpr_preview_app)
-      add_test(NAME capture_preview COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/capture_preview_test.py
+      add_test(NAME capture_preview COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/capture_preview_test.py
         --capture $<TARGET_FILE:gpr_capture_app> --compiler $<TARGET_FILE:gpr_preview_profile> --player $<TARGET_FILE:gpr_preview_app>)
       set_tests_properties(capture_preview PROPERTIES TIMEOUT 900)
     endif()
@@ -306,11 +306,11 @@ if(GPR_BUILD_VIDEO_TESTS)
   find_program(GPR_VIDEO_PYTHON NAMES python3 python)
   if(GPR_VIDEO_PYTHON)
     add_test(NAME stock_crop COMMAND ${GPR_VIDEO_PYTHON}
-      ${CMAKE_SOURCE_DIR}/tests/stock_crop_test.py)
+      ${gpr_SOURCE_DIR}/tests/stock_crop_test.py)
     add_test(NAME gvid3_conformance COMMAND ${GPR_VIDEO_PYTHON}
-      ${CMAKE_SOURCE_DIR}/tests/gvid3_test.py --native-writer $<TARGET_FILE:capture_lifecycle_test>)
+      ${gpr_SOURCE_DIR}/tests/gvid3_test.py --native-writer $<TARGET_FILE:capture_lifecycle_test>)
     add_test(NAME gvid2_compatibility COMMAND ${GPR_VIDEO_PYTHON}
-      ${CMAKE_SOURCE_DIR}/tests/stock_video_test.py)
+      ${gpr_SOURCE_DIR}/tests/stock_video_test.py)
     set_tests_properties(gvid3_conformance gvid2_compatibility PROPERTIES TIMEOUT 30)
   endif()
 endif()
@@ -324,7 +324,7 @@ if(GPR_BUILD_MEDIA_TESTS)
   enable_testing()
   find_package(PythonInterp 3 REQUIRED)
   if(GPR_BUILD_PREVIEW_TESTS AND TARGET gpr_preview_profile AND TARGET gpr_preview_app)
-    add_test(NAME video_format_matrix COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/video_format_matrix_test.py
+    add_test(NAME video_format_matrix COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/video_format_matrix_test.py
       --capture $<TARGET_FILE:gpr_capture_app> --decoder $<TARGET_FILE:stock_video>
       --compiler $<TARGET_FILE:gpr_preview_profile> --player $<TARGET_FILE:gpr_preview_app>)
     set_tests_properties(video_format_matrix PROPERTIES TIMEOUT 600)
@@ -334,19 +334,19 @@ if(GPR_BUILD_MEDIA_TESTS)
   target_link_libraries(sdk_bayer_probe gpr_sdk vc5_encoder)
   add_executable(sdk_c_api_test tests/sdk_c_api.c)
   target_link_libraries(sdk_c_api_test gpr_sdk)
-  add_test(NAME sdk_c_api COMMAND sdk_c_api_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
+  add_test(NAME sdk_c_api COMMAND sdk_c_api_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
   set_tests_properties(sdk_c_api PROPERTIES TIMEOUT 60)
-  add_test(NAME raw_media COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/raw_media_test.py
+  add_test(NAME raw_media COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/raw_media_test.py
     --sdk $<TARGET_FILE:gpr_tools> --decoder $<TARGET_FILE:stock_video> --capture $<TARGET_FILE:gpr_capture_app>
     --sdk-probe $<TARGET_FILE:sdk_bayer_probe>)
   # Many isolated SDK subprocesses exercise all formats; Pi leak-sanitizer
   # startup is much slower than native desktop startup.
   set_tests_properties(raw_media PROPERTIES TIMEOUT 1200)
-  add_test(NAME stock_still COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_still_test.py
+  add_test(NAME stock_still COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/stock_still_test.py
     --sdk $<TARGET_FILE:gpr_tools>)
   set_tests_properties(stock_still PROPERTIES TIMEOUT 600)
   if(TARGET gpr_mov)
-    add_test(NAME stock_sequence COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stock_sequence_test.py
+    add_test(NAME stock_sequence COMMAND ${PYTHON_EXECUTABLE} ${gpr_SOURCE_DIR}/tests/stock_sequence_test.py
       --sdk $<TARGET_FILE:gpr_tools> --bridge $<TARGET_FILE:gpr_mov>)
     set_tests_properties(stock_sequence PROPERTIES TIMEOUT 600)
   endif()
@@ -373,7 +373,7 @@ if(GPR_BUILD_CODEC_TESTS)
   set_tests_properties(encoder_preview_probe_fast encoder_preview_matrix_fast PROPERTIES ENVIRONMENT
     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1;GPR_CHANNEL_ASM=1;GPR_PIN_CHANNELS=1")
   target_link_libraries(decoder_bounds_test vc5_decoder)
-  add_test(NAME decoder_bounds COMMAND decoder_bounds_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
+  add_test(NAME decoder_bounds COMMAND decoder_bounds_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview/128x96-q3.vc5)
   set_tests_properties(decoder_bounds PROPERTIES TIMEOUT 60)
   add_test(NAME encoder_bounds COMMAND encoder_bounds_test)
   add_test(NAME encoder_bounds_fast COMMAND encoder_bounds_test)
@@ -383,8 +383,8 @@ if(GPR_BUILD_CODEC_TESTS)
   add_executable(bayer_formats_test tests/bayer_formats.cpp)
   target_compile_features(bayer_formats_test PRIVATE cxx_std_11)
   target_link_libraries(bayer_formats_test vc5_encoder vc5_decoder)
-  add_test(NAME bayer_formats COMMAND bayer_formats_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
-  add_test(NAME bayer_formats_fast COMMAND bayer_formats_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+  add_test(NAME bayer_formats COMMAND bayer_formats_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview)
+  add_test(NAME bayer_formats_fast COMMAND bayer_formats_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview)
   set_tests_properties(bayer_formats bayer_formats_fast PROPERTIES TIMEOUT 120)
   set_tests_properties(bayer_formats_fast PROPERTIES ENVIRONMENT
     "GPR_STREAM_UNPACK=1;GPR_BAND_STREAM=1;GPR_COMPACT_BANDS=1;GPR_DIRECT_BANDS=1")
@@ -431,13 +431,21 @@ endif()
 
 if(GPR_BUILD_VIDEO_TESTS AND TARGET gpr_capture_app AND TARGET stock_video AND GPR_VIDEO_PYTHON)
   add_test(NAME raw_video_workflow COMMAND ${GPR_VIDEO_PYTHON}
-    ${CMAKE_SOURCE_DIR}/tests/raw_video_workflow.py --capture $<TARGET_FILE:gpr_capture_app>
+    ${gpr_SOURCE_DIR}/tests/raw_video_workflow.py --capture $<TARGET_FILE:gpr_capture_app>
     --decoder $<TARGET_FILE:stock_video>)
   set_tests_properties(raw_video_workflow PROPERTIES TIMEOUT 180)
 endif()
 
 if(GPR_BUILD_CODEC_TESTS)
-  add_test(NAME bayer_formats_reference COMMAND bayer_formats_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+  add_test(NAME bayer_formats_reference COMMAND bayer_formats_test ${gpr_SOURCE_DIR}/tests/fixtures/stock_preview)
   set_tests_properties(bayer_formats_reference PROPERTIES TIMEOUT 120 ENVIRONMENT
     "GPR_STREAM_UNPACK=0;GPR_BAND_STREAM=0;GPR_COMPACT_BANDS=0;GPR_DIRECT_BANDS=0;GPR_CHANNEL_ASM=0")
+endif()
+
+if(GPR_BUILD_CODEC_TESTS)
+  add_executable(calibrated_render_test tests/calibrated_render.cpp)
+  target_compile_features(calibrated_render_test PRIVATE cxx_std_11)
+  target_link_libraries(calibrated_render_test vc5_decoder)
+  add_test(NAME calibrated_render COMMAND calibrated_render_test)
+  set_tests_properties(calibrated_render PROPERTIES TIMEOUT 60)
 endif()

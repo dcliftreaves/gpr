@@ -56,6 +56,7 @@ public:
     int     input_pitch;
     int     quality;
     bool    no_preview;
+    bool    apple_compatible_dng;
     
     int     input_skip_rows;
     
@@ -95,9 +96,10 @@ public:
 
         ("InputSkipRows,s",                                 input_skip_rows,                            0,                      "Input image rows to skip")
         ("quality,q",                                       quality,                                    -1,                     "Stock GPR quality preset 0..5 (default: legacy Q3, or Q1 with fast_encoding)")
+        ("apple-compatible-dng", apple_compatible_dng, false, "Equalize green shading maps for Apple DNG display; changes calibration in the exported DNG")
         ("no-preview",                                      no_preview,                                 false,                  "Omit the JPEG preview and its RGB computation")
 
-        ("InputFilePath,i",                                 input_file_path,                            string(""),             "Input file path.\n(files types: GPR, DNG, RAW)")
+        ("InputFilePath,i",                                 input_file_path,                            string(""),             "Input file path.\n(file types: GPR, DNG, RAW)")
         
         ("InputWidth,w",                                    input_width,                                4000,                   "Input image width in pixel samples [4000]")
         
@@ -114,7 +116,7 @@ public:
         ("RgbFileResolution,r",                             rgb_file_resolution,                        string(""),             "Output RGB resolution \n[1:1, 2:1, 4:1, 8:1. 16:1]")
         ("RgbFileBits,b",                                   rgb_file_bits,                              8,                      "Output RGB bits [8]")
         
-        ("OutputFilePath,o",                                output_file_path,                           string(""),             "Output file path.\n(files types: GPR, DNG, PPM, RAW, JPG)");
+        ("OutputFilePath,o",                                output_file_path,                           string(""),             "Output file path.\n(file types: GPR, DNG, PPM, RAW, JPG)");
         ;
     }
 };
@@ -176,7 +178,7 @@ int main(int argc, char *argv [])
     if( args.parse(argc, normalized.data(), line, zerotag) )
     {
         printf("\n");
-        printf("-- Example Commnads (please see data/tests/run_tests.sh for more examples) --\n");
+        printf("-- Example Commands (please see data/tests/run_tests.sh for more examples) --\n");
         printf("GPR to DNG: \n");
         printf("  %s -i ./data/samples/Hero6/GOPR0024.GPR -o ./data/samples/Hero6/GOPR0024.DNG \n\n", argv[0] );
         printf("GPR to RGB (PPM format in 1000x750 resolution): \n");
@@ -216,7 +218,7 @@ int main(int argc, char *argv [])
     {
         return dng_convert_main(args.input_file_path.c_str(), args.input_width, args.input_height, args.input_pitch, args.input_skip_rows, args.input_pixel_format.c_str(),
                                 args.output_file_path.c_str(), args.apply_gpr_parameters.c_str(), args.gpmf_file_path.c_str(), args.rgb_file_resolution.c_str(), args.rgb_file_bits,
-                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality, !args.no_preview );
+                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality, !args.no_preview, args.apple_compatible_dng );
     }
     
     return 0;

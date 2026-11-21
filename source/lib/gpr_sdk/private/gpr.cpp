@@ -55,6 +55,12 @@
 #include "dng_shared.h"
 #include <limits.h>
 #include <memory>
+#include <vector>
+#include "gpr_rgb.h"
+#if GPR_READING
+#include "rgb.h"
+#include "gpr_rgb_shading.h"
+#endif
 
 #include "macros.h"
 #include "gpr_buffer.h"
@@ -608,14 +614,73 @@ static void convert_dng_exif_to_dng_exif_info( gpr_exif_info* dst_exif, const dn
 
 #define MAX_BUF_SIZE (65*65*4*sizeof(float))
 
-static char _warp_rect_buffer [256];
+// Exposes the protected warp parameters of a WarpRectilinear opcode reconstructed
+// from its serialized form (the class offers no public accessor).
+class gpr_warp_rectilinear_reader : public dng_opcode_WarpRectilinear
+{
+public:
+    explicit gpr_warp_rectilinear_reader( dng_stream &stream ) : dng_opcode_WarpRectilinear( stream ) {}
+
+    const dng_warp_params_rectilinear& Params() const { return fWarpParams; }
+};
+
+// Decodes a WarpRectilinear opcode into tuning_info's warp struct by serializing it
+// (same framing as OpcodeList storage: minVersion, flags, then PutData) and reparsing.
+// Leaves warp.planes == 0 if the opcode cannot be represented.
+static void read_warp_rectilinear_opcode( dng_opcode &opcode, gpr_warp_rectilinear &warp )
+{
+    if ( opcode.OpcodeID() != dngOpcode_WarpRectilinear )
+        return;
+
+    try
+    {
+        char buffer [256];
+
+        dng_stream stream ( buffer, sizeof(buffer) );
+
+        stream.Put_uint32 ( opcode.MinVersion() );
+        stream.Put_uint32 ( opcode.Flags() );
+
+        opcode.PutData( stream );
+
+        stream.SetReadPosition( 0 );
+
+        gpr_warp_rectilinear_reader reader ( stream );
+
+        const dng_warp_params_rectilinear &params = reader.Params();
+
+        if ( params.fPlanes > GPR_WARP_MAX_PLANES )
+            return;
+
+        warp.planes   = params.fPlanes;
+        warp.flags    = opcode.Flags();
+        warp.center_x = params.fCenter.h;
+        warp.center_y = params.fCenter.v;
+
+        for ( uint32 p = 0; p < params.fPlanes; p++ )
+        {
+            for ( int i = 0; i < 4; i++ )
+                warp.radial[p][i] = params.fRadParams[p][i];
+
+            warp.tangential[p][0] = params.fTanParams[p][0];
+            warp.tangential[p][1] = params.fTanParams[p][1];
+        }
+    }
+    catch ( ... )
+    {
+        warp.planes = 0;
+    }
+}
+
+
 
 static bool read_dng(const gpr_allocator*       allocator,
                            dng_stream*          dng_read_stream,
                            gpr_buffer_auto*     raw_image_buffer,
                            gpr_buffer_auto*     vc5_image_buffer,
                            gpr_parameters*      convert_params = NULL,
-                           bool*                is_vc5_format = NULL )
+                           bool*                is_vc5_format = NULL,
+                           double*               render_baseline = NULL )
 {
     dng_host host;
     
@@ -720,6 +785,7 @@ static bool read_dng(const gpr_allocator*       allocator,
                 *is_vc5_format = false;
         }
 
+        if (render_baseline) *render_baseline=negative->BaselineExposure();
         const dng_image& raw_image = negative->RawImage();
         
         if( convert_params )
@@ -766,6 +832,9 @@ static bool read_dng(const gpr_allocator*       allocator,
             // Set Tuning Info
             {
                 gpr_tuning_info& tuning_info = convert_params->tuning_info;
+            tuning_info.baseline_exposure=negative->BaselineExposure();
+            tuning_info.baseline_noise=negative->BaselineNoise();
+            tuning_info.baseline_sharpness=negative->BaselineSharpness();
                 
                 tuning_info.orientation = (GPR_ORIENTATION)negative->BaseOrientation().GetAdobe();
                 
@@ -863,25 +932,13 @@ static bool read_dng(const gpr_allocator*       allocator,
                 // Note: this code will have to get smarter if we ever have anything other than one WarpRectilinear tag in OpcodeList3
                 if ( count == 1 )
                 {
-                    // Get WarpRectilinear Opcode
-                    dng_opcode &opcode = opcodelist3.Entry( 0 );
-                    
-                    dng_stream stream ( _warp_rect_buffer, 256 );
-                    opcode.PutData( stream );
-                    
-                    // Ugly way to get the parameters, but I couldn't figure how else to get access to the data
-                    double red_coefficient = * (double *) &_warp_rect_buffer[8];
-                    double blue_coefficient = * (double *) &_warp_rect_buffer[8 + 2*6*8];
-                    //LogPrint( "WarpRectilinear red = %f, blue = %f ", red_coefficient, blue_coefficient );
-                    
-                    tuning_info.warp_red_coefficient = red_coefficient;
-                    tuning_info.warp_blue_coefficient = blue_coefficient;
+                    read_warp_rectilinear_opcode(opcodelist3.Entry(0),tuning_info.warp);
+                    if (tuning_info.warp.planes==3) {
+                        tuning_info.warp_red_coefficient=tuning_info.warp.radial[0][0];
+                        tuning_info.warp_blue_coefficient=tuning_info.warp.radial[2][0];
+                    }
                 }
-                else
-                {
-                    tuning_info.warp_red_coefficient = 0;
-                    tuning_info.warp_blue_coefficient = 0;
-                }
+
             }
         }
         
@@ -1202,25 +1259,117 @@ static bool write_dng(const gpr_allocator*          allocator,
         {
             dng_opcode_list &opcodelist2 =  negative->OpcodeList2 ();
             
-            dng_stream gain_map_stream0 (tuning_info->gain_map.buffers[0], gain_map_size);
-            AutoPtr<dng_opcode> gain_map_opcode0 ( new dng_opcode_GainMap ( host, gain_map_stream0 ));
-            opcodelist2.Append( gain_map_opcode0 );
-    
-            dng_stream gain_map_stream1 (tuning_info->gain_map.buffers[1], gain_map_size);
-            AutoPtr<dng_opcode> gain_map_opcode1 ( new dng_opcode_GainMap ( host, gain_map_stream1 ));
-            opcodelist2.Append( gain_map_opcode1 );
-    
-            dng_stream gain_map_stream2 (tuning_info->gain_map.buffers[2], gain_map_size);
-            AutoPtr<dng_opcode> gain_map_opcode2 ( new dng_opcode_GainMap ( host, gain_map_stream2 ));
-            opcodelist2.Append( gain_map_opcode2 );
-    
-            dng_stream gain_map_stream3 (tuning_info->gain_map.buffers[3], gain_map_size);
-            AutoPtr<dng_opcode> gain_map_opcode3 ( new dng_opcode_GainMap ( host, gain_map_stream3 ));
-            opcodelist2.Append( gain_map_opcode3 );
+            // Apple ImageIO/CIRAWFilter ignores the whole OpcodeList2 gain map unless the
+            // two green CFA planes carry byte-identical gains ("Gain Map will be ignored
+            // because of mismatch in green channels"); GoPro's factory maps differ between
+            // the greens only by rounding and calibration differences. Write the first
+            // green's gain values into both green opcodes. Each opcode keeps its own area
+            // spec (CFA plane origin); only the gain samples are shared. Applied only to uncompressed DNG exports; compressed GPR maps and
+            // caller-owned calibration remain untouched.
+            //
+            // Which two of the four are the greens comes from each opcode's own area spec -
+            // the (top,left) parity names its cell in the 2x2 CFA tile - never from its
+            // position in the list: the buffers are stored in whatever order the source
+            // file's OpcodeList2 used, which need not be CFA raster order. HERO13 GBRG
+            // files store them R,G,G,B, so an index guess picks red and blue instead,
+            // overwriting blue's shading with red's and leaving the greens mismatched -
+            // Apple then drops all four maps and the corners stay ~36% dark.
+            //
+            // Greens sit on the CFA tile's main diagonal for patterns that begin with
+            // green, on the anti-diagonal for the rest.
+            bool greens_on_main_diagonal;
+            switch ( tuning_info->pixel_format )
+            {
+                case PIXEL_FORMAT_GBRG_12:      // G B / R G
+                case PIXEL_FORMAT_GBRG_12P:
+                case PIXEL_FORMAT_GBRG_14:
+                case PIXEL_FORMAT_GBRG_16:
+                case PIXEL_FORMAT_GRBG_12:
+                case PIXEL_FORMAT_GRBG_14:
+                case PIXEL_FORMAT_GRBG_16:
+                    greens_on_main_diagonal = true;
+                    break;
+                default:                        // RGGB: R G / G B,  BGGR: B G / G R
+                    greens_on_main_diagonal = false;
+                    break;
+            }
+
+            int greens[4];
+            int green_count = 0;
+
+            for ( int i = 0; i < 4; i++ )
+            {
+                // Read the area spec back through dng_stream - the same reader that turns
+                // these buffers into opcodes below - so the byte order matches whatever
+                // the writing side used, by construction.
+                dng_stream area_stream ( tuning_info->gain_map.buffers[i], gain_map_size );
+
+                area_stream.Get_uint32();       // version
+                area_stream.Get_uint32();       // flags
+                area_stream.Get_uint32();       // opcode data size
+
+                const int32 area_top  = area_stream.Get_int32();
+                const int32 area_left = area_stream.Get_int32();
+
+                if ( ( ( area_top & 1 ) == ( area_left & 1 ) ) == greens_on_main_diagonal )
+                {
+                    greens[green_count++] = i;
+                }
+            }
+
+            // Serialized buffer layout (mirrors the read code above): version(4) + flags(4)
+            // + opcode data size(4) + dng_area_spec(32) + gain map header(44); the gain
+            // samples run from there to the end of the buffer.
+            const size_t gain_data_offset = 4 + 4 + 4 + dng_area_spec::kDataSize + 44;
+            const size_t map_header_offset = gain_data_offset - 44;
+
+            // Only share gains when the area specs named exactly two greens and both
+            // describe the same map geometry (points, spacing, origin, planes); otherwise
+            // the sample counts could differ. Anything unexpected writes the four maps
+            // through untouched rather than guessing at them.
+            const bool share_green_gains =
+                convert_params->apple_compatible_dng && !vc5_dng && green_count == 2 &&
+                gain_map_size > gain_data_offset &&
+                memcmp( tuning_info->gain_map.buffers[greens[0]] + map_header_offset,
+                        tuning_info->gain_map.buffers[greens[1]] + map_header_offset, 44 ) == 0;
+
+            const int green_b = share_green_gains ? greens[1] : -1;
+
+            std::vector<char> green_b_buffer;
+
+            if ( share_green_gains )
+            {
+                green_b_buffer.assign( tuning_info->gain_map.buffers[green_b],
+                                       tuning_info->gain_map.buffers[green_b] + gain_map_size );
+
+                memcpy( &green_b_buffer[gain_data_offset],
+                        tuning_info->gain_map.buffers[greens[0]] + gain_data_offset,
+                        gain_map_size - gain_data_offset );
+            }
+
+            for ( int i = 0; i < 4; i++ )
+            {
+                const char* buffer = ( i == green_b ) ? &green_b_buffer[0] : tuning_info->gain_map.buffers[i];
+
+                dng_stream gain_map_stream ( buffer, gain_map_size );
+                AutoPtr<dng_opcode> gain_map_opcode ( new dng_opcode_GainMap ( host, gain_map_stream ));
+                opcodelist2.Append( gain_map_opcode );
+            }
         }
 
        // WarpRectilinear - aka chromatic aberration correction (applied after demosaicking (OpcodeList3))
-        if ( tuning_info->warp_red_coefficient > 0 && tuning_info->warp_blue_coefficient > 0 )
+        if (gpr_warp_rectilinear_is_valid(&tuning_info->warp)) {
+            const gpr_warp_rectilinear &warp=tuning_info->warp;
+            dng_warp_params_rectilinear params;
+            params.fPlanes=warp.planes;params.fCenter=dng_point_real64(warp.center_y,warp.center_x);
+            for (uint32 plane=0;plane<warp.planes;++plane) {
+                for (int k=0;k<4;++k) params.fRadParams[plane][k]=warp.radial[plane][k];
+                for (int k=0;k<2;++k) params.fTanParams[plane][k]=warp.tangential[plane][k];
+            }
+            if (!params.IsValid()) return false;
+            AutoPtr<dng_opcode> opcode(new dng_opcode_WarpRectilinear(params,warp.flags));
+            negative->OpcodeList3().Append(opcode);
+        } else if ( tuning_info->warp_red_coefficient > 0 && tuning_info->warp_blue_coefficient > 0 )
         {
             dng_opcode_list &opcodelist3 = negative->OpcodeList3 ();
             
@@ -1277,9 +1426,9 @@ static bool write_dng(const gpr_allocator*          allocator,
 
     negative->SetBayerMosaic(layout.phase);
 
-    negative->SetBaselineExposure(0);
-    negative->SetBaselineNoise(1.0);
-    negative->SetBaselineSharpness(1.0);
+    negative->SetBaselineExposure(convert_params->tuning_info.baseline_exposure);
+    negative->SetBaselineNoise(convert_params->tuning_info.baseline_noise);
+    negative->SetBaselineSharpness(convert_params->tuning_info.baseline_sharpness);
     
     negative->SetAntiAliasStrength(dng_urational(100, 100));
     negative->SetLinearResponseLimit(1.0);
@@ -1762,8 +1911,13 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
                                   gpr_buffer*           inp_gpr_buffer,
                                   gpr_rgb_buffer*       out_rgb_buffer)
 {
+    if (!allocator || !allocator->Alloc || !allocator->Free || !inp_gpr_buffer ||
+        !inp_gpr_buffer->buffer || !out_rgb_buffer || out_rgb_buffer->buffer ||
+        out_rgb_buffer->size || (rgb_bits!=8 && rgb_bits!=16)) return false;
+    try {
     TIMESTAMP("[BEG]", 1)
 
+    double baseline_exposure=0;
     gpr_parameters params;
     gpr_parameters_set_defaults(&params);
     gpr_parameter_cleanup cleanup = {&params, allocator->Free};
@@ -1774,7 +1928,7 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
     inp_gpr_stream.Put( inp_gpr_buffer->buffer, inp_gpr_buffer->size );
     inp_gpr_stream.SetReadPosition(0);
     
-    if( read_dng( allocator, &inp_gpr_stream, NULL, &vc5_buffer, &params ) == false )
+    if( read_dng( allocator, &inp_gpr_stream, NULL, &vc5_buffer, &params, NULL, &baseline_exposure ) == false )
     {
         return false;
     }
@@ -1802,7 +1956,17 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
     
     vc5_decoder_params.rgb_resolution = rgb_resolution;
     
-    if( vc5_decoder_process( &vc5_decoder_params, &vc5_buffer.get_gpr_buffer(), NULL, out_rgb_buffer ) != CODEC_ERROR_OKAY )
+    RGB_PARAMETERS rgb;
+    rgb_parameters_set_default(&rgb);
+    rgb.bits=rgb_bits;rgb.resolution=rgb_resolution;rgb.white_balance_gain=rgb_gain;
+    compute_camera_to_srgb_color_matrix(&params.tuning_info,&params.profile_info,rgb.color_matrix);
+    rgb_shading_map_tables shading;
+    bool shaded=shading.build(&params.tuning_info,&rgb);
+    // Match PR #68's display policy; physical baseline remains in source metadata.
+    rgb.baseline_exposure=(shaded && shading.max_gain()>1.01f && baseline_exposure>0)
+        ? 0.0f : (float)baseline_exposure;
+    rgb.black_level=compute_rgb_black_level(&params.tuning_info);
+    if( vc5_decoder_process_calibrated(&vc5_decoder_params,&vc5_buffer.get_gpr_buffer(),&rgb,out_rgb_buffer) != CODEC_ERROR_OKAY )
     {
         return false;
     }
@@ -1810,6 +1974,7 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
     TIMESTAMP("[END]", 1)
 
     return true;
+    } catch (...) { return false; }
 }
 
 bool gpr_convert_gpr_to_dng(const gpr_allocator*    allocator,

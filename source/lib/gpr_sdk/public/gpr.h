@@ -68,6 +68,9 @@
             
             gpr_tuning_info     tuning_info;    /* Camera tuning info object */
             
+            /* Explicit display-compatibility export policy; default false preserves
+             * source GainMap samples. Applies only to uncompressed SDK DNG output. */
+            bool                apple_compatible_dng;
         } gpr_parameters;
         
         void gpr_parameters_set_defaults(gpr_parameters* x);

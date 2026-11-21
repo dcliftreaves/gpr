@@ -164,6 +164,17 @@ CODEC_ERROR DecodeStream(STREAM *stream, UNPACKED_IMAGE *unpacked_image, const D
 	may be available to the decoder from the media container or an external
 	application.
  */
+static void RenderRGB(const DECODER_PARAMETERS *parameters,PIXEL *gs,PIXEL *rg,PIXEL *bg,
+    DIMENSION width,DIMENSION height,DIMENSION pitch,RGB_IMAGE *image,int precision)
+{
+    if (parameters->calibrated_rgb)
+        WaveletToCalibratedRGB(parameters->allocator,gs,rg,bg,width,height,pitch,image,
+            precision,parameters->calibrated_rgb);
+    else
+        WaveletToRGB(parameters->allocator,gs,rg,bg,width,height,pitch,image,precision,
+            parameters->rgb_bits,(gpr_rgb_gain *)&parameters->rgb_gain);
+}
+
 static bool RGBWaveletsReady(const DECODER *decoder,int level)
 {
     int channel;
@@ -257,34 +268,34 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
             if (!unpacked_image.component_array_list || unpacked_image.component_count < 3) {
                 error=CODEC_ERROR_BITSTREAM_SYNTAX;break;
             }
-            WaveletToRGB(parameters->allocator, (PIXEL*)unpacked_image.component_array_list[0].data, (PIXEL*)unpacked_image.component_array_list[1].data, (PIXEL*)unpacked_image.component_array_list[2].data,
+            RenderRGB(parameters, (PIXEL*)unpacked_image.component_array_list[0].data, (PIXEL*)unpacked_image.component_array_list[1].data, (PIXEL*)unpacked_image.component_array_list[2].data,
                          unpacked_image.component_array_list[2].width, unpacked_image.component_array_list[2].height, unpacked_image.component_array_list[2].pitch / 2,
-                         rgb_image, 12, parameters->rgb_bits, &parameters->rgb_gain );
+                         rgb_image, 12 );
             break;
             
         case GPR_RGB_RESOLUTION_QUARTER:
             if (!RGBWaveletsReady(&decoder,0)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
             
-            WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[0]->data[0], decoder.transform[1].wavelet[0]->data[0], decoder.transform[2].wavelet[0]->data[0],
+            RenderRGB(parameters, decoder.transform[0].wavelet[0]->data[0], decoder.transform[1].wavelet[0]->data[0], decoder.transform[2].wavelet[0]->data[0],
                          decoder.transform[2].wavelet[0]->width, decoder.transform[2].wavelet[0]->height, decoder.transform[2].wavelet[0]->pitch / sizeof(PIXEL),
-                         rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
+                         rgb_image, 14 );
             break;
             
         case GPR_RGB_RESOLUTION_EIGHTH:
             if (!RGBWaveletsReady(&decoder,1)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
             
-            WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[1]->data[0], decoder.transform[1].wavelet[1]->data[0], decoder.transform[2].wavelet[1]->data[0],
+            RenderRGB(parameters, decoder.transform[0].wavelet[1]->data[0], decoder.transform[1].wavelet[1]->data[0], decoder.transform[2].wavelet[1]->data[0],
                          decoder.transform[2].wavelet[1]->width, decoder.transform[2].wavelet[1]->height, decoder.transform[2].wavelet[1]->pitch / sizeof(PIXEL),
-                         rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
+                         rgb_image, 14 );
             
             break;
             
         case GPR_RGB_RESOLUTION_SIXTEENTH:
             if (!RGBWaveletsReady(&decoder,2)) {error=CODEC_ERROR_BITSTREAM_SYNTAX;break;}
 
-            WaveletToRGB(parameters->allocator, decoder.transform[0].wavelet[2]->data[0], decoder.transform[1].wavelet[2]->data[0], decoder.transform[2].wavelet[2]->data[0],
+            RenderRGB(parameters, decoder.transform[0].wavelet[2]->data[0], decoder.transform[1].wavelet[2]->data[0], decoder.transform[2].wavelet[2]->data[0],
                          decoder.transform[2].wavelet[2]->width, decoder.transform[2].wavelet[2]->height, decoder.transform[2].wavelet[2]->pitch / sizeof(PIXEL),
-                         rgb_image, 14, parameters->rgb_bits, &parameters->rgb_gain );
+                         rgb_image, 14 );
             break;
             
         default:

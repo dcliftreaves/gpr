@@ -492,7 +492,17 @@ ostream& operator<<(ostream& output, const gpr_tuning_info& x)
     
     print_val( output, "gain_map", x.gain_map );
     
-    print_val( output, "pixel_format", x.pixel_format, 0, true );
+    print_val(output,"pixel_format",x.pixel_format);
+    print_val(output,"baseline_exposure",x.baseline_exposure);
+    print_val(output,"baseline_noise",x.baseline_noise);
+    print_val(output,"baseline_sharpness",x.baseline_sharpness);
+    output << string(spaces,' ') << "\"warp\": ";start_tag("warp",output);
+    print_val(output,"planes",x.warp.planes);print_val(output,"flags",x.warp.flags);
+    print_val(output,"center_x",x.warp.center_x);print_val(output,"center_y",x.warp.center_y);
+    print_val(output,"radial",(const double *)x.warp.radial,12);
+    print_val(output,"tangential",(const double *)x.warp.tangential,6,true);
+    end_tag("warp",output);output << "\n";
+
     
     end_tag( "tuning_info", output );
 
@@ -533,6 +543,7 @@ int gpr_parameters_print( const gpr_parameters* parameters, const char* output_f
         output_ref = &output;
     }
 
+    output_ref->precision(17);
     start_tag( "", *output_ref );
     *output_ref << *parameters;
     end_tag( "", *output_ref );
