@@ -1,4 +1,4 @@
-Experimental stock RAW-media package: @GPR_PACKAGE_VERSION@
+Stock RAW-media package: @GPR_PACKAGE_VERSION@
 Source revision hint: @GPR_SOURCE_REVISION@
 Source snapshot SHA-256: @GPR_SOURCE_DIGEST@
 Components: @GPR_PACKAGE_COMPONENTS@
@@ -14,3 +14,5 @@ Parallel encoder unpack requested: @GPR_ENABLE_PARALLEL_UNPACK@
 Optional MOV tool: @GPR_BUILD_MOV_TOOLS@ (external FFmpeg shared libraries when enabled)
 Optional RAW/ProRes renderer: @GPR_BUILD_RENDER_TOOLS@ (macOS system frameworks when enabled)
 Optional audio/timecode attachment: caller-selected ffmpeg/ffprobe executables; timecode also needs the updated gpr_mov tool
+
+Bit-exact fast encoder default: @GPR_ENCODER_FAST_DEFAULT@

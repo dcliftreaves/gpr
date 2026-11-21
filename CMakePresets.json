@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {"major": 3, "minor": 20, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "raw-video",
+      "displayName": "Non-CNN RAW codec and GVID workflow",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/raw-video",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "GPR_BUILD_SDK": "OFF", "GPR_BUILD_STILL_APPS": "OFF",
+        "GPR_BUILD_LEGACY_CLI": "OFF",
+        "GPR_ENABLE_VIDEO": "ON", "GPR_ENABLE_PREVIEW": "ON",
+        "GPR_BUILD_CAPTURE_APP": "ON", "GPR_BUILD_STOCK_VIDEO_EXPERIMENT": "ON",
+        "GPR_BUILD_VIDEO_TESTS": "ON", "GPR_BUILD_CODEC_TESTS": "ON",
+        "GPR_BUILD_PREVIEW_TESTS": "ON", "GPR_ENCODER_FAST_DEFAULT": "ON"
+      }
+    },
+    {
+      "name": "raw-video-sdk", "inherits": "raw-video",
+      "displayName": "RAW video plus DNG/XMP still SDK and independent TIFF tests",
+      "binaryDir": "${sourceDir}/build/raw-video-sdk",
+      "cacheVariables": {
+        "GPR_BUILD_SDK": "ON", "GPR_BUILD_STILL_APPS": "ON",
+        "GPR_BUILD_MEDIA_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "raw-video", "configurePreset": "raw-video", "jobs": 4},
+    {"name": "raw-video-sdk", "configurePreset": "raw-video-sdk", "jobs": 4}
+  ],
+  "testPresets": [
+    {"name": "raw-video", "configurePreset": "raw-video", "output": {"outputOnFailure": true}},
+    {"name": "raw-video-sdk", "configurePreset": "raw-video-sdk", "output": {"outputOnFailure": true}}
+  ]
+}

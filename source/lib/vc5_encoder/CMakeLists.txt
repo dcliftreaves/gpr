@@ -18,6 +18,7 @@ target_include_directories(${LIB_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gpr>)
 target_link_libraries(${LIB_NAME} PUBLIC vc5_common common)
+target_compile_definitions(${LIB_NAME} PRIVATE GPR_ENCODER_FAST_DEFAULT=$<BOOL:${GPR_ENCODER_FAST_DEFAULT}>)
 
 if(NOT WIN32)
   find_package(Threads REQUIRED)

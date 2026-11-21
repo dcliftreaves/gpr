@@ -34,6 +34,7 @@
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #include "headers.h"
+#include "runtime.h"
 #include <time.h>
 #if defined(_WIN32)
 #include <windows.h>
@@ -63,7 +64,7 @@ static CODEC_ERROR EncodeHighpassIncremental(BITSTREAM *, ENCODER_CODESET *, PIX
 static int UseStreamingUnpack(const PACKED_IMAGE *input)
 {
 #if ENABLED(NEON)
-    return getenv("GPR_STREAM_UNPACK") != NULL && input->width % 8 == 0 &&
+    return gpr_encoder_feature_enabled("GPR_STREAM_UNPACK") && input->width % 8 == 0 &&
         (input->format == PIXEL_FORMAT_RAW_RGGB_14 ||
          (input->format == PIXEL_FORMAT_RAW_RGGB_16 && !(input->pitch&1) &&
           !(((uintptr_t)input->buffer+input->offset)&1)));
@@ -579,7 +580,7 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
      * when a caller leaves the fast-path environment requests enabled. */
 #if GPR_ENABLE_PARALLEL_CHANNELS
     encoder->compact_bands = memory_stream && encoder->channel_count > 1 &&
-        getenv("GPR_BAND_STREAM") && getenv("GPR_COMPACT_BANDS");
+        gpr_encoder_feature_enabled("GPR_BAND_STREAM") && gpr_encoder_feature_enabled("GPR_COMPACT_BANDS");
 #else
     (void)memory_stream;
     encoder->compact_bands = false;
@@ -1689,7 +1690,7 @@ static void *EncodeChannelThread(void *arg)
         }
     }
     double transform_end = EncoderWallTime();
-    if (thread->band_workspace && getenv("GPR_DIRECT_BANDS")) {
+    if (thread->band_workspace && gpr_encoder_feature_enabled("GPR_DIRECT_BANDS")) {
         thread->prepared_encoder = encoder;
         thread->error = encoder.row_error;
         thread->size = 0;
@@ -1819,7 +1820,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
                 state->band.quantization = encoder->transform[previous_channel].wavelet[0]->quant[HH_BAND];
             }
             thread[channel_index].capacity = channel_capacity;
-            int direct_bands = getenv("GPR_BAND_STREAM") && getenv("GPR_DIRECT_BANDS");
+            int direct_bands = gpr_encoder_feature_enabled("GPR_BAND_STREAM") && gpr_encoder_feature_enabled("GPR_DIRECT_BANDS");
             thread[channel_index].output = direct_bands ? NULL : encoder->allocator->Alloc(channel_capacity);
             if (thread[channel_index].output == NULL && !direct_bands)
             {
@@ -1833,7 +1834,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
             }
             thread[channel_index].scratch = gpr_aligned_alloc(encoder->allocator, scratch_bytes);
             if (!thread[channel_index].scratch) { parallel_ok = 0; break; }
-            if (getenv("GPR_BAND_STREAM")) {
+            if (gpr_encoder_feature_enabled("GPR_BAND_STREAM")) {
                 size_t capacity = 0;
                 for (int stage=0; stage<MAX_WAVELET_COUNT; stage++) {
                     WAVELET *wavelet = encoder->transform[thread[channel_index].channel_number].wavelet[stage];
@@ -1881,7 +1882,7 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
             {
                 size_t size = thread[channel_index].size;
                 channel_number = encoder->channel_order_table[channel_index];
-                if (thread[channel_index].band_workspace && getenv("GPR_DIRECT_BANDS")) {
+                if (thread[channel_index].band_workspace && gpr_encoder_feature_enabled("GPR_DIRECT_BANDS")) {
                     ENCODER *prepared = &thread[channel_index].prepared_encoder;
                     prepared->codec = *codec;
                     error = EncodeChannelHeader(prepared, channel_number, stream);

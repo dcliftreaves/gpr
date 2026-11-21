@@ -93,7 +93,7 @@
         
         VC5_ENCODER_PIXEL_FORMAT    pixel_format;         // Bayer Ordering Pattern (Default: VC5_ENCODER_BAYER_ORDERING_RGGB)
         
-        VC5_ENCODER_QUALITY_SETTING quality_setting;        // Quality setting of the encoder (Default: VC5_ENCODER_QUALITY_SETTING_FS2)
+        VC5_ENCODER_QUALITY_SETTING quality_setting;        // Quality setting of the encoder (Default: VC5_ENCODER_QUALITY_SETTING_FSX)
         
         gpr_malloc                  mem_alloc;              // Callback function to allocate memory
         

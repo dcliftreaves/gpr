@@ -4,6 +4,7 @@
 #include <cerrno>
 #include "vc5_encoder.h"
 #include "vc5_decoder.h"
+#include "gpr_gvid.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -111,8 +112,11 @@ int main(int argc, char **argv) {
                 else throw std::runtime_error("unknown option: " + k);
             }
         }
-        if (output.empty() || !width || !height || width % 8 || height % 8 ||
-            width > 8192 || height > 6144 || !fps || fps > 240 || quality > 5 ||
+        if (output.empty() || !width || !height ||
+            (decode.empty() ? (width % 8 || height % 8) : ((width | height) & 1)) ||
+            (decode.empty() ? (width > 8192 || height > 6144) :
+             (width > GPR_GVID_MAX_DIMENSION || height > GPR_GVID_MAX_DIMENSION ||
+              uint64_t(width)*height > GPR_GVID_MAX_PIXELS)) || !fps || fps > 240 || quality > 5 ||
             !frames || frames > 1000000 || arena_mib > 2048)
             throw std::runtime_error("invalid dimensions, quality, rate, frame count or workspace");
         if ((cfa!="RGGB" && cfa!="GBRG" && cfa!="GRBG" && cfa!="BGGR") ||

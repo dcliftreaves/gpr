@@ -17,6 +17,7 @@
  */
 
 #include "headers.h"
+#include "runtime.h"
 
 /* Additional input layouts retain the historical 4096-entry log curve and
  * 12-bit component transform. This accepts 16-bit containers, not a new
@@ -305,7 +306,7 @@ void UnpackChannelRow14(const PACKED_IMAGE *input, int row, int channel, PIXEL *
         (size_t)row * 2 * input->pitch);
     const uint16_t *row2 = (const uint16_t *)((const uint8_t *)row1 + input->pitch);
 #if GPR_STOCK_UNPACK_ASM
-    if (getenv("GPR_CHANNEL_ASM")) {
+    if (gpr_encoder_feature_enabled("GPR_CHANNEL_ASM")) {
         gpr_stock_unpack14_channel(row1,row2,EncoderLogCurve,output,input->width/2,channel);
         return;
     }

@@ -1,7 +1,7 @@
 # Relocatable static-library package. Export private SDK dependencies too:
 # downstream applications must not manually reconstruct their link order.
 include(CMakePackageConfigHelpers)
-set(GPR_PACKAGE_VERSION "0.1.0") # Experimental feature package, independent of stock SDK version macros.
+set(GPR_PACKAGE_VERSION "0.2.0") # Fork RAW-media release; independent of stock SDK version macros.
 set(GPR_SOURCE_REVISION "${GIT_COMMIT_HASH}" CACHE STRING "Source revision hint for packaged builds")
 set(GPR_SOURCE_DIGEST "unrecorded" CACHE STRING "SHA-256 of the packaged source snapshot")
 set(GPR_PACKAGE_NEEDS_ZLIB OFF)

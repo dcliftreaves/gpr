@@ -87,6 +87,8 @@ else()
   add_definitions(-DNEON=0)
 endif()
 
+option(GPR_ENCODER_FAST_DEFAULT "Enable bit-exact streaming encoder optimizations by default" ON)
+
 option(GPR_ENABLE_PARALLEL_CHANNELS
        "Encode independent VC-5 channels in parallel on supported hosts" ON)
 option(GPR_ENABLE_PARALLEL_UNPACK
@@ -425,4 +427,17 @@ if(GPR_BUILD_CODEC_TESTS AND TARGET vc5_encoder AND TARGET vc5_decoder)
   target_compile_features(wavelet_stream_benchmark PRIVATE cxx_std_11)
   target_link_libraries(wavelet_stream_benchmark PRIVATE vc5_encoder vc5_decoder)
   endif()
+endif()
+
+if(GPR_BUILD_VIDEO_TESTS AND TARGET gpr_capture_app AND TARGET stock_video AND GPR_VIDEO_PYTHON)
+  add_test(NAME raw_video_workflow COMMAND ${GPR_VIDEO_PYTHON}
+    ${CMAKE_SOURCE_DIR}/tests/raw_video_workflow.py --capture $<TARGET_FILE:gpr_capture_app>
+    --decoder $<TARGET_FILE:stock_video>)
+  set_tests_properties(raw_video_workflow PROPERTIES TIMEOUT 180)
+endif()
+
+if(GPR_BUILD_CODEC_TESTS)
+  add_test(NAME bayer_formats_reference COMMAND bayer_formats_test ${CMAKE_SOURCE_DIR}/tests/fixtures/stock_preview)
+  set_tests_properties(bayer_formats_reference PROPERTIES TIMEOUT 120 ENVIRONMENT
+    "GPR_STREAM_UNPACK=0;GPR_BAND_STREAM=0;GPR_COMPACT_BANDS=0;GPR_DIRECT_BANDS=0;GPR_CHANNEL_ASM=0")
 endif()
