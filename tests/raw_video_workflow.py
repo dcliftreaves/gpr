@@ -57,7 +57,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         root=Path(tmp); cases=0
         formats=[(bits,cfa,96) for bits in (12,14,16) for cfa in ('RGGB','GBRG','GRBG','BGGR')]
-        formats.append((14,'RGGB',98))
+        formats.extend(((14,'RGGB',98),(16,'RGGB',98),(12,'GBRG',98)))
         for bits,cfa,height in formats:
             case=root/f'{cfa}{bits}-{height}';case.mkdir()
             meta=calibration(bits,cfa,height=height); source=case/'source.raw'; sidecar=case/'metadata.json'
