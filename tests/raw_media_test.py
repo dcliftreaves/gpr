@@ -428,6 +428,17 @@ class Media(unittest.TestCase):
             matched=root/'thumbnail-render.jpg'
             run([args.sdk,'-i',previewed,'-o',matched,'-r','16:1','-j','2'])
             self.assertEqual(matched.read_bytes(),thumbnail)
+            for orientation in range(1,9):
+                oriented_meta=dict(meta)
+                oriented_meta['image']=[t for t in meta['image'] if t['code']!=274]+[
+                    media.record(274,3,1,struct.pack('<H',orientation))]
+                oriented=root/f'orientation-{orientation}.dng'
+                gpr=root/f'orientation-{orientation}.gpr';jpg=root/f'orientation-{orientation}.jpg'
+                media.write(oriented,oriented_meta,raw.read_bytes())
+                run([args.sdk,'-i',oriented,'-o',gpr,'--no-preview'])
+                run([args.sdk,'-i',gpr,'-o',jpg])
+                with Image.open(jpg) as image:self.assertEqual(image.getexif().get(274),orientation)
+
 
 
 

@@ -56,61 +56,62 @@ def main():
     env={k:v for k,v in os.environ.items() if not k.startswith('GPR_')}
     with tempfile.TemporaryDirectory() as tmp:
         root=Path(tmp); cases=0
-        for bits in (12,14,16):
-            for cfa in ('RGGB','GBRG','GRBG','BGGR'):
-                case=root/f'{cfa}{bits}';case.mkdir()
-                meta=calibration(bits,cfa); source=case/'source.raw'; sidecar=case/'metadata.json'
-                source.write_bytes(struct.pack('<'+'H'*(128*96),
-                    *((i*79+(i//128)*211)&((1<<bits)-1) for i in range(128*96))))
-                sidecar.write_text(json.dumps(meta)); clip=case/'clip.gvid'
-                cmd=[a.capture,'--input',source,'--source-metadata',sidecar,'--output',clip,
-                     '--width',128,'--height',96,'--sample-bits',bits,'--cfa',cfa,
-                     '--frames',3,'--quality',4,'--workspace-mib',4,'--queue',2,
-                     '--submit-timeout-ms',4294967295,'--leased']
-                r=run(cmd,env=env); summary=json.loads(r.stdout.splitlines()[-1])
-                assert summary['complete'] and summary['written']==3 and summary['overruns']==0
-                h,rows=parse(clip);assert len(rows)==3 and h['_end_marker_verified']
-                out=case/'export'
-                export=[sys.executable,ROOT/'tools/stock_video.py','extract',clip,'--out-dir',out,
-                        '--decoder',a.decoder,'--editable','both']
-                run(export,env=env)
-                for i,row in enumerate(rows):
-                    stem=out/f'{i:06d}'
-                    for extension in ('.dng','.gpr'):
-                        restored=raw_media.extract(stem.with_suffix(extension),bits)
-                        for key in ('width','height','sample_bits','cfa'):
-                            assert restored[key]==meta[key], (key,restored,meta)
-                        for group in ('image','exif','gps'):
-                            assert sorted(restored[group],key=lambda t:t['code'])==sorted(meta[group],key=lambda t:t['code']), (group,restored,meta)
-                    assert stem.with_suffix('.raw').stat().st_size==128*96*2
-                    assert stem.with_suffix('.vc5').read_bytes()==row['payload']
-                before=hashlib.sha256((out/'000000.raw').read_bytes()).hexdigest()
-                run(export,okay=False,env=env) # Existing output directory must never be overwritten.
-                assert hashlib.sha256((out/'000000.raw').read_bytes()).hexdigest()==before
-                run(cmd,okay=False,env=env) # Existing recordings are exclusive, too.
-                if cases==0:
-                    truncated=case/'interrupted.gvid';truncated.write_bytes(clip.read_bytes()[:-48])
-                    try: parse(truncated)
+        formats=[(bits,cfa,96) for bits in (12,14,16) for cfa in ('RGGB','GBRG','GRBG','BGGR')]
+        formats.append((14,'RGGB',98))
+        for bits,cfa,height in formats:
+            case=root/f'{cfa}{bits}-{height}';case.mkdir()
+            meta=calibration(bits,cfa,height=height); source=case/'source.raw'; sidecar=case/'metadata.json'
+            source.write_bytes(struct.pack('<'+'H'*(128*height),
+                *((i*79+(i//128)*211)&((1<<bits)-1) for i in range(128*height))))
+            sidecar.write_text(json.dumps(meta)); clip=case/'clip.gvid'
+            cmd=[a.capture,'--input',source,'--source-metadata',sidecar,'--output',clip,
+                 '--width',128,'--height',height,'--sample-bits',bits,'--cfa',cfa,
+                 '--frames',3,'--quality',4,'--workspace-mib',4,'--queue',2,
+                 '--submit-timeout-ms',4294967295,'--leased']
+            r=run(cmd,env=env); summary=json.loads(r.stdout.splitlines()[-1])
+            assert summary['complete'] and summary['written']==3 and summary['overruns']==0
+            h,rows=parse(clip);assert len(rows)==3 and h['_end_marker_verified']
+            out=case/'export'
+            export=[sys.executable,ROOT/'tools/stock_video.py','extract',clip,'--out-dir',out,
+                    '--decoder',a.decoder,'--editable','both']
+            run(export,env=env)
+            for i,row in enumerate(rows):
+                stem=out/f'{i:06d}'
+                for extension in ('.dng','.gpr'):
+                    restored=raw_media.extract(stem.with_suffix(extension),bits)
+                    for key in ('width','height','sample_bits','cfa'):
+                        assert restored[key]==meta[key], (key,restored,meta)
+                    for group in ('image','exif','gps'):
+                        assert sorted(restored[group],key=lambda t:t['code'])==sorted(meta[group],key=lambda t:t['code']), (group,restored,meta)
+                assert stem.with_suffix('.raw').stat().st_size==128*height*2
+                assert stem.with_suffix('.vc5').read_bytes()==row['payload']
+            before=hashlib.sha256((out/'000000.raw').read_bytes()).hexdigest()
+            run(export,okay=False,env=env) # Existing output directory must never be overwritten.
+            assert hashlib.sha256((out/'000000.raw').read_bytes()).hexdigest()==before
+            run(cmd,okay=False,env=env) # Existing recordings are exclusive, too.
+            if cases==0:
+                truncated=case/'interrupted.gvid';truncated.write_bytes(clip.read_bytes()[:-48])
+                try: parse(truncated)
+                except ValueError: pass
+                else: raise AssertionError('strict reader accepted interrupted recording')
+                rh,rr=parse(truncated,True)
+                assert len(rr)==3 and not rh['_end_marker_verified']
+                damaged=bytearray(clip.read_bytes());damaged[-49]^=1
+                bad=case/'damaged.gvid';bad.write_bytes(damaged)
+                rh,rr=parse(bad,True)
+                assert len(rr)==2 and not rh['_end_marker_verified']
+                if os.name=='posix':
+                    import resource,signal
+                    def limit_output():
+                        signal.signal(signal.SIGXFSZ,signal.SIG_IGN)
+                        resource.setrlimit(resource.RLIMIT_FSIZE,(1024,1024))
+                    failed=case/'write-failed.gvid';failure_cmd=cmd.copy()
+                    failure_cmd[failure_cmd.index(clip)]=failed
+                    run(failure_cmd,okay=False,env=env,preexec_fn=limit_output)
+                    try: parse(failed)
                     except ValueError: pass
-                    else: raise AssertionError('strict reader accepted interrupted recording')
-                    rh,rr=parse(truncated,True)
-                    assert len(rr)==3 and not rh['_end_marker_verified']
-                    damaged=bytearray(clip.read_bytes());damaged[-49]^=1
-                    bad=case/'damaged.gvid';bad.write_bytes(damaged)
-                    rh,rr=parse(bad,True)
-                    assert len(rr)==2 and not rh['_end_marker_verified']
-                    if os.name=='posix':
-                        import resource,signal
-                        def limit_output():
-                            signal.signal(signal.SIGXFSZ,signal.SIG_IGN)
-                            resource.setrlimit(resource.RLIMIT_FSIZE,(1024,1024))
-                        failed=case/'write-failed.gvid';failure_cmd=cmd.copy()
-                        failure_cmd[failure_cmd.index(clip)]=failed
-                        run(failure_cmd,okay=False,env=env,preexec_fn=limit_output)
-                        try: parse(failed)
-                        except ValueError: pass
-                        else: raise AssertionError('write failure produced complete recording')
-                cases+=1
+                    else: raise AssertionError('write failure produced complete recording')
+            cases+=1
         print(json.dumps(dict(cases=cases, calibrated_exports=True, strict_recovery=True,
                               write_failure=True, exclusive_outputs=True, cnn=False)))
 
