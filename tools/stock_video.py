@@ -450,6 +450,7 @@ def main():
     parser.add_argument("--device", choices=("cpu", "mps", "cuda"), default="cpu")
     parser.add_argument("--tile", type=int, default=256, help="output core size in Bayer-plane pixels")
     parser.add_argument("--halo", type=int, default=64, help="context on each side of the output core")
+    parser.add_argument("--hash-clip", action="store_true", help="also hash all clip bytes when building a header-only index")
     parser.add_argument("--recover", action="store_true", help="export only verified complete prefix; report incomplete recording")
     parser.add_argument("--editable", choices=("dng", "gpr", "both"),
                         help="export calibrated editable RAWs; GPR copies the original VC-5 payload")
@@ -501,9 +502,12 @@ def main():
             idx_entries = scan_index(f, header, args.recover)
             report = dict(
                 schema="gpr.stock_video.index.v1",
-                clip_sha256=sha256(args.clip),
+                clip_sha256=sha256(args.clip) if args.hash_clip else None,
+                clip_size_bytes=args.clip.stat().st_size,
                 header={k: v for k, v in header.items() if not k.startswith("_")},
                 frame_count=len(idx_entries),
+                payload_verification="headers_only",
+                payload_checksums_verified=False,
                 complete=header["_complete"],
                 end_marker_verified=header["_end_marker_verified"],
                 recovery_error=header.get("_recovery_error"),
@@ -594,6 +598,8 @@ def main():
     report["complete"] = header["_complete"]
     report["end_marker_verified"] = header["_end_marker_verified"]
     report["recovery_error"] = header.get("_recovery_error")
+    report["payload_verification"] = "selected_frames" if args.start_frame > 0 and args.action in ("extract", "restore") else "all_frames"
+    report["verified_payloads"] = len(report["frames"])
     report["required_payload_MBps"] = (sum(row["bytes"] for row in report["frames"]) / report["frame_count"]
                                         * header["fps_num"] / header["fps_den"] / 1e6) if report["frame_count"] else 0
     report["required_MBps"] = (sum(row["bytes"] + header["frame_header_bytes"] + row.get("metadata_bytes", 0)

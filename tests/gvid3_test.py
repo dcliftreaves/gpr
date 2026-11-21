@@ -125,6 +125,23 @@ class V3(unittest.TestCase):
         with self.assertRaises(ValueError):
             video.seek_record(io.BytesIO(bad), header, entries[1])
 
+    def test_index_reports_header_only_validation(self):
+        import json
+        import sys
+        data=bytearray(fixture())
+        f=io.BytesIO(data);header=video.read_header(f);entries=video.scan_index(f,header)
+        data[entries[1]['payload_offset']]^=1
+        with self.assertRaises(ValueError):parse(data)
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'damaged.gvid';path.write_bytes(data)
+            result=subprocess.run([sys.executable,str(ROOT/'tools/stock_video.py'),'index',str(path)],
+                                  capture_output=True,text=True,check=True)
+            receipt=json.loads(result.stdout)
+            self.assertEqual(receipt['payload_verification'],'headers_only')
+            self.assertFalse(receipt['payload_checksums_verified'])
+            self.assertIsNone(receipt['clip_sha256'])
+            self.assertEqual(receipt['clip_size_bytes'],len(data))
+
     def test_clip_static_and_per_frame_calibration_inheritance(self):
         header = {
             "metadata": {
