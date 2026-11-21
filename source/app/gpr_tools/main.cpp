@@ -55,6 +55,7 @@ public:
 
     int     input_pitch;
     int     quality;
+    int     jpeg_quality;
     bool    no_preview;
     bool    apple_compatible_dng;
     
@@ -95,6 +96,7 @@ public:
         ("DumpGprParameters,d",                             dump_gpr_parameters,                        false,                  "Dump GPR parameters to standard output")
 
         ("InputSkipRows,s",                                 input_skip_rows,                            0,                      "Input image rows to skip")
+        ("jpeg-quality,j", jpeg_quality, 3, "JPEG quality 1..3 (use -j N or --jpeg-quality=N)")
         ("quality,q",                                       quality,                                    -1,                     "Stock GPR quality preset 0..5 (default: legacy Q3, or Q1 with fast_encoding)")
         ("apple-compatible-dng", apple_compatible_dng, false, "Equalize green shading maps for Apple DNG display; changes calibration in the exported DNG")
         ("no-preview",                                      no_preview,                                 false,                  "Omit the JPEG preview and its RGB computation")
@@ -218,7 +220,7 @@ int main(int argc, char *argv [])
     {
         return dng_convert_main(args.input_file_path.c_str(), args.input_width, args.input_height, args.input_pitch, args.input_skip_rows, args.input_pixel_format.c_str(),
                                 args.output_file_path.c_str(), args.apply_gpr_parameters.c_str(), args.gpmf_file_path.c_str(), args.rgb_file_resolution.c_str(), args.rgb_file_bits,
-                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality, !args.no_preview, args.apple_compatible_dng );
+                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality, !args.no_preview, args.apple_compatible_dng, args.jpeg_quality );
     }
     
     return 0;

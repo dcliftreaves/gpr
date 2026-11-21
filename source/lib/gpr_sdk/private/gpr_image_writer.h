@@ -47,6 +47,8 @@ public:
     bool EncodeVc5Image(bool thumbnail);
     
     const gpr_rgb_buffer& get_rgb_thumbnail() { return _rgb_thumbnail; }
+    gpr_rgb_buffer& rgb_thumbnail_storage() { return _rgb_thumbnail; }
+    gpr_buffer_auto& encoded_image() { return *_vc5_buffer; }
     
     vc5_encoder_parameters& GetVc5EncoderParams() { return vc5_encoder_params; }
     

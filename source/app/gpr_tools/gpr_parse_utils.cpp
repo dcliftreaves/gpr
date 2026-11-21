@@ -49,7 +49,7 @@ void parse_exif_info( cJSON* pExifInfo, gpr_exif_info& exif_info )
     strcpy( exif_info.user_comment, pJSON->valuestring );
     pJSON = pJSON->next;
     
-    strcpy( exif_info.image_description, pJSON->valuestring );
+    snprintf(exif_info.image_description,sizeof(exif_info.image_description),"%s",pJSON->valuestring ? pJSON->valuestring : "");
     pJSON = pJSON->next;
     
     exif_info.exposure_time.numerator   = pJSON->child->valueint;

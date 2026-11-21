@@ -34,6 +34,20 @@ static uint64_t integer(const std::string &s) {
     if (end!=s.size() || v>UINT32_MAX) throw std::runtime_error("invalid/large integer");
     return v;
 }
+static void sync_parent_directory(const std::string &path) {
+    const auto slash=path.find_last_of('/');
+    std::string parent=slash==std::string::npos ? "." : (slash==0 ? "/":path.substr(0,slash));
+    int flags=O_RDONLY;
+#ifdef O_DIRECTORY
+    flags|=O_DIRECTORY;
+#endif
+    int fd=open(parent.c_str(),flags);
+    if (fd<0) throw std::runtime_error("cannot open recording directory for sync");
+    int result;
+    do {result=fsync(fd);} while (result && errno==EINTR);
+    int closed=close(fd);
+    if (result || closed) throw std::runtime_error("cannot sync recording directory");
+}
 static uint64_t get(const uint8_t *p,unsigned n) {
     uint64_t v=0; for (unsigned i=0;i<n;++i) v|=uint64_t(p[i])<<(i*8); return v;
 }
@@ -428,7 +442,12 @@ int main(int argc,char **argv) {
         output.capture_finished.store(true,std::memory_order_release);
 #endif
         if (error) throw std::runtime_error("capture finish failed: "+std::to_string(error));
-        if (fsync(output.fd)) throw std::runtime_error("final fsync failed");
+        int sync_result;
+        do {sync_result=fsync(output.fd);} while (sync_result && errno==EINTR);
+        if (sync_result) throw std::runtime_error("final fsync failed");
+        int recorded_fd=output.fd;output.fd=-1;
+        if (close(recorded_fd)) throw std::runtime_error("recording close failed");
+        sync_parent_directory(path);
         uint64_t durable=now_ns();
 #if GPR_CAPTURE_HAS_PREVIEW
         int preview_error=output.preview ? gpr_preview_queue_finish(output.preview.get()):0;

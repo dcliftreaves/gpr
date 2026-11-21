@@ -102,9 +102,10 @@ static FILE_TYPE GetFileType( const char* file_path )
 
 int dng_convert_main(const char*  input_file_path, unsigned int input_width, unsigned int input_height, size_t input_pitch, size_t input_skip_rows, const char* input_pixel_format,
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
-                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality, bool enable_preview, bool apple_compatible_dng )
+                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality, bool enable_preview, bool apple_compatible_dng, int jpeg_quality )
 {
     bool success;
+    if (jpeg_quality<1 || jpeg_quality>3) return -1;
     if (GetFileType(output_file_path)==FILE_TYPE_JPG) rgb_file_bits=8;
     bool write_buffer_to_file = true;
     
@@ -306,7 +307,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         {
 #if GPR_JPEG_AVAILABLE
             success=gpr_encode_rgb_to_jpg(&allocator,rgb_buffer.buffer,rgb_buffer.width,rgb_buffer.height,
-                3,gpr_adobe_orientation_to_exif(params.tuning_info.orientation),&output_buffer);
+                jpeg_quality,gpr_adobe_orientation_to_exif(params.tuning_info.orientation),&output_buffer);
 #else
             printf("JPG writing capability is disabled. You could still write to a PPM file");
 #endif

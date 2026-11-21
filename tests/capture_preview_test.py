@@ -94,9 +94,11 @@ class Combined(unittest.TestCase):
         final,summary,previews=self.verify(output,events,1)
         self.assertGreater(final['overruns'],0);self.assertTrue(previews)
 
+    # Pace failure injection so the latest-frame preview queue actually reaches
+    # its second display callback, independent of encoder/host speed.
     def test_sink_failure_keeps_recording_complete_and_reports_failure(self):
         output=self.root/'failure.gvid'
-        events=self.capture(output,'--frames','24','--preview-every','1','--preview-fail-after','1',preview=True,okay=False)
+        events=self.capture(output,'--frames','24','--preview-every','1','--preview-fail-after','1','--paced','--fps-num','30',preview=True,okay=False)
         final,summary,previews=self.verify(output,events,1,failed=True)
         self.assertEqual(final['written'],24);self.assertEqual(summary['error'],-7);self.assertEqual(len(previews),1)
 
@@ -106,7 +108,7 @@ class Combined(unittest.TestCase):
         for failed in (False,True):
             output=self.root/f'encoder-{failed}.gvid'
             options=['--frames','24','--preview-every','1','--preview-from-encoder']
-            if failed:options+=['--preview-fail-after','1']
+            if failed:options+=['--preview-fail-after','1','--paced','--fps-num','30']
             events=self.capture(output,*options,preview=True,okay=not failed)
             final,summary,previews=self.verify(output,events,1,failed=failed)
             self.assertEqual(final['written'],24)
@@ -126,7 +128,7 @@ class Combined(unittest.TestCase):
                     output=self.root/f'streamed-{leased}-{failed}.gvid'
                     options=['--frames','24','--preview-every','1','--preview-streamed','--preview-sync-stages']
                     if leased:options+=['--leased']
-                    if failed:options+=['--preview-fail-after','1']
+                    if failed:options+=['--preview-fail-after','1','--paced','--fps-num','30']
                     events=self.capture(output,*options,preview=True,okay=not failed)
                     final,summary,previews=self.verify(output,events,1,failed=failed)
                     self.assertEqual(final['written'],24)
@@ -158,7 +160,7 @@ class Combined(unittest.TestCase):
         for failed in (False,True):
             output=self.root/f'sync-stages-{failed}.gvid'
             options=['--frames','24','--preview-every','1','--preview-from-encoder','--preview-sync-stages']
-            if failed:options+=['--preview-fail-after','1']
+            if failed:options+=['--preview-fail-after','1','--paced','--fps-num','30']
             events=self.capture(output,*options,preview=True,okay=not failed)
             final,summary,previews=self.verify(output,events,1,failed=failed)
             self.assertEqual(final['written'],24);self.assertTrue(summary['sync_compute_stages'])

@@ -79,7 +79,7 @@
 #endif
 
 #if GPR_JPEG_AVAILABLE
-#include "jpeg.h"
+#include "gpr_jpeg.h"
 #endif
 
 extern bool gDNGShowTimers;
@@ -164,6 +164,52 @@ static void unpack_pixel_format( const gpr_buffer_auto* input_buffer, const gpr_
         dst += dst_stride;
     }
 }
+
+#if GPR_READING
+static bool render_calibrated_source(const gpr_allocator *allocator,const gpr_parameters *params,
+    const gpr_buffer *vc5_buffer,GPR_RGB_RESOLUTION rgb_resolution,int rgb_bits,gpr_rgb_buffer *output)
+{
+    vc5_decoder_parameters vc5_decoder_params;
+
+    vc5_decoder_parameters_set_default(&vc5_decoder_params);
+
+    vc5_decoder_params.mem_alloc        = allocator->Alloc;
+    vc5_decoder_params.mem_free         = allocator->Free;
+    vc5_decoder_params.pixel_format     = VC5_DECODER_PIXEL_FORMAT_DEFAULT;
+
+    vc5_decoder_params.rgb_bits = rgb_bits;
+
+    gpr_rgb_gain&   rgb_gain = vc5_decoder_params.rgb_gain;
+
+    find_rational( params->tuning_info.wb_gains.r_gain, 0.125, &rgb_gain.r_gain_num, &rgb_gain.r_gain_pow2_den );
+    find_rational( params->tuning_info.wb_gains.g_gain, 0.125, &rgb_gain.g_gain_num, &rgb_gain.g_gain_pow2_den );
+    find_rational( params->tuning_info.wb_gains.b_gain, 0.125, &rgb_gain.b_gain_num, &rgb_gain.b_gain_pow2_den );
+
+    vc5_decoder_params.rgb_resolution = rgb_resolution;
+
+    RGB_PARAMETERS rgb;
+    rgb_parameters_set_default(&rgb);
+    rgb.bits=rgb_bits;rgb.resolution=rgb_resolution;rgb.white_balance_gain=rgb_gain;
+    gpr_profile_info profile=params->profile_info;
+    if (profile.compute_color_matrix) {
+        compute_xyz_to_camera_color_matrix(profile.cam_to_srgb_1,profile.wb1,profile.matrix_weighting,profile.color_matrix_1);
+        compute_xyz_to_camera_color_matrix(profile.cam_to_srgb_2,profile.wb2,profile.matrix_weighting,profile.color_matrix_2);
+    }
+    compute_camera_to_srgb_color_matrix(&params->tuning_info,&profile,rgb.color_matrix);
+    rgb_shading_map_tables shading;
+    bool shaded=shading.build(&params->tuning_info,&rgb);
+    // Match PR #68's display policy; physical baseline remains in source metadata.
+    rgb.baseline_exposure=(shaded && shading.max_gain()>1.01f && params->tuning_info.baseline_exposure>0)
+        ? 0.0f : (float)params->tuning_info.baseline_exposure;
+    rgb.black_level=compute_rgb_black_level(&params->tuning_info);
+    if( vc5_decoder_process_calibrated(&vc5_decoder_params,vc5_buffer,&rgb,output) != CODEC_ERROR_OKAY )
+    {
+        return false;
+    }
+    return true;
+
+}
+#endif
 
 #if GPR_WRITING
 static bool set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_params, const gpr_parameters* convert_params, int quality = -1 )
@@ -496,8 +542,7 @@ static void convert_dng_exif_to_dng_exif_info( gpr_exif_info* dst_exif, const dn
     assert(src_exif->fCameraSerialNumber.Length() < sizeof(dst_exif->camera_serial));
     strcpy( dst_exif->camera_serial, src_exif->fCameraSerialNumber.Get() );
 
-    assert(src_exif->fImageDescription.Length() < sizeof(dst_exif->image_description));
-    strcpy( dst_exif->image_description, src_exif->fImageDescription.Get() );
+    snprintf(dst_exif->image_description,sizeof(dst_exif->image_description),"%s",src_exif->fImageDescription.Get());
     
     dst_exif->aperture          = convert_to_unsigned_rational( src_exif->fMaxApertureValue );
     dst_exif->f_stop_number     = convert_to_unsigned_rational( src_exif->fFNumber );
@@ -972,131 +1017,6 @@ void reduction(double a[][6], int size, int pivot, int col)
    }
 }
 
-void calc_color_matrix( double in_matrix[3][3], double wb[3], double weight, double out_matrix[3][3] )
-{
-    double temp1[3][3];
-    double temp2[3][3];
-
-    int i,j,k;
-
-#if PRINT_MATRIX
-    LogPrint("\nOriginal Matrix");
-    for (i = 0; i < 3; i++)
-      LogPrint("%8.5f  %8.5f  %8.5f", in_matrix[i][0], in_matrix[i][1], in_matrix[i][2] );
-#endif
-    
-    // Interpolate with identity matrix by weight w
-    double w = weight;
-    double z = 1.0 - weight;
-
-    for (i = 0; i < 3; i++ )
-    {
-        for (j = 0; j < 3; j++ )
-            temp1[i][j] = in_matrix[i][j] * w;
-
-        temp1[i][i] += z;
-    }
-
-#if PRINT_MATRIX
-    LogPrint("\nInterpolated Matrix");
-    for (i = 0; i < 3; i++)
-      LogPrint("%8.5f  %8.5f  %8.5f", temp1[i][0], temp1[i][1], temp1[i][2] );
-#endif
-    
-    // Multiply matrix by sRGB_to_XYZd50 (from http://www.brucelindbloom.com)
-    double sRGB_to_XYZd50[3][3] = {{0.4361, 0.3851, 0.1431}, {0.2225, 0.7169, 0.0606}, {0.0139, 0.0971, 0.7142}};
-
-    double sum;
-    for (i = 0; i < 3; i++) 
-        for (j = 0; j < 3; j++) 
-        {
-            sum = 0;
-            for (k = 0; k < 3; k++) 
-                sum = sum + sRGB_to_XYZd50[i][k] * temp1[k][j];
-
-            temp2[i][j] = sum;
-        }
-
-#if PRINT_MATRIX
-    LogPrint("\ntimes  sRGB_to_XYZd50");
-    for (i = 0; i < 3; i++)
-      LogPrint("%8.5f  %8.5f  %8.5f", temp2[i][0], temp2[i][1], temp2[i][2] );
-#endif
-    
-    // Set up diagonal matrix with white balance gains
-    double wb_diag[3][3];
-    for (i = 0; i < 3; i++) 
-    {
-        for (j = 0; j < 3; j++) 
-            wb_diag[i][j] = 0.0;
-        
-        wb_diag[i][i] = wb[i];
-    }
-    
-    // Multiply by white balance gains
-    for (i = 0; i < 3; i++) 
-        for (j = 0; j < 3; j++) 
-        {
-            sum = 0;
-            for (k = 0; k < 3; k++) 
-                sum = sum + temp2[i][k] * wb_diag[k][j];
-
-            temp1[i][j] = sum;
-        }
-
-#if PRINT_MATRIX
-    LogPrint("\ntimes  wb");
-    for (i = 0; i < 3; i++)
-      LogPrint("%8.5f  %8.5f  %8.5f", temp1[i][0], temp1[i][1], temp1[i][2] );
-#endif
-    
-    // Invert the resulting matrix
-    double matrix[3][6];
-
-    for (i = 0; i < 3; i++)
-      for (j = 0; j < 6; j++)
-         if (j == i + 3)
-            matrix[i][j] = 1;
-         else 
-            matrix[i][j] = 0;
-
-    for (i = 0; i < 3; i++)
-      for (j = 0; j < 3; j++)
-         matrix[i][j] = temp1[i][j];
-
-    for (i = 0; i < 3; i++)
-      reduction(matrix, 3, i, i);
-
-    for (i = 0; i < 3; i++)
-      for (j = 0; j < 3; j++)
-         out_matrix[i][j] = matrix[i][j+3];
-
-#if PRINT_MATRIX
-    LogPrint("\nInverse Matrix");
-    for (i = 0; i < 3; i++) {
-       LogPrint("%8.5f  %8.5f  %8.5f", out_matrix[i][0], out_matrix[i][1], out_matrix[i][2] );
-    }
-#endif
-
-}
-
-typedef struct
-{
-    unsigned char*     orig_dst;                     /* Address to the memory location that this buffer points to */
-
-    unsigned char*     next_dst;
-    
-} jpg_write_context;
-
-void write_jpg_thumbnail(void* context, void* data, int size)
-{
-    jpg_write_context* _context = (jpg_write_context*)context;
-    
-    memcpy( _context->next_dst, data, size );
-    
-    _context->next_dst = (unsigned char*)_context->next_dst + size;
-}
- 
 static bool write_dng(const gpr_allocator*          allocator,
                             dng_stream*             dng_write_stream,
                       const gpr_buffer_auto*        raw_image_buffer,
@@ -1450,13 +1370,13 @@ static bool write_dng(const gpr_allocator*          allocator,
         if ( matrix_weighting < 0.0 || matrix_weighting > 1.0 )
             matrix_weighting = 1.0;
     
-        calc_color_matrix( profile_info->cam_to_srgb_1, profile_info->wb1, matrix_weighting, out_matrix );
+        compute_xyz_to_camera_color_matrix( profile_info->cam_to_srgb_1, profile_info->wb1, matrix_weighting, out_matrix );
     
         for (i = 0; i < 3; i++)
             for (j = 0; j < 3; j++)
                 mColor1[i][j] = out_matrix[i][j];
     
-        calc_color_matrix( profile_info->cam_to_srgb_2, profile_info->wb2, matrix_weighting, out_matrix );
+        compute_xyz_to_camera_color_matrix( profile_info->cam_to_srgb_2, profile_info->wb2, matrix_weighting, out_matrix );
     
         for (i = 0; i < 3; i++)
             for (j = 0; j < 3; j++)
@@ -1525,34 +1445,42 @@ static bool write_dng(const gpr_allocator*          allocator,
   
     negative->SetStage1Image(image);
     
-    dng_preview_list* preview_list = NULL;
+    std::unique_ptr<dng_preview_list> preview_list;
   
-    dng_image_writer* writer = NULL;
+    std::unique_ptr<dng_image_writer> writer;
   
 #if GPR_WRITING
     if( vc5_dng )
     {
-        gpr_image_writer* gpr_writer = new gpr_image_writer(raw_image_buffer, convert_params->input_width, convert_params->input_height, convert_params->input_pitch, vc5_image_buffer );
+        writer.reset(new gpr_image_writer(raw_image_buffer, convert_params->input_width, convert_params->input_height, convert_params->input_pitch, vc5_image_buffer));
+        gpr_image_writer *gpr_writer=static_cast<gpr_image_writer *>(writer.get());
         if (!set_vc5_encoder_parameters(gpr_writer->GetVc5EncoderParams(), convert_params, quality)) {
-            delete gpr_writer;
             return false;
         }
       
         gpr_writer->GetVc5EncoderParams().mem_alloc=allocator->Alloc;
         gpr_writer->GetVc5EncoderParams().mem_free=allocator->Free;
-        if (!gpr_writer->EncodeVc5Image(convert_params->enable_preview &&
-                                       !convert_params->preview_image.jpg_preview.buffer)) {
-            delete gpr_writer;
+        const bool auto_preview=convert_params->enable_preview && !convert_params->preview_image.jpg_preview.buffer;
+#if GPR_READING
+        if (!gpr_writer->EncodeVc5Image(false)) {
+#else
+        if (!gpr_writer->EncodeVc5Image(auto_preview)) {
+#endif
             return false;
         }
                 
+#if GPR_READING
+        if (auto_preview && !render_calibrated_source(allocator,convert_params,
+                &gpr_writer->encoded_image().get_gpr_buffer(),GPR_RGB_RESOLUTION_SIXTEENTH,8,
+                &gpr_writer->rgb_thumbnail_storage())) return false;
+#endif
         if( convert_params->enable_preview )
         {
             const gpr_preview_image& preview_image = convert_params->preview_image;
             
             if( preview_image.jpg_preview.size > 0 && preview_image.jpg_preview.buffer != NULL )
             {
-                preview_list = new dng_preview_list;
+                preview_list.reset(new dng_preview_list);
                 
                 AutoPtr<dng_jpeg_preview> jpeg_preview;
                 jpeg_preview.Reset(new dng_jpeg_preview);
@@ -1572,7 +1500,7 @@ static bool write_dng(const gpr_allocator*          allocator,
 #if GPR_JPEG_AVAILABLE
             else if (gpr_writer->get_rgb_thumbnail().buffer && gpr_writer->get_rgb_thumbnail().size)
             {
-                preview_list = new dng_preview_list;
+                preview_list.reset(new dng_preview_list);
                 
                 AutoPtr<dng_jpeg_preview> jpeg_preview;
                 jpeg_preview.Reset(new dng_jpeg_preview);
@@ -1584,19 +1512,15 @@ static bool write_dng(const gpr_allocator*          allocator,
                 
                 gpr_buffer_auto buffer( allocator->Alloc, allocator->Free );
                 
-                buffer.allocate(1024*1024);
-
-                jpg_write_context context;
-                context.orig_dst = buffer.to_uchar();
-                context.next_dst = context.orig_dst;
-                
-                tje_encode_with_func(write_jpg_thumbnail, (void*)&context, 2, rgb_buffer.width, rgb_buffer.height, 3, (const unsigned char*)rgb_buffer.buffer );
-                
-                size_t size = context.next_dst - context.orig_dst;
-                jpeg_preview->fPreviewSize.v             = rgb_buffer.height;
-                jpeg_preview->fPreviewSize.h             = rgb_buffer.width;
-                jpeg_preview->fCompressedData.Reset(host.Allocate( size ));
-                memcpy( jpeg_preview->fCompressedData->Buffer_char(), buffer.get_buffer(), size );
+                gpr_buffer jpeg={};
+                // The DNG supplies orientation; its embedded JPEG is sensor-oriented.
+                if (!gpr_encode_rgb_to_jpg(allocator,(const unsigned char *)rgb_buffer.buffer,
+                        rgb_buffer.width,rgb_buffer.height,2,1,&jpeg)) return false;
+                buffer.set(jpeg.buffer,jpeg.size,true);
+                jpeg_preview->fPreviewSize.v=rgb_buffer.height;
+                jpeg_preview->fPreviewSize.h=rgb_buffer.width;
+                jpeg_preview->fCompressedData.Reset(host.Allocate(jpeg.size));
+                memcpy(jpeg_preview->fCompressedData->Buffer_char(),jpeg.buffer,jpeg.size);
 
                 AutoPtr<dng_preview> pp( dynamic_cast<dng_preview*>(jpeg_preview.Release()) );
                 
@@ -1605,23 +1529,22 @@ static bool write_dng(const gpr_allocator*          allocator,
 #endif
         }
         
-        writer = gpr_writer;
+        // writer owns gpr_writer throughout preview construction.
     }
     else
 #endif
     {
-        writer = new dng_image_writer;
+        writer.reset(new dng_image_writer);
     }
   
     writer->SetComputeMd5Sum( convert_params->compute_md5sum );
     
-    assert(writer);
-    writer->WriteDNG(host, *dng_write_stream, *negative.Get(), preview_list, dngVersion_Current, vc5_dng == false );
+    assert(writer.get());
+    writer->WriteDNG(host, *dng_write_stream, *negative.Get(), preview_list.get(), dngVersion_Current, vc5_dng == false );
   
-    delete writer;
   
-  if( preview_list )
-    delete preview_list;
+
+
     return true;
 }
 
@@ -1938,38 +1861,8 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
         return false;
     }
     
-    vc5_decoder_parameters vc5_decoder_params;
-    
-    vc5_decoder_parameters_set_default(&vc5_decoder_params);
-    
-    vc5_decoder_params.mem_alloc        = allocator->Alloc;
-    vc5_decoder_params.mem_free         = allocator->Free;
-    vc5_decoder_params.pixel_format     = VC5_DECODER_PIXEL_FORMAT_DEFAULT;
-    
-    vc5_decoder_params.rgb_bits = rgb_bits;
-    
-    gpr_rgb_gain&   rgb_gain = vc5_decoder_params.rgb_gain;
-    
-    find_rational( params.tuning_info.wb_gains.r_gain, 0.125, &rgb_gain.r_gain_num, &rgb_gain.r_gain_pow2_den );
-    find_rational( params.tuning_info.wb_gains.g_gain, 0.125, &rgb_gain.g_gain_num, &rgb_gain.g_gain_pow2_den );
-    find_rational( params.tuning_info.wb_gains.b_gain, 0.125, &rgb_gain.b_gain_num, &rgb_gain.b_gain_pow2_den );
-    
-    vc5_decoder_params.rgb_resolution = rgb_resolution;
-    
-    RGB_PARAMETERS rgb;
-    rgb_parameters_set_default(&rgb);
-    rgb.bits=rgb_bits;rgb.resolution=rgb_resolution;rgb.white_balance_gain=rgb_gain;
-    compute_camera_to_srgb_color_matrix(&params.tuning_info,&params.profile_info,rgb.color_matrix);
-    rgb_shading_map_tables shading;
-    bool shaded=shading.build(&params.tuning_info,&rgb);
-    // Match PR #68's display policy; physical baseline remains in source metadata.
-    rgb.baseline_exposure=(shaded && shading.max_gain()>1.01f && baseline_exposure>0)
-        ? 0.0f : (float)baseline_exposure;
-    rgb.black_level=compute_rgb_black_level(&params.tuning_info);
-    if( vc5_decoder_process_calibrated(&vc5_decoder_params,&vc5_buffer.get_gpr_buffer(),&rgb,out_rgb_buffer) != CODEC_ERROR_OKAY )
-    {
-        return false;
-    }
+    if (!render_calibrated_source(allocator,&params,&vc5_buffer.get_gpr_buffer(),
+                                  rgb_resolution,rgb_bits,out_rgb_buffer)) return false;
 
     TIMESTAMP("[END]", 1)
 

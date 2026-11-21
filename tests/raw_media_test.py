@@ -358,7 +358,7 @@ class Media(unittest.TestCase):
                 planes.extend((1.+channel/1000, .001+channel*.0001, -.00001, .000001, .00002, -.00003))
             body=struct.pack('>I20d',3,*planes,.47,.53)
             warp=struct.pack('>5I',1,1,0x01030000,3,len(body))+body
-            meta['image'] += [media.record(51022,7,len(warp),warp),
+            meta['image'] += [media.record(270,2,121,b'x'*120+b'\0'), media.record(51022,7,len(warp),warp),
                               media.record(50730,10,1,struct.pack('<2i',-3,10)),
                               media.record(50731,5,1,struct.pack('<2I',11,10)),
                               media.record(50732,5,1,struct.pack('<2I',9,10))]
@@ -398,6 +398,7 @@ class Media(unittest.TestCase):
                 self.assertEqual(green[0],green[1])
             dumped=run([args.sdk,'-i',encoded,'-d','1'])
             params=json.loads(dumped.stdout[dumped.stdout.index('{'):])
+            self.assertEqual(len(params['exif_info']['image_description']),63)
             self.assertAlmostEqual(params['tuning_info']['baseline_exposure'],-.3)
             self.assertEqual(params['tuning_info']['warp']['planes'],3)
             self.assertEqual(params['tuning_info']['warp']['radial'][:4],planes[:4])
@@ -417,6 +418,17 @@ class Media(unittest.TestCase):
             run([sys.executable,Path(__file__).resolve().parents[1]/'tools/raw_sequence.py',
                  *([source]*50),'--output',workflow,'--sdk',args.sdk,'--quality','3','--sample-bits','14'])
             self.assertEqual(json.loads((workflow/'workflow.json').read_text())['verified_frames'],50)
+            previewed=root/'with-preview.gpr'
+            run([args.sdk,'-i',source,'-o',previewed])
+            with tifffile.TiffFile(previewed) as f:
+                jpeg_pages=[page for page in f.pages if page.compression==7]
+                self.assertEqual(len(jpeg_pages),1)
+                page=jpeg_pages[0];offset=page.dataoffsets[0];size=page.databytecounts[0]
+                thumbnail=previewed.read_bytes()[offset:offset+size]
+            matched=root/'thumbnail-render.jpg'
+            run([args.sdk,'-i',previewed,'-o',matched,'-r','16:1','-j','2'])
+            self.assertEqual(matched.read_bytes(),thumbnail)
+
 
 
 
