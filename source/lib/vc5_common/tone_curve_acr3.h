@@ -1,21 +1,42 @@
-/* Adapted from Adeel Abbas, gopro/gpr PR #68, revision 1a65057d. */
-/*! @file tone_curve_acr3.h
+/* Adapted from Adeel Abbas, gopro/gpr PR #68, revision 1a65057d.
+ * Adobe Camera Raw 3 display tone curve, copied from the bundled DNG SDK's
+ * dng_tone_curve_acr3_default::Evaluate in dng_render.cpp.
+ * Original file: Copyright 2006-2007 Adobe Systems Incorporated.
+ * The table retains the Adobe BSD license below; project wrapper changes
+ * retain this project's Apache-2.0 OR MIT terms.
  *
- *  @brief The Adobe Camera Raw 3 default tone curve, sampled at 1025 evenly spaced
- *  points over [0,1]. Copied verbatim from dng_tone_curve_acr3_default::Evaluate in
- *  dng_sdk/dng_render.cpp (same tree, same license) so the C code in rgb.c can use it
- *  without a dependency on the C++ DNG SDK.
- *
- *  The curve maps scene-linear to display-linear: a deep shadow toe, brightened
- *  mid-tones and a soft highlight shoulder - the default look DNG renderers
- *  (Adobe, Apple's Core Image RAW pipeline, macOS Preview) apply to raw files.
- *
- *  (C) Copyright 2018 GoPro Inc (http://gopro.com/).
- *
- *  Licensed under either:
- *  - Apache License, Version 2.0, http://www.apache.org/licenses/LICENSE-2.0
- *  - MIT license, http://opensource.org/licenses/MIT
- *  at your option.
+ * The BSD License
+ * 
+ * Copyright (c) 1999 - 2014, Adobe Systems Incorporated
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or 
+ * without modification, are permitted provided that the following 
+ * conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimer.
+ *  
+ * * Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimer in the documentation 
+ * and/or other materials provided with the distribution.
+ *  
+ * * Neither the name of Adobe Systems Incorporated, nor the names of its 
+ * contributors may be used to endorse or promote products derived from this 
+ * software without specific prior written permission. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
  */
 
 #ifndef TONE_CURVE_ACR3_H
