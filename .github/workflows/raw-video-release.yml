@@ -1,0 +1,44 @@
+name: RAW media release
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tests/requirements-release.txt
+      - name: Configure complete non-CNN SDK workflow
+        run: cmake --preset raw-video-sdk -DGPR_BUILD_PREVIEW_TOOLS=ON
+      - run: cmake --build --preset raw-video-sdk
+      - run: ctest --preset raw-video-sdk
+      - name: Verify downstream source embedding and relocated packages
+        run: python tests/build_profiles.py --work-dir "${{ runner.temp }}/gpr-profiles" --full-build build/raw-video-sdk
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raw-media-${{ matrix.os }}
+          path: |
+            build/raw-video-sdk/Testing/Temporary/LastTest.log
+            ${{ runner.temp }}/gpr-profiles/*.json
+  windows-codec:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build portable stock codec
+        run: cmake -S . -B build-codec -DGPR_BUILD_SDK=OFF -DGPR_BUILD_STILL_APPS=OFF -DGPR_BUILD_LEGACY_CLI=OFF -DGPR_BUILD_CODEC_TESTS=ON
+      - run: cmake --build build-codec --config Release --parallel 4
+      - run: ctest --test-dir build-codec -C Release --output-on-failure

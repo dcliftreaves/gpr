@@ -1,0 +1,4 @@
+# Independent TIFF reading and sample comparisons; never needed for camera capture.
+numpy>=1.24,<3
+tifffile>=2024.8.30,<2027
+Pillow>=10,<14

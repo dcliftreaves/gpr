@@ -22,12 +22,12 @@ if(GPR_BUILD_ENCODER)
   include_directories( "../vc5_encoder" )
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+if(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
   include_directories( "../tiny_jpeg" )
   add_definitions("-DGPR_JPEG_AVAILABLE=1")
-else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+else(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
   add_definitions("-DGPR_JPEG_AVAILABLE=0")
-endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
+endif(EXISTS "${gpr_SOURCE_DIR}/source/lib/tiny_jpeg")
 
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
