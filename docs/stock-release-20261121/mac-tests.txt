@@ -1,79 +1,79 @@
 Test project /Users/dcliftreaves/Documents/slop/gpr_check/worktrees/stock-production/build/raw-video-sdk
       Start  1: stock_prores
- 1/37 Test  #1: stock_prores .....................   Passed   17.37 sec
+ 1/37 Test  #1: stock_prores .....................   Passed   12.05 sec
       Start  2: stock_mov
- 2/37 Test  #2: stock_mov ........................   Passed    3.68 sec
+ 2/37 Test  #2: stock_mov ........................   Passed    3.48 sec
       Start  3: preview_contract
- 3/37 Test  #3: preview_contract .................   Passed    0.30 sec
+ 3/37 Test  #3: preview_contract .................   Passed    0.21 sec
       Start  4: preview_wavelet_queue
- 4/37 Test  #4: preview_wavelet_queue ............   Passed    0.10 sec
+ 4/37 Test  #4: preview_wavelet_queue ............   Passed    0.01 sec
       Start  5: preview_queue
- 5/37 Test  #5: preview_queue ....................   Passed    0.11 sec
+ 5/37 Test  #5: preview_queue ....................   Passed    0.02 sec
       Start  6: preview_scalar_contract
- 6/37 Test  #6: preview_scalar_contract ..........   Passed    0.23 sec
+ 6/37 Test  #6: preview_scalar_contract ..........   Passed    0.20 sec
       Start  7: preview_cli
- 7/37 Test  #7: preview_cli ......................   Passed    0.25 sec
+ 7/37 Test  #7: preview_cli ......................   Passed    0.14 sec
       Start  8: stock_preview_profiles
- 8/37 Test  #8: stock_preview_profiles ...........   Passed    0.34 sec
+ 8/37 Test  #8: stock_preview_profiles ...........   Passed    0.25 sec
       Start  9: capture_preview
- 9/37 Test  #9: capture_preview ..................   Passed    7.13 sec
+ 9/37 Test  #9: capture_preview ..................   Passed    6.69 sec
       Start 10: capture_lifecycle
-10/37 Test #10: capture_lifecycle ................   Passed    0.15 sec
+10/37 Test #10: capture_lifecycle ................   Passed    0.06 sec
       Start 11: capture_c_api
-11/37 Test #11: capture_c_api ....................   Passed    0.12 sec
+11/37 Test #11: capture_c_api ....................   Passed    0.03 sec
       Start 12: stock_crop
 12/37 Test #12: stock_crop .......................   Passed    0.07 sec
       Start 13: gvid3_conformance
-13/37 Test #13: gvid3_conformance ................   Passed    0.17 sec
+13/37 Test #13: gvid3_conformance ................   Passed    0.20 sec
       Start 14: gvid2_compatibility
-14/37 Test #14: gvid2_compatibility ..............   Passed    0.08 sec
+14/37 Test #14: gvid2_compatibility ..............   Passed    0.07 sec
       Start 15: video_format_matrix
-15/37 Test #15: video_format_matrix ..............   Passed    2.56 sec
+15/37 Test #15: video_format_matrix ..............   Passed    2.26 sec
       Start 16: sdk_c_api
-16/37 Test #16: sdk_c_api ........................   Passed    0.14 sec
+16/37 Test #16: sdk_c_api ........................   Passed    0.01 sec
       Start 17: raw_media
-17/37 Test #17: raw_media ........................   Passed    4.50 sec
+17/37 Test #17: raw_media ........................   Passed    2.88 sec
       Start 18: stock_still
-18/37 Test #18: stock_still ......................   Passed    1.13 sec
+18/37 Test #18: stock_still ......................   Passed    0.80 sec
       Start 19: stock_sequence
-19/37 Test #19: stock_sequence ...................   Passed    0.42 sec
+19/37 Test #19: stock_sequence ...................   Passed    0.25 sec
       Start 20: encoder_preview_probe
-20/37 Test #20: encoder_preview_probe ............   Passed    0.12 sec
+20/37 Test #20: encoder_preview_probe ............   Passed    0.01 sec
       Start 21: encoder_preview_probe_fast
 21/37 Test #21: encoder_preview_probe_fast .......   Passed    0.01 sec
       Start 22: encoder_preview_matrix
 22/37 Test #22: encoder_preview_matrix ...........   Passed    0.11 sec
       Start 23: encoder_preview_matrix_fast
-23/37 Test #23: encoder_preview_matrix_fast ......   Passed    0.11 sec
+23/37 Test #23: encoder_preview_matrix_fast ......   Passed    0.12 sec
       Start 24: decoder_bounds
-24/37 Test #24: decoder_bounds ...................   Passed    0.15 sec
+24/37 Test #24: decoder_bounds ...................   Passed    0.05 sec
       Start 25: encoder_bounds
-25/37 Test #25: encoder_bounds ...................   Passed    0.58 sec
+25/37 Test #25: encoder_bounds ...................   Passed    0.23 sec
       Start 26: encoder_bounds_fast
-26/37 Test #26: encoder_bounds_fast ..............   Passed    0.31 sec
+26/37 Test #26: encoder_bounds_fast ..............   Passed    0.23 sec
       Start 27: bayer_formats
-27/37 Test #27: bayer_formats ....................   Passed    0.40 sec
+27/37 Test #27: bayer_formats ....................   Passed    0.16 sec
       Start 28: bayer_formats_fast
-28/37 Test #28: bayer_formats_fast ...............   Passed    0.19 sec
+28/37 Test #28: bayer_formats_fast ...............   Passed    0.15 sec
       Start 29: preview_inverse_rows
-29/37 Test #29: preview_inverse_rows .............   Passed    0.11 sec
+29/37 Test #29: preview_inverse_rows .............   Passed    0.01 sec
       Start 30: wavelet_pipeline_coefficients
-30/37 Test #30: wavelet_pipeline_coefficients ....   Passed    0.28 sec
+30/37 Test #30: wavelet_pipeline_coefficients ....   Passed    0.18 sec
       Start 31: preview_dequant_lookup
-31/37 Test #31: preview_dequant_lookup ...........   Passed    0.13 sec
+31/37 Test #31: preview_dequant_lookup ...........   Passed    0.01 sec
       Start 32: capture_stream_lifecycle
-32/37 Test #32: capture_stream_lifecycle .........   Passed    0.15 sec
+32/37 Test #32: capture_stream_lifecycle .........   Passed    0.06 sec
       Start 33: wavelet_stream_public
-33/37 Test #33: wavelet_stream_public ............   Passed    0.80 sec
+33/37 Test #33: wavelet_stream_public ............   Passed    0.50 sec
       Start 34: wavelet_stream_public_fast
-34/37 Test #34: wavelet_stream_public_fast .......   Passed    0.60 sec
+34/37 Test #34: wavelet_stream_public_fast .......   Passed    0.50 sec
       Start 35: raw_video_workflow
-35/37 Test #35: raw_video_workflow ...............   Passed    3.11 sec
+35/37 Test #35: raw_video_workflow ...............   Passed    2.76 sec
       Start 36: bayer_formats_reference
-36/37 Test #36: bayer_formats_reference ..........   Passed    0.17 sec
+36/37 Test #36: bayer_formats_reference ..........   Passed    0.16 sec
       Start 37: calibrated_render
-37/37 Test #37: calibrated_render ................   Passed    0.11 sec
+37/37 Test #37: calibrated_render ................   Passed    0.01 sec
 
 100% tests passed, 0 tests failed out of 37
 
-Total Test time (real) =  46.37 sec
+Total Test time (real) =  34.99 sec
