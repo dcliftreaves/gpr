@@ -1,0 +1,17 @@
+{
+  "schema": "gpr.signal_checkpoint.v1",
+  "checkpoint_sha256": "7e76e274bea48a387178d52beb1f889ce1678df8c89d98539432f20ad5940cf0",
+  "architecture": "Mission1LargeAreaWaveletSR",
+  "width": 80,
+  "depth": 4,
+  "parameters": 388500,
+  "input_cfa": "RGGB",
+  "sample_bits": 14,
+  "raw_normalization": 16383,
+  "training_source_manifest": null,
+  "training_split_provenance": "unavailable",
+  "held_out_quality_approval": false,
+  "inference_policy": "bounded_cell_means_and_balanced_integer_rounding_v1",
+  "parameter_weights_changed": false,
+  "receptive_field_claim_independently_verified": false
+}
