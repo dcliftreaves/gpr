@@ -484,29 +484,21 @@ def estimate_empirical_sensor_noise_profile(
     black_level: float = 256.0,
     num_bins: int = 32,
 ) -> Dict[str, object]:
-    """
-    Single-Image Empirical Sensor Noise & Optical Crosstalk Profiler
-    (Following Foi et al., IEEE TIP 2008 + Hirakawa & Parks, IEEE TIP 2006):
+    """Exploratory single-image green-difference MAD noise estimate.
 
-    Directly from a single raw Bayer frame (H, W) in 14-bit ADC counts, extracts:
-      1. 1D Horizontal Row-Banding & Vertical Column-Banding jitter (in ADC counts).
-      2. Radial Chief Ray Angle (CRA) |G_r - G_b| / G green-imbalance profile across r in [0, 1].
-      3. Self-Calibrated Radial Lateral Chromatic Aberration (LCA) shift profile (R-G and B-G vs r).
-      4. Non-Parametric Empirical Noise Lookup Table LUT_sigma[bin] (using Median Absolute Deviation
-         of C_G = (G1 - G2)/2 in homogeneous tiles), capturing both Poisson-Gaussian shot/read noise
-         and VC-5 Table_14_to_12 companding quantization plateaus.
-      5. Fitted Foi et al. (2008) Poisson-Gaussian parameters (shot_gain_a, read_var_b) for comparison.
+    Report intensity-bin sigma, row/column proxies and radial green imbalance.
+    Texture, Bayer-site displacement, crosstalk and compression can contaminate
+    the estimate. This is not an independent dark/flat calibration or an
+    implementation of the full Foi estimator. No LCA is inferred here.
     """
+    if raw_hw.ndim != 2 or min(raw_hw.shape) < 4 or any(n % 2 for n in raw_hw.shape) or not np.isfinite(raw_hw).all() or not 1 <= num_bins <= 256:
+        raise ValueError("requires a finite, even Bayer frame and 1..256 bins")
     raw_f = raw_hw.astype(np.float32)
-    r = raw_f[0::2, 0::2]
     g1 = raw_f[0::2, 1::2]
     g2 = raw_f[1::2, 0::2]
-    b = raw_f[1::2, 1::2]
 
     yg = 0.5 * (g1 + g2)
     cg = 0.5 * (g1 - g2)
-    cr = r - yg
-    cb = b - yg
 
     h, w = yg.shape
 
@@ -527,7 +519,7 @@ def estimate_empirical_sensor_noise_profile(
     cg_flat = cg[:-1, :-1][flat_mask]
 
     # 3. Empirical Intensity-Binned Noise LUT (Foi et al. 2008 MAD estimator on C_G)
-    p_lo = max(float(np.percentile(yg_flat, 1.0)), black_level + 8.0)
+    p_lo = float(np.percentile(yg_flat, 1.0))
     p_hi = float(np.percentile(yg_flat, 99.0))
     bin_edges = np.linspace(p_lo, p_hi, num_bins + 1)
 
@@ -543,6 +535,12 @@ def estimate_empirical_sensor_noise_profile(
             lut_intensity.append(med_i)
             lut_sigma.append(mad_sigma)
 
+    # Uniform, clipped and very small frames may populate no intensity bins.
+    # Keep the measured MAD (including exactly zero) rather than invent noise.
+    fallback = not lut_intensity
+    if fallback:
+        lut_intensity = [float(np.median(yg_flat))]
+        lut_sigma = [float(np.median(np.abs(cg_flat - np.median(cg_flat))) / .6745 * math.sqrt(2.))]
     lut_x = np.array(lut_intensity, dtype=np.float32)
     lut_y = np.array(lut_sigma, dtype=np.float32)
 
@@ -580,6 +578,8 @@ def estimate_empirical_sensor_noise_profile(
     hot_pixel_count = int(np.sum(hot_pixel_mask))
 
     return {
+        "estimate_kind": "single_image_green_difference_MAD",
+        "flat_bin_fallback": fallback,
         "row_banding_sigma_counts": sigma_row,
         "col_banding_sigma_counts": sigma_col,
         "hot_pixel_impulse_count": hot_pixel_count,

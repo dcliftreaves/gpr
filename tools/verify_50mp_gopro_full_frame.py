@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Full-Frame 50 MP (8192 x 6144) GoPro Mission 1 Verification Suite
+Historical F_ane/W96 Full-Frame 50 MP Verification Suite
+
+This script does not evaluate Mission1LargeAreaWaveletSR and requires external
+local fixtures. Use tests/signal_raw_test.py and tools/signal_raw.py for the
+portable signal RAW round-trip experiment.
 =================================================================
 Tests the Clean-Sheet Zero-DC Neural Models (`F_ane` 2x SR, `1x -> 2x` Cascade,
 and `Mission1OpticalHybridW96`) + Analytical Optical Stackup on:

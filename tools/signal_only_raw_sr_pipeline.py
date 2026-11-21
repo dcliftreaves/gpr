@@ -1,42 +1,16 @@
 #!/usr/bin/env python3
-"""
-Signal-Only RAW Encoding, Optical PSF Deconvolution, Zero-DC Super-Resolution Hook,
-and Reversible Empirical Sensor Grain Synthesis
-==================================================================================
-Implements the complete 4-stage "Signal-in-File, Optional-Grain-on-Decode" architecture:
+"""Experimental RGGB14 restoration primitives.
 
-  Stage A (In-Camera / Pre-Encode):
-    Strip empirically calibrated Poisson-Gaussian shot/read noise and Chief Ray Angle (CRA)
-    C_G crosstalk so ONLY deterministic optical signal is stored in the .gpr / .vc5 bitstream
-    (improving compression ratio by 1.35x to 1.85x / reducing file size by 25% to 46%).
-
-  Stage B (Post-Decode 1x Signal Restoration):
-    Deconvolve the fixed-lens 2D Point Spread Function K_PSF(u, v; r, theta) and align
-    Lateral Chromatic Aberration (LCA) on the noise-free 12MP signal using Half-Quadratic
-    Splitting (HQS) with l_{2/3} hyper-Laplacian priors + Structure-Tensor coherence.
-
-  Stage C (The 12MP -> 50MP Super-Resolution Hook):
-    Hook in Box-2x2 Cell-Consistent Deconvolution + Zero-DC Sub-Pixel Neural SR
-    (predicting ONLY the missing Stage-0 intra-cell AC Haar wavelets LH_0, HL_0, HH_0
-    on top of the clean, PSF-deconvolved 12MP LL_1 base, with 0.0000 DC shift).
-
-  Stage D (Optional Reversible Sensor Noise / Grain Synthesis on Decode):
-    Using the 32-bin Empirical Noise LUT (LUT_sigma[Y_G, r]), optionally synthesize
-    statistically matched Poisson-Gaussian sensor grain shaped by the OLPF covariance
-    at 0 bits/pixel bitstream cost.
+Noise estimates and generated grain are approximations, not recovery of the
+original noise. File round trips live in signal_raw.py. No camera deployment
+or quality approval is implied by this model/checkpoint.
 """
 
 import math
-from typing import Dict, Tuple
 import numpy as np
 
 from optical_psf_deconvolution import (
     PEAK,
-    build_polar_psf_kernel,
-    deconvolve_hqs_hyper_laplacian_gat,
-    estimate_empirical_sensor_noise_profile,
-    measure_sharpness_and_noise_metrics,
-    remove_shot_and_read_noise_4ch,
 )
 
 
@@ -60,7 +34,7 @@ def box_2x2_consistent_upsample_4ch(
     bic_cell_mean = box_2x2_downsample_4ch(bicubic_50mp)
     cell_error = planes_12mp - bic_cell_mean
     err_nearest = np.repeat(np.repeat(cell_error, 2, axis=1), 2, axis=2)
-    return np.clip(bicubic_50mp + err_nearest, 0.0, 1.0).astype(np.float32)
+    return bounded_cell_consistent_4ch(bicubic_50mp + err_nearest, planes_12mp)
 
 
 def project_zero_dc_residual_2x2(residual_50mp: np.ndarray) -> np.ndarray:
@@ -73,58 +47,145 @@ def project_zero_dc_residual_2x2(residual_50mp: np.ndarray) -> np.ndarray:
     return (residual_50mp - mean_nearest).astype(np.float32)
 
 
-def synthesize_empirical_sensor_grain_4ch(
-    clean_planes_4ch: np.ndarray,
-    noise_profile: Dict[str, object],
-    strength: float = 1.0,
-    seed: int = 42,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Stage D: Reversible Empirical Sensor Noise / Grain Synthesis on Decode (0 bits/px cost).
-    Uses the Empirical Noise Lookup Table LUT_sigma[Y_G] extracted by Foi et al. (2008)
-    to generate realistic, signal-dependent Poisson-Gaussian sensor grain shaped by the
-    optical low-pass filter (OLPF) covariance.
-    """
-    rng = np.random.default_rng(seed)
-    c, h, w = clean_planes_4ch.shape
-    yg_counts = 0.5 * (clean_planes_4ch[1] + clean_planes_4ch[2]) * PEAK
+def bounded_cell_consistent_4ch(proposal: np.ndarray, low: np.ndarray) -> np.ndarray:
+    """Preserve cell means and bounds together, including black/saturated cells.
 
-    lut_x = np.array(noise_profile["lut_intensity_counts"], dtype=np.float32)
-    lut_y = np.array(noise_profile["lut_sigma_counts"], dtype=np.float32)
-    # Divide by 2.0 when synthesizing onto a 2x2-binned / denoised base so grain matches native 50MP texture
-    local_sigma_counts = np.interp(yg_counts, lut_x, lut_y) * (0.55 * strength)
-    local_sigma_norm = (local_sigma_counts / PEAK).astype(np.float32)
+    Redistribute mean error in proportion to each sample's available headroom.
+    This is a bounded consistency correction, not a Euclidean projection.
+    """
+    if proposal.shape != (low.shape[0], low.shape[1] * 2, low.shape[2] * 2):
+        raise ValueError("incompatible high/low geometry")
+    if (
+        not np.isfinite(proposal).all()
+        or not np.isfinite(low).all()
+        or np.any((low < 0) | (low > 1))
+    ):
+        raise ValueError("requires finite proposal and normalized low samples")
+    out = np.clip(proposal.astype(np.float64), 0, 1)
+    mean = 0.25 * sum(out[:, y::2, x::2] for y in range(2) for x in range(2))
+    error = low.astype(np.float64) - mean
+    for y in range(2):
+        for x in range(2):
+            v = out[:, y::2, x::2]
+            capacity = np.where(error >= 0, 1 - v, v)
+            average_capacity = np.where(error >= 0, 1 - mean, mean)
+            v += error * capacity / np.maximum(average_capacity, 1e-30)
+    return np.clip(out, 0, 1).astype(np.float32)
 
-    # Generate white Gaussian innovations for Luminance (Y_G), Chroma (C_R, C_B), and Green-Phase (C_G)
-    n_y = rng.standard_normal((h, w), dtype=np.float32)
-    # Shape luminance grain with slight 3x3 OLPF spatial covariance (0.80 center + 0.20 4-neighbors)
-    n_y_pad = np.pad(n_y, ((1, 1), (1, 1)), mode="wrap")
-    n_y_olpf = 0.80 * n_y + 0.05 * (
-        n_y_pad[:-2, 1:-1] + n_y_pad[2:, 1:-1] + n_y_pad[1:-1, :-2] + n_y_pad[1:-1, 2:]
+
+def bounded_cell_consistent_torch(proposal, low):
+    import torch
+    import torch.nn.functional as F
+
+    out = proposal.clamp(0, 1)
+    mean = F.avg_pool2d(out, 2)
+    error = low - mean
+    positive = F.interpolate((error >= 0).to(out.dtype), scale_factor=2, mode="nearest")
+    capacity = torch.where(positive.bool(), 1 - out, out)
+    average_capacity = torch.where(error >= 0, 1 - mean, mean).clamp_min(1e-12)
+    adjustment = F.interpolate(error / average_capacity, scale_factor=2, mode="nearest")
+    return (out + adjustment * capacity).clamp(0, 1)
+
+
+def quantize_cell_consistent_4ch(
+    high: np.ndarray, low_counts: np.ndarray
+) -> np.ndarray:
+    """Balanced integer rounding; every four high samples sum to 4*low_count."""
+    out = bounded_cell_consistent_4ch(high, low_counts.astype(np.float64) / PEAK)
+    cells = np.stack(
+        [out[:, y::2, x::2] * PEAK for y in range(2) for x in range(2)], axis=-1
+    ).astype(np.float64)
+    floors = np.floor(cells).astype(np.int32)
+    difference = 4 * low_counts.astype(np.int32) - floors.sum(axis=-1)
+    fractions = cells - floors
+    up = np.argsort(
+        -np.where(floors < PEAK, fractions, -np.inf), axis=-1, kind="stable"
     )
-    n_y_olpf *= 1.0 / math.sqrt(0.80 ** 2 + 4 * (0.05 ** 2))
+    down = np.argsort(np.where(floors > 0, fractions, np.inf), axis=-1, kind="stable")
+    if np.any(np.abs(difference) > 4):
+        raise ValueError("rounding correction exceeds cell capacity")
+    for k in range(4):
+        idx = up[..., k : k + 1]
+        value = np.take_along_axis(floors, idx, axis=-1)
+        np.put_along_axis(floors, idx, value + (difference > k)[..., None], axis=-1)
+        idx = down[..., k : k + 1]
+        value = np.take_along_axis(floors, idx, axis=-1)
+        np.put_along_axis(floors, idx, value - (-difference > k)[..., None], axis=-1)
+    result = np.empty_like(out, dtype=np.uint16)
+    for i, (y, x) in enumerate(((0, 0), (0, 1), (1, 0), (1, 1))):
+        result[:, y::2, x::2] = floors[..., i]
+    return result
 
-    # Uncorrelated diagonal green-difference shot noise (C_G = (G1 - G2)/2)
-    n_cg = rng.standard_normal((h, w), dtype=np.float32) * 0.5
 
-    dy = local_sigma_norm * n_y_olpf
-    dcg = local_sigma_norm * n_cg
+def synthesize_empirical_sensor_grain_4ch(
+    clean_planes_4ch, noise_profile, strength=1.0, seed=42, frame_index=0, origin=(0, 0)
+):
+    """Optional Gaussian texture, not reconstruction of the discarded noise.
 
-    grain_4ch = np.stack([
-        dy,
-        dy + dcg,
-        dy - dcg,
-        dy,
-    ], axis=0)
+    Independent Bayer-site innovations; coordinate-keyed randomness makes crops
+    and tiles deterministic while frame_index prevents fixed-pattern movies.
+    The intensity-conditioned sigma estimate does not establish a full sensor
+    covariance or Poisson law. No unmeasured OLPF correlation is imposed.
+    """
+    clean = np.asarray(clean_planes_4ch, dtype=np.float32)
+    if clean.ndim != 3 or clean.shape[0] != 4 or not np.isfinite(clean).all():
+        raise ValueError("requires four finite Bayer planes")
+    if (
+        not math.isfinite(strength)
+        or strength < 0
+        or not 0 <= seed < 2**64
+        or not 0 <= frame_index < 2**64
+    ):
+        raise ValueError("invalid grain strength/seed/frame")
+    lut_x = np.asarray(noise_profile["lut_intensity_counts"], dtype=np.float64)
+    lut_y = np.asarray(noise_profile["lut_sigma_counts"], dtype=np.float64)
+    if (
+        not len(lut_x)
+        or lut_x.shape != lut_y.shape
+        or not np.isfinite(lut_x).all()
+        or not np.isfinite(lut_y).all()
+        or np.any(lut_y < 0)
+        or np.any(np.diff(lut_x) <= 0)
+    ):
+        raise ValueError("requires a finite, ordered noise LUT")
+    _, h, w = clean.shape
+    yy, xx = np.mgrid[origin[0] : origin[0] + h, origin[1] : origin[1] + w].astype(
+        np.uint64
+    )
 
-    synthesized = np.clip(clean_planes_4ch + grain_4ch, 0.0, 1.0).astype(np.float32)
-    return synthesized, (grain_4ch * PEAK).astype(np.float32)
+    def mix(z):
+        with np.errstate(over="ignore"):
+            z = (z ^ (z >> 30)) * np.uint64(0xBF58476D1CE4E5B9)
+            z = (z ^ (z >> 27)) * np.uint64(0x94D049BB133111EB)
+        return z ^ (z >> 31)
+
+    grain = np.empty_like(clean)
+    with np.errstate(over="ignore"):
+        keys = (
+            np.uint64(seed)
+            ^ (np.uint64(frame_index) * np.uint64(0x9E3779B97F4A7C15))
+            ^ (yy * np.uint64(0xD6E8FEB86659FD93))
+            ^ (xx * np.uint64(0xA0761D6478BD642F))
+        )
+        for c in range(4):
+            key = keys ^ (np.uint64(c + 1) * np.uint64(0xE7037ED1A0B428DB))
+            u = ((mix(key) >> 11).astype(np.float64) + 0.5) / 2**53
+            v = (
+                (mix(key ^ np.uint64(0x8EBC6AF09C88C6E3)) >> 11).astype(np.float64)
+                + 0.5
+            ) / 2**53
+            normal = np.sqrt(-2 * np.log(u)) * np.cos(2 * np.pi * v)
+            sigma = np.interp(clean[c] * PEAK, lut_x, lut_y) * strength / PEAK
+            grain[c] = normal * sigma
+    result = np.clip(clean + grain, 0, 1).astype(np.float32)
+    return result, (grain * PEAK).astype(np.float32)
 
 
 def build_large_area_wavelet_sr_model(width: int = 80, depth: int = 4):
     """
-    Build the Physics-Preconditioned Large-Area (69x69 quad = 138x138 50MP Bayer px)
-    Zero-DC Super-Resolution CNN (Mission1LargeAreaWaveletSR, 388,500 params).
+    Architecture of the shipped 388,500-parameter exploratory checkpoint.
+    The original nominal 138-pixel context claim is not independently certified.
+    Pooling requires global phase alignment during tiled execution.
     """
     import torch
     import torch.nn as nn
@@ -147,7 +208,9 @@ def build_large_area_wavelet_sr_model(width: int = 80, depth: int = 4):
             o2 = self.b2(x)
             o3 = self.b3(x)
             x_low = F.avg_pool2d(x, kernel_size=4, stride=4)
-            o4 = F.interpolate(self.b4(x_low), size=x.shape[-2:], mode="bilinear", align_corners=False)
+            o4 = F.interpolate(
+                self.b4(x_low), size=x.shape[-2:], mode="bilinear", align_corners=False
+            )
             cat = self.act(torch.cat([o1, o2, o3, o4], dim=1))
             return x + self.gamma * self.proj(cat)
 
@@ -155,7 +218,9 @@ def build_large_area_wavelet_sr_model(width: int = 80, depth: int = 4):
         def __init__(self, w: int = 80, d: int = 4):
             super().__init__()
             self.stem = nn.Sequential(nn.Conv2d(14, w, 3, padding=1), nn.GELU())
-            self.blocks = nn.ModuleList([MultiScaleDilatedWaveletBlock(w) for _ in range(d)])
+            self.blocks = nn.ModuleList(
+                [MultiScaleDilatedWaveletBlock(w) for _ in range(d)]
+            )
             self.up_conv = nn.Sequential(
                 nn.Conv2d(w, w * 2, 1),
                 nn.GELU(),
@@ -170,8 +235,16 @@ def build_large_area_wavelet_sr_model(width: int = 80, depth: int = 4):
                 nn.Conv2d(32, 4, 3, padding=1),
             )
 
-        def forward(self, x_4ch: torch.Tensor, coords_2ch: torch.Tensor) -> torch.Tensor:
-            bic = F.interpolate(x_4ch, scale_factor=2, mode="bicubic", align_corners=False)
+        def forward(
+            self, x_4ch: torch.Tensor, coords_2ch: torch.Tensor
+        ) -> torch.Tensor:
+            original_h, original_w = x_4ch.shape[-2:]
+            padding = (0, (-original_w) % 4, 0, (-original_h) % 4)
+            x_4ch = F.pad(x_4ch, padding, mode="replicate")
+            coords_2ch = F.pad(coords_2ch, padding, mode="replicate")
+            bic = F.interpolate(
+                x_4ch, scale_factor=2, mode="bicubic", align_corners=False
+            )
             cell_err = x_4ch - F.avg_pool2d(bic, kernel_size=2, stride=2)
             box_base = bic + F.interpolate(cell_err, scale_factor=2, mode="nearest")
 
@@ -185,15 +258,71 @@ def build_large_area_wavelet_sr_model(width: int = 80, depth: int = 4):
             lap = yg - F.avg_pool2d(yg, kernel_size=3, stride=1, padding=1)
             r2 = 0.5 * (coords_2ch[:, 0:1] ** 2 + coords_2ch[:, 1:2] ** 2)
 
-            feat_in = torch.cat([x_4ch, yg, cr, cb, cg, gx, gy, lap, r2, coords_2ch], dim=1)
+            feat_in = torch.cat(
+                [x_4ch, yg, cr, cb, cg, gx, gy, lap, r2, coords_2ch], dim=1
+            )
             h = self.stem(feat_in)
             for blk in self.blocks:
                 h = blk(h)
             hr_feat = self.up_conv(h)
             raw_delta = self.hr_refine(torch.cat([hr_feat, box_base], dim=1))
             delta_dc = F.avg_pool2d(raw_delta, kernel_size=2, stride=2)
-            delta_zero_dc = raw_delta - F.interpolate(delta_dc, scale_factor=2, mode="nearest")
-            return (box_base + delta_zero_dc).clamp(0.0, 1.0)
+            delta_zero_dc = raw_delta - F.interpolate(
+                delta_dc, scale_factor=2, mode="nearest"
+            )
+            return bounded_cell_consistent_torch(box_base + delta_zero_dc, x_4ch)[
+                :, :, : original_h * 2, : original_w * 2
+            ]
 
     return Mission1LargeAreaWaveletSR(width, depth)
 
+
+def restore_tiled(planes, model, tile=128, halo=64, device="cpu", telemetry=None):
+    """Globally phase-aligned pooling and sufficient halo; balanced count output.
+
+    Inputs are four uint16 RGGB14 site planes. No physical-sensor/VC-5 LL1
+    equivalence is assumed. The conserved measurement is the decoded input.
+    """
+    import torch
+
+    if (
+        planes.ndim != 3
+        or planes.shape[0] != 4
+        or planes.dtype != np.uint16
+        or np.any(planes > PEAK)
+    ):
+        raise ValueError("requires four uint16 RGGB14 site planes")
+    if tile < 4 or tile % 4 or halo < 64 or halo % 4:
+        raise ValueError(
+            "tile must be divisible by 4; halo must be >=64 and divisible by 4"
+        )
+    _, h, w = planes.shape
+    result = np.empty((4, h * 2, w * 2), dtype=np.uint16)
+    model = model.to(device).eval()
+    for y in range(0, h, tile):
+        for x in range(0, w, tile):
+            y1, x1 = min(y + tile, h), min(x + tile, w)
+            ya, xa = max(0, y - halo), max(0, x - halo)
+            yb, xb = min(h, y1 + halo), min(w, x1 + halo)
+            coords = np.empty((2, yb - ya, xb - xa), dtype=np.float32)
+            coords[0] = np.linspace(-1, 1, w, dtype=np.float32)[None, xa:xb]
+            coords[1] = np.linspace(-1, 1, h, dtype=np.float32)[ya:yb, None]
+            source = torch.from_numpy(
+                planes[:, ya:yb, xa:xb].astype(np.float32) / PEAK
+            )[None].to(device)
+            with torch.inference_mode():
+                out = (
+                    model(source, torch.from_numpy(coords)[None].to(device))[0]
+                    .cpu()
+                    .numpy()
+                )
+            if telemetry is not None and device == "mps":
+                observed = int(torch.mps.driver_allocated_memory())
+                telemetry["max_observed_mps_driver_bytes"] = max(
+                    telemetry.get("max_observed_mps_driver_bytes", 0), observed
+                )
+            core = out[:, 2 * (y - ya) : 2 * (y1 - ya), 2 * (x - xa) : 2 * (x1 - xa)]
+            result[:, 2 * y : 2 * y1, 2 * x : 2 * x1] = quantize_cell_consistent_4ch(
+                core, planes[:, y:y1, x:x1]
+            )
+    return result

@@ -1,5 +1,8 @@
 # GPR Introduction
 
+This research branch also includes an opt-in [offline signal RAW / bounded SR experiment](SIGNAL_ONLY_RAW_AND_SUPER_RESOLUTION.md), with separate-process GPR round trips and local size/quality/timing reports. Neural reconstruction is explicitly experimental; camera execution is not established.
+
+
 The General Purpose Raw (GPR) is 12-bit raw image coding format that is based on [Adobe DNG®](https://helpx.adobe.com/photoshop/digital-negative.html) standard. Image compression is a balance of speed, file size and photo quality, and typically one can only choose two. GPR was designed to provide a better tradeoff for all three parameters than what's possible with DNG or any other raw format. The intention of GPR is not to compete with DNG, rather to be as close as possible to DNG. This guarantees compatibility with applications that already understand DNG, but provide an alternate compression scheme in situations where compression and encoding/decoding speed matter.
 
 Action cameras, like that from GoPro, have limited computing resources, so ability to compress data using fewest CPU cycles matters. File sizes matter because GoPro cameras can record thousands of images very quickly using timelapse and burst mode features. As the world shifts from desktop to mobile, people now shoot and process more and more photos on smartphones which are always limited on storage space and bandwidth. And last but not the least, image quality matters because we want GPR to provide visually transparent image quality when compared to uncompressed DNG. All this combined enables customers to capture DSLR-class image quality in a GPR file that has nearly same size as JPEG, on a camera that is as small and rugged as a GoPro.
