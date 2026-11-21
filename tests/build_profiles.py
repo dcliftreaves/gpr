@@ -79,6 +79,9 @@ def main():
         run(configure, dest/'client-configure.log')
         run(['cmake', '--build', build, '--config', 'Release', '--parallel', '4'], dest/'client-build.log')
         run(['ctest', '--test-dir', build, '-C', 'Release', '--output-on-failure'], dest/'client-test.log')
+        for document in ('README.md', 'VISION.md', 'CONTRIBUTING.md', 'licenses/adobe-dng-tone-curve.txt'):
+            if not (prefix/'share/gpr'/document).is_file():
+                raise RuntimeError(f'package lacks required documentation/notice: {document}')
         tools = prefix/'share/gpr/tools'
         run([sys.executable,tools/'stock_preview.py','--help'],dest/'installed-preview-prepare-help.log')
         run([sys.executable,'-c',
@@ -159,8 +162,8 @@ def main():
         for path in ('CMakeLists.txt', 'LICENSE.txt', 'LICENSE-MIT', 'LICENSE-APACHE'):
             shutil.copy2(root/path, src/path)
         shutil.copytree(root/'cmake', src/'cmake')
-        for name in ('README.md','VISION.md','CONTRIBUTING.md'):
-            shutil.copy2(root/name,src/name)
+        for document in ('README.md','VISION.md','CONTRIBUTING.md'):
+            shutil.copy2(root/document,src/document)
         shutil.copytree(root/'tests', src/'tests', ignore=shutil.ignore_patterns('__pycache__'))
         (src/'docs').mkdir()
         for doc in (root/'docs').glob('stock-*'):
